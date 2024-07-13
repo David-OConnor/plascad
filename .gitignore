@@ -1,0 +1,6 @@
+# Rust
+/target
+
+# IDE
+*.iws
+workspace.xml
