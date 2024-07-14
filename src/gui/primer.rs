@@ -3,7 +3,9 @@ use egui_extras::{Column, TableBuilder};
 
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
-    make_seq_str, seq_from_str, State,
+    make_seq_str,
+    primer::{Primer, PrimerMetrics},
+    seq_from_str, State,
 };
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
@@ -14,6 +16,74 @@ const COLOR_BAD: Color32 = Color32::LIGHT_RED;
 //
 // const THRESHOLDS_TM: (f32, f32) = (59., 60.);
 // const THRESHOLDS_GC: (f32, f32) = (59., 60.);
+
+#[derive(Clone, Copy, PartialEq)]
+enum TuneSetting {
+    Disabled,
+    /// Inner: Offset index; this marks the distance from the respective ends that the sequence is attentuated to.
+    Enabled(usize),
+}
+
+impl Default for TuneSetting {
+    fn default() -> Self {
+        Self::Disabled
+    }
+}
+
+impl TuneSetting {
+    pub fn toggle(&mut self) {
+        *self = match self {
+            Self::Disabled => Self::Enabled(0),
+            _ => Self::Disabled,
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct PrimerData {
+    /// This primer excludes nts past the tuning offsets.
+    primer: Primer,
+    /// Editing is handled using this string; we convert the string to our nucleotide sequence as needed.
+    /// This includes nts past the tuning offsets.
+    sequence_input: String,
+    description: String,
+    metrics: Option<PrimerMetrics>,
+    // tunable_end: TunableEnd,
+    /// These fields control if a given primer end is fixed (Eg marking the start of an insert,
+    /// marking the insert point in a vector etc) or if we can tune its length to optimize the primer.
+    tunable_5p: TuneSetting,
+    tunable_3p: TuneSetting,
+}
+
+impl PrimerData {
+    /// Perform calculations on primer quality and related data. Run this when the sequence changes.
+    pub fn run_calcs(&mut self) {
+        let full_len = self.sequence_input.len();
+        let mut start = 0;
+        let mut end = full_len;
+
+        if let TuneSetting::Enabled(i) = self.tunable_5p {
+            start = i;
+        }
+
+        if let TuneSetting::Enabled(i) = self.tunable_5p {
+            end = if i > full_len {
+                // Prevents an overrun.
+                0
+            } else {
+                full_len - i
+            };
+        }
+
+        if start > end || start + 1 > self.sequence_input.len() {
+            start = 0;
+            end = full_len
+        }
+
+        self.primer.sequence = seq_from_str(&self.sequence_input[start..end]);
+        self.metrics = self.primer.calc_metrics();
+    }
+}
 
 /// Color scores in each category according to these thresholds. These scores should be on a scale
 /// between 0 and 1.
@@ -35,7 +105,10 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         ui.heading(RichText::new("Primer QC").color(Color32::WHITE));
         ui.add_space(COL_SPACING);
 
-        if ui.button("➕ Add primer").clicked() {
+        let add_btn = ui
+            .button("➕ Add primer")
+            .on_hover_text("Adds a primer to the list below. Ctrl + A");
+        if add_btn.clicked() {
             state.ui.primer_cols.push(Default::default())
         }
 
@@ -47,13 +120,19 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(COL_SPACING * 2.);
 
-        if ui.button("Save").clicked() {}
+        // todo: Ctrl + S as well.
+        if ui
+            .button("Save")
+            .on_hover_text("Save primer data. Ctrl + S")
+            .clicked()
+        {}
 
         if ui.button("Load").clicked() {}
     });
 
-    ui.label("Tuning instructions: Include more of the target sequence than required on the end[s] that can be tuned. These are the\
-     ends that do not define your inert, gene of interest, insertion point etc. Mark that end as tunable using the \"Tune\" button.");
+    ui.label("Tuning instructions: Include more of the target sequence than required on the end[s] that can be tuned. These are the \
+     ends that do not define your insert, gene of interest, insertion point etc. Mark that end as tunable using the \"Tune\" button.\
+     ");
 
     ui.add_space(ROW_SPACING);
 
@@ -63,37 +142,37 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::initial(40.).resizable(true))
-        .column(Column::auto().resizable(true))
+        .column(Column::initial(36.).resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::remainder())
         .header(20.0, |mut header| {
             header.col(|ui| {
-                ui.heading("Sequence (5'-> 3')");
+                ui.heading("Sequence (5' ⏵ 3')");
             });
             header.col(|ui| {
                 ui.heading("Description");
             });
             header.col(|ui| {
-                ui.heading("Len");
+                ui.heading("Len").on_hover_text("Number of nucleotides in the (tuned, if applicable) primer");
             });
             header.col(|ui| {
-                ui.heading("Qual");
+                ui.heading("Qual").on_hover_text("Overall primer quality. This is an abstract estimate, taking all other listed factors into account.");
             });
             header.col(|ui| {
-                ui.heading("TM");
+                ui.heading("TM").on_hover_text("Primer melting temperature, in °C. See the readme for calculations and assumptions.");
             });
             header.col(|ui| {
-                ui.heading("GC %");
+                ui.heading("GC").on_hover_text("The percentage of nucleotides that are C or G.");
             });
             header.col(|ui| {
-                ui.heading("3' stab");
+                ui.heading("3' stab").on_hover_text("3' end stability: The number of G or C nucleotides in the last 5 nucleotides.");
             });
             header.col(|ui| {
-                ui.heading("Cplx");
+                ui.heading("Cplx").on_hover_text("Sequence complexity. See the readme for calculations and assumptions.");
             });
             header.col(|ui| {
-                ui.heading("Dimer");
+                ui.heading("Dimer").on_hover_text("Potential of forming a self-end dimer. See the readme for calculations and assumptions.");
             });
         })
         .body(|mut body| {
@@ -106,14 +185,14 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
                         ui.horizontal(|ui| {
                             if ui
-                                .button(RichText::new("Tunable").color(if data.tunable_5p {
+                                .button(RichText::new("Tunable").color(if let TuneSetting::Enabled(_) = data.tunable_5p {
                                     Color32::GREEN
                                 } else {
                                     Color32::LIGHT_GRAY
                                 }))
                                 .clicked()
                             {
-                                data.tunable_5p = !data.tunable_5p;
+                                data.tunable_5p.toggle();
                             }
 
                             let response = ui.add(
@@ -127,14 +206,49 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                             }
 
                             if ui
-                                .button(RichText::new("Tunable").color(if data.tunable_3p {
+                                .button(RichText::new("Tunable").color(if let TuneSetting::Enabled(_) = data.tunable_3p {
                                     Color32::GREEN
                                 } else {
                                     Color32::LIGHT_GRAY
                                 }))
                                 .clicked()
                             {
-                                data.tunable_3p = !data.tunable_3p;
+                                data.tunable_3p.toggle();
+                            }
+                        });
+
+                        // Section for tuning primer length.
+                        ui.horizontal(|ui| {
+                            if let TuneSetting::Enabled(i) = &mut data.tunable_5p {
+                                ui.label("5'");
+                                if ui.button("⏴").clicked() {
+                                    if *i > 0 {
+                                        *i -= 1;
+                                    }
+                                };
+                                if ui.button("⏵").clicked() {
+                                    if *i + 1 < data.sequence_input.len() {
+                                        *i += 1;
+                                    }
+                                };
+                            }
+
+                            if data.tunable_5p != TuneSetting::Disabled || data.tunable_3p != TuneSetting::Disabled {
+                                ui.label(make_seq_str(&data.primer.sequence));
+                            }
+
+                            if let TuneSetting::Enabled(i) = &mut data.tunable_3p {
+                                ui.label("3'");
+                                if ui.button("⏴").clicked() {
+                                    if *i > 0 {
+                                        *i -= 1;
+                                    }
+                                };
+                                if ui.button("⏵").clicked() {
+                                    if *i + 1 < data.sequence_input.len() {
+                                        *i += 1;
+                                    }
+                                };
                             }
                         });
                     });
@@ -213,7 +327,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(ROW_SPACING);
 
-    ui.heading("Insert:");
+    ui.label("Insert:");
     let response = ui.add(TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(800.));
     if response.changed() {
         state.ui.seq_insert_input = make_seq_str(&seq_from_str(&state.ui.seq_insert_input));
@@ -221,9 +335,62 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(ROW_SPACING);
 
-    ui.heading("Vector:");
+    ui.label("Vector:");
     let response = ui.add(TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(800.));
     if response.changed() {
         state.ui.seq_vector_input = make_seq_str(&seq_from_str(&state.ui.seq_vector_input));
     }
+
+    ui.add_space(ROW_SPACING);
+
+    if ui.button("➕ Make cloning primers").clicked() {
+        let mut insert_fwd = PrimerData {
+            primer: Primer::default(),     // todo
+            sequence_input: String::new(), // todo
+            description: "SLIC Insert Fwd".to_owned(),
+            // Both tunable, since this glues the insert to the vector
+            tunable_5p: TuneSetting::Enabled(0),
+            tunable_3p: TuneSetting::Enabled(0),
+            metrics: None,
+        };
+
+        let mut insert_rev = PrimerData {
+            primer: Primer::default(),     // todo
+            sequence_input: String::new(), // todo
+            description: "SLIC Insert Rev".to_owned(),
+            // Both tunable, since this glues the insert to the vector
+            tunable_5p: TuneSetting::Enabled(0),
+            tunable_3p: TuneSetting::Enabled(0),
+            metrics: None,
+        };
+
+        let mut vector_fwd = PrimerData {
+            primer: Primer::default(),     // todo
+            sequence_input: String::new(), // todo
+            description: "SLIC Vector Fwd".to_owned(),
+            tunable_5p: TuneSetting::Disabled,
+            tunable_3p: TuneSetting::Enabled(0),
+            metrics: None,
+        };
+
+        let mut vector_rev = PrimerData {
+            primer: Primer::default(),     // todo
+            sequence_input: String::new(), // todo
+            description: "SLIC Vector Rev".to_owned(),
+            tunable_5p: TuneSetting::Enabled(0),
+            tunable_3p: TuneSetting::Disabled,
+            metrics: None,
+        };
+        insert_fwd.run_calcs();
+        insert_rev.run_calcs();
+        vector_fwd.run_calcs();
+        vector_rev.run_calcs();
+
+        state
+            .ui
+            .primer_cols
+            .extend([insert_fwd, insert_rev, vector_fwd, vector_rev]);
+    }
+
+    // todo: Visualizer here with the seq, the primers etc
 }

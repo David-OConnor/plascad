@@ -1,15 +1,15 @@
-//! This module contains code related to primer design and QC
-
-// use bio::io::fasta::Sequence;
+//! This module contains code related to primer (oglionucleotide) design and QC.
 
 use crate::{
     util::map_linear,
-    Nucleotide::{self, A, C, G, T},
+    Nucleotide::{C, G},
     Seq,
 };
 
-pub const MIN_PRIMER_LEN: usize = 5;
+// If a primer length is below this, many calculations will be disabled for it.
+pub const MIN_PRIMER_LEN: usize = 10;
 
+/// These are also relevant for FastCloning.
 struct SlicPrimers {
     pub vector_fwd: Seq,
     pub vector_rev: Seq,
@@ -24,6 +24,7 @@ pub struct PrimerMetrics {
     pub melting_temp: f32,
     /// 0. to 1.
     pub gc_portion: f32,
+    /// How many G and C nts are in the last 5 (3' end) nts of the sequence.
     pub gc_3p_count: u8,
     pub complexity: f32,
     pub self_end_dimer: u8,

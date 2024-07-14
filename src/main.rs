@@ -5,18 +5,18 @@
 // Disables the terminal window. Use this for releases, but disable when debugging.
 // #![windows_subsystem = "windows"]
 
-use std::{fs, fs::File, io::Read, path::Path};
+use std::io::Read;
 
-use eframe::egui::IconData;
 // use bio::{
 //     bio_types::sequence::{Sequence, SequenceRead},
 //     data_structures::fmindex::FMIndexable,
 //     io::fastq::FastqRead,
 // };
 use eframe::{self, egui, egui::Context};
-use image::{GenericImageView, ImageError};
+use gui::primer::PrimerData;
+use image::GenericImageView;
 
-use crate::gui::{Page, PrimerTableCol, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
+use crate::gui::{Page, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
 
 mod gui;
 mod primer;
@@ -25,6 +25,7 @@ mod util;
 // mod snapgene_parse;
 mod toxic_proteins;
 
+// Index 0: 5' end.
 type Seq = Vec<Nucleotide>;
 
 /// A DNA nucleotide.
@@ -128,7 +129,7 @@ impl eframe::App for State {
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
     // todo to save computation.
-    primer_cols: Vec<PrimerTableCol>,
+    primer_cols: Vec<PrimerData>,
     page: Page,
     seq_insert_input: String,
     seq_vector_input: String,
