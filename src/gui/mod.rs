@@ -2,7 +2,7 @@ mod primer;
 
 use eframe::{
     egui,
-    egui::{Context, Ui},
+    egui::{Color32, Context, Ui},
 };
 
 use crate::{
@@ -10,15 +10,13 @@ use crate::{
     seq_from_str, State,
 };
 
-pub const WINDOW_WIDTH: f32 = 1100.;
+pub const WINDOW_WIDTH: f32 = 1200.;
 pub const WINDOW_HEIGHT: f32 = 800.;
 
 pub const WINDOW_TITLE: &str = "Plasmid check";
 
 pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
-
-const NT_CHARS: [char; 8] = ['A', 'C', 'T', 'G', 'a', 'c', 't', 'g'];
 
 #[derive(Clone, Copy)]
 pub enum Page {
@@ -78,7 +76,10 @@ fn page_selector(state: &mut State, ui: &mut Ui) {
 
 pub fn draw(state: &mut State, ctx: &Context) {
     egui::CentralPanel::default().show(ctx, |ui| {
-        // todo: Consider adding status like tshark/Wifi connection, monitor mode enabled, GPS coords etc.
+        let mut visuals = ctx.style().visuals.clone();
+        // visuals.override_text_color = Some(Color32::from_rgb(255, 0, 0));
+        visuals.override_text_color = Some(Color32::LIGHT_GRAY);
+        ctx.set_visuals(visuals);
 
         egui::containers::ScrollArea::vertical().show(ui, |ui| match state.ui.page {
             Page::Primers => primer::primer_page(state, ui),

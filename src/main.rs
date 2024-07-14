@@ -130,6 +130,8 @@ struct StateUi {
     // todo to save computation.
     primer_cols: Vec<PrimerTableCol>,
     page: Page,
+    seq_insert_input: String,
+    seq_vector_input: String,
 }
 
 #[derive(Default)]

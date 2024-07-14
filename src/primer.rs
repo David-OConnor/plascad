@@ -18,7 +18,7 @@ struct SlicPrimers {
 }
 
 /// Metrics related to primer quality.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct PrimerMetrics {
     /// C
     pub melting_temp: f32,
@@ -27,11 +27,18 @@ pub struct PrimerMetrics {
     pub gc_3p_count: u8,
     pub complexity: f32,
     pub self_end_dimer: u8,
+    pub tm_score: f32,
+    pub gc_score: f32,
+    pub gc_3p_score: f32,
+    pub complexity_score: f32,
+    pub dimer_score: f32,
+    /// This is a weighted overall score.
+    pub quality_score: f32,
 }
 
 impl PrimerMetrics {
     /// Return a quality score, on a scale from 0 to 1.
-    pub fn quality(&self) -> f32 {
+    pub fn update_scores(&mut self) {
         const TM_TARGET: f32 = 59.;
         const GC_TARGET: f32 = 0.5;
 
@@ -41,13 +48,13 @@ impl PrimerMetrics {
         const WEIGHT_COMPLEXITY: f32 = 1.;
         const WEIGHT_DIMER: f32 = 1.;
 
-        let score_tm = map_linear((self.melting_temp - TM_TARGET).abs(), (0., 12.), (1., 0.));
-        let score_tm = score_tm.clamp(0., 1.);
+        self.tm_score = map_linear((self.melting_temp - TM_TARGET).abs(), (0., 12.), (1., 0.));
+        self.tm_score = self.tm_score.clamp(0., 1.);
 
         // This is currently a linear map, between 0 and 1.
-        let score_gc = 1. - (self.gc_portion - GC_TARGET).abs() * 2.;
+        self.gc_score = 1. - (self.gc_portion - GC_TARGET).abs() * 2.;
 
-        let score_3p_end_stab = match self.gc_3p_count {
+        self.gc_3p_score = match self.gc_3p_count {
             0 | 1 => 1.,
             2 => 0.9,
             3 => 0.4,
@@ -56,16 +63,13 @@ impl PrimerMetrics {
             _ => unreachable!(),
         };
 
-        let score_complexity = 1.;
-
-        let score_dimer = 1.;
-
-        WEIGHT_TM * score_tm
+        self.quality_score = (WEIGHT_TM * self.tm_score
             + WEIGHT_GC
-            + score_gc
-            + WEIGHT_STAB * score_3p_end_stab
-            + WEIGHT_COMPLEXITY * score_complexity
-            + WEIGHT_DIMER * score_dimer
+            + self.gc_score
+            + WEIGHT_STAB * self.gc_3p_score
+            + WEIGHT_COMPLEXITY * self.complexity_score
+            + WEIGHT_DIMER * self.dimer_score)
+            / 5.
     }
 }
 
@@ -176,18 +180,23 @@ impl Primer {
     }
 
     /// Calculate all primer metrics.
+    /// todo: methods on Metrics instead?
     pub fn calc_metrics(&self) -> Option<PrimerMetrics> {
         if self.sequence.len() < MIN_PRIMER_LEN {
             return None;
         }
 
-        Some(PrimerMetrics {
+        let mut result = PrimerMetrics {
             melting_temp: self.calc_tm(),
             gc_portion: self.calc_gc(),
             gc_3p_count: self.count_3p_g_c(),
             complexity: self.calc_complexity(),
             self_end_dimer: self.calc_self_end_dimer(),
-        })
+            ..Default::default()
+        };
+        result.update_scores();
+
+        Some(result)
     }
 }
 

@@ -2,14 +2,38 @@ use eframe::egui::{Color32, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
 use crate::{
-    gui::{NT_CHARS, ROW_SPACING},
-    State,
+    gui::{COL_SPACING, ROW_SPACING},
+    make_seq_str, seq_from_str, State,
 };
+
+const COLOR_GOOD: Color32 = Color32::GREEN;
+const COLOR_MARGINAL: Color32 = Color32::GOLD;
+const COLOR_BAD: Color32 = Color32::LIGHT_RED;
+
+// const TM_IDEAL: f32 = 59.; // todo: Fill thi sin
+//
+// const THRESHOLDS_TM: (f32, f32) = (59., 60.);
+// const THRESHOLDS_GC: (f32, f32) = (59., 60.);
+
+/// Color scores in each category according to these thresholds. These scores should be on a scale
+/// between 0 and 1.
+fn color_from_score(score: f32) -> Color32 {
+    const SCORE_COLOR_THRESH: (f32, f32) = (0.5, 0.8);
+
+    if score > SCORE_COLOR_THRESH.1 {
+        COLOR_GOOD
+    } else if score > SCORE_COLOR_THRESH.0 {
+        COLOR_MARGINAL
+    } else {
+        COLOR_BAD
+    }
+}
 
 /// EGUI component for the Primer page
 pub fn primer_page(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.heading(RichText::new("Primer QC").color(Color32::WHITE));
+        ui.add_space(COL_SPACING);
 
         if ui.button("➕ Add primer").clicked() {
             state.ui.primer_cols.push(Default::default())
@@ -20,6 +44,12 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 // todo
             }
         }
+
+        ui.add_space(COL_SPACING * 2.);
+
+        if ui.button("Save").clicked() {}
+
+        if ui.button("Load").clicked() {}
     });
 
     ui.label("Tuning instructions: Include more of the target sequence than required on the end[s] that can be tuned. These are the\
@@ -29,7 +59,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
     TableBuilder::new(ui)
         .column(Column::initial(400.).resizable(true))
-        .column(Column::initial(120.).resizable(true))
+        .column(Column::initial(160.).resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::initial(40.).resizable(true))
@@ -39,7 +69,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         .column(Column::remainder())
         .header(20.0, |mut header| {
             header.col(|ui| {
-                ui.heading(RichText::new("Sequence (5'-> 3')").color(Color32::WHITE));
+                ui.heading("Sequence (5'-> 3')");
             });
             header.col(|ui| {
                 ui.heading("Description");
@@ -48,7 +78,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 ui.heading("Len");
             });
             header.col(|ui| {
-                ui.heading("Q");
+                ui.heading("Qual");
             });
             header.col(|ui| {
                 ui.heading("TM");
@@ -91,12 +121,8 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                             );
 
                             if response.changed() {
-                                data.sequence_input = data
-                                    .sequence_input
-                                    .chars()
-                                    .filter(|&c| NT_CHARS.contains(&c))
-                                    .collect();
-                                data.sequence_input = data.sequence_input.to_lowercase();
+                                data.sequence_input =
+                                    make_seq_str(&seq_from_str(&data.sequence_input));
                                 data.run_calcs();
                             }
 
@@ -120,16 +146,23 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                         ui.label(data.primer.sequence.len().to_string());
                     });
 
-                    // todo: Color-code these
-
                     row.col(|ui| {
-                        ui.label("-");
+                        let text = match &data.metrics {
+                            // todo: PRe-compute the * 100?
+                            Some(m) => RichText::new(&format!("{:.0}", m.quality_score * 100.))
+                                .color(color_from_score(m.quality_score)),
+
+                            None => RichText::new("-"),
+                        };
+                        ui.label(text);
                     });
 
                     row.col(|ui| {
                         let text = match &data.metrics {
-                            Some(m) => &format!("{:.1}°C", m.melting_temp),
-                            None => "-",
+                            Some(m) => RichText::new(&format!("{:.1}°C", m.melting_temp))
+                                .color(color_from_score(m.tm_score)),
+
+                            None => RichText::new("-"),
                         };
                         ui.label(text);
                     });
@@ -137,36 +170,60 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                     row.col(|ui| {
                         let text = match &data.metrics {
                             // todo: Cache this calc?
-                            Some(m) => &format!("{:.0}%", m.gc_portion * 100.),
-                            None => "-",
+                            Some(m) => RichText::new(&format!("{:.0}%", m.gc_portion * 100.))
+                                .color(color_from_score(m.gc_score)),
+                            None => RichText::new("-"),
                         };
                         ui.label(text);
                     });
 
                     row.col(|ui| {
                         let text = match &data.metrics {
-                            Some(m) => &format!("{}", m.gc_3p_count), // todo
-                            None => "-",
+                            Some(m) => RichText::new(&format!("{}", m.gc_3p_count))
+                                .color(color_from_score(m.gc_3p_score)),
+                            None => RichText::new("-"),
                         };
                         ui.label(text);
                     });
 
                     row.col(|ui| {
                         let text = match &data.metrics {
-                            Some(m) => &format!("{}", m.complexity),
-                            None => "-",
+                            Some(m) => RichText::new(&format!("{}", m.complexity))
+                                .color(color_from_score(m.complexity_score)),
+                            None => RichText::new("-"),
                         };
                         ui.label(text);
                     });
 
                     row.col(|ui| {
                         let text = match &data.metrics {
-                            Some(m) => &format!("{}", m.self_end_dimer),
-                            None => "-",
+                            Some(m) => RichText::new(&format!("{}", m.self_end_dimer))
+                                .color(color_from_score(m.dimer_score)),
+                            None => RichText::new("-"),
                         };
                         ui.label(text);
                     });
                 });
             }
         });
+
+    ui.add_space(ROW_SPACING * 2.);
+
+    ui.heading("SLIC and FastCloning");
+
+    ui.add_space(ROW_SPACING);
+
+    ui.heading("Insert:");
+    let response = ui.add(TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(800.));
+    if response.changed() {
+        state.ui.seq_insert_input = make_seq_str(&seq_from_str(&state.ui.seq_insert_input));
+    }
+
+    ui.add_space(ROW_SPACING);
+
+    ui.heading("Vector:");
+    let response = ui.add(TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(800.));
+    if response.changed() {
+        state.ui.seq_vector_input = make_seq_str(&seq_from_str(&state.ui.seq_vector_input));
+    }
 }
