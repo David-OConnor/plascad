@@ -11,7 +11,7 @@ use std::{
 use chrono::NaiveDate;
 use regex::Regex;
 use serde::Deserialize;
-use serde_xml_rs::from_str;
+// use serde_xml_rs::from_str;
 
 #[derive(Debug, Deserialize)]
 struct SeqRecord {

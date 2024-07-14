@@ -6,7 +6,10 @@ edition = "2021"
 [dependencies]
 reqwest = { version = "^0.12.5", features = ["blocking", "json"], default-features = false }
 
-eframe = { version = "0.28.1"}
+eframe = "^0.28.1"
+#egui_extras = { version = "*", features = ["all_loaders"] }
+egui_extras = "^0.28.1"
+
 egui_file = { version = "0.18.0" } # For file dialogs.
 image = { version = "0.25.1" } # For loading the window icon.
 

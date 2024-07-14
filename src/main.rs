@@ -2,7 +2,7 @@
 
 //! todo: Sort out when to use `bio` types.
 
-mod snapgene_parse;
+// mod snapgene_parse;
 mod toxic_proteins;
 
 use bio::{
@@ -10,12 +10,14 @@ use bio::{
     data_structures::fmindex::FMIndexable,
     io::fastq::FastqRead,
 };
-use eframe::{self, egui};
+use eframe::{self, egui, egui::Context};
 
-use crate::gui::{WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
+use crate::gui::{PrimerTableCol, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
 
 mod gui;
 mod primer;
+mod solution_helper;
+mod util;
 
 type Seq = Vec<Nucleotide>;
 
@@ -27,6 +29,43 @@ enum Nucleotide {
     T,
     G,
     C,
+}
+
+impl Nucleotide {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::A => "a",
+            Self::T => "t",
+            Self::C => "c",
+            Self::G => "g",
+        }
+    }
+}
+
+pub fn make_seq_str(seq: &Seq) -> String {
+    let mut result = String::new();
+
+    for nt in seq {
+        result.push_str(nt.as_str());
+    }
+
+    result
+}
+
+pub fn seq_from_str(str: &str) -> Seq {
+    let mut result = Vec::new();
+
+    for char in str.to_lowercase().chars() {
+        match char {
+            'a' => result.push(Nucleotide::A),
+            't' => result.push(Nucleotide::T),
+            'c' => result.push(Nucleotide::C),
+            'g' => result.push(Nucleotide::G),
+            _ => (),
+        };
+    }
+
+    result
 }
 
 #[derive(Clone, Copy)]
@@ -69,7 +108,6 @@ fn check_all(data: &PlasmidData) {
     check_toxic_proteins(data);
 }
 
-
 impl eframe::App for State {
     /// This is the GUI's event loop.
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
@@ -80,7 +118,15 @@ impl eframe::App for State {
     }
 }
 
-struct State {}
+#[derive(Default)]
+struct StateUi {
+    primer_cols: Vec<PrimerTableCol>,
+}
+
+#[derive(Default)]
+struct State {
+    ui: StateUi,
+}
 
 fn main() {
     let mut state = State::default();
@@ -93,5 +139,5 @@ fn main() {
         ..Default::default()
     };
 
-    eframe::run_native(WINDOW_TITLE, options, Box::new(|_cc| Box::new(state))).unwrap();
+    eframe::run_native(WINDOW_TITLE, options, Box::new(|_cc| Ok(Box::new(state)))).unwrap();
 }
