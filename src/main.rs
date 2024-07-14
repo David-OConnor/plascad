@@ -2,22 +2,28 @@
 
 //! todo: Sort out when to use `bio` types.
 
-// mod snapgene_parse;
-mod toxic_proteins;
+// Disables the terminal window. Use this for releases, but disable when debugging.
+// #![windows_subsystem = "windows"]
 
-use bio::{
-    bio_types::sequence::{Sequence, SequenceRead},
-    data_structures::fmindex::FMIndexable,
-    io::fastq::FastqRead,
-};
+use std::{fs, fs::File, io::Read, path::Path};
+
+use eframe::egui::IconData;
+// use bio::{
+//     bio_types::sequence::{Sequence, SequenceRead},
+//     data_structures::fmindex::FMIndexable,
+//     io::fastq::FastqRead,
+// };
 use eframe::{self, egui, egui::Context};
+use image::{GenericImageView, ImageError};
 
-use crate::gui::{PrimerTableCol, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
+use crate::gui::{Page, PrimerTableCol, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
 
 mod gui;
 mod primer;
 mod solution_helper;
 mod util;
+// mod snapgene_parse;
+mod toxic_proteins;
 
 type Seq = Vec<Nucleotide>;
 
@@ -94,8 +100,8 @@ enum Enzyme {
 
 struct PlasmidData {
     // todo : Which seq type? There are many.
-    seq_expected: Sequence,
-    seq_read_assembled: Sequence,
+    seq_expected: Seq,
+    seq_read_assembled: Seq,
     // seq_reads: Vec<SequenceRead>,
 }
 
@@ -120,21 +126,32 @@ impl eframe::App for State {
 
 #[derive(Default)]
 struct StateUi {
+    // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
+    // todo to save computation.
     primer_cols: Vec<PrimerTableCol>,
+    page: Page,
 }
 
 #[derive(Default)]
 struct State {
     ui: StateUi,
+    seq_insert: Seq,
+    seq_vector: Seq,
+    /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
+    insert_location_5p_limit: usize,
+    insert_location_3p_limit: usize,
 }
 
 fn main() {
     let mut state = State::default();
 
+    let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
+    let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);
+
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([WINDOW_WIDTH, WINDOW_HEIGHT]),
-        // icon: load_icon(Path::new("../resources/icon.png")),
-        // icon_data,
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([WINDOW_WIDTH, WINDOW_HEIGHT])
+            .with_icon(icon_data.unwrap()),
         follow_system_theme: false,
         ..Default::default()
     };

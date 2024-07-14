@@ -15,5 +15,6 @@ image = { version = "0.25.1" } # For loading the window icon.
 
 bio = "^2.0.0"
 chrono = "0.4.38"
-regex = "1.10.5"
-serde = { version = "1.0.204", features = ["derive"] }
+
+#regex = "1.10.5"
+#serde = { version = "1.0.204", features = ["derive"] }

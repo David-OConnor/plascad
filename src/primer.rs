@@ -1,8 +1,6 @@
 //! This module contains code related to primer design and QC
 
-use std::f32::MIN;
-
-use bio::io::fasta::Sequence;
+// use bio::io::fasta::Sequence;
 
 use crate::{
     util::map_linear,

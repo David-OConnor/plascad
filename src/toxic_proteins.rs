@@ -1,6 +1,8 @@
 //! Contains code related to identifying toxic proteins.
 
-use bio::bio_types::sequence::Sequence;
+// use bio::bio_types::sequence::Sequence;
+
+use crate::Seq;
 
 enum AminoAcid {
     A,
@@ -12,6 +14,6 @@ enum Host {
     Aav,
 }
 
-fn get_toxic_seqs() -> Vec<Sequence> {
+fn get_toxic_seqs() -> Vec<Seq> {
     vec![]
 }
