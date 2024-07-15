@@ -140,6 +140,7 @@ struct State {
     ui: StateUi,
     seq_insert: Seq,
     seq_vector: Seq,
+    insert_loc: usize,
     /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
     insert_location_5p_limit: usize,
     insert_location_3p_limit: usize,

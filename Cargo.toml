@@ -1,20 +1,30 @@
 [package]
-name = "plasmid_check"
+name = "plasmid_tools"
 version = "0.1.0"
 edition = "2021"
+authors = ["David O'Connor <the_alchemist@fastmail.com>"]
+description = "Tools for primer design, PCR, and other plasmid-related work."
+keywords = ["plasmid", "primer", "biology", "pcr"]
+categories = [
+    "science", "science::bioinformatics",
+]
+repository = "https://github.com/David-OConnor/plasmid_tools"
+documentation = "https://docs.rs/plasmid_tools"
+readme = "README.md"
+license = "MIT"
+exclude = [".gitignore"]
 
 [dependencies]
 reqwest = { version = "^0.12.5", features = ["blocking", "json"], default-features = false }
 
 eframe = "^0.28.1"
-#egui_extras = { version = "*", features = ["all_loaders"] }
 egui_extras = "^0.28.1"
 
-egui_file = { version = "0.18.0" } # For file dialogs.
-image = { version = "0.25.1" } # For loading the window icon.
+egui_file = "^0.18.0" # For file dialogs.
+image = "^0.25.1" # For loading the window icon.
 
 bio = "^2.0.0"
-chrono = "0.4.38"
+chrono = "^0.4.38"
 
 #regex = "1.10.5"
 #serde = { version = "1.0.204", features = ["derive"] }

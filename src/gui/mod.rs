@@ -1,3 +1,4 @@
+mod pcr;
 pub mod primer;
 
 use eframe::{
@@ -10,14 +11,17 @@ use crate::State;
 pub const WINDOW_WIDTH: f32 = 1200.;
 pub const WINDOW_HEIGHT: f32 = 800.;
 
-pub const WINDOW_TITLE: &str = "Plasmid check";
+pub const WINDOW_TITLE: &str = "Plasmid tools";
 
 pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
 
 #[derive(Clone, Copy)]
 pub enum Page {
+    /// Primer design and QC, including for cloning
     Primers,
+    /// Determine optimal PCR parameters
+    Pcr,
     // Sequence,
     // Enzymes,
     // Features,
@@ -46,7 +50,17 @@ impl Default for Page {
 // }
 
 fn page_selector(state: &mut State, ui: &mut Ui) {
-    ui.add_space(ROW_SPACING);
+    ui.horizontal(|ui| {
+        if ui.button("Primers").clicked() {
+            state.ui.page = Page::Primers;
+        }
+
+        ui.add_space(COL_SPACING);
+
+        if ui.button("PCR").clicked() {
+            state.ui.page = Page::Pcr;
+        }
+    });
 }
 
 pub fn draw(state: &mut State, ctx: &Context) {
@@ -66,8 +80,13 @@ pub fn draw(state: &mut State, ctx: &Context) {
         visuals.override_text_color = Some(Color32::LIGHT_GRAY);
         ctx.set_visuals(visuals);
 
+        page_selector(state, ui);
+
+        ui.add_space(ROW_SPACING);
+
         egui::containers::ScrollArea::vertical().show(ui, |ui| match state.ui.page {
             Page::Primers => primer::primer_page(state, ui),
+            Page::Pcr => pcr::pcr_page(state, ui),
         });
     });
 }

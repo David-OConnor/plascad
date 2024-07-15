@@ -9,12 +9,14 @@ use crate::{
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
 
+// todo: Sort out your types.
+
 /// These are also relevant for FastCloning.
 struct SlicPrimers {
-    pub vector_fwd: Seq,
-    pub vector_rev: Seq,
-    pub insert_fwd: Seq,
-    pub insert_rev: Seq,
+    pub vector_fwd: Primer,
+    pub vector_rev: Primer,
+    pub insert_fwd: Primer,
+    pub insert_rev: Primer,
 }
 
 /// Metrics related to primer quality.
@@ -201,11 +203,16 @@ impl Primer {
     }
 }
 
-pub fn design_slic_fc_primers(seq_vector: &Seq, insert_i: usize, seq_insert: &Seq) -> SlicPrimers {
+// todo: Use this A/R, called from the UI page.
+pub fn design_slic_fc_primers(
+    seq_vector: &Seq,
+    seq_insert: &Seq,
+    insert_loc: usize,
+) -> SlicPrimers {
     SlicPrimers {
-        vector_fwd: Vec::new(),
-        vector_rev: Vec::new(),
-        insert_fwd: Vec::new(),
-        insert_rev: Vec::new(),
+        vector_fwd: Default::default(),
+        vector_rev: Default::default(),
+        insert_fwd: Default::default(),
+        insert_rev: Default::default(),
     }
 }
