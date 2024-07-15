@@ -1,12 +1,8 @@
-use eframe::egui::{Color32, RichText, TextEdit, Ui};
+use eframe::egui;
+use eframe::egui::{Align, Color32, Layout, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
-use crate::{
-    gui::{COL_SPACING, ROW_SPACING},
-    make_seq_str,
-    primer::{Primer, PrimerMetrics},
-    seq_from_str, State,
-};
+use crate::{gui::{COL_SPACING, ROW_SPACING}, make_seq_str, primer::{Primer, PrimerMetrics}, Seq, seq_from_str, State};
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -42,21 +38,28 @@ impl TuneSetting {
 #[derive(Default)]
 pub struct PrimerData {
     /// This primer excludes nts past the tuning offsets.
-    primer: Primer,
+    pub primer: Primer,
     /// Editing is handled using this string; we convert the string to our nucleotide sequence as needed.
     /// This includes nts past the tuning offsets.
-    sequence_input: String,
-    description: String,
-    metrics: Option<PrimerMetrics>,
+    pub sequence_input: String,
+    pub description: String,
+    pub metrics: Option<PrimerMetrics>,
     // tunable_end: TunableEnd,
     /// These fields control if a given primer end is fixed (Eg marking the start of an insert,
     /// marking the insert point in a vector etc) or if we can tune its length to optimize the primer.
-    tunable_5p: TuneSetting,
-    tunable_3p: TuneSetting,
+    pub tunable_5p: TuneSetting,
+    pub tunable_3p: TuneSetting,
+    /// These seq_removed fields are redundant with primer and tune settings. We use them to cache
+    /// the actual sequences that are removed for display purposes.
+    // seq_removed_5p: Seq,
+    // seq_removed_3p: Seq
+    pub seq_removed_5p: String,
+    pub seq_removed_3p: String,
 }
 
 impl PrimerData {
-    /// Perform calculations on primer quality and related data. Run this when the sequence changes.
+    /// Perform calculations on primer quality and related data. Run this when the sequence changes,
+    /// the tuning values change etc.
     pub fn run_calcs(&mut self) {
         let full_len = self.sequence_input.len();
         let mut start = 0;
@@ -66,7 +69,7 @@ impl PrimerData {
             start = i;
         }
 
-        if let TuneSetting::Enabled(i) = self.tunable_5p {
+        if let TuneSetting::Enabled(i) = self.tunable_3p {
             end = if i > full_len {
                 // Prevents an overrun.
                 0
@@ -82,6 +85,9 @@ impl PrimerData {
 
         self.primer.sequence = seq_from_str(&self.sequence_input[start..end]);
         self.metrics = self.primer.calc_metrics();
+
+        self.seq_removed_5p = self.sequence_input[..start].to_owned();
+        self.seq_removed_3p = self.sequence_input[end..].to_owned();
     }
 }
 
@@ -193,6 +199,9 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                                 .clicked()
                             {
                                 data.tunable_5p.toggle();
+                                if data.tunable_5p == TuneSetting::Disabled {
+                                    data.run_calcs(); // To re-sync the sequence without parts removed.
+                                }
                             }
 
                             let response = ui.add(
@@ -214,44 +223,73 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                                 .clicked()
                             {
                                 data.tunable_3p.toggle();
+                                if data.tunable_3p == TuneSetting::Disabled {
+                                    data.run_calcs(); // To re-sync the sequence without parts removed.
+                                }
                             }
                         });
 
                         // Section for tuning primer length.
+                        // todo: DRY. Refactor into a fn.
                         ui.horizontal(|ui| {
+                            // This layout allows even spacing.
+                            // ui.allocate_ui(egui::Vec2::new(ui.available_width(), 0.0), |ui| {
+                            //     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                            // This avoids a double-mutable error
+                            let mut tuned = false;
+
                             if let TuneSetting::Enabled(i) = &mut data.tunable_5p {
                                 ui.label("5'");
                                 if ui.button("⏴").clicked() {
                                     if *i > 0 {
                                         *i -= 1;
                                     }
+                                    tuned = true;
                                 };
                                 if ui.button("⏵").clicked() {
                                     if *i + 1 < data.sequence_input.len() {
                                         *i += 1;
                                     }
+                                    tuned = true;
                                 };
+
+                                ui.label(&format!("({i})"));
                             }
 
+                            ui.label(RichText::new(&data.seq_removed_5p).color(Color32::GRAY));
+                            ui.add_space(COL_SPACING);
+
                             if data.tunable_5p != TuneSetting::Disabled || data.tunable_3p != TuneSetting::Disabled {
-                                ui.label(make_seq_str(&data.primer.sequence));
+                                ui.label(RichText::new(make_seq_str(&data.primer.sequence)).color(Color32::LIGHT_BLUE));
                             }
+
+                            ui.add_space(COL_SPACING);
+                            ui.label(RichText::new(&data.seq_removed_3p).color(Color32::GRAY));
 
                             if let TuneSetting::Enabled(i) = &mut data.tunable_3p {
                                 ui.label("3'");
                                 if ui.button("⏴").clicked() {
-                                    if *i > 0 {
-                                        *i -= 1;
-                                    }
-                                };
-                                if ui.button("⏵").clicked() {
                                     if *i + 1 < data.sequence_input.len() {
                                         *i += 1;
                                     }
+                                    tuned = true;
                                 };
+                                if ui.button("⏵").clicked() {
+                                    if *i > 0 {
+                                        *i -= 1;
+                                    }
+                                    tuned = true;
+                                };
+
+                                ui.label(&format!("({i})"));
                             }
+                            if tuned {
+                                data.run_calcs();
+                            }
+                            // });
                         });
                     });
+
                     row.col(|ui| {
                         ui.add(TextEdit::singleline(&mut data.description));
                     });
@@ -351,7 +389,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             // Both tunable, since this glues the insert to the vector
             tunable_5p: TuneSetting::Enabled(0),
             tunable_3p: TuneSetting::Enabled(0),
-            metrics: None,
+            ..Default::default()
         };
 
         let mut insert_rev = PrimerData {
@@ -361,7 +399,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             // Both tunable, since this glues the insert to the vector
             tunable_5p: TuneSetting::Enabled(0),
             tunable_3p: TuneSetting::Enabled(0),
-            metrics: None,
+            ..Default::default()
         };
 
         let mut vector_fwd = PrimerData {
@@ -370,7 +408,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             description: "SLIC Vector Fwd".to_owned(),
             tunable_5p: TuneSetting::Disabled,
             tunable_3p: TuneSetting::Enabled(0),
-            metrics: None,
+            ..Default::default()
         };
 
         let mut vector_rev = PrimerData {
@@ -379,7 +417,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             description: "SLIC Vector Rev".to_owned(),
             tunable_5p: TuneSetting::Enabled(0),
             tunable_3p: TuneSetting::Disabled,
-            metrics: None,
+            ..Default::default()
         };
         insert_fwd.run_calcs();
         insert_rev.run_calcs();
