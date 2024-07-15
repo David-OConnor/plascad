@@ -49,32 +49,6 @@ impl Nucleotide {
     }
 }
 
-pub fn make_seq_str(seq: &Seq) -> String {
-    let mut result = String::new();
-
-    for nt in seq {
-        result.push_str(nt.as_str());
-    }
-
-    result
-}
-
-pub fn seq_from_str(str: &str) -> Seq {
-    let mut result = Vec::new();
-
-    for char in str.to_lowercase().chars() {
-        match char {
-            'a' => result.push(Nucleotide::A),
-            't' => result.push(Nucleotide::T),
-            'c' => result.push(Nucleotide::C),
-            'g' => result.push(Nucleotide::G),
-            _ => (),
-        };
-    }
-
-    result
-}
-
 #[derive(Clone, Copy)]
 enum AminoAcid {
     Met,
@@ -146,8 +120,16 @@ struct State {
     insert_location_3p_limit: usize,
 }
 
+impl State {
+    /// Update sequences based on input strings.
+    pub fn sync_seqs(&mut self) {
+        self.seq_insert = util::seq_from_str(&self.ui.seq_insert_input);
+        self.seq_vector = util::seq_from_str(&self.ui.seq_vector_input);
+    }
+}
+
 fn main() {
-    let mut state = State::default();
+    let state = State::default();
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

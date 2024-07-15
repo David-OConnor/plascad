@@ -1,4 +1,5 @@
 mod pcr;
+mod portions;
 pub mod primer;
 
 use eframe::{
@@ -22,6 +23,7 @@ pub enum Page {
     Primers,
     /// Determine optimal PCR parameters
     Pcr,
+    Portions,
     // Sequence,
     // Enzymes,
     // Features,
@@ -60,6 +62,12 @@ fn page_selector(state: &mut State, ui: &mut Ui) {
         if ui.button("PCR").clicked() {
             state.ui.page = Page::Pcr;
         }
+
+        ui.add_space(COL_SPACING);
+
+        if ui.button("Mixing portions").clicked() {
+            state.ui.page = Page::Portions;
+        }
     });
 }
 
@@ -87,6 +95,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
         egui::containers::ScrollArea::vertical().show(ui, |ui| match state.ui.page {
             Page::Primers => primer::primer_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
+            Page::Portions => portions::portions_page(state, ui),
         });
     });
 }

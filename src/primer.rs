@@ -2,9 +2,11 @@
 
 use crate::{
     util::map_linear,
+    Nucleotide,
     Nucleotide::{C, G},
     Seq,
 };
+use crate::util::seq_complement;
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
@@ -12,7 +14,7 @@ pub const MIN_PRIMER_LEN: usize = 10;
 // todo: Sort out your types.
 
 /// These are also relevant for FastCloning.
-struct SlicPrimers {
+pub struct SlicPrimers {
     pub vector_fwd: Primer,
     pub vector_rev: Primer,
     pub insert_fwd: Primer,
@@ -208,11 +210,79 @@ pub fn design_slic_fc_primers(
     seq_vector: &Seq,
     seq_insert: &Seq,
     insert_loc: usize,
-) -> SlicPrimers {
-    SlicPrimers {
-        vector_fwd: Default::default(),
-        vector_rev: Default::default(),
-        insert_fwd: Default::default(),
-        insert_rev: Default::default(),
+) -> Option<SlicPrimers> {
+    // These lenghts should be long enough for reasonablely high-length primers, should that be
+    // required for optimal characteristics.
+    const UNTRIMMED_LEN_INSERT: usize = 40;
+    const UNTRIMMED_LEN_VECTOR: usize = 40;
+
+    let seq_len_vector = seq_vector.len();
+    let seq_len_insert = seq_insert.len();
+
+    if insert_loc > seq_len_vector {
+        eprintln!("Invalid insert loc. Loc: {insert_loc}, vector: {seq_len_vector}");
+        // todo: Return an error, and show that in the UI.
+        return None;
     }
+
+    let vector_reversed = seq_complement(&seq_vector);
+    let insert_reversed = seq_complement(&seq_insert);
+
+    // todo: You should wrap the vector if the insert loc is near the edges. Clamping
+    // todo as we do will produce incorrect behavior.
+
+    let insert_loc_reversed = seq_len_vector - insert_loc;
+
+    let (seq_vector_fwd, seq_vector_rev) = {
+        let mut vector_end = insert_loc + UNTRIMMED_LEN_VECTOR;
+        vector_end = vector_end.clamp(0, seq_len_vector);
+
+        let mut vector_end_reversed = insert_loc_reversed + UNTRIMMED_LEN_VECTOR;
+        vector_end_reversed = vector_end_reversed.clamp(0, seq_len_vector);
+
+        (
+            seq_vector[insert_loc..vector_end].to_owned(),
+            vector_reversed[insert_loc_reversed..vector_end_reversed].to_owned(),
+        )
+    };
+
+    let (seq_insert_fwd, seq_insert_rev) = {
+        let mut insert_end = UNTRIMMED_LEN_INSERT;
+        insert_end = insert_end.clamp(0, seq_len_insert);
+
+        let mut insert_end_reversed = UNTRIMMED_LEN_INSERT;
+        insert_end_reversed = insert_end_reversed.clamp(0, seq_len_insert);
+
+        // We will combine these with vector seqs for the final insert primers.
+        let insert_only_seq_fwd = &seq_insert[..insert_end];
+        let insert_only_seq_rev = &insert_reversed[..insert_end_reversed];
+        // let insert_only_seq_rev: Vec<Nucleotide> = Vec::new();
+
+        let mut fwd = seq_vector_fwd.clone();
+        fwd.extend(insert_only_seq_fwd);
+
+        let mut rev = seq_vector_fwd.clone();
+        rev.extend(insert_only_seq_rev);
+
+        (fwd, rev)
+    };
+
+    let mut result = SlicPrimers {
+        vector_fwd: Primer {
+            sequence: seq_vector_fwd,
+        },
+        vector_rev: Primer {
+            sequence: seq_vector_rev,
+        },
+        insert_fwd: Primer {
+            sequence: seq_insert_fwd,
+        },
+        insert_rev: Primer {
+            sequence: seq_insert_rev,
+        },
+    };
+
+    // todo: Optimize.
+
+    Some(result)
 }
