@@ -1,4 +1,17 @@
-use crate::{Nucleotide::{A, T, C, G}, Seq};
+use std::{
+    fs::File,
+    io,
+    io::{Read, Write},
+};
+
+use bincode;
+
+use crate::{
+    Nucleotide::{A, C, G, T},
+    Seq,
+};
+
+use bincode::{config, Decode, Encode};
 
 /// Utility function to linearly map an input value to an output
 pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 {
@@ -39,7 +52,7 @@ pub fn seq_from_str(str: &str) -> Seq {
 pub fn seq_complement(seq: &Seq) -> Seq {
     let mut result = seq.clone();
     result.reverse();
-    
+
     for nt in &mut result {
         *nt = match *nt {
             A => T,
@@ -48,6 +61,25 @@ pub fn seq_complement(seq: &Seq) -> Seq {
             G => C,
         };
     }
-    
+
     result
+}
+
+pub fn save<T: Encode>(filename: &str, data: &T) -> io::Result<()> {
+    let config = config::standard();
+
+    let encoded: Vec<u8> = bincode::encode_to_vec(data, config).unwrap();
+    let mut file = File::create(filename)?;
+    file.write_all(&encoded)?;
+    Ok(())
+}
+
+pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
+    let config = config::standard();
+
+    let mut file = File::open(filename)?;
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    let (decoded, len) = bincode::decode_from_slice(&buffer, config).unwrap();
+    Ok(decoded)
 }

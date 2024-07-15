@@ -2,6 +2,7 @@ mod pcr;
 mod portions;
 pub mod primer;
 
+use bincode::{Decode, Encode};
 use eframe::{
     egui,
     egui::{Color32, Context, Key, Ui},
@@ -9,7 +10,7 @@ use eframe::{
 
 use crate::State;
 
-pub const WINDOW_WIDTH: f32 = 1200.;
+pub const WINDOW_WIDTH: f32 = 1100.;
 pub const WINDOW_HEIGHT: f32 = 800.;
 
 pub const WINDOW_TITLE: &str = "Plasmid tools";
@@ -17,7 +18,7 @@ pub const WINDOW_TITLE: &str = "Plasmid tools";
 pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Encode, Decode)]
 pub enum Page {
     /// Primer design and QC, including for cloning
     Primers,
@@ -74,7 +75,7 @@ fn page_selector(state: &mut State, ui: &mut Ui) {
 pub fn draw(state: &mut State, ctx: &Context) {
     let input = ctx.input(|ip| {
         if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
-            state.ui.primer_cols.push(Default::default());
+            state.primer_data.push(Default::default());
         }
 
         if ip.key_pressed(Key::S) && ip.modifiers.ctrl {

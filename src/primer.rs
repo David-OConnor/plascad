@@ -1,12 +1,12 @@
 //! This module contains code related to primer (oglionucleotide) design and QC.
 
+use bincode::{Decode, Encode};
 use crate::{
-    util::map_linear,
+    util::{map_linear, seq_complement},
     Nucleotide,
     Nucleotide::{C, G},
     Seq,
 };
-use crate::util::seq_complement;
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
@@ -22,7 +22,7 @@ pub struct SlicPrimers {
 }
 
 /// Metrics related to primer quality.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Encode, Decode)]
 pub struct PrimerMetrics {
     /// C
     pub melting_temp: f32,
@@ -78,7 +78,7 @@ impl PrimerMetrics {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Encode, Decode)]
 pub struct Primer {
     pub sequence: Seq,
 }
@@ -213,8 +213,8 @@ pub fn design_slic_fc_primers(
 ) -> Option<SlicPrimers> {
     // These lenghts should be long enough for reasonablely high-length primers, should that be
     // required for optimal characteristics.
-    const UNTRIMMED_LEN_INSERT: usize = 40;
-    const UNTRIMMED_LEN_VECTOR: usize = 40;
+    const UNTRIMMED_LEN_INSERT: usize = 30;
+    const UNTRIMMED_LEN_VECTOR: usize = 30;
 
     let seq_len_vector = seq_vector.len();
     let seq_len_insert = seq_insert.len();

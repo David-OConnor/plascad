@@ -1,12 +1,14 @@
+use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
     primer::{design_slic_fc_primers, Primer, PrimerMetrics},
+    util::{make_seq_str, seq_from_str},
     State,
 };
-use crate::util::{make_seq_str, seq_from_str};
+use crate::util::save;
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -17,7 +19,7 @@ const COLOR_BAD: Color32 = Color32::LIGHT_RED;
 // const THRESHOLDS_TM: (f32, f32) = (59., 60.);
 // const THRESHOLDS_GC: (f32, f32) = (59., 60.);
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
 enum TuneSetting {
     Disabled,
     /// Inner: Offset index; this marks the distance from the respective ends that the sequence is attentuated to.
@@ -39,7 +41,7 @@ impl TuneSetting {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Encode, Decode)]
 pub struct PrimerData {
     /// This primer excludes nts past the tuning offsets.
     pub primer: Primer,
@@ -119,11 +121,11 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             .button("➕ Add primer")
             .on_hover_text("Adds a primer to the list below. Ctrl + A");
         if add_btn.clicked() {
-            state.ui.primer_cols.push(Default::default())
+            state.primer_data.push(Default::default())
         }
 
         if ui.button("Tune all").clicked() {
-            for data in &mut state.ui.primer_cols {
+            for data in &mut state.primer_data {
                 // todo
             }
         }
@@ -135,7 +137,12 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             .button("Save")
             .on_hover_text("Save primer data. Ctrl + S")
             .clicked()
-        {}
+        {
+            match save("plasid_tools.save", state) {
+                Ok(_) => println!("Save successful"),
+                Err(e) => println!("Error saving: {e}")
+            }
+        }
 
         if ui.button("Load").clicked() {}
     });
@@ -186,7 +193,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             });
         })
         .body(|mut body| {
-            for data in &mut state.ui.primer_cols {
+            for data in &mut state.primer_data {
                 body.row(30.0, |mut row| {
                     row.col(|ui| {
                         // gui.label(make_seq_str(&col.sequence));
@@ -449,8 +456,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 vector_rev.run_calcs();
 
                 state
-                    .ui
-                    .primer_cols
+                    .primer_data
                     .extend([insert_fwd, insert_rev, vector_fwd, vector_rev]);
             }
         }

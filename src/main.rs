@@ -6,7 +6,7 @@
 // #![windows_subsystem = "windows"]
 
 use std::io::Read;
-
+use bincode::{Decode, Encode};
 // use bio::{
 //     bio_types::sequence::{Sequence, SequenceRead},
 //     data_structures::fmindex::FMIndexable,
@@ -16,13 +16,18 @@ use eframe::{self, egui, egui::Context};
 use gui::primer::PrimerData;
 use image::GenericImageView;
 
-use crate::gui::{Page, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
+use crate::{
+    gui::{Page, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
+    pcr::PcrParams,
+};
+use crate::util::load;
 
 mod gui;
 mod primer;
 mod solution_helper;
 mod util;
 // mod snapgene_parse;
+mod pcr;
 mod toxic_proteins;
 
 // Index 0: 5' end.
@@ -30,7 +35,7 @@ type Seq = Vec<Nucleotide>;
 
 /// A DNA nucleotide.
 /// todo: RNA A/R
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
 enum Nucleotide {
     A,
     T,
@@ -99,25 +104,27 @@ impl eframe::App for State {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Encode, Decode)]
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
     // todo to save computation.
-    primer_cols: Vec<PrimerData>,
     page: Page,
     seq_insert_input: String,
     seq_vector_input: String,
 }
 
-#[derive(Default)]
+/// Note: use of serde traits here and on various sub-structs are for saving and loading.
+#[derive(Default, Encode, Decode)]
 struct State {
     ui: StateUi,
+    primer_data: Vec<PrimerData>,
     seq_insert: Seq,
     seq_vector: Seq,
     insert_loc: usize,
     /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
     insert_location_5p_limit: usize,
     insert_location_3p_limit: usize,
+    pcr: PcrParams,
 }
 
 impl State {
@@ -129,7 +136,9 @@ impl State {
 }
 
 fn main() {
-    let state = State::default();
+    // todo: Move to a more robust save/load system later.
+
+    let state = load("plasid_tools.save").unwrap_or_else(|_| State::default());
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

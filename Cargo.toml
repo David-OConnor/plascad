@@ -27,4 +27,7 @@ bio = "^2.0.0"
 chrono = "^0.4.38"
 
 #regex = "1.10.5"
+
+# Serde and bincode for saving and loading
 #serde = { version = "1.0.204", features = ["derive"] }
+bincode = "^2.0.0-rc.3"
