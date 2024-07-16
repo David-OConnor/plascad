@@ -10,6 +10,7 @@ use crate::{
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
+pub const TM_TARGET: f32 = 59.; // Also used as a default for PCR GUI.
 
 // todo: Sort out your types.
 
@@ -44,7 +45,6 @@ pub struct PrimerMetrics {
 impl PrimerMetrics {
     /// Return a quality score, on a scale from 0 to 1.
     pub fn update_scores(&mut self) {
-        const TM_TARGET: f32 = 59.;
         const GC_TARGET: f32 = 0.5;
 
         const WEIGHT_TM: f32 = 1.;

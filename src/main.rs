@@ -20,6 +20,7 @@ use crate::{
     gui::{Page, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::PcrParams,
 };
+use crate::pcr::PolymeraseType;
 use crate::util::load;
 
 mod gui;
@@ -104,6 +105,15 @@ impl eframe::App for State {
     }
 }
 
+/// Variables for UI fields, for determining PCR parameters.
+#[derive(Default, Encode, Decode)]
+struct PcrUi {
+    pub primer_tm: f32,
+    pub product_len: usize,
+    pub polymerase_type: PolymeraseType,
+    pub num_cycles: u16,
+}
+
 #[derive(Default, Encode, Decode)]
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
@@ -111,6 +121,7 @@ struct StateUi {
     page: Page,
     seq_insert_input: String,
     seq_vector_input: String,
+    pcr: PcrUi,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
@@ -133,12 +144,16 @@ impl State {
         self.seq_insert = util::seq_from_str(&self.ui.seq_insert_input);
         self.seq_vector = util::seq_from_str(&self.ui.seq_vector_input);
     }
+
+    pub fn sync_pcr(&mut self) {
+        self.pcr = PcrParams::new(&self.ui.pcr);
+    }
 }
 
 fn main() {
     // todo: Move to a more robust save/load system later.
 
-    let state = load("plasid_tools.save").unwrap_or_else(|_| State::default());
+    let state = load("plasmid_tools.save").unwrap_or_else(|_| State::default());
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

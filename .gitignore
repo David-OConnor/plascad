@@ -4,3 +4,7 @@
 # IDE
 *.iws
 workspace.xml
+
+
+# Project-specific
+*.save

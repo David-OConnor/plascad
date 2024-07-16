@@ -138,13 +138,13 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             .on_hover_text("Save primer data. Ctrl + S")
             .clicked()
         {
-            match save("plasid_tools.save", state) {
+            match save("plasmid_tools.save", state) {
                 Ok(_) => println!("Save successful"),
                 Err(e) => println!("Error saving: {e}")
             }
         }
 
-        if ui.button("Load").clicked() {}
+        // if ui.button("Load").clicked() {}
     });
 
     ui.label("Tuning instructions: Include more of the target sequence than required on the end[s] that can be tuned. These are the \
@@ -160,6 +160,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         .column(Column::auto().resizable(true))
         .column(Column::initial(40.).resizable(true))
         .column(Column::initial(36.).resizable(true))
+        .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::remainder())
@@ -191,9 +192,12 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             header.col(|ui| {
                 ui.heading("Dimer").on_hover_text("Potential of forming a self-end dimer. See the readme for calculations and assumptions.");
             });
+            // For deleting the row.
+            header.col(|ui| {});
         })
         .body(|mut body| {
-            for data in &mut state.primer_data {
+            let mut removed = None;
+            for (i, data) in state.primer_data.iter_mut().enumerate() {
                 body.row(30.0, |mut row| {
                     row.col(|ui| {
                         // gui.label(make_seq_str(&col.sequence));
@@ -366,7 +370,16 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                         };
                         ui.label(text);
                     });
+
+                    row.col(|ui| {
+                        if ui.button("🗑").clicked() {
+                            removed = Some(i);
+                        }
+                    });
                 });
+            }
+            if let Some(rem_i) = removed {
+                state.primer_data.remove(rem_i);
             }
         });
 
