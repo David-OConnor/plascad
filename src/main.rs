@@ -6,6 +6,7 @@
 // #![windows_subsystem = "windows"]
 
 use std::io::Read;
+
 use bincode::{Decode, Encode};
 // use bio::{
 //     bio_types::sequence::{Sequence, SequenceRead},
@@ -14,15 +15,13 @@ use bincode::{Decode, Encode};
 // };
 use eframe::{self, egui, egui::Context};
 use gui::primer::PrimerData;
-// use image::GenericImageView;
 
+use crate::{gui::PagePrimerCreation, pcr::PolymeraseType, primer::TM_TARGET, util::load};
+// use image::GenericImageView;
 use crate::{
     gui::{Page, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::PcrParams,
 };
-use crate::pcr::PolymeraseType;
-use crate::primer::TM_TARGET;
-use crate::util::load;
 
 mod gui;
 mod primer;
@@ -116,7 +115,7 @@ impl Default for PcrUi {
     fn default() -> Self {
         Self {
             primer_tm: TM_TARGET,
-            product_len: 20,
+            product_len: 1_000,
             polymerase_type: Default::default(),
             num_cycles: 30,
         }
@@ -128,9 +127,13 @@ struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
     // todo to save computation.
     page: Page,
+    page_primer_creation: PagePrimerCreation,
     seq_insert_input: String,
     seq_vector_input: String,
+    seq_amplicon_input: String,
     pcr: PcrUi,
+    // pcr_primer: Option<usize>, // primer index, if primer count > 0.
+    pcr_primer: usize, // primer index
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
@@ -138,8 +141,11 @@ struct StateUi {
 struct State {
     ui: StateUi,
     primer_data: Vec<PrimerData>,
+    /// Insert and vector are for SLIC and FC.
     seq_insert: Seq,
     seq_vector: Seq,
+    /// Amplicon is for basic PCR.
+    seq_amplicon: Seq,
     insert_loc: usize,
     /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
     insert_location_5p_limit: usize,
@@ -152,6 +158,7 @@ impl State {
     pub fn sync_seqs(&mut self) {
         self.seq_insert = util::seq_from_str(&self.ui.seq_insert_input);
         self.seq_vector = util::seq_from_str(&self.ui.seq_vector_input);
+        self.seq_amplicon = util::seq_from_str(&self.ui.seq_amplicon_input);
     }
 
     pub fn sync_pcr(&mut self) {
@@ -162,7 +169,10 @@ impl State {
 fn main() {
     // todo: Move to a more robust save/load system later.
 
-    let state = load("plasmid_tools.save").unwrap_or_else(|_| State::default());
+    let mut state = load("plasmid_tools.save").unwrap_or_else(|_| State::default());
+
+    state.sync_seqs();
+    state.sync_pcr();
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

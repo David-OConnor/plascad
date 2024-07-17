@@ -1,6 +1,7 @@
 //! This module contains code related to primer (oglionucleotide) design and QC.
 
 use bincode::{Decode, Encode};
+
 use crate::{
     util::{map_linear, seq_complement},
     Nucleotide,
@@ -33,11 +34,16 @@ pub struct PrimerMetrics {
     pub gc_3p_count: u8,
     pub complexity: f32,
     pub self_end_dimer: u8,
+    pub repeats: u8,
     pub tm_score: f32,
     pub gc_score: f32,
     pub gc_3p_score: f32,
     pub complexity_score: f32,
     pub dimer_score: f32,
+    /// https://www.benchling.com/primer-design-for-pcr
+    /// "Avoid runs of four or more of a single base (e.g., ACCCCC), or four or more dinucleotide
+    /// repeats (e.g., ATATATATAT) as they will cause mispriming."
+    pub repeats_score: f32,
     /// This is a weighted overall score.
     pub quality_score: f32,
 }
@@ -52,7 +58,10 @@ impl PrimerMetrics {
         const WEIGHT_STAB: f32 = 1.;
         const WEIGHT_COMPLEXITY: f32 = 1.;
         const WEIGHT_DIMER: f32 = 1.;
+        const WEIGHT_REPEATS: f32 = 1.;
 
+        // todo: Instead of closeness to 59, should it be >54??
+        // Also: 50-60C. And within 5C of the complement primer.
         self.tm_score = map_linear((self.melting_temp - TM_TARGET).abs(), (0., 12.), (1., 0.));
         self.tm_score = self.tm_score.clamp(0., 1.);
 
@@ -68,13 +77,22 @@ impl PrimerMetrics {
             _ => unreachable!(),
         };
 
+        self.gc_3p_score = match self.repeats {
+            0 => 1.,
+            1 => 0.8,
+            2 => 0.4,
+            3 => 0.1,
+            4 => 0.,
+            _ => unreachable!(),
+        };
+
         self.quality_score = (WEIGHT_TM * self.tm_score
             + WEIGHT_GC
             + self.gc_score
             + WEIGHT_STAB * self.gc_3p_score
             + WEIGHT_COMPLEXITY * self.complexity_score
             + WEIGHT_DIMER * self.dimer_score)
-            / 5.
+            + WEIGHT_REPEATS * self.repeats_score / 6.
     }
 }
 

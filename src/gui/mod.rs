@@ -5,9 +5,9 @@ pub mod primer;
 use bincode::{Decode, Encode};
 use eframe::{
     egui,
-    egui::{Color32, Context, Key, Ui},
+    egui::{Color32, Context, Key, RichText, Ui},
 };
-use eframe::egui::RichText;
+
 use crate::State;
 
 pub const WINDOW_WIDTH: f32 = 1100.;
@@ -42,7 +42,31 @@ impl Page {
             Self::Primers => "Primers",
             Self::Pcr => "PCR",
             Self::Portions => "Mixing portions",
-        }.to_owned()
+        }
+        .to_owned()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+pub enum PagePrimerCreation {
+    /// Eg amplifying a section of a single sequence.
+    Amplification,
+    SlicFc,
+}
+
+impl Default for PagePrimerCreation {
+    fn default() -> Self {
+        Self::SlicFc
+    }
+}
+
+impl PagePrimerCreation {
+    pub fn to_str(&self) -> String {
+        match self {
+            Self::Amplification => "Amplification",
+            Self::SlicFc => "FLIC and FastCloning",
+        }
+        .to_owned()
     }
 }
 
@@ -69,7 +93,10 @@ fn page_button(page_state: &mut Page, page: Page, ui: &mut Ui) {
         Color32::WHITE
     };
 
-    if ui.button(RichText::new(page.to_str()).color(color)).clicked() {
+    if ui
+        .button(RichText::new(page.to_str()).color(color))
+        .clicked()
+    {
         *page_state = page;
     }
 
@@ -84,8 +111,40 @@ fn page_selector(state: &mut State, ui: &mut Ui) {
     });
 }
 
+fn page_primers_button(page_state: &mut PagePrimerCreation, page: PagePrimerCreation, ui: &mut Ui) {
+    let color = if *page_state == page {
+        Color32::GREEN
+    } else {
+        Color32::WHITE
+    };
+
+    if ui
+        .button(RichText::new(page.to_str()).color(color))
+        .clicked()
+    {
+        *page_state = page;
+    }
+
+    ui.add_space(COL_SPACING);
+}
+
+pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {
+    ui.horizontal(|ui| {
+        page_primers_button(
+            &mut state.ui.page_primer_creation,
+            PagePrimerCreation::Amplification,
+            ui,
+        );
+        page_primers_button(
+            &mut state.ui.page_primer_creation,
+            PagePrimerCreation::SlicFc,
+            ui,
+        );
+    });
+}
+
 pub fn draw(state: &mut State, ctx: &Context) {
-  ctx.input(|ip| {
+    ctx.input(|ip| {
         if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
             state.primer_data.push(Default::default());
         }

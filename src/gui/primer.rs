@@ -3,12 +3,11 @@ use eframe::egui::{Align, Color32, Direction, Layout, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
 use crate::{
-    gui::{COL_SPACING, ROW_SPACING},
+    gui::{page_primers_selector, PagePrimerCreation, COL_SPACING, ROW_SPACING},
     primer::{design_slic_fc_primers, Primer, PrimerMetrics},
-    util::{make_seq_str, seq_from_str},
+    util::{make_seq_str, save, seq_from_str},
     State,
 };
-use crate::util::save;
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -132,7 +131,7 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) {
             if ui.button("⏵").clicked() {
                 let t3p_len = match data.tunable_3p {
                     TuneSetting::Enabled(t) => t,
-                    _ => 0
+                    _ => 0,
                 };
                 if *i + 1 < data.sequence_input.len() - t3p_len {
                     *i += 1;
@@ -148,8 +147,11 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) {
             ui.label(RichText::new(&data.seq_removed_5p).color(Color32::GRAY));
             ui.add_space(COL_SPACING);
 
-            if data.tunable_5p != TuneSetting::Disabled || data.tunable_3p != TuneSetting::Disabled {
-                ui.label(RichText::new(make_seq_str(&data.primer.sequence)).color(Color32::LIGHT_BLUE));
+            if data.tunable_5p != TuneSetting::Disabled || data.tunable_3p != TuneSetting::Disabled
+            {
+                ui.label(
+                    RichText::new(make_seq_str(&data.primer.sequence)).color(Color32::LIGHT_BLUE),
+                );
             }
 
             ui.add_space(COL_SPACING);
@@ -171,7 +173,7 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) {
                 if ui.button("⏴").clicked() {
                     let t5p_len = match data.tunable_5p {
                         TuneSetting::Enabled(t) => t,
-                        _ => 0
+                        _ => 0,
                     };
 
                     if *i + 1 < data.sequence_input.len() - t5p_len {
@@ -187,6 +189,152 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) {
             data.run_calcs();
         }
         // });
+    });
+}
+
+fn amplification(state: &mut State, ui: &mut Ui) {
+    ui.heading("Amplification");
+
+    ui.add_space(ROW_SPACING);
+
+    ui.label("Amplicon:");
+    let response =
+        ui.add(TextEdit::multiline(&mut state.ui.seq_amplicon_input).desired_width(800.));
+    if response.changed() {
+        state.ui.seq_amplicon_input = make_seq_str(&seq_from_str(&state.ui.seq_amplicon_input));
+    }
+
+    ui.add_space(ROW_SPACING);
+
+    ui.horizontal(|ui| {
+        if ui.button("➕ Make primers").clicked() {
+            state.sync_seqs();
+
+            // if let Some(primers) =
+            //     design_amplification_primers(&state.seq_amplicon)
+            // {
+            //     let sequence_input = make_seq_str(&primers.fwd.sequence);
+            //
+            //     let mut primer_fwd = PrimerData {
+            //         primer: primers.insert_fwd,
+            //         sequence_input,
+            //         description: "Amplification Fwd".to_owned(),
+            //         // Both ends are  tunable, since this glues the insert to the vector
+            //         tunable_5p: TuneSetting::Enabled(0),
+            //         tunable_3p: TuneSetting::Enabled(0),
+            //         ..Default::default()
+            //     };
+            //
+            //     let sequence_input = make_seq_str(&primers.rev.sequence);
+            //     let mut primer_rev = PrimerData {
+            //         primer: primers.insert_rev,
+            //         sequence_input,
+            //         description: "Amplification Rev".to_owned(),
+            //         // Both ends are tunable, since this glues the insert to the vector
+            //         tunable_5p: TuneSetting::Enabled(0),
+            //         tunable_3p: TuneSetting::Enabled(0),
+            //         ..Default::default()
+            //     };
+            //
+            //     primer_fwd.run_calcs();
+            //     primer_rev.run_calcs();
+            //
+            //     state
+            //         .primer_data
+            //         .extend([primer_fwd, primer_rev]);
+            // }
+        }
+    });
+}
+
+fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
+    ui.heading("SLIC and FastCloning");
+
+    ui.add_space(ROW_SPACING);
+
+    ui.label("Insert:");
+    let response = ui.add(TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(800.));
+    if response.changed() {
+        state.ui.seq_insert_input = make_seq_str(&seq_from_str(&state.ui.seq_insert_input));
+    }
+
+    ui.add_space(ROW_SPACING);
+
+    ui.label("Vector:");
+    let response = ui.add(TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(800.));
+    if response.changed() {
+        state.ui.seq_vector_input = make_seq_str(&seq_from_str(&state.ui.seq_vector_input));
+    }
+
+    ui.horizontal(|ui| {
+        let mut entry = state.insert_loc.to_string();
+        let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
+        if response.changed() {
+            state.insert_loc = entry.parse().unwrap_or(0);
+        }
+
+        ui.add_space(COL_SPACING);
+
+        if ui.button("➕ Make cloning primers").clicked() {
+            state.sync_seqs();
+
+            if let Some(primers) =
+                design_slic_fc_primers(&state.seq_vector, &state.seq_insert, state.insert_loc)
+            {
+                let sequence_input = make_seq_str(&primers.insert_fwd.sequence);
+
+                let mut insert_fwd = PrimerData {
+                    primer: primers.insert_fwd,
+                    sequence_input,
+                    description: "SLIC Insert Fwd".to_owned(),
+                    // Both ends are  tunable, since this glues the insert to the vector
+                    tunable_5p: TuneSetting::Enabled(0),
+                    tunable_3p: TuneSetting::Enabled(0),
+                    ..Default::default()
+                };
+
+                let sequence_input = make_seq_str(&primers.insert_rev.sequence);
+                let mut insert_rev = PrimerData {
+                    primer: primers.insert_rev,
+                    sequence_input,
+                    description: "SLIC Insert Rev".to_owned(),
+                    // Both ends are tunable, since this glues the insert to the vector
+                    tunable_5p: TuneSetting::Enabled(0),
+                    tunable_3p: TuneSetting::Enabled(0),
+                    ..Default::default()
+                };
+
+                let sequence_input = make_seq_str(&primers.vector_fwd.sequence);
+                let mut vector_fwd = PrimerData {
+                    primer: primers.vector_fwd,
+                    sequence_input,
+                    description: "SLIC Vector Fwd".to_owned(),
+                    // 5' is non-tunable: This is the insert location.
+                    tunable_5p: TuneSetting::Disabled,
+                    tunable_3p: TuneSetting::Enabled(0),
+                    ..Default::default()
+                };
+
+                let sequence_input = make_seq_str(&primers.vector_rev.sequence);
+                let mut vector_rev = PrimerData {
+                    primer: primers.vector_rev,
+                    sequence_input,
+                    description: "SLIC Vector Rev".to_owned(),
+                    tunable_5p: TuneSetting::Enabled(0),
+                    // 3' is non-tunable: This is the insert location.
+                    tunable_3p: TuneSetting::Disabled,
+                    ..Default::default()
+                };
+                insert_fwd.run_calcs();
+                insert_rev.run_calcs();
+                vector_fwd.run_calcs();
+                vector_rev.run_calcs();
+
+                state
+                    .primer_data
+                    .extend([insert_fwd, insert_rev, vector_fwd, vector_rev]);
+            }
+        }
     });
 }
 
@@ -218,7 +366,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             .clicked()
         {
             if let Err(e) = save("plasmid_tools.save", state) {
-               println!("Error saving: {e}");
+                println!("Error saving: {e}");
             }
         }
 
@@ -238,6 +386,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         .column(Column::auto().resizable(true))
         .column(Column::initial(40.).resizable(true))
         .column(Column::initial(36.).resizable(true))
+        .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))
@@ -270,6 +419,10 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             header.col(|ui| {
                 ui.heading("Dimer").on_hover_text("Potential of forming a self-end dimer. See the readme for calculations and assumptions.");
             });
+            header.col(|ui| {
+                ui.heading("Repeat").on_hover_text("Count of repeats of a single or double nt sequence >4 in a row.");
+            });
+
             // For deleting the row.
             header.col(|ui| {});
         })
@@ -392,6 +545,15 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                     });
 
                     row.col(|ui| {
+                        let text = match &data.metrics {
+                            Some(m) => RichText::new(&format!("{}", m.repeats))
+                                .color(color_from_score(m.repeats_score)),
+                            None => RichText::new("-"),
+                        };
+                        ui.label(text);
+                    });
+
+                    row.col(|ui| {
                         if ui.button("🗑").clicked() {
                             removed = Some(i);
                         }
@@ -405,94 +567,16 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(ROW_SPACING * 2.);
 
-    ui.heading("SLIC and FastCloning");
+    page_primers_selector(state, ui);
 
-    ui.add_space(ROW_SPACING);
-
-    ui.label("Insert:");
-    let response = ui.add(TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(800.));
-    if response.changed() {
-        state.ui.seq_insert_input = make_seq_str(&seq_from_str(&state.ui.seq_insert_input));
-    }
-
-    ui.add_space(ROW_SPACING);
-
-    ui.label("Vector:");
-    let response = ui.add(TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(800.));
-    if response.changed() {
-        state.ui.seq_vector_input = make_seq_str(&seq_from_str(&state.ui.seq_vector_input));
-    }
-
-    ui.horizontal(|ui| {
-        let mut entry = state.insert_loc.to_string();
-        let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
-        if response.changed() {
-            state.insert_loc = entry.parse().unwrap_or(0);
+    match state.ui.page_primer_creation {
+        PagePrimerCreation::Amplification => {
+            amplification(state, ui);
         }
-
-        ui.add_space(COL_SPACING);
-
-        if ui.button("➕ Make cloning primers").clicked() {
-            state.sync_seqs();
-
-            if let Some(primers) =
-                design_slic_fc_primers(&state.seq_vector, &state.seq_insert, state.insert_loc)
-            {
-                let sequence_input = make_seq_str(&primers.insert_fwd.sequence);
-
-                let mut insert_fwd = PrimerData {
-                    primer: primers.insert_fwd,
-                    sequence_input,
-                    description: "SLIC Insert Fwd".to_owned(),
-                    // Both ends are  tunable, since this glues the insert to the vector
-                    tunable_5p: TuneSetting::Enabled(0),
-                    tunable_3p: TuneSetting::Enabled(0),
-                    ..Default::default()
-                };
-
-                let sequence_input = make_seq_str(&primers.insert_rev.sequence);
-                let mut insert_rev = PrimerData {
-                    primer: primers.insert_rev,
-                    sequence_input,
-                    description: "SLIC Insert Rev".to_owned(),
-                    // Both ends are tunable, since this glues the insert to the vector
-                    tunable_5p: TuneSetting::Enabled(0),
-                    tunable_3p: TuneSetting::Enabled(0),
-                    ..Default::default()
-                };
-
-                let sequence_input = make_seq_str(&primers.vector_fwd.sequence);
-                let mut vector_fwd = PrimerData {
-                    primer: primers.vector_fwd,
-                    sequence_input,
-                    description: "SLIC Vector Fwd".to_owned(),
-                    // 5' is non-tunable: This is the insert location.
-                    tunable_5p: TuneSetting::Disabled,
-                    tunable_3p: TuneSetting::Enabled(0),
-                    ..Default::default()
-                };
-
-                let sequence_input = make_seq_str(&primers.vector_rev.sequence);
-                let mut vector_rev = PrimerData {
-                    primer: primers.vector_rev,
-                    sequence_input,
-                    description: "SLIC Vector Rev".to_owned(),
-                    tunable_5p: TuneSetting::Enabled(0),
-                    // 3' is non-tunable: This is the insert location.
-                    tunable_3p: TuneSetting::Disabled,
-                    ..Default::default()
-                };
-                insert_fwd.run_calcs();
-                insert_rev.run_calcs();
-                vector_fwd.run_calcs();
-                vector_rev.run_calcs();
-
-                state
-                    .primer_data
-                    .extend([insert_fwd, insert_rev, vector_fwd, vector_rev]);
-            }
+        PagePrimerCreation::SlicFc => {
+            primer_creation_slic_fc(state, ui);
         }
-    });
+    }
 
     // todo: Visualizer here with the seq, the primers etc
 }

@@ -1,6 +1,7 @@
 //! This module assists in identifying PCR parameters
 
 use bincode::{Decode, Encode};
+
 use crate::PcrUi;
 
 /// This is a common pattern for PCR parameters
@@ -32,7 +33,7 @@ impl Default for PolymeraseType {
 }
 
 impl PolymeraseType {
-    pub fn extension_time(&self, product_len: usize) -> u16{
+    pub fn extension_time(&self, product_len: usize) -> u16 {
         match self {
             Self::NormalFidelity => (60 * product_len / 1_000) as u16,
             // 15 - 30. 15 recommended in FastCloning guide.
@@ -43,8 +44,9 @@ impl PolymeraseType {
     pub fn to_str(&self) -> String {
         match self {
             Self::NormalFidelity => "Normal fidelity",
-            Self::HighFidelity => "High fidelity (eg Phusion)"
-        }.to_owned()
+            Self::HighFidelity => "High fidelity (eg Phusion)",
+        }
+        .to_owned()
     }
 }
 
@@ -65,6 +67,7 @@ impl PcrParams {
             initial_denaturation: TempTime::new(94., 120),
             // 94-98? 10-30s?
             denaturation: TempTime::new(94., 30),
+            // Alternative: Ta = 0.3 x  Tm(primer) + 0.7 Tm(product) – 14.9.
             annealing: TempTime::new(data.primer_tm - 5., 30), // 15-60s. How do we choose.
             // 72 is good if Taq, and Phusion.
             extension: TempTime::new(72., data.polymerase_type.extension_time(data.product_len)),
