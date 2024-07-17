@@ -61,9 +61,12 @@ pub struct PcrParams {
 impl PcrParams {
     pub fn new(data: &PcrUi) -> Self {
         Self {
+            // 94-98? 30-120s?
             initial_denaturation: TempTime::new(94., 120),
+            // 94-98? 10-30s?
             denaturation: TempTime::new(94., 30),
             annealing: TempTime::new(data.primer_tm - 5., 30), // 15-60s. How do we choose.
+            // 72 is good if Taq, and Phusion.
             extension: TempTime::new(72., data.polymerase_type.extension_time(data.product_len)),
             // Alternatively: 5-10 mins? Perhaps 30s per 1kb?)
             final_extension: TempTime::new(72., 60),

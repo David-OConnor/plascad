@@ -1,5 +1,5 @@
 use bincode::{Decode, Encode};
-use eframe::egui::{Color32, RichText, TextEdit, Ui};
+use eframe::egui::{Align, Color32, Direction, Layout, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
 use crate::{
@@ -111,6 +111,85 @@ fn color_from_score(score: f32) -> Color32 {
     }
 }
 
+/// Shows below each primer sequence. Data and controls on trimming primer size for optimization.
+fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) {
+    // Section for tuning primer length.
+    ui.horizontal(|ui| {
+        // This layout allows even spacing.
+        // ui.allocate_ui(egui::Vec2::new(ui.available_width(), 0.0), |ui| {
+        //     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+        // This avoids a double-mutable error
+        let mut tuned = false;
+
+        if let TuneSetting::Enabled(i) = &mut data.tunable_5p {
+            ui.label("5'");
+            if ui.button("⏴").clicked() {
+                if *i > 0 {
+                    *i -= 1;
+                }
+                tuned = true;
+            };
+            if ui.button("⏵").clicked() {
+                let t3p_len = match data.tunable_3p {
+                    TuneSetting::Enabled(t) => t,
+                    _ => 0
+                };
+                if *i + 1 < data.sequence_input.len() - t3p_len {
+                    *i += 1;
+                }
+                tuned = true;
+            };
+
+            ui.label(&format!("({i})"));
+        }
+
+        // This section shows the trimmed sequence, with the removed parts visible to the left and right.
+        ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+            ui.label(RichText::new(&data.seq_removed_5p).color(Color32::GRAY));
+            ui.add_space(COL_SPACING);
+
+            if data.tunable_5p != TuneSetting::Disabled || data.tunable_3p != TuneSetting::Disabled {
+                ui.label(RichText::new(make_seq_str(&data.primer.sequence)).color(Color32::LIGHT_BLUE));
+            }
+
+            ui.add_space(COL_SPACING);
+            ui.label(RichText::new(&data.seq_removed_3p).color(Color32::GRAY));
+        });
+
+        // Note: We need to reverse the item order for this method of right-justifying to work.
+        // This is kind of OK with the intent here though.
+        ui.with_layout(Layout::right_to_left(Align::Max), |ui| {
+            if let TuneSetting::Enabled(i) = &mut data.tunable_3p {
+                ui.label("3'");
+
+                if ui.button("⏵").clicked() {
+                    if *i > 0 {
+                        *i -= 1;
+                    }
+                    tuned = true;
+                };
+                if ui.button("⏴").clicked() {
+                    let t5p_len = match data.tunable_5p {
+                        TuneSetting::Enabled(t) => t,
+                        _ => 0
+                    };
+
+                    if *i + 1 < data.sequence_input.len() - t5p_len {
+                        *i += 1;
+                    }
+                    tuned = true;
+                };
+                ui.label(&format!("({i})"));
+            }
+        });
+
+        if tuned {
+            data.run_calcs();
+        }
+        // });
+    });
+}
+
 /// EGUI component for the Primer page
 pub fn primer_page(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
@@ -138,9 +217,8 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             .on_hover_text("Save primer data. Ctrl + S")
             .clicked()
         {
-            match save("plasmid_tools.save", state) {
-                Ok(_) => println!("Save successful"),
-                Err(e) => println!("Error saving: {e}")
+            if let Err(e) = save("plasmid_tools.save", state) {
+               println!("Error saving: {e}");
             }
         }
 
@@ -244,65 +322,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                             }
                         });
 
-                        // Section for tuning primer length.
-                        // todo: DRY. Refactor into a fn.
-                        ui.horizontal(|ui| {
-                            // This layout allows even spacing.
-                            // ui.allocate_ui(egui::Vec2::new(ui.available_width(), 0.0), |ui| {
-                            //     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                            // This avoids a double-mutable error
-                            let mut tuned = false;
-
-                            if let TuneSetting::Enabled(i) = &mut data.tunable_5p {
-                                ui.label("5'");
-                                if ui.button("⏴").clicked() {
-                                    if *i > 0 {
-                                        *i -= 1;
-                                    }
-                                    tuned = true;
-                                };
-                                if ui.button("⏵").clicked() {
-                                    if *i + 1 < data.sequence_input.len() {
-                                        *i += 1;
-                                    }
-                                    tuned = true;
-                                };
-
-                                ui.label(&format!("({i})"));
-                            }
-
-                            ui.label(RichText::new(&data.seq_removed_5p).color(Color32::GRAY));
-                            ui.add_space(COL_SPACING);
-
-                            if data.tunable_5p != TuneSetting::Disabled || data.tunable_3p != TuneSetting::Disabled {
-                                ui.label(RichText::new(make_seq_str(&data.primer.sequence)).color(Color32::LIGHT_BLUE));
-                            }
-
-                            ui.add_space(COL_SPACING);
-                            ui.label(RichText::new(&data.seq_removed_3p).color(Color32::GRAY));
-
-                            if let TuneSetting::Enabled(i) = &mut data.tunable_3p {
-                                ui.label("3'");
-                                if ui.button("⏴").clicked() {
-                                    if *i + 1 < data.sequence_input.len() {
-                                        *i += 1;
-                                    }
-                                    tuned = true;
-                                };
-                                if ui.button("⏵").clicked() {
-                                    if *i > 0 {
-                                        *i -= 1;
-                                    }
-                                    tuned = true;
-                                };
-
-                                ui.label(&format!("({i})"));
-                            }
-                            if tuned {
-                                data.run_calcs();
-                            }
-                            // });
-                        });
+                        primer_tune_display(data, ui);
                     });
 
                     row.col(|ui| {
@@ -404,8 +424,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
     }
 
     ui.horizontal(|ui| {
-        let mut val = state.insert_loc;
-        let mut entry = val.to_string();
+        let mut entry = state.insert_loc.to_string();
         let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
         if response.changed() {
             state.insert_loc = entry.parse().unwrap_or(0);

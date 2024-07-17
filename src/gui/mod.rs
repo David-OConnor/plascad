@@ -7,7 +7,7 @@ use eframe::{
     egui,
     egui::{Color32, Context, Key, Ui},
 };
-
+use eframe::egui::RichText;
 use crate::State;
 
 pub const WINDOW_WIDTH: f32 = 1100.;
@@ -18,7 +18,7 @@ pub const WINDOW_TITLE: &str = "Plasmid tools";
 pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
 
-#[derive(Clone, Copy, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum Page {
     /// Primer design and QC, including for cloning
     Primers,
@@ -33,6 +33,16 @@ pub enum Page {
 impl Default for Page {
     fn default() -> Self {
         Self::Primers
+    }
+}
+
+impl Page {
+    pub fn to_str(&self) -> String {
+        match self {
+            Self::Primers => "Primers",
+            Self::Pcr => "PCR",
+            Self::Portions => "Mixing portions",
+        }.to_owned()
     }
 }
 
@@ -52,28 +62,30 @@ impl Default for Page {
 //     }
 // }
 
+fn page_button(page_state: &mut Page, page: Page, ui: &mut Ui) {
+    let color = if *page_state == page {
+        Color32::GREEN
+    } else {
+        Color32::WHITE
+    };
+
+    if ui.button(RichText::new(page.to_str()).color(color)).clicked() {
+        *page_state = page;
+    }
+
+    ui.add_space(COL_SPACING);
+}
+
 fn page_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        if ui.button("Primers").clicked() {
-            state.ui.page = Page::Primers;
-        }
-
-        ui.add_space(COL_SPACING);
-
-        if ui.button("PCR").clicked() {
-            state.ui.page = Page::Pcr;
-        }
-
-        ui.add_space(COL_SPACING);
-
-        if ui.button("Mixing portions").clicked() {
-            state.ui.page = Page::Portions;
-        }
+        page_button(&mut state.ui.page, Page::Primers, ui);
+        page_button(&mut state.ui.page, Page::Pcr, ui);
+        page_button(&mut state.ui.page, Page::Portions, ui);
     });
 }
 
 pub fn draw(state: &mut State, ctx: &Context) {
-    let input = ctx.input(|ip| {
+  ctx.input(|ip| {
         if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
             state.primer_data.push(Default::default());
         }

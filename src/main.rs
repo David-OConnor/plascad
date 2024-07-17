@@ -14,13 +14,14 @@ use bincode::{Decode, Encode};
 // };
 use eframe::{self, egui, egui::Context};
 use gui::primer::PrimerData;
-use image::GenericImageView;
+// use image::GenericImageView;
 
 use crate::{
     gui::{Page, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::PcrParams,
 };
 use crate::pcr::PolymeraseType;
+use crate::primer::TM_TARGET;
 use crate::util::load;
 
 mod gui;
@@ -99,19 +100,27 @@ impl eframe::App for State {
     /// This is the GUI's event loop.
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         gui::draw(self, ctx);
-
-        // This repaint is required to keep the event loop running, even with no GUI activity.
-        ctx.request_repaint()
     }
 }
 
 /// Variables for UI fields, for determining PCR parameters.
-#[derive(Default, Encode, Decode)]
+#[derive(Encode, Decode)]
 struct PcrUi {
     pub primer_tm: f32,
     pub product_len: usize,
     pub polymerase_type: PolymeraseType,
     pub num_cycles: u16,
+}
+
+impl Default for PcrUi {
+    fn default() -> Self {
+        Self {
+            primer_tm: TM_TARGET,
+            product_len: 20,
+            polymerase_type: Default::default(),
+            num_cycles: 30,
+        }
+    }
 }
 
 #[derive(Default, Encode, Decode)]

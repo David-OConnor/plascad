@@ -1,5 +1,5 @@
 use std::str::FromStr;
-use eframe::egui::{ComboBox, TextEdit, Ui};
+use eframe::egui::{Color32, ComboBox, RichText, TextEdit, Ui};
 use crate::gui::{COL_SPACING, ROW_SPACING};
 use crate::pcr::{PcrParams, PolymeraseType, TempTime};
 use crate::primer::TM_TARGET;
@@ -10,10 +10,10 @@ fn temp_time_disp(tt: &TempTime, label: &str, ui: &mut Ui) {
         ui.label(&format!("{label}:"));
         ui.add_space(COL_SPACING);
 
-        ui.label(&format!("{}°C", tt.temp));
+        ui.label(RichText::new(&format!("{}°C", tt.temp)).color(Color32::LIGHT_BLUE));
         ui.add_space(COL_SPACING);
 
-        ui.label(&format!("{}s", tt.time));
+        ui.label(RichText::new(&format!("{}s", tt.time)).color(Color32::LIGHT_BLUE));
         ui.add_space(COL_SPACING);
 
     });
@@ -46,9 +46,18 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
     //     pub num_cycles: u16,
 
     ui.horizontal(|ui| {
-        let mut changed = state.sync_pcr();
-        if numerical_field("Primer TM", &mut state.ui.pcr.primer_tm, TM_TARGET, ui) ||
-            numerical_field("Product size (bp)", &mut state.ui.pcr.product_len, 0, ui) ||
+        // todo: Allow TM decimals?
+        // Not using our helper here due to int coercing.
+        ui.label("Primer TM");
+        let mut entry = format!("{:.0}", state.ui.pcr.primer_tm);
+        let response = ui.add(TextEdit::singleline(&mut entry).desired_width(20.));
+        if response.changed() {
+            state.ui.pcr.primer_tm = entry.parse().unwrap_or(TM_TARGET);
+            state.sync_pcr();
+        }
+
+        // if numerical_field("Primer TM", &mut state.ui.pcr.primer_tm, TM_TARGET, ui) ||
+            if numerical_field("Product size (bp)", &mut state.ui.pcr.product_len, 0, ui) ||
             numerical_field("# cycles", &mut state.ui.pcr.num_cycles, 30, ui)
         {
             state.sync_pcr();

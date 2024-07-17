@@ -1,6 +1,6 @@
 [package]
 name = "plasmid_tools"
-version = "0.1.0"
+version = "0.6.9"
 edition = "2021"
 authors = ["David O'Connor <the_alchemist@fastmail.com>"]
 description = "Tools for primer design, PCR, and other plasmid-related work."
@@ -18,16 +18,14 @@ exclude = [".gitignore"]
 reqwest = { version = "^0.12.5", features = ["blocking", "json"], default-features = false }
 
 eframe = "^0.28.1"
-egui_extras = "^0.28.1"
+egui_extras = "^0.28.1"  # For tables.
 
 egui_file = "^0.18.0" # For file dialogs.
-image = "^0.25.1" # For loading the window icon.
 
 bio = "^2.0.0"
-chrono = "^0.4.38"
+#chrono = "^0.4.38"
 
 #regex = "1.10.5"
 
-# Serde and bincode for saving and loading
-#serde = { version = "1.0.204", features = ["derive"] }
+# We use bincode for saving and loading to files.
 bincode = "^2.0.0-rc.3"
