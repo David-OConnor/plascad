@@ -23,6 +23,12 @@ pub struct SlicPrimers {
     pub insert_rev: Primer,
 }
 
+/// These are also relevant for FastCloning.
+pub struct AmplificationPrimers {
+    pub fwd: Primer,
+    pub rev: Primer,
+}
+
 /// Metrics related to primer quality.
 #[derive(Clone, Debug, Default, Encode, Decode)]
 pub struct PrimerMetrics {
@@ -223,7 +229,6 @@ impl Primer {
     }
 }
 
-// todo: Use this A/R, called from the UI page.
 pub fn design_slic_fc_primers(
     seq_vector: &Seq,
     seq_insert: &Seq,
@@ -232,7 +237,7 @@ pub fn design_slic_fc_primers(
     // These lenghts should be long enough for reasonablely high-length primers, should that be
     // required for optimal characteristics.
     const UNTRIMMED_LEN_INSERT: usize = 30;
-    const UNTRIMMED_LEN_VECTOR: usize = 30;
+    const UNTRIMMED_LEN_VECTOR: usize = 32;
 
     let seq_len_vector = seq_vector.len();
     let seq_len_insert = seq_insert.len();
@@ -252,15 +257,15 @@ pub fn design_slic_fc_primers(
     let insert_loc_reversed = seq_len_vector - insert_loc;
 
     let (seq_vector_fwd, seq_vector_rev) = {
-        let mut vector_end = insert_loc + UNTRIMMED_LEN_VECTOR;
-        vector_end = vector_end.clamp(0, seq_len_vector);
+        let mut end = insert_loc + UNTRIMMED_LEN_VECTOR;
+        end = end.clamp(0, seq_len_vector);
 
-        let mut vector_end_reversed = insert_loc_reversed + UNTRIMMED_LEN_VECTOR;
-        vector_end_reversed = vector_end_reversed.clamp(0, seq_len_vector);
+        let mut end_reversed = insert_loc_reversed + UNTRIMMED_LEN_VECTOR;
+        end_reversed = end_reversed.clamp(0, seq_len_vector);
 
         (
-            seq_vector[insert_loc..vector_end].to_owned(),
-            vector_reversed[insert_loc_reversed..vector_end_reversed].to_owned(),
+            seq_vector[insert_loc..end].to_owned(),
+            vector_reversed[insert_loc_reversed..end_reversed].to_owned(),
         )
     };
 
@@ -297,6 +302,44 @@ pub fn design_slic_fc_primers(
         },
         insert_rev: Primer {
             sequence: seq_insert_rev,
+        },
+    };
+
+    // todo: Optimize.
+
+    Some(result)
+}
+
+// todo: Use this A/R, called from the UI page.
+pub fn design_amplification_primers(
+    seq: &Seq,
+) -> Option<AmplificationPrimers> {
+    // These lenghts should be long enough for reasonablely high-length primers, should that be
+    // required for optimal characteristics.
+    const UNTRIMMED_LEN: usize = 32;
+
+    let seq_len = seq.len();
+    let reversed = seq_complement(&seq);
+
+    let (seq_fwd, seq_rev) = {
+        let mut end = UNTRIMMED_LEN;
+        end = end.clamp(0, seq_len);
+
+        let mut end_reversed = UNTRIMMED_LEN;
+        end_reversed = end_reversed.clamp(0, seq_len);
+
+        (
+            seq[..end].to_owned(),
+            reversed[..end_reversed].to_owned(),
+        )
+    };
+
+    let mut result = AmplificationPrimers {
+        fwd: Primer {
+            sequence: seq_fwd,
+        },
+        rev: Primer {
+            sequence: seq_rev,
         },
     };
 

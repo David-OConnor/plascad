@@ -8,6 +8,7 @@ use crate::{
     util::{make_seq_str, save, seq_from_str},
     State,
 };
+use crate::primer::design_amplification_primers;
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -210,39 +211,37 @@ fn amplification(state: &mut State, ui: &mut Ui) {
         if ui.button("➕ Make primers").clicked() {
             state.sync_seqs();
 
-            // if let Some(primers) =
-            //     design_amplification_primers(&state.seq_amplicon)
-            // {
-            //     let sequence_input = make_seq_str(&primers.fwd.sequence);
-            //
-            //     let mut primer_fwd = PrimerData {
-            //         primer: primers.insert_fwd,
-            //         sequence_input,
-            //         description: "Amplification Fwd".to_owned(),
-            //         // Both ends are  tunable, since this glues the insert to the vector
-            //         tunable_5p: TuneSetting::Enabled(0),
-            //         tunable_3p: TuneSetting::Enabled(0),
-            //         ..Default::default()
-            //     };
-            //
-            //     let sequence_input = make_seq_str(&primers.rev.sequence);
-            //     let mut primer_rev = PrimerData {
-            //         primer: primers.insert_rev,
-            //         sequence_input,
-            //         description: "Amplification Rev".to_owned(),
-            //         // Both ends are tunable, since this glues the insert to the vector
-            //         tunable_5p: TuneSetting::Enabled(0),
-            //         tunable_3p: TuneSetting::Enabled(0),
-            //         ..Default::default()
-            //     };
-            //
-            //     primer_fwd.run_calcs();
-            //     primer_rev.run_calcs();
-            //
-            //     state
-            //         .primer_data
-            //         .extend([primer_fwd, primer_rev]);
-            // }
+            if let Some(primers) =
+                design_amplification_primers(&state.seq_amplicon)
+            {
+                let sequence_input = make_seq_str(&primers.fwd.sequence);
+
+                let mut primer_fwd = PrimerData {
+                    primer: primers.fwd,
+                    sequence_input,
+                    description: "Amplification Fwd".to_owned(),
+                    tunable_5p: TuneSetting::Disabled,
+                    tunable_3p: TuneSetting::Enabled(0),
+                    ..Default::default()
+                };
+
+                let sequence_input = make_seq_str(&primers.rev.sequence);
+                let mut primer_rev = PrimerData {
+                    primer: primers.rev,
+                    sequence_input,
+                    description: "Amplification Rev".to_owned(),
+                    tunable_5p: TuneSetting::Enabled(0),
+                    tunable_3p: TuneSetting::Disabled,
+                    ..Default::default()
+                };
+
+                primer_fwd.run_calcs();
+                primer_rev.run_calcs();
+
+                state
+                    .primer_data
+                    .extend([primer_fwd, primer_rev]);
+            }
         }
     });
 }
