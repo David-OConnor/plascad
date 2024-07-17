@@ -134,6 +134,7 @@ struct StateUi {
     pcr: PcrUi,
     // pcr_primer: Option<usize>, // primer index, if primer count > 0.
     pcr_primer: usize, // primer index
+    primer_selected: Option<usize>,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.

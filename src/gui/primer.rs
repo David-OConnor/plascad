@@ -4,15 +4,16 @@ use egui_extras::{Column, TableBuilder};
 
 use crate::{
     gui::{page_primers_selector, PagePrimerCreation, COL_SPACING, ROW_SPACING},
-    primer::{design_slic_fc_primers, Primer, PrimerMetrics},
+    primer::{design_amplification_primers, design_slic_fc_primers, Primer, PrimerMetrics},
     util::{make_seq_str, save, seq_from_str},
     State,
 };
-use crate::primer::design_amplification_primers;
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
 const COLOR_BAD: Color32 = Color32::LIGHT_RED;
+
+const DEFAULT_TRIM_AMT: usize = 32 - 20;
 
 // const TM_IDEAL: f32 = 59.; // todo: Fill thi sin
 //
@@ -177,6 +178,7 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) {
                         _ => 0,
                     };
 
+                    // todo: We still have a crash her.e
                     if *i + 1 < data.sequence_input.len() - t5p_len {
                         *i += 1;
                     }
@@ -204,6 +206,7 @@ fn amplification(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         state.ui.seq_amplicon_input = make_seq_str(&seq_from_str(&state.ui.seq_amplicon_input));
     }
+    ui.label(&format!("len: {}", state.ui.seq_amplicon_input.len()));
 
     ui.add_space(ROW_SPACING);
 
@@ -211,9 +214,7 @@ fn amplification(state: &mut State, ui: &mut Ui) {
         if ui.button("➕ Make primers").clicked() {
             state.sync_seqs();
 
-            if let Some(primers) =
-                design_amplification_primers(&state.seq_amplicon)
-            {
+            if let Some(primers) = design_amplification_primers(&state.seq_amplicon) {
                 let sequence_input = make_seq_str(&primers.fwd.sequence);
 
                 let mut primer_fwd = PrimerData {
@@ -221,7 +222,7 @@ fn amplification(state: &mut State, ui: &mut Ui) {
                     sequence_input,
                     description: "Amplification Fwd".to_owned(),
                     tunable_5p: TuneSetting::Disabled,
-                    tunable_3p: TuneSetting::Enabled(0),
+                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
                     ..Default::default()
                 };
 
@@ -230,17 +231,15 @@ fn amplification(state: &mut State, ui: &mut Ui) {
                     primer: primers.rev,
                     sequence_input,
                     description: "Amplification Rev".to_owned(),
-                    tunable_5p: TuneSetting::Enabled(0),
-                    tunable_3p: TuneSetting::Disabled,
+                    tunable_5p: TuneSetting::Disabled,
+                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
                     ..Default::default()
                 };
 
                 primer_fwd.run_calcs();
                 primer_rev.run_calcs();
 
-                state
-                    .primer_data
-                    .extend([primer_fwd, primer_rev]);
+                state.primer_data.extend([primer_fwd, primer_rev]);
             }
         }
     });
@@ -256,6 +255,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         state.ui.seq_insert_input = make_seq_str(&seq_from_str(&state.ui.seq_insert_input));
     }
+    ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
 
     ui.add_space(ROW_SPACING);
 
@@ -264,6 +264,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         state.ui.seq_vector_input = make_seq_str(&seq_from_str(&state.ui.seq_vector_input));
     }
+    ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
 
     ui.horizontal(|ui| {
         let mut entry = state.insert_loc.to_string();
@@ -287,8 +288,8 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
                     sequence_input,
                     description: "SLIC Insert Fwd".to_owned(),
                     // Both ends are  tunable, since this glues the insert to the vector
-                    tunable_5p: TuneSetting::Enabled(0),
-                    tunable_3p: TuneSetting::Enabled(0),
+                    tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
                     ..Default::default()
                 };
 
@@ -298,8 +299,8 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
                     sequence_input,
                     description: "SLIC Insert Rev".to_owned(),
                     // Both ends are tunable, since this glues the insert to the vector
-                    tunable_5p: TuneSetting::Enabled(0),
-                    tunable_3p: TuneSetting::Enabled(0),
+                    tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
                     ..Default::default()
                 };
 
@@ -310,7 +311,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
                     description: "SLIC Vector Fwd".to_owned(),
                     // 5' is non-tunable: This is the insert location.
                     tunable_5p: TuneSetting::Disabled,
-                    tunable_3p: TuneSetting::Enabled(0),
+                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
                     ..Default::default()
                 };
 
@@ -319,7 +320,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
                     primer: primers.vector_rev,
                     sequence_input,
                     description: "SLIC Vector Rev".to_owned(),
-                    tunable_5p: TuneSetting::Enabled(0),
+                    tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
                     // 3' is non-tunable: This is the insert location.
                     tunable_3p: TuneSetting::Disabled,
                     ..Default::default()
@@ -378,6 +379,53 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(ROW_SPACING);
 
+    if let Some(sel_i) = state.ui.primer_selected {
+        ui.horizontal(|ui| {
+            ui.heading(&format!(
+                "Selected: {}",
+                &state.primer_data[sel_i].description
+            ));
+
+            ui.add_space(COL_SPACING);
+
+            if ui
+                .button(RichText::new("🢑Up").color(Color32::RED))
+                .clicked()
+            {
+                // todo: Arrow icons
+                if sel_i != 0 {
+                    state.primer_data.swap(sel_i, sel_i - 1);
+                    state.ui.primer_selected = Some(sel_i - 1);
+                }
+            }
+            if ui
+                .button(RichText::new("🢓Dn").color(Color32::RED))
+                .clicked()
+            {
+                if sel_i != state.primer_data.len() - 2 {
+                    state.primer_data.swap(sel_i, sel_i + 1);
+                    state.ui.primer_selected = Some(sel_i + 1);
+                }
+            }
+
+            if ui
+                .button(RichText::new("Delete 🗑").color(Color32::RED))
+                .clicked()
+            {
+                state.primer_data.remove(sel_i);
+            }
+
+            if ui
+                .button(RichText::new("Deselect").color(Color32::GOLD))
+                .clicked()
+            {
+                state.ui.primer_selected = None;
+            }
+        });
+
+        ui.add_space(ROW_SPACING);
+    }
+
     TableBuilder::new(ui)
         .column(Column::initial(400.).resizable(true))
         .column(Column::initial(160.).resizable(true))
@@ -410,7 +458,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 ui.heading("GC").on_hover_text("The percentage of nucleotides that are C or G.");
             });
             header.col(|ui| {
-                ui.heading("3' stab").on_hover_text("3' end stability: The number of G or C nucleotides in the last 5 nucleotides.");
+                ui.heading("Stab").on_hover_text("3' end stability: The number of G or C nucleotides in the last 5 nucleotides.");
             });
             header.col(|ui| {
                 ui.heading("Cplx").on_hover_text("Sequence complexity. See the readme for calculations and assumptions.");
@@ -419,14 +467,13 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 ui.heading("Dimer").on_hover_text("Potential of forming a self-end dimer. See the readme for calculations and assumptions.");
             });
             header.col(|ui| {
-                ui.heading("Repeat").on_hover_text("Count of repeats of a single or double nt sequence >4 in a row.");
+                ui.heading("Rep").on_hover_text("Count of repeats of a single or double nt sequence >4 in a row.");
             });
 
-            // For deleting the row.
+            // For selecting the row.
             header.col(|ui| {});
         })
         .body(|mut body| {
-            let mut removed = None;
             for (i, data) in state.primer_data.iter_mut().enumerate() {
                 body.row(30.0, |mut row| {
                     row.col(|ui| {
@@ -553,18 +600,29 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                     });
 
                     row.col(|ui| {
-                        if ui.button("🗑").clicked() {
-                            removed = Some(i);
+                        let mut selected = false;
+
+                        if let Some(sel_i) = state.ui.primer_selected {
+                            if sel_i == i {
+                                selected = true
+                            }
+                        }
+
+                        if selected {
+                            if ui.button(RichText::new("🔘").color(Color32::GREEN)).clicked() {
+                                state.ui.primer_selected = None;
+                            }
+                        } else {
+                            if ui.button("🔘").clicked() {
+                                state.ui.primer_selected = Some(i);
+                            }
                         }
                     });
                 });
             }
-            if let Some(rem_i) = removed {
-                state.primer_data.remove(rem_i);
-            }
         });
 
-    ui.add_space(ROW_SPACING * 2.);
+    ui.add_space(ROW_SPACING * 3.);
 
     page_primers_selector(state, ui);
 

@@ -311,9 +311,7 @@ pub fn design_slic_fc_primers(
 }
 
 // todo: Use this A/R, called from the UI page.
-pub fn design_amplification_primers(
-    seq: &Seq,
-) -> Option<AmplificationPrimers> {
+pub fn design_amplification_primers(seq: &Seq) -> Option<AmplificationPrimers> {
     // These lenghts should be long enough for reasonablely high-length primers, should that be
     // required for optimal characteristics.
     const UNTRIMMED_LEN: usize = 32;
@@ -328,19 +326,12 @@ pub fn design_amplification_primers(
         let mut end_reversed = UNTRIMMED_LEN;
         end_reversed = end_reversed.clamp(0, seq_len);
 
-        (
-            seq[..end].to_owned(),
-            reversed[..end_reversed].to_owned(),
-        )
+        (seq[..end].to_owned(), reversed[..end_reversed].to_owned())
     };
 
     let mut result = AmplificationPrimers {
-        fwd: Primer {
-            sequence: seq_fwd,
-        },
-        rev: Primer {
-            sequence: seq_rev,
-        },
+        fwd: Primer { sequence: seq_fwd },
+        rev: Primer { sequence: seq_rev },
     };
 
     // todo: Optimize.
