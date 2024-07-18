@@ -10,7 +10,7 @@ use eframe::{
 
 use crate::State;
 
-pub const WINDOW_WIDTH: f32 = 1200.;
+pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 800.;
 
 pub const WINDOW_TITLE: &str = "Plasmid tools";
@@ -37,7 +37,7 @@ impl Default for Page {
 }
 
 impl Page {
-    pub fn to_str(&self) -> String {
+    pub fn to_str(self) -> String {
         match self {
             Self::Primers => "Primers",
             Self::Pcr => "PCR",
@@ -61,7 +61,7 @@ impl Default for PagePrimerCreation {
 }
 
 impl PagePrimerCreation {
-    pub fn to_str(&self) -> String {
+    pub fn to_str(self) -> String {
         match self {
             Self::Amplification => "Amplification",
             Self::SlicFc => "SLIC and FastCloning",

@@ -4,15 +4,15 @@ use eframe::egui::{Color32, ComboBox, Grid, RichText, TextEdit, Ui, Vec2};
 
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
-    pcr::{PcrParams, PolymeraseType, TempTime},
+    pcr::{PolymeraseType, TempTime},
     primer::TM_TARGET,
     PcrUi, State,
 };
 
 fn temp_time_disp(tt: &TempTime, label: &str, ui: &mut Ui) {
     ui.label(&format!("{label}:"));
-    ui.label(RichText::new(&format!("{}°C", tt.temp)).color(Color32::LIGHT_BLUE));
-    ui.label(RichText::new(&format!("{}s", tt.time)).color(Color32::LIGHT_BLUE));
+    ui.label(RichText::new(format!("{}°C", tt.temp)).color(Color32::LIGHT_BLUE));
+    ui.label(RichText::new(format!("{}s", tt.time)).color(Color32::LIGHT_BLUE));
 
     ui.end_row();
 }
@@ -38,8 +38,7 @@ where
 pub fn pcr_page(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.heading("PCR parameters");
-
-        if state.primer_data.len() > 0 {
+        if !state.primer_data.is_empty() {
             ui.add_space(COL_SPACING);
 
             if ui.button("Load from primer: ").clicked() {
@@ -47,9 +46,9 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
 
                 state.ui.pcr = PcrUi {
                     ..Default::default() // pub primer_tm: f32,
-                                         // pub product_len: usize,
-                                         // pub polymerase_type: PolymeraseType,
-                                         // pub num_cycles: u16,
+                    // pub product_len: usize,
+                    // pub polymerase_type: PolymeraseType,
+                    // pub num_cycles: u16,
                 };
                 state.sync_pcr();
             }
@@ -124,8 +123,8 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
         temp_time_disp(&state.pcr.extension, "Extension", ui);
         temp_time_disp(&state.pcr.final_extension, "Final extension", ui);
 
-        ui.label(&format!("Number of cycles:"));
-        ui.label(&format!("{}", state.pcr.num_cycles));
+        ui.label(format!("Number of cycles:"));
+        ui.label(format!("{}", state.pcr.num_cycles));
 
         ui.end_row();
     });

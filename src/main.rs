@@ -5,8 +5,6 @@
 // Disables the terminal window. Use this for releases, but disable when debugging.
 // #![windows_subsystem = "windows"]
 
-use std::io::Read;
-
 use bincode::{Decode, Encode};
 // use bio::{
 //     bio_types::sequence::{Sequence, SequenceRead},
@@ -36,7 +34,7 @@ type Seq = Vec<Nucleotide>;
 
 /// A DNA nucleotide.
 /// todo: RNA A/R
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
 enum Nucleotide {
     A,
     T,
@@ -165,6 +163,14 @@ impl State {
     pub fn sync_pcr(&mut self) {
         self.pcr = PcrParams::new(&self.ui.pcr);
     }
+
+    pub fn sync_metrics(&mut self) {
+        for primer in &mut self.primer_data {
+            if let Some(metrics) = &mut primer.metrics {
+                metrics.update_scores();
+            }
+        }
+    }
 }
 
 fn main() {
@@ -174,6 +180,7 @@ fn main() {
 
     state.sync_seqs();
     state.sync_pcr();
+    state.sync_metrics();
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

@@ -4,7 +4,6 @@ use bincode::{Decode, Encode};
 
 use crate::{
     util::{map_linear, seq_complement},
-    Nucleotide,
     Nucleotide::{C, G},
     Seq,
 };
@@ -83,22 +82,20 @@ impl PrimerMetrics {
             _ => unreachable!(),
         };
 
-        self.gc_3p_score = match self.repeats {
+        self.repeats_score = match self.repeats {
             0 => 1.,
             1 => 0.8,
             2 => 0.4,
             3 => 0.1,
-            4 => 0.,
-            _ => unreachable!(),
+            _ => 0.,
         };
 
-        self.quality_score = (WEIGHT_TM * self.tm_score
-            + WEIGHT_GC
-            + self.gc_score
+        self.quality_score = ((WEIGHT_TM * self.tm_score
+            + WEIGHT_GC * self.gc_score
             + WEIGHT_STAB * self.gc_3p_score
             + WEIGHT_COMPLEXITY * self.complexity_score
             + WEIGHT_DIMER * self.dimer_score)
-            + WEIGHT_REPEATS * self.repeats_score / 6.
+            + WEIGHT_REPEATS * self.repeats_score) / 6.
     }
 }
 
@@ -208,6 +205,54 @@ impl Primer {
         0
     }
 
+    /// Calculate how many single or double nucleotide sequences exist that are of len 4 or more of the
+    /// same nt or nt pair respectively. It currently doesn't differentiate between 4, and more.
+    pub fn calc_repeats(&self) -> u8 {
+        if self.sequence.len() < 4 {
+            return 0;
+        }
+        
+        
+        let mut result = 0;
+
+        // Check for single nt repeats.
+        let mut prev_nt = self.sequence[0];
+        let mut single_repeat_len = 0;
+        
+        for nt in &self.sequence {
+            println!("NT: {:?}, prev_nt: {:?}", nt, prev_nt);
+            if *nt == prev_nt {
+                single_repeat_len += 1;
+                
+                if single_repeat_len > 2 { // todo: Why off by one?
+                    result += 1;
+                    single_repeat_len = 0;
+                }
+            } else {
+                single_repeat_len = 0;
+            }
+            prev_nt = *nt;
+        }
+
+        let mut prev_nts = (self.sequence[0], self.sequence[1]);
+        let mut double_repeat_len = 0;
+
+        // todo: Come back to adn implement this.
+        // for nt in &self.sequence {
+        //     if nt == prev_nt {
+        //         prev_nt = nt;
+        //         double_repeat_len += 1;
+        //
+        //         if double_repeat_len >= 4 {
+        //             result += 1;
+        //             double_repeat_len = 0;
+        //         }
+        //     }
+        // }
+        
+        result
+    }
+
     /// Calculate all primer metrics.
     /// todo: methods on Metrics instead?
     pub fn calc_metrics(&self) -> Option<PrimerMetrics> {
@@ -221,6 +266,7 @@ impl Primer {
             gc_3p_count: self.count_3p_g_c(),
             complexity: self.calc_complexity(),
             self_end_dimer: self.calc_self_end_dimer(),
+            repeats: self.calc_repeats(),
             ..Default::default()
         };
         result.update_scores();
@@ -248,8 +294,8 @@ pub fn design_slic_fc_primers(
         return None;
     }
 
-    let vector_reversed = seq_complement(&seq_vector);
-    let insert_reversed = seq_complement(&seq_insert);
+    let vector_reversed = seq_complement(seq_vector);
+    let insert_reversed = seq_complement(seq_insert);
 
     // todo: You should wrap the vector if the insert loc is near the edges. Clamping
     // todo as we do will produce incorrect behavior.
@@ -317,7 +363,7 @@ pub fn design_amplification_primers(seq: &Seq) -> Option<AmplificationPrimers> {
     const UNTRIMMED_LEN: usize = 32;
 
     let seq_len = seq.len();
-    let reversed = seq_complement(&seq);
+    let reversed = seq_complement(seq);
 
     let (seq_fwd, seq_rev) = {
         let mut end = UNTRIMMED_LEN;

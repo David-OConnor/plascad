@@ -21,7 +21,7 @@ const DEFAULT_TRIM_AMT: usize = 32 - 20;
 // const THRESHOLDS_GC: (f32, f32) = (59., 60.);
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
-enum TuneSetting {
+pub enum TuneSetting {
     Disabled,
     /// Inner: Offset index; this marks the distance from the respective ends that the sequence is attentuated to.
     Enabled(usize),
@@ -93,8 +93,8 @@ impl PrimerData {
         self.primer.sequence = seq_from_str(&self.sequence_input[start..end]);
         self.metrics = self.primer.calc_metrics();
 
-        self.seq_removed_5p = self.sequence_input[..start].to_owned();
-        self.seq_removed_3p = self.sequence_input[end..].to_owned();
+        self.sequence_input[..start].clone_into(&mut self.seq_removed_5p);
+        self.sequence_input[end..].clone_into(&mut self.seq_removed_3p);
     }
 }
 
@@ -389,7 +389,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             ui.add_space(COL_SPACING);
 
             if ui
-                .button(RichText::new("🢑Up").color(Color32::RED))
+                .button(RichText::new("Up"))
                 .clicked()
             {
                 // todo: Arrow icons
@@ -399,13 +399,10 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 }
             }
             if ui
-                .button(RichText::new("🢓Dn").color(Color32::RED))
-                .clicked()
-            {
-                if sel_i != state.primer_data.len() - 2 {
-                    state.primer_data.swap(sel_i, sel_i + 1);
-                    state.ui.primer_selected = Some(sel_i + 1);
-                }
+                .button(RichText::new("Dn"))
+                .clicked() && sel_i != state.primer_data.len() - 1 {
+                state.primer_data.swap(sel_i, sel_i + 1);
+                state.ui.primer_selected = Some(sel_i + 1);
             }
 
             if ui
@@ -427,7 +424,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
     }
 
     TableBuilder::new(ui)
-        .column(Column::initial(400.).resizable(true))
+        .column(Column::initial(700.).resizable(true))
         .column(Column::initial(160.).resizable(true))
         .column(Column::auto().resizable(true))
         .column(Column::auto().resizable(true))
@@ -458,13 +455,13 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 ui.heading("GC").on_hover_text("The percentage of nucleotides that are C or G.");
             });
             header.col(|ui| {
-                ui.heading("Stab").on_hover_text("3' end stability: The number of G or C nucleotides in the last 5 nucleotides.");
+                ui.heading("3'GC").on_hover_text("3' end stability: The number of G or C nucleotides in the last 5 nucleotides.");
             });
             header.col(|ui| {
                 ui.heading("Cplx").on_hover_text("Sequence complexity. See the readme for calculations and assumptions.");
             });
             header.col(|ui| {
-                ui.heading("Dimer").on_hover_text("Potential of forming a self-end dimer. See the readme for calculations and assumptions.");
+                ui.heading("Dmr").on_hover_text("Potential of forming a self-end dimer. See the readme for calculations and assumptions.");
             });
             header.col(|ui| {
                 ui.heading("Rep").on_hover_text("Count of repeats of a single or double nt sequence >4 in a row.");
@@ -483,7 +480,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
                         ui.horizontal(|ui| {
                             if ui
-                                .button(RichText::new("Tunable").color(if let TuneSetting::Enabled(_) = data.tunable_5p {
+                                .button(RichText::new("Tun").color(if let TuneSetting::Enabled(_) = data.tunable_5p {
                                     Color32::GREEN
                                 } else {
                                     Color32::LIGHT_GRAY
@@ -507,7 +504,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                             }
 
                             if ui
-                                .button(RichText::new("Tunable").color(if let TuneSetting::Enabled(_) = data.tunable_3p {
+                                .button(RichText::new("Tun").color(if let TuneSetting::Enabled(_) = data.tunable_3p {
                                     Color32::GREEN
                                 } else {
                                     Color32::LIGHT_GRAY
@@ -535,7 +532,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                     row.col(|ui| {
                         let text = match &data.metrics {
                             // todo: PRe-compute the * 100?
-                            Some(m) => RichText::new(&format!("{:.0}", m.quality_score * 100.))
+                            Some(m) => RichText::new(format!("{:.0}", m.quality_score * 100.))
                                 .color(color_from_score(m.quality_score)),
 
                             None => RichText::new("-"),
@@ -545,7 +542,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
                     row.col(|ui| {
                         let text = match &data.metrics {
-                            Some(m) => RichText::new(&format!("{:.1}°C", m.melting_temp))
+                            Some(m) => RichText::new(format!("{:.1}°C", m.melting_temp))
                                 .color(color_from_score(m.tm_score)),
 
                             None => RichText::new("-"),
@@ -556,7 +553,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                     row.col(|ui| {
                         let text = match &data.metrics {
                             // todo: Cache this calc?
-                            Some(m) => RichText::new(&format!("{:.0}%", m.gc_portion * 100.))
+                            Some(m) => RichText::new(format!("{:.0}%", m.gc_portion * 100.))
                                 .color(color_from_score(m.gc_score)),
                             None => RichText::new("-"),
                         };
@@ -565,7 +562,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
                     row.col(|ui| {
                         let text = match &data.metrics {
-                            Some(m) => RichText::new(&format!("{}", m.gc_3p_count))
+                            Some(m) => RichText::new(format!("{}", m.gc_3p_count))
                                 .color(color_from_score(m.gc_3p_score)),
                             None => RichText::new("-"),
                         };
@@ -574,7 +571,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
                     row.col(|ui| {
                         let text = match &data.metrics {
-                            Some(m) => RichText::new(&format!("{}", m.complexity))
+                            Some(m) => RichText::new(format!("{}", m.complexity))
                                 .color(color_from_score(m.complexity_score)),
                             None => RichText::new("-"),
                         };
@@ -583,7 +580,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
                     row.col(|ui| {
                         let text = match &data.metrics {
-                            Some(m) => RichText::new(&format!("{}", m.self_end_dimer))
+                            Some(m) => RichText::new(format!("{}", m.self_end_dimer))
                                 .color(color_from_score(m.dimer_score)),
                             None => RichText::new("-"),
                         };
@@ -592,7 +589,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
                     row.col(|ui| {
                         let text = match &data.metrics {
-                            Some(m) => RichText::new(&format!("{}", m.repeats))
+                            Some(m) => RichText::new(format!("{}", m.repeats))
                                 .color(color_from_score(m.repeats_score)),
                             None => RichText::new("-"),
                         };
@@ -612,10 +609,8 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                             if ui.button(RichText::new("🔘").color(Color32::GREEN)).clicked() {
                                 state.ui.primer_selected = None;
                             }
-                        } else {
-                            if ui.button("🔘").clicked() {
-                                state.ui.primer_selected = Some(i);
-                            }
+                        } else if ui.button("🔘").clicked() {
+                            state.ui.primer_selected = Some(i);
                         }
                     });
                 });

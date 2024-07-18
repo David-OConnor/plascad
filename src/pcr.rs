@@ -41,7 +41,7 @@ impl PolymeraseType {
         }
     }
 
-    pub fn to_str(&self) -> String {
+    pub fn to_str(self) -> String {
         match self {
             Self::NormalFidelity => "Normal fidelity",
             Self::HighFidelity => "High fidelity (eg Phusion)",
