@@ -1,4 +1,4 @@
-use eframe::egui::{Align, Align2, Color32, FontFamily, FontId, Frame, Layout, lerp, Pos2, pos2, Rect, remap, RichText, Shape, TextEdit, Ui, vec2};
+use eframe::egui::{Align, Align2, Color32, FontFamily, FontId, Frame, Layout, lerp, Pos2, pos2, Rect, remap, RichText, Sense, Shape, Stroke, TextEdit, Ui, vec2};
 use eframe::emath::RectTransform;
 use eframe::epaint::{Fonts, PathStroke};
 use egui_extras::{Column, TableBuilder};
@@ -9,7 +9,7 @@ use crate::{
     State,
     util::{make_seq_str, save, seq_from_str},
 };
-use crate::primer::{PrimerData, TuneSetting};
+use crate::primer::{PrimerData, PrimerDirection, TuneSetting};
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -22,13 +22,85 @@ const DEFAULT_TRIM_AMT: usize = 32 - 20;
 // const THRESHOLDS_TM: (f32, f32) = (59., 60.);
 // const THRESHOLDS_GC: (f32, f32) = (59., 60.);
 
+/// Make a visual arrow for a primer. For  use inside a Frame::canvas.
+fn primer_arrow(label: &str, direction: PrimerDirection, to_screen: &RectTransform, ui: &mut Ui) -> Vec<Shape> {
+    let color_arrow = Color32::LIGHT_BLUE;
+    let color_label = Color32::LIGHT_GREEN;
+    let arrow_width = 2.;
+
+    const HEIGHT: f32 = 20.;
+
+    let width = 200.; // depends on size of primer.
+
+    let mut result = Vec::new();
+
+    let origin = to_screen * pos2(0., 0.);
+
+    let ctx = ui.ctx();
+
+    let mut current_pt = origin;
+    let mut next_pt = pos2(current_pt.x, current_pt.y + HEIGHT);
+
+    // todo: Handle rev too.
+    let left_edge = Shape::line(
+        vec![current_pt, next_pt],
+        Stroke::new(arrow_width, color_arrow)
+    );
+
+    current_pt = next_pt;
+    next_pt = pos2(current_pt.x + width, current_pt.y);
+
+    let bottom_edge = Shape::line(
+        vec![current_pt, next_pt],
+        Stroke::new(arrow_width, color_arrow)
+    );
+
+    current_pt = next_pt;
+    next_pt = pos2(current_pt.x - 30., origin.y);
+
+    let right_edge = Shape::line(
+        vec![current_pt, next_pt],
+        Stroke::new(arrow_width, color_arrow)
+    );
+
+    current_pt = next_pt;
+
+    let top_edge = Shape::line(
+        vec![current_pt, origin],
+        Stroke::new(arrow_width, color_arrow)
+    );
+
+    let label = ctx.fonts(|fonts| {
+        Shape::text(
+            fonts,
+            pos2(origin.x, origin.y - 16.),
+            Align2::LEFT_CENTER,
+            label,
+            FontId::new(16., FontFamily::Proportional),
+            color_label,
+            // ctx.style().visuals.text_color(),
+        )
+    });
+
+    result.push(left_edge);
+    result.push(bottom_edge);
+    result.push(right_edge);
+    result.push(top_edge);
+    result.push(label);
+
+    // result.append(&[
+    //     left_edge, bottom_edge,
+    //     label
+    // ]);
+
+    result
+}
+
 // todo: Move this graphics drawing code to a new module, A/R.
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
 fn sequence_vis(state: &State, ui: &mut Ui) {
     Frame::canvas(ui.style()).show(ui, |ui| {
         let mut shapes = vec![];
-
-        let color = Color32::BLUE;
 
         let time = ui.input(|i| i.time);
         let speed = 1.5;
@@ -38,10 +110,21 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
         let desired_size = ui.available_width() * vec2(1.0, 0.15);
         let (_id, rect) = ui.allocate_space(desired_size);
 
-        let ctx = ui.ctx();
+        // let to_screen =
+        //     RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
 
-        let to_screen =
-            RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
+        let (mut response, painter) =
+            ui.allocate_painter(ui.available_size_before_wrap(), Sense::drag());
+
+        let to_screen = RectTransform::from_to(
+            // Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
+            Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+            response.rect,
+        );
+
+        let from_screen = to_screen.inverse();
+
+        let ctx = ui.ctx();
 
         let points: Vec<Pos2> = (0..=n)
             .map(|i| {
@@ -76,16 +159,19 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
         let seq_text = ctx.fonts(|fonts| {
             Shape::text(
                 fonts,
-                Pos2::new(100., 600.),
+                to_screen * pos2(0., -100.),
                 Align2::CENTER_CENTER,
                 "actgggaacc",
-                FontId::new(20., FontFamily::Proportional),
+                FontId::new(16., FontFamily::Proportional),
                 Color32::LIGHT_BLUE,
                 // ctx.style().visuals.text_color(),
             )
         });
 
+        let mut arrow_fwd = primer_arrow("Fwd", PrimerDirection::Forward, &to_screen, ui);
+
         shapes.push(seq_text);
+        shapes.append(&mut arrow_fwd);
 
         ui.painter().extend(shapes);
     });

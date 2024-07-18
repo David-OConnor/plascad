@@ -29,6 +29,12 @@ pub struct AmplificationPrimers {
     pub rev: Primer,
 }
 
+#[derive(Clone, Copy, Encode, Decode)]
+pub enum PrimerDirection {
+    Forward,
+    Reverse,
+}
+
 /// Metrics related to primer quality.
 #[derive(Clone, Debug, Default, Encode, Decode)]
 pub struct PrimerMetrics {
