@@ -29,8 +29,9 @@ melting temperature, polymerase type, and other parameters.
 (todo: Add details on the calculations and assumptions used)
 
 
-## Near-term feature plans
+## Near-term plans
 - Visualization of primers along sequences
 - A better save and load system
 - Reading and writing FASTA, FASTQ, and SnapGene (.dna) files
 - QCing plasmids for toxic proteins, and various forms of error
+- QC primers for problems in context of plasmids. (Eg multiple binding sites)

@@ -1,13 +1,15 @@
-use bincode::{Decode, Encode};
-use eframe::egui::{Align, Color32, Direction, Layout, RichText, TextEdit, Ui};
+use eframe::egui::{Align, Align2, Color32, FontFamily, FontId, Frame, Layout, lerp, Pos2, pos2, Rect, remap, RichText, Shape, TextEdit, Ui, vec2};
+use eframe::emath::RectTransform;
+use eframe::epaint::{Fonts, PathStroke};
 use egui_extras::{Column, TableBuilder};
 
 use crate::{
-    gui::{page_primers_selector, PagePrimerCreation, COL_SPACING, ROW_SPACING},
-    primer::{design_amplification_primers, design_slic_fc_primers, Primer, PrimerMetrics},
-    util::{make_seq_str, save, seq_from_str},
+    gui::{COL_SPACING, page_primers_selector, PagePrimerCreation, ROW_SPACING},
+    primer::{design_amplification_primers, design_slic_fc_primers},
     State,
+    util::{make_seq_str, save, seq_from_str},
 };
+use crate::primer::{PrimerData, TuneSetting};
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -20,82 +22,75 @@ const DEFAULT_TRIM_AMT: usize = 32 - 20;
 // const THRESHOLDS_TM: (f32, f32) = (59., 60.);
 // const THRESHOLDS_GC: (f32, f32) = (59., 60.);
 
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
-pub enum TuneSetting {
-    Disabled,
-    /// Inner: Offset index; this marks the distance from the respective ends that the sequence is attentuated to.
-    Enabled(usize),
-}
+// todo: Move this graphics drawing code to a new module, A/R.
+/// Draw the sequence with primers, insertion points, and other data visible, A/R
+fn sequence_vis(state: &State, ui: &mut Ui) {
+    Frame::canvas(ui.style()).show(ui, |ui| {
+        let mut shapes = vec![];
 
-impl Default for TuneSetting {
-    fn default() -> Self {
-        Self::Disabled
-    }
-}
+        let color = Color32::BLUE;
 
-impl TuneSetting {
-    pub fn toggle(&mut self) {
-        *self = match self {
-            Self::Disabled => Self::Enabled(0),
-            _ => Self::Disabled,
-        }
-    }
-}
+        let time = ui.input(|i| i.time);
+        let speed = 1.5;
+        let mode = 2.;
+        let n = 120;
 
-#[derive(Default, Encode, Decode)]
-pub struct PrimerData {
-    /// This primer excludes nts past the tuning offsets.
-    pub primer: Primer,
-    /// Editing is handled using this string; we convert the string to our nucleotide sequence as needed.
-    /// This includes nts past the tuning offsets.
-    pub sequence_input: String,
-    pub description: String,
-    pub metrics: Option<PrimerMetrics>,
-    // tunable_end: TunableEnd,
-    /// These fields control if a given primer end is fixed (Eg marking the start of an insert,
-    /// marking the insert point in a vector etc) or if we can tune its length to optimize the primer.
-    pub tunable_5p: TuneSetting,
-    pub tunable_3p: TuneSetting,
-    /// These seq_removed fields are redundant with primer and tune settings. We use them to cache
-    /// the actual sequences that are removed for display purposes.
-    // seq_removed_5p: Seq,
-    // seq_removed_3p: Seq
-    pub seq_removed_5p: String,
-    pub seq_removed_3p: String,
-}
+        let desired_size = ui.available_width() * vec2(1.0, 0.15);
+        let (_id, rect) = ui.allocate_space(desired_size);
 
-impl PrimerData {
-    /// Perform calculations on primer quality and related data. Run this when the sequence changes,
-    /// the tuning values change etc.
-    pub fn run_calcs(&mut self) {
-        let full_len = self.sequence_input.len();
-        let mut start = 0;
-        let mut end = full_len;
+        let ctx = ui.ctx();
 
-        if let TuneSetting::Enabled(i) = self.tunable_5p {
-            start = i;
-        }
+        let to_screen =
+            RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
 
-        if let TuneSetting::Enabled(i) = self.tunable_3p {
-            end = if i > full_len {
-                // Prevents an overrun.
-                0
-            } else {
-                full_len - i
-            };
-        }
+        let points: Vec<Pos2> = (0..=n)
+            .map(|i| {
+                let t = i as f64 / (n as f64);
+                let amp = (time * speed * mode).sin() / mode;
+                let y = amp * (t * std::f64::consts::TAU / 2.0 * mode).sin();
+                to_screen * pos2(t as f32, y as f32)
+            })
+            .collect();
 
-        if start > end || start + 1 > self.sequence_input.len() {
-            start = 0;
-            end = full_len
-        }
+        let thickness = 10.0 / mode as f32;
+        // shapes.push(Shape::line(
+        //     points,
+        //     // if self.colors {
+        //     //     PathStroke::new_uv(thickness, move |rect, p| {
+        //     //         let t = remap(p.x, rect.x_range(), -1.0..=1.0).abs();
+        //     //         let center_color = hex_color!("#5BCEFA");
+        //     //         let outer_color = hex_color!("#F5A9B8");
+        //     //
+        //     //         Color32::from_rgb(
+        //     //             lerp(center_color.r() as f32..=outer_color.r() as f32, t) as u8,
+        //     //             lerp(center_color.g() as f32..=outer_color.g() as f32, t) as u8,
+        //     //             lerp(center_color.b() as f32..=outer_color.b() as f32, t) as u8,
+        //     //         )
+        //     //     })
+        //     // } else {
+        //     PathStroke::new(thickness, color)
+        //     // },
+        // ));
 
-        self.primer.sequence = seq_from_str(&self.sequence_input[start..end]);
-        self.metrics = self.primer.calc_metrics();
+        // shapes.push(Shape::Text("actga"));
+        let seq_text = ctx.fonts(|fonts| {
+            Shape::text(
+                fonts,
+                Pos2::new(100., 600.),
+                Align2::CENTER_CENTER,
+                "actgggaacc",
+                FontId::new(20., FontFamily::Proportional),
+                Color32::LIGHT_BLUE,
+                // ctx.style().visuals.text_color(),
+            )
+        });
 
-        self.sequence_input[..start].clone_into(&mut self.seq_removed_5p);
-        self.sequence_input[end..].clone_into(&mut self.seq_removed_3p);
-    }
+        shapes.push(seq_text);
+
+        ui.painter().extend(shapes);
+    });
+
+    ui.add_space(ROW_SPACING);
 }
 
 /// Color scores in each category according to these thresholds. These scores should be on a scale
@@ -618,6 +613,9 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         });
 
     ui.add_space(ROW_SPACING * 3.);
+
+    // todo: Only if you have  sequence of some sort
+    sequence_vis(&state, ui);
 
     page_primers_selector(state, ui);
 

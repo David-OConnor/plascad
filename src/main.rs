@@ -12,7 +12,7 @@ use bincode::{Decode, Encode};
 //     io::fastq::FastqRead,
 // };
 use eframe::{self, egui, egui::Context};
-use gui::primer::PrimerData;
+use primer::PrimerData;
 
 use crate::{gui::PagePrimerCreation, pcr::PolymeraseType, primer::TM_TARGET, util::load};
 // use image::GenericImageView;

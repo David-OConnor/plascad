@@ -3,10 +3,11 @@
 use bincode::{Decode, Encode};
 
 use crate::{
-    util::{map_linear, seq_complement},
     Nucleotide::{C, G},
     Seq,
+    util::{map_linear, seq_complement},
 };
+use crate::util::seq_from_str;
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
@@ -383,4 +384,82 @@ pub fn design_amplification_primers(seq: &Seq) -> Option<AmplificationPrimers> {
     // todo: Optimize.
 
     Some(result)
+}
+
+#[derive(Default, Encode, Decode)]
+pub struct PrimerData {
+    /// This primer excludes nts past the tuning offsets.
+    pub primer: Primer,
+    /// Editing is handled using this string; we convert the string to our nucleotide sequence as needed.
+    /// This includes nts past the tuning offsets.
+    pub sequence_input: String,
+    pub description: String,
+    pub metrics: Option<PrimerMetrics>,
+    // tunable_end: TunableEnd,
+    /// These fields control if a given primer end is fixed (Eg marking the start of an insert,
+    /// marking the insert point in a vector etc) or if we can tune its length to optimize the primer.
+    pub tunable_5p: TuneSetting,
+    pub tunable_3p: TuneSetting,
+    /// These seq_removed fields are redundant with primer and tune settings. We use them to cache
+    /// the actual sequences that are removed for display purposes.
+    // seq_removed_5p: Seq,
+    // seq_removed_3p: Seq
+    pub seq_removed_5p: String,
+    pub seq_removed_3p: String,
+}
+
+impl PrimerData {
+    /// Perform calculations on primer quality and related data. Run this when the sequence changes,
+    /// the tuning values change etc.
+    pub fn run_calcs(&mut self) {
+        let full_len = self.sequence_input.len();
+        let mut start = 0;
+        let mut end = full_len;
+
+        if let TuneSetting::Enabled(i) = self.tunable_5p {
+            start = i;
+        }
+
+        if let TuneSetting::Enabled(i) = self.tunable_3p {
+            end = if i > full_len {
+                // Prevents an overrun.
+                0
+            } else {
+                full_len - i
+            };
+        }
+
+        if start > end || start + 1 > self.sequence_input.len() {
+            start = 0;
+            end = full_len
+        }
+
+        self.primer.sequence = seq_from_str(&self.sequence_input[start..end]);
+        self.metrics = self.primer.calc_metrics();
+
+        self.sequence_input[..start].clone_into(&mut self.seq_removed_5p);
+        self.sequence_input[end..].clone_into(&mut self.seq_removed_3p);
+    }
+}
+
+impl Default for TuneSetting {
+    fn default() -> Self {
+        Self::Disabled
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+pub enum TuneSetting {
+    Disabled,
+    /// Inner: Offset index; this marks the distance from the respective ends that the sequence is attentuated to.
+    Enabled(usize),
+}
+
+impl TuneSetting {
+    pub fn toggle(&mut self) {
+        *self = match self {
+            Self::Disabled => Self::Enabled(0),
+            _ => Self::Disabled,
+        }
+    }
 }
