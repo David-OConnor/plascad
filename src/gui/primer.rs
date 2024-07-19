@@ -1,20 +1,23 @@
 use eframe::{
     egui::{
-        self, lerp, pos2, remap, vec2, Align, Align2, Color32, FontFamily, FontId, FontSelection,
-        Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense, Shape, Stroke, TextEdit, Ui,
+        pos2, vec2, Align, Align2, Color32, FontFamily, FontId, Frame, Layout, Pos2, Rect,
+        RichText, Sense, Shape, Stroke, TextEdit, Ui,
     },
     emath::RectTransform,
-    epaint::{Fonts, PathStroke},
 };
 use egui_extras::{Column, TableBuilder};
 
-use crate::primer::{PrimerData, PrimerDirection, TuneSetting};
 // todo: monospace font for all seqs.
 use crate::{
     gui::{page_primers_selector, PagePrimerCreation, COL_SPACING, ROW_SPACING},
     primer::{design_amplification_primers, design_slic_fc_primers},
+    util,
     util::{make_seq_str, save, seq_from_str},
     State,
+};
+use crate::{
+    primer::{PrimerData, PrimerDirection, TuneSetting},
+    util::seq_i_to_pixel,
 };
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
@@ -22,6 +25,17 @@ const COLOR_MARGINAL: Color32 = Color32::GOLD;
 const COLOR_BAD: Color32 = Color32::LIGHT_RED;
 
 const DEFAULT_TRIM_AMT: usize = 32 - 20;
+
+// Constants related to the sequence canvas. Pub for use in `util` functions.
+pub const FONT_SIZE_SEQ: f32 = 14.;
+pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
+
+pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
+pub const VIEW_AREA_PAD: f32 = 40.;
+pub const SEQ_ROW_SPACING_PX: f32 = 40.;
+
+pub const TEXT_X_START: f32 = VIEW_AREA_PAD / 2.;
+pub const TEXT_Y_START: f32 = -140.;
 
 // const TM_IDEAL: f32 = 59.; // todo: Fill thi sin
 //
@@ -110,66 +124,71 @@ fn primer_arrow(
 // todo: Move this graphics drawing code to a new module, A/R.
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
 fn sequence_vis(state: &State, ui: &mut Ui) {
-    const FONT_SIZE_SEQ: f32 = 14.;
-    const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
+    let nt_chars_per_row = ((ui.available_width() - VIEW_AREA_PAD) / NT_WIDTH_PX) as usize; // todo: +1 etc?
+
+    let desired_size = ui.available_width() * vec2(1.0, 0.15);
+    let (_id, rect) = ui.allocate_space(desired_size);
+
+    let mut shapes = vec![];
+
+    // let to_screen =
+    //     RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
+
+    let (mut response, painter) =
+        ui.allocate_painter(ui.available_size_before_wrap(), Sense::drag());
+
+    let to_screen = RectTransform::from_to(
+        // Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
+        Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+        response.rect,
+    );
+
+    let from_screen = to_screen.inverse();
+
+    let ctx = ui.ctx();
+
+    match state.ui.page_primer_creation {
+        PagePrimerCreation::Amplification => {
+            let row_ranges = util::get_row_ranges(state.seq_amplicon.len(), nt_chars_per_row);
+
+            let mut text_y = TEXT_Y_START;
+
+            // todo: Debug temp
+            // for i in 0..200 {
+            //     let i2 = i * 1;
+            //     println!("I: {}, pos2: {:?}", i2, seq_i_to_pixel(i2, &row_ranges));
+            // }
+
+            for range in &row_ranges {
+                let seq_this_row = &state.seq_amplicon[range.clone()];
+
+                // todo: This line is causing crashes when the view is stretched.
+                let pos = to_screen * pos2(TEXT_X_START, text_y);
+
+                // todo: Find a way to get the pixel coordinates of each nt char.
+
+                shapes.push(ctx.fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        pos,
+                        Align2::LEFT_CENTER,
+                        make_seq_str(seq_this_row),
+                        // Note: Monospace is important for sequences.
+                        FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
+                        COLOR_SEQ,
+                    )
+                }));
+                text_y += SEQ_ROW_SPACING_PX;
+            }
+        }
+        PagePrimerCreation::SlicFc => {}
+    }
+
+    let mut arrow_fwd = primer_arrow("Fwd", PrimerDirection::Forward, &to_screen, ui);
+    shapes.append(&mut arrow_fwd);
 
     // ScrollArea::vertical().id_source(0).show(ui, |ui| {
     Frame::canvas(ui.style()).show(ui, |ui| {
-        let mut shapes = vec![];
-
-        let desired_size = ui.available_width() * vec2(1.0, 0.15);
-        let (_id, rect) = ui.allocate_space(desired_size);
-
-        // let to_screen =
-        //     RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
-
-        let (mut response, painter) =
-            ui.allocate_painter(ui.available_size_before_wrap(), Sense::drag());
-
-        let to_screen = RectTransform::from_to(
-            // Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
-            Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-            response.rect,
-        );
-
-        let from_screen = to_screen.inverse();
-
-        let ctx = ui.ctx();
-
-        const NT_WIDTH: f32 = 9.; // todo: Automatic way?
-        let nt_chars_per_row = (ui.available_width() / NT_WIDTH) as usize; // todo: +1 etc?
-        let seq_row_spacing = 40.;
-
-        match state.ui.page_primer_creation {
-            PagePrimerCreation::Amplification => {
-                let num_rows = state.seq_amplicon.len() / nt_chars_per_row; // todo: +/-1 etc?
-                let text_x = 20.;
-                let mut text_y = -140.;
-
-                for row_i in 0..num_rows {
-                    let seq_this_row = &state.seq_amplicon
-                        [row_i * nt_chars_per_row..row_i * nt_chars_per_row + nt_chars_per_row];
-
-                    shapes.push(ctx.fonts(|fonts| {
-                        Shape::text(
-                            fonts,
-                            to_screen * pos2(text_x, text_y),
-                            Align2::LEFT_CENTER,
-                            make_seq_str(seq_this_row),
-                            // Note: Monospace is important for sequences.
-                            FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
-                            COLOR_SEQ,
-                        )
-                    }));
-                    text_y += seq_row_spacing;
-                }
-            }
-            PagePrimerCreation::SlicFc => {}
-        }
-
-        let mut arrow_fwd = primer_arrow("Fwd", PrimerDirection::Forward, &to_screen, ui);
-        shapes.append(&mut arrow_fwd);
-
         ui.painter().extend(shapes);
     });
     // });
@@ -460,6 +479,13 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
     if let Some(sel_i) = state.ui.primer_selected {
         ui.horizontal(|ui| {
+            if sel_i > state.primer_data.len() - 1 {
+                // This currently happens if deleting the final primer.
+                eprintln!("Error: Exceeded primer selection len");
+                state.ui.primer_selected = None;
+                return;
+            }
+
             ui.heading(&format!(
                 "Selected: {}",
                 &state.primer_data[sel_i].description

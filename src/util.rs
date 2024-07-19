@@ -2,11 +2,14 @@ use std::{
     fs::File,
     io,
     io::{ErrorKind, Read, Write},
+    ops::Range,
 };
 
 use bincode::{self, config, Decode, Encode};
+use eframe::egui::{pos2, Pos2};
 
 use crate::{
+    gui::primer::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
     Nucleotide,
     Nucleotide::{A, C, G, T},
     Seq,
@@ -87,4 +90,38 @@ pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
         }
     };
     Ok(decoded)
+}
+
+/// We use this for dividing a nucleotied sequence into rows, for display in a canvas UI.
+pub fn get_row_ranges(len: usize, chars_per_row: usize) -> Vec<Range<usize>> {
+    let mut result = Vec::new();
+
+    let num_rows = len / chars_per_row; // todo: +/-1 etc?
+
+    for row_i in 0..num_rows {
+        result.push(row_i * chars_per_row..row_i * chars_per_row + chars_per_row);
+    }
+
+    result
+}
+
+/// Maps sequence index (Which sequence?) to the relative pixel.
+pub fn seq_i_to_pixel(seq_i: usize, row_ranges: &[Range<usize>]) -> Pos2 {
+    let mut row_i = 0;
+    let mut row = 0..10;
+
+    for (row_i_, range) in row_ranges.iter().enumerate() {
+        if range.contains(&seq_i) {
+            row_i = row_i_;
+            row = range.clone();
+            break;
+        }
+    }
+
+    let col = seq_i - row.start;
+
+    pos2(
+        TEXT_X_START + col as f32 * NT_WIDTH_PX,
+        TEXT_Y_START + row_i as f32 * SEQ_ROW_SPACING_PX,
+    )
 }
