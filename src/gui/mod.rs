@@ -5,7 +5,7 @@ pub mod primer;
 use bincode::{Decode, Encode};
 use eframe::{
     egui,
-    egui::{Color32, Context, Key, RichText, Ui},
+    egui::{Color32, Context, Key, RichText, ScrollArea, Ui},
 };
 
 use crate::State;
@@ -164,7 +164,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
         ui.add_space(ROW_SPACING);
 
-        egui::containers::ScrollArea::vertical().show(ui, |ui| match state.ui.page {
+        ScrollArea::vertical().show(ui, |ui| match state.ui.page {
             Page::Primers => primer::primer_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Portions => portions::portions_page(state, ui),

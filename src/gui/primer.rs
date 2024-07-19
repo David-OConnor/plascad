@@ -1,15 +1,21 @@
-use eframe::egui::{Align, Align2, Color32, FontFamily, FontId, Frame, Layout, lerp, Pos2, pos2, Rect, remap, RichText, Sense, Shape, Stroke, TextEdit, Ui, vec2};
-use eframe::emath::RectTransform;
-use eframe::epaint::{Fonts, PathStroke};
+use eframe::{
+    egui::{
+        self, lerp, pos2, remap, vec2, Align, Align2, Color32, FontFamily, FontId, FontSelection,
+        Frame, Layout, Pos2, Rect, RichText, ScrollArea, Sense, Shape, Stroke, TextEdit, Ui,
+    },
+    emath::RectTransform,
+    epaint::{Fonts, PathStroke},
+};
 use egui_extras::{Column, TableBuilder};
 
-use crate::{
-    gui::{COL_SPACING, page_primers_selector, PagePrimerCreation, ROW_SPACING},
-    primer::{design_amplification_primers, design_slic_fc_primers},
-    State,
-    util::{make_seq_str, save, seq_from_str},
-};
 use crate::primer::{PrimerData, PrimerDirection, TuneSetting};
+// todo: monospace font for all seqs.
+use crate::{
+    gui::{page_primers_selector, PagePrimerCreation, COL_SPACING, ROW_SPACING},
+    primer::{design_amplification_primers, design_slic_fc_primers},
+    util::{make_seq_str, save, seq_from_str},
+    State,
+};
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -23,7 +29,12 @@ const DEFAULT_TRIM_AMT: usize = 32 - 20;
 // const THRESHOLDS_GC: (f32, f32) = (59., 60.);
 
 /// Make a visual arrow for a primer. For  use inside a Frame::canvas.
-fn primer_arrow(label: &str, direction: PrimerDirection, to_screen: &RectTransform, ui: &mut Ui) -> Vec<Shape> {
+fn primer_arrow(
+    label: &str,
+    direction: PrimerDirection,
+    to_screen: &RectTransform,
+    ui: &mut Ui,
+) -> Vec<Shape> {
     let color_arrow = Color32::LIGHT_BLUE;
     let color_label = Color32::LIGHT_GREEN;
     let arrow_width = 2.;
@@ -44,7 +55,7 @@ fn primer_arrow(label: &str, direction: PrimerDirection, to_screen: &RectTransfo
     // todo: Handle rev too.
     let left_edge = Shape::line(
         vec![current_pt, next_pt],
-        Stroke::new(arrow_width, color_arrow)
+        Stroke::new(arrow_width, color_arrow),
     );
 
     current_pt = next_pt;
@@ -52,7 +63,7 @@ fn primer_arrow(label: &str, direction: PrimerDirection, to_screen: &RectTransfo
 
     let bottom_edge = Shape::line(
         vec![current_pt, next_pt],
-        Stroke::new(arrow_width, color_arrow)
+        Stroke::new(arrow_width, color_arrow),
     );
 
     current_pt = next_pt;
@@ -60,14 +71,14 @@ fn primer_arrow(label: &str, direction: PrimerDirection, to_screen: &RectTransfo
 
     let right_edge = Shape::line(
         vec![current_pt, next_pt],
-        Stroke::new(arrow_width, color_arrow)
+        Stroke::new(arrow_width, color_arrow),
     );
 
     current_pt = next_pt;
 
     let top_edge = Shape::line(
         vec![current_pt, origin],
-        Stroke::new(arrow_width, color_arrow)
+        Stroke::new(arrow_width, color_arrow),
     );
 
     let label = ctx.fonts(|fonts| {
@@ -99,13 +110,12 @@ fn primer_arrow(label: &str, direction: PrimerDirection, to_screen: &RectTransfo
 // todo: Move this graphics drawing code to a new module, A/R.
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
 fn sequence_vis(state: &State, ui: &mut Ui) {
+    const FONT_SIZE_SEQ: f32 = 14.;
+    const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
+
+    // ScrollArea::vertical().id_source(0).show(ui, |ui| {
     Frame::canvas(ui.style()).show(ui, |ui| {
         let mut shapes = vec![];
-
-        let time = ui.input(|i| i.time);
-        let speed = 1.5;
-        let mode = 2.;
-        let n = 120;
 
         let desired_size = ui.available_width() * vec2(1.0, 0.15);
         let (_id, rect) = ui.allocate_space(desired_size);
@@ -126,55 +136,43 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
 
         let ctx = ui.ctx();
 
-        let points: Vec<Pos2> = (0..=n)
-            .map(|i| {
-                let t = i as f64 / (n as f64);
-                let amp = (time * speed * mode).sin() / mode;
-                let y = amp * (t * std::f64::consts::TAU / 2.0 * mode).sin();
-                to_screen * pos2(t as f32, y as f32)
-            })
-            .collect();
+        const NT_WIDTH: f32 = 9.; // todo: Automatic way?
+        let nt_chars_per_row = (ui.available_width() / NT_WIDTH) as usize; // todo: +1 etc?
+        let seq_row_spacing = 40.;
 
-        let thickness = 10.0 / mode as f32;
-        // shapes.push(Shape::line(
-        //     points,
-        //     // if self.colors {
-        //     //     PathStroke::new_uv(thickness, move |rect, p| {
-        //     //         let t = remap(p.x, rect.x_range(), -1.0..=1.0).abs();
-        //     //         let center_color = hex_color!("#5BCEFA");
-        //     //         let outer_color = hex_color!("#F5A9B8");
-        //     //
-        //     //         Color32::from_rgb(
-        //     //             lerp(center_color.r() as f32..=outer_color.r() as f32, t) as u8,
-        //     //             lerp(center_color.g() as f32..=outer_color.g() as f32, t) as u8,
-        //     //             lerp(center_color.b() as f32..=outer_color.b() as f32, t) as u8,
-        //     //         )
-        //     //     })
-        //     // } else {
-        //     PathStroke::new(thickness, color)
-        //     // },
-        // ));
+        match state.ui.page_primer_creation {
+            PagePrimerCreation::Amplification => {
+                let num_rows = state.seq_amplicon.len() / nt_chars_per_row; // todo: +/-1 etc?
+                let text_x = 20.;
+                let mut text_y = -140.;
 
-        // shapes.push(Shape::Text("actga"));
-        let seq_text = ctx.fonts(|fonts| {
-            Shape::text(
-                fonts,
-                to_screen * pos2(0., -100.),
-                Align2::CENTER_CENTER,
-                "actgggaacc",
-                FontId::new(16., FontFamily::Proportional),
-                Color32::LIGHT_BLUE,
-                // ctx.style().visuals.text_color(),
-            )
-        });
+                for row_i in 0..num_rows {
+                    let seq_this_row = &state.seq_amplicon
+                        [row_i * nt_chars_per_row..row_i * nt_chars_per_row + nt_chars_per_row];
+
+                    shapes.push(ctx.fonts(|fonts| {
+                        Shape::text(
+                            fonts,
+                            to_screen * pos2(text_x, text_y),
+                            Align2::LEFT_CENTER,
+                            make_seq_str(seq_this_row),
+                            // Note: Monospace is important for sequences.
+                            FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
+                            COLOR_SEQ,
+                        )
+                    }));
+                    text_y += seq_row_spacing;
+                }
+            }
+            PagePrimerCreation::SlicFc => {}
+        }
 
         let mut arrow_fwd = primer_arrow("Fwd", PrimerDirection::Forward, &to_screen, ui);
-
-        shapes.push(seq_text);
         shapes.append(&mut arrow_fwd);
 
         ui.painter().extend(shapes);
     });
+    // });
 
     ui.add_space(ROW_SPACING);
 }
@@ -469,19 +467,14 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
             ui.add_space(COL_SPACING);
 
-            if ui
-                .button(RichText::new("Up"))
-                .clicked()
-            {
+            if ui.button(RichText::new("Up")).clicked() {
                 // todo: Arrow icons
                 if sel_i != 0 {
                     state.primer_data.swap(sel_i, sel_i - 1);
                     state.ui.primer_selected = Some(sel_i - 1);
                 }
             }
-            if ui
-                .button(RichText::new("Dn"))
-                .clicked() && sel_i != state.primer_data.len() - 1 {
+            if ui.button(RichText::new("Dn")).clicked() && sel_i != state.primer_data.len() - 1 {
                 state.primer_data.swap(sel_i, sel_i + 1);
                 state.ui.primer_selected = Some(sel_i + 1);
             }

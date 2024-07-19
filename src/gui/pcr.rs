@@ -46,9 +46,9 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
 
                 state.ui.pcr = PcrUi {
                     ..Default::default() // pub primer_tm: f32,
-                    // pub product_len: usize,
-                    // pub polymerase_type: PolymeraseType,
-                    // pub num_cycles: u16,
+                                         // pub product_len: usize,
+                                         // pub polymerase_type: PolymeraseType,
+                                         // pub num_cycles: u16,
                 };
                 state.sync_pcr();
             }

@@ -3,11 +3,10 @@
 use bincode::{Decode, Encode};
 
 use crate::{
+    util::{map_linear, seq_complement, seq_from_str},
     Nucleotide::{C, G},
     Seq,
-    util::{map_linear, seq_complement},
 };
-use crate::util::seq_from_str;
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
@@ -102,7 +101,8 @@ impl PrimerMetrics {
             + WEIGHT_STAB * self.gc_3p_score
             + WEIGHT_COMPLEXITY * self.complexity_score
             + WEIGHT_DIMER * self.dimer_score)
-            + WEIGHT_REPEATS * self.repeats_score) / 6.
+            + WEIGHT_REPEATS * self.repeats_score)
+            / 6.
     }
 }
 
@@ -218,20 +218,20 @@ impl Primer {
         if self.sequence.len() < 4 {
             return 0;
         }
-        
-        
+
         let mut result = 0;
 
         // Check for single nt repeats.
         let mut prev_nt = self.sequence[0];
         let mut single_repeat_len = 0;
-        
+
         for nt in &self.sequence {
             println!("NT: {:?}, prev_nt: {:?}", nt, prev_nt);
             if *nt == prev_nt {
                 single_repeat_len += 1;
-                
-                if single_repeat_len > 2 { // todo: Why off by one?
+
+                if single_repeat_len > 2 {
+                    // todo: Why off by one?
                     result += 1;
                     single_repeat_len = 0;
                 }
@@ -256,7 +256,7 @@ impl Primer {
         //         }
         //     }
         // }
-        
+
         result
     }
 

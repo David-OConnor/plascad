@@ -7,6 +7,7 @@ use std::{
 use bincode::{self, config, Decode, Encode};
 
 use crate::{
+    Nucleotide,
     Nucleotide::{A, C, G, T},
     Seq,
 };
@@ -20,7 +21,7 @@ pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 
     portion * (range_out.1 - range_out.0) + range_out.0
 }
 
-pub fn make_seq_str(seq: &Seq) -> String {
+pub fn make_seq_str(seq: &[Nucleotide]) -> String {
     let mut result = String::new();
 
     for nt in seq {
