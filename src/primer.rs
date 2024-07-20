@@ -2,11 +2,7 @@
 
 use bincode::{Decode, Encode};
 
-use crate::{
-    util::{map_linear, seq_complement, seq_from_str},
-    Nucleotide::{C, G},
-    Seq,
-};
+use crate::{util::{map_linear, seq_complement, seq_from_str}, Nucleotide::{C, G}, Seq, Nucleotide};
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
@@ -280,6 +276,34 @@ impl Primer {
 
         Some(result)
     }
+
+    /// Match this primer to a sequence. Check both directions.
+    /// Returns direction, and start index of the sequence. If direction is reversed,
+    /// the index matches to the reversed index.
+    pub fn match_to_seq(&self, seq: &[Nucleotide]) -> Vec<(PrimerDirection, usize)> {
+        let mut result = Vec::new();
+        // todo: Partial matches as well.
+        let seq_len = seq.len();
+        let complement = seq_complement(seq);
+
+        for seq_start_i in 0..seq_len {
+            // Note: This approach handles sequence wraps, eg [circular] plasmids.
+            let end_i = (seq_start_i + self.sequence.len()) % seq_len;
+            if self.sequence == seq[seq_start_i..end_i] {
+                result.push((PrimerDirection::Forward, seq_start_i))
+            }
+        }
+
+        for seq_start_i in 0..seq_len {
+            // Note: This approach handles sequence wraps, eg [circular] plasmids.
+            let end_i = (seq_start_i + self.sequence.len()) % seq_len;
+            if self.sequence == complement[seq_start_i..end_i] {
+                result.push((PrimerDirection::Reverse, seq_start_i))
+            }
+        }
+
+        result
+    }
 }
 
 pub fn design_slic_fc_primers(
@@ -364,7 +388,7 @@ pub fn design_slic_fc_primers(
 }
 
 // todo: Use this A/R, called from the UI page.
-pub fn design_amplification_primers(seq: &Seq) -> Option<AmplificationPrimers> {
+pub fn design_amplification_primers(seq: &[Nucleotide]) -> Option<AmplificationPrimers> {
     // These lenghts should be long enough for reasonablely high-length primers, should that be
     // required for optimal characteristics.
     const UNTRIMMED_LEN: usize = 32;
@@ -412,6 +436,10 @@ pub struct PrimerData {
     // seq_removed_3p: Seq
     pub seq_removed_5p: String,
     pub seq_removed_3p: String,
+    pub matches_amplification_seq: Vec<(PrimerDirection, usize)>,
+    // todo: It gets a bit fuzzy for cloning; sort it out.
+    pub matches_slic_vector: Vec<(PrimerDirection, usize)>,
+    pub matches_slic_primer: Vec<(PrimerDirection, usize)>,
 }
 
 impl PrimerData {

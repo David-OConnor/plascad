@@ -164,10 +164,13 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
         ui.add_space(ROW_SPACING);
 
-        ScrollArea::vertical().show(ui, |ui| match state.ui.page {
-            Page::Primers => primer::primer_page(state, ui),
-            Page::Pcr => pcr::pcr_page(state, ui),
-            Page::Portions => portions::portions_page(state, ui),
+        ScrollArea::vertical().show(ui, |ui| {
+
+            match state.ui.page {
+                Page::Primers => primer::primer_page(state, ui),
+                Page::Pcr => pcr::pcr_page(state, ui),
+                Page::Portions => portions::portions_page(state, ui),
+            }
         });
     });
 }

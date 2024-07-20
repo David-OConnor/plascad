@@ -19,6 +19,7 @@ use crate::{
     primer::{PrimerData, PrimerDirection, TuneSetting},
     util::seq_i_to_pixel,
 };
+use crate::util::{get_row_ranges, seq_complement};
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -35,7 +36,7 @@ pub const VIEW_AREA_PAD: f32 = 40.;
 pub const SEQ_ROW_SPACING_PX: f32 = 40.;
 
 pub const TEXT_X_START: f32 = VIEW_AREA_PAD / 2.;
-pub const TEXT_Y_START: f32 = -140.;
+pub const TEXT_Y_START: f32 = TEXT_X_START;
 
 // const TM_IDEAL: f32 = 59.; // todo: Fill thi sin
 //
@@ -44,8 +45,9 @@ pub const TEXT_Y_START: f32 = -140.;
 
 /// Make a visual arrow for a primer. For  use inside a Frame::canvas.
 fn primer_arrow(
-    label: &str,
+    start_pos: Pos2,
     direction: PrimerDirection,
+    label: &str,
     to_screen: &RectTransform,
     ui: &mut Ui,
 ) -> Vec<Shape> {
@@ -59,7 +61,8 @@ fn primer_arrow(
 
     let mut result = Vec::new();
 
-    let origin = to_screen * pos2(0., 0.);
+    // let origin = to_screen * pos2(0., 0.);
+    let origin = to_screen * start_pos;
 
     let ctx = ui.ctx();
 
@@ -126,22 +129,34 @@ fn primer_arrow(
 fn sequence_vis(state: &State, ui: &mut Ui) {
     let nt_chars_per_row = ((ui.available_width() - VIEW_AREA_PAD) / NT_WIDTH_PX) as usize; // todo: +1 etc?
 
-    let desired_size = ui.available_width() * vec2(1.0, 0.15);
-    let (_id, rect) = ui.allocate_space(desired_size);
+    // let (id, rect) = ui.allocate_space(desired_size);
 
     let mut shapes = vec![];
+
+    let (mut response, painter) = {
+        // Estimate required height, based on seq len.
+
+        // todo: C+P from below, in amplicon code. This needs to be branched as well, or moved below.
+
+        let row_ranges = get_row_ranges(state.seq_amplicon.len(), nt_chars_per_row);
+        // let desired_size = ui.available_width() * vec2(1.0, 0.15);
+        let desired_size = vec2(ui.available_width(), row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.);
+        ui.allocate_painter(desired_size, Sense::click())
+    };
 
     // let to_screen =
     //     RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
 
-    let (mut response, painter) =
-        ui.allocate_painter(ui.available_size_before_wrap(), Sense::drag());
-
     let to_screen = RectTransform::from_to(
-        // Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
         Rect::from_min_size(Pos2::ZERO, response.rect.size()),
         response.rect,
     );
+
+    // let to_screen = RectTransform::from_to(
+        // Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
+        // Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+        // response.rect,
+    // );
 
     let from_screen = to_screen.inverse();
 
@@ -149,7 +164,7 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
 
     match state.ui.page_primer_creation {
         PagePrimerCreation::Amplification => {
-            let row_ranges = util::get_row_ranges(state.seq_amplicon.len(), nt_chars_per_row);
+            let row_ranges = get_row_ranges(state.seq_amplicon.len(), nt_chars_per_row);
 
             let mut text_y = TEXT_Y_START;
 
@@ -180,15 +195,29 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
                 }));
                 text_y += SEQ_ROW_SPACING_PX;
             }
+
+            // Add primer arrows.
+            for prim_data in &state.primer_data {
+                // todo: Sort out the direction. By matches, most likely.
+
+                for (direction, seq_i) in &prim_data.matches_amplification_seq {
+                    // todo: Next: Find its pixel position, and use that to place the arrow.
+                    // todo: YOu will also need arrow wraps.
+                    let start_pos = seq_i_to_pixel(*seq_i, &row_ranges);
+
+                    let mut arrow_fwd = primer_arrow(start_pos, *direction, &prim_data.description, &to_screen, ui);
+                    shapes.append(&mut arrow_fwd);
+                }
+            }
         }
-        PagePrimerCreation::SlicFc => {}
+        PagePrimerCreation::SlicFc => {
+
+        }
     }
-
-    let mut arrow_fwd = primer_arrow("Fwd", PrimerDirection::Forward, &to_screen, ui);
-    shapes.append(&mut arrow_fwd);
-
     // ScrollArea::vertical().id_source(0).show(ui, |ui| {
-    Frame::canvas(ui.style()).show(ui, |ui| {
+    Frame::canvas(ui.style())
+        .fill(Color32::WHITE) // todo: Not working.
+        .show(ui, |ui| {
         ui.painter().extend(shapes);
     });
     // });
@@ -479,7 +508,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
     if let Some(sel_i) = state.ui.primer_selected {
         ui.horizontal(|ui| {
-            if sel_i > state.primer_data.len() - 1 {
+            if sel_i + 1 > state.primer_data.len() {
                 // This currently happens if deleting the final primer.
                 eprintln!("Error: Exceeded primer selection len");
                 state.ui.primer_selected = None;

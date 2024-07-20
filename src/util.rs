@@ -51,8 +51,8 @@ pub fn seq_from_str(str: &str) -> Seq {
 }
 
 /// Reverse direction, and swap C for G, A for T.
-pub fn seq_complement(seq: &Seq) -> Seq {
-    let mut result = seq.clone();
+pub fn seq_complement(seq: &[Nucleotide]) -> Seq {
+    let mut result = seq.to_vec();
     result.reverse();
 
     for nt in &mut result {
