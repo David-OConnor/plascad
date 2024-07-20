@@ -288,18 +288,27 @@ impl Primer {
 
         for seq_start_i in 0..seq_len {
             // Note: This approach handles sequence wraps, eg [circular] plasmids.
-            let end_i = (seq_start_i + self.sequence.len()) % seq_len;
-            if self.sequence == seq[seq_start_i..end_i] {
-                result.push((PrimerDirection::Forward, seq_start_i))
+            let seq_iter = seq.iter().cycle().skip(seq_start_i).take(self.sequence.len());
+            if self.sequence.iter().eq(seq_iter) {
+                result.push((PrimerDirection::Forward, seq_start_i));
             }
+
+            // let end_i = (seq_start_i + self.sequence.len()) % seq_len;
+            // if self.sequence == seq[seq_start_i..end_i] {
+            //     result.push((PrimerDirection::Forward, seq_start_i))
+            // }
         }
 
         for seq_start_i in 0..seq_len {
-            // Note: This approach handles sequence wraps, eg [circular] plasmids.
-            let end_i = (seq_start_i + self.sequence.len()) % seq_len;
-            if self.sequence == complement[seq_start_i..end_i] {
-                result.push((PrimerDirection::Reverse, seq_start_i))
+            let seq_iter = seq.iter().cycle().skip(seq_start_i).take(self.sequence.len());
+            if self.sequence.iter().eq(seq_iter) {
+                result.push((PrimerDirection::Forward, seq_start_i));
             }
+            //
+            // let end_i = (seq_start_i + self.sequence.len()) % seq_len;
+            // if self.sequence == complement[seq_start_i..end_i] {
+            //     result.push((PrimerDirection::Reverse, seq_start_i))
+            // }
         }
 
         result
@@ -439,7 +448,7 @@ pub struct PrimerData {
     pub matches_amplification_seq: Vec<(PrimerDirection, usize)>,
     // todo: It gets a bit fuzzy for cloning; sort it out.
     pub matches_slic_vector: Vec<(PrimerDirection, usize)>,
-    pub matches_slic_primer: Vec<(PrimerDirection, usize)>,
+    pub matches_slic_insert: Vec<(PrimerDirection, usize)>,
 }
 
 impl PrimerData {

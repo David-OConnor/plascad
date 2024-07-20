@@ -9,6 +9,7 @@ use eframe::{
 };
 
 use crate::State;
+use crate::util::save;
 
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 800.;
@@ -150,7 +151,9 @@ pub fn draw(state: &mut State, ctx: &Context) {
         }
 
         if ip.key_pressed(Key::S) && ip.modifiers.ctrl {
-            // save()
+            if let Err(e) = save("plasmid_tools.save", state) {
+                println!("Error saving: {e}");
+            }
         }
     });
 

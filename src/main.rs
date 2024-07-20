@@ -154,7 +154,8 @@ struct State {
 
 impl State {
     /// Update sequences based on input strings.
-    pub fn sync_seqs(&mut self) {
+    /// todo: This fn may no longer be necessary.
+    pub fn _sync_seqs(&mut self) {
         self.seq_insert = util::seq_from_str(&self.ui.seq_insert_input);
         self.seq_vector = util::seq_from_str(&self.ui.seq_vector_input);
         self.seq_amplicon = util::seq_from_str(&self.ui.seq_amplicon_input);
@@ -178,7 +179,7 @@ fn main() {
 
     let mut state = load("plasmid_tools.save").unwrap_or_else(|_| State::default());
 
-    state.sync_seqs();
+    // state.sync_seqs();
     state.sync_pcr();
     state.sync_metrics();
 

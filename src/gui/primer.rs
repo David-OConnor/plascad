@@ -331,7 +331,8 @@ fn amplification(state: &mut State, ui: &mut Ui) {
     let response =
         ui.add(TextEdit::multiline(&mut state.ui.seq_amplicon_input).desired_width(800.));
     if response.changed() {
-        state.ui.seq_amplicon_input = make_seq_str(&seq_from_str(&state.ui.seq_amplicon_input));
+        state.seq_amplicon = seq_from_str(&state.ui.seq_amplicon_input);
+        state.ui.seq_amplicon_input = make_seq_str(&state.seq_amplicon);
     }
     ui.label(&format!("len: {}", state.ui.seq_amplicon_input.len()));
 
@@ -339,7 +340,7 @@ fn amplification(state: &mut State, ui: &mut Ui) {
 
     ui.horizontal(|ui| {
         if ui.button("➕ Make primers").clicked() {
-            state.sync_seqs();
+            // state.sync_seqs();
 
             if let Some(primers) = design_amplification_primers(&state.seq_amplicon) {
                 let sequence_input = make_seq_str(&primers.fwd.sequence);
@@ -380,7 +381,8 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     ui.label("Insert:");
     let response = ui.add(TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(800.));
     if response.changed() {
-        state.ui.seq_insert_input = make_seq_str(&seq_from_str(&state.ui.seq_insert_input));
+        state.seq_insert = seq_from_str(&state.ui.seq_insert_input);
+        state.ui.seq_insert_input = make_seq_str(&state.seq_insert);
     }
     ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
 
@@ -389,7 +391,8 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     ui.label("Vector:");
     let response = ui.add(TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(800.));
     if response.changed() {
-        state.ui.seq_vector_input = make_seq_str(&seq_from_str(&state.ui.seq_vector_input));
+        state.seq_vector = seq_from_str(&state.ui.seq_vector_input);
+        state.ui.seq_vector_input = make_seq_str(&state.seq_vector);
     }
     ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
 
@@ -403,7 +406,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
         ui.add_space(COL_SPACING);
 
         if ui.button("➕ Make cloning primers").clicked() {
-            state.sync_seqs();
+            // state.sync_seqs();
 
             if let Some(primers) =
                 design_slic_fc_primers(&state.seq_vector, &state.seq_insert, state.insert_loc)
@@ -486,7 +489,6 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(COL_SPACING * 2.);
 
-        // todo: Ctrl + S as well.
         if ui
             .button("Save")
             .on_hover_text("Save primer data. Ctrl + S")
@@ -498,6 +500,16 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         }
 
         // if ui.button("Load").clicked() {}
+
+        // todo: Temp. Find a better way.
+        if ui
+            .button("Sync primer disp").clicked() {
+            for p_data in &mut state.primer_data {
+                p_data.matches_amplification_seq = p_data.primer.match_to_seq(&state.seq_amplicon);
+                p_data.matches_slic_insert = p_data.primer.match_to_seq(&state.seq_insert);
+                p_data.matches_slic_vector = p_data.primer.match_to_seq(&state.seq_vector);
+            }
+        }
     });
 
     ui.label("Tuning instructions: Include more of the target sequence than required on the end[s] that can be tuned. These are the \
