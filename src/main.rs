@@ -161,6 +161,20 @@ impl State {
         self.seq_amplicon = util::seq_from_str(&self.ui.seq_amplicon_input);
     }
 
+    /// Runs the match serach between primers and sequences. Run this when primers and sequences change.
+    pub fn sync_primer_matches(&mut self, primer_i: Option<usize>) {
+        let p_list = match primer_i {
+            Some(i) => &mut self.primer_data[i..i+1],
+            None => &mut self.primer_data,
+        };
+
+        for p_data in p_list {
+            p_data.matches_amplification_seq = p_data.primer.match_to_seq(&self.seq_amplicon);
+            p_data.matches_slic_insert = p_data.primer.match_to_seq(&self.seq_insert);
+            p_data.matches_slic_vector = p_data.primer.match_to_seq(&self.seq_vector);
+        }
+    }
+
     pub fn sync_pcr(&mut self) {
         self.pcr = PcrParams::new(&self.ui.pcr);
     }

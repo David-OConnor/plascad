@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 use eframe::{
     egui::{
         pos2, vec2, Align, Align2, Color32, FontFamily, FontId, Frame, Layout, Pos2, Rect,
@@ -51,13 +52,17 @@ fn primer_arrow(
     label: &str,
     ui: &mut Ui,
 ) -> Vec<Shape> {
-    let color_arrow = Color32::from_rgb(255, 0, 255);
+    let color_arrow = match direction {
+        PrimerDirection::Forward => Color32::from_rgb(255, 0, 255),
+        PrimerDirection::Reverse => Color32::LIGHT_YELLOW,
+    };
+
     let color_label = Color32::LIGHT_GREEN;
     let arrow_width = 2.;
 
     const VERTICAL_OFFSET: f32 = 20.; // Number of pixels above the sequence text.
-    const LABEL_OFFSET: f32 = 6.;
-    const HEIGHT: f32 = 15.;
+    const LABEL_OFFSET: f32 = 7.;
+    const HEIGHT: f32 = 16.;
     const SLANT: f32 = 20.; // slant different, in pixels, for the arrow.
 
     bounds_r0.0.y -= VERTICAL_OFFSET;
@@ -73,20 +78,39 @@ fn primer_arrow(
 
     // todo: Handle rev too.
 
-    match direction {
+    // match direction {
         // todo: Consolidate this A/R.
-        PrimerDirection::Forward => {
+        // PrimerDirection::Forward => {
+            // Note: "Left" and "Right" are reversed for reverse primers.
+
+            let mut top_left = bounds_r0.0;
+
             // Slant only if single-line.
-            let top_right = if bounds_r1.is_none() {
+            let mut top_right = if bounds_r1.is_none() {
                 pos2(bounds_r0.1.x - SLANT, bounds_r0.1.y)
             } else {
                 pos2(bounds_r0.1.x, bounds_r0.1.y)
             };
+            let mut bottom_left = pos2(bounds_r0.0.x, bounds_r0.0.y + HEIGHT);
+            let mut bottom_right = pos2(bounds_r0.1.x, bounds_r0.1.y + HEIGHT);
+
+            if direction == PrimerDirection::Reverse {
+                let temp = top_right;
+                top_right = top_left;
+                top_left = temp;
+
+                let temp = bottom_left;
+                bottom_left = bottom_right;
+                bottom_right = temp;
+
+                top_left.x += SLANT;
+                bottom_left.x -= SLANT;
+            }
 
             let points = vec![
-                bounds_r0.0,                                 // top left,
-                pos2(bounds_r0.0.x, bounds_r0.0.y + HEIGHT), // bottom left
-                pos2(bounds_r0.1.x, bounds_r0.1.y + HEIGHT), // bottom right,
+                top_left,
+                bottom_left,
+                bottom_right,
                 top_right,
             ];
 
@@ -108,14 +132,19 @@ fn primer_arrow(
                     Stroke::new(arrow_width, color_arrow),
                 )));
             }
-        }
-        PrimerDirection::Reverse => {}
-    };
+        // }
+        // PrimerDirection::Reverse => {}
+    // };
+
+    let label_start_x = match direction {
+        PrimerDirection::Forward => bounds_r0.0.x,
+        PrimerDirection::Reverse => bounds_r0.1.x,
+    }  + LABEL_OFFSET;
 
     let label = ctx.fonts(|fonts| {
         Shape::text(
             fonts,
-            pos2(bounds_r0.0.x + LABEL_OFFSET, bounds_r0.0.y + LABEL_OFFSET),
+            pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET),
             Align2::LEFT_CENTER,
             label,
             FontId::new(16., FontFamily::Proportional),
@@ -182,7 +211,9 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
             // }
 
             for range in &row_ranges {
-                let seq_this_row = &state.seq_amplicon[range.clone()];
+                // This max trigger is likely to occur on the last row.
+                let r = range.start..min(range.end, state.seq_amplicon.len());
+                let seq_this_row = &state.seq_amplicon[r];
 
                 // todo: This line is causing crashes when the view is stretched.
                 let pos = to_screen * pos2(TEXT_X_START, text_y);
@@ -210,10 +241,14 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
                 // todo: Sort out the direction. By matches, most likely.
 
                 // todo: Do not run these calcs each time! Cache.
-
                 for (direction, seq_range) in &prim_data.matches_amplification_seq {
-                    let start_pos = seq_i_to_pixel_rel(seq_range.start, &row_ranges);
-                    let end_pos = seq_i_to_pixel_rel(seq_range.end, &row_ranges);
+                    let (start, end) = match direction {
+                        PrimerDirection::Forward => (seq_range.start, seq_range.end),
+                        PrimerDirection::Reverse => (state.seq_amplicon.len() - seq_range.start, state.seq_amplicon.len() - seq_range.end),
+                    };
+
+                    let start_pos = seq_i_to_pixel_rel(start, &row_ranges);
+                    let end_pos = seq_i_to_pixel_rel(end, &row_ranges);
 
                     // Check if we split across rows.
                     let (bounds_row_0, bounds_row_1) = if start_pos.y == end_pos.y {
@@ -271,14 +306,16 @@ fn color_from_score(score: f32) -> Color32 {
 }
 
 /// Shows below each primer sequence. Data and controls on trimming primer size for optimization.
-fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) {
+/// Returns wheather a button was clicked.
+fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) -> bool {
+    // This avoids a double-mutable error
+    let mut tuned = false;
+
     // Section for tuning primer length.
     ui.horizontal(|ui| {
         // This layout allows even spacing.
         // ui.allocate_ui(egui::Vec2::new(ui.available_width(), 0.0), |ui| {
         //     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-        // This avoids a double-mutable error
-        let mut tuned = false;
 
         if let TuneSetting::Enabled(i) = &mut data.tunable_5p {
             ui.label("5'");
@@ -349,8 +386,8 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) {
         if tuned {
             data.run_calcs();
         }
-        // });
     });
+    tuned
 }
 
 fn amplification(state: &mut State, ui: &mut Ui) {
@@ -364,6 +401,7 @@ fn amplification(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         state.seq_amplicon = seq_from_str(&state.ui.seq_amplicon_input);
         state.ui.seq_amplicon_input = make_seq_str(&state.seq_amplicon);
+        state.sync_primer_matches(None);
     }
     ui.label(&format!("len: {}", state.ui.seq_amplicon_input.len()));
 
@@ -414,6 +452,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         state.seq_insert = seq_from_str(&state.ui.seq_insert_input);
         state.ui.seq_insert_input = make_seq_str(&state.seq_insert);
+        state.sync_primer_matches(None);
     }
     ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
 
@@ -424,6 +463,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         state.seq_vector = seq_from_str(&state.ui.seq_vector_input);
         state.ui.seq_vector_input = make_seq_str(&state.seq_vector);
+        state.sync_primer_matches(None);
     }
     ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
 
@@ -532,14 +572,14 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
         // if ui.button("Load").clicked() {}
 
-        // todo: Temp. Find a better way.
-        if ui.button("Sync primer disp").clicked() {
-            for p_data in &mut state.primer_data {
-                p_data.matches_amplification_seq = p_data.primer.match_to_seq(&state.seq_amplicon);
-                p_data.matches_slic_insert = p_data.primer.match_to_seq(&state.seq_insert);
-                p_data.matches_slic_vector = p_data.primer.match_to_seq(&state.seq_vector);
-            }
-        }
+        // // todo: Temp. Find a better way.
+        // if ui.button("Sync primer disp").clicked() {
+        //     for p_data in &mut state.primer_data {
+        //         p_data.matches_amplification_seq = p_data.primer.match_to_seq(&state.seq_amplicon);
+        //         p_data.matches_slic_insert = p_data.primer.match_to_seq(&state.seq_insert);
+        //         p_data.matches_slic_vector = p_data.primer.match_to_seq(&state.seq_vector);
+        //     }
+        // }
     });
 
     ui.label("Tuning instructions: Include more of the target sequence than required on the end[s] that can be tuned. These are the \
@@ -593,6 +633,8 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(ROW_SPACING);
     }
+
+    let mut run_match_sync = None; // Avoids a double-mutation error.
 
     TableBuilder::new(ui)
         .column(Column::initial(700.).resizable(true))
@@ -672,6 +714,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                                 data.sequence_input =
                                     make_seq_str(&seq_from_str(&data.sequence_input));
                                 data.run_calcs();
+                                run_match_sync = Some(i);
                             }
 
                             if ui
@@ -689,7 +732,10 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                             }
                         });
 
-                        primer_tune_display(data, ui);
+                        let updated_seq = primer_tune_display(data, ui);
+                        if updated_seq {
+                            run_match_sync = Some(i);
+                        }
                     });
 
                     row.col(|ui| {
@@ -787,6 +833,10 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 });
             }
         });
+
+    if run_match_sync.is_some() {
+        state.sync_primer_matches(run_match_sync);
+    }
 
     ui.add_space(ROW_SPACING * 3.);
 

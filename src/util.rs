@@ -96,7 +96,8 @@ pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
 pub fn get_row_ranges(len: usize, chars_per_row: usize) -> Vec<Range<usize>> {
     let mut result = Vec::new();
 
-    let num_rows = len / chars_per_row; // todo: +/-1 etc?
+    // todo: Round etc instead of adding 1?
+    let num_rows = len / chars_per_row + 1; // todo: +/-1 etc?
 
     for row_i in 0..num_rows {
         result.push(row_i * chars_per_row..row_i * chars_per_row + chars_per_row);
