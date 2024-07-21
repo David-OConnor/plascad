@@ -1,8 +1,15 @@
 //! This module contains code related to primer (oglionucleotide) design and QC.
 
+use std::ops::Range;
+
 use bincode::{Decode, Encode};
 
-use crate::{util::{map_linear, seq_complement, seq_from_str}, Nucleotide::{C, G}, Seq, Nucleotide};
+use crate::{
+    util::{map_linear, seq_complement, seq_from_str},
+    Nucleotide,
+    Nucleotide::{C, G},
+    Seq,
+};
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
@@ -222,7 +229,6 @@ impl Primer {
         let mut single_repeat_len = 0;
 
         for nt in &self.sequence {
-            println!("NT: {:?}, prev_nt: {:?}", nt, prev_nt);
             if *nt == prev_nt {
                 single_repeat_len += 1;
 
@@ -278,19 +284,27 @@ impl Primer {
     }
 
     /// Match this primer to a sequence. Check both directions.
-    /// Returns direction, and start index of the sequence. If direction is reversed,
-    /// the index matches to the reversed index.
-    pub fn match_to_seq(&self, seq: &[Nucleotide]) -> Vec<(PrimerDirection, usize)> {
+    /// Returns direction, and start and end indexes of the sequence. If direction is reversed,
+    /// the indexs matches to the reversed index.
+    pub fn match_to_seq(&self, seq: &[Nucleotide]) -> Vec<(PrimerDirection, Range<usize>)> {
         let mut result = Vec::new();
+
+        // This check prevents spurious small-sequence matches, which may be numerous otherwise.
+        if self.sequence.len() < MIN_PRIMER_LEN {
+            return result;
+        }
+
         // todo: Partial matches as well.
         let seq_len = seq.len();
+        let primer_len = self.sequence.len();
         let complement = seq_complement(seq);
 
-        for seq_start_i in 0..seq_len {
+        for seq_start in 0..seq_len {
             // Note: This approach handles sequence wraps, eg [circular] plasmids.
-            let seq_iter = seq.iter().cycle().skip(seq_start_i).take(self.sequence.len());
+            let seq_iter = seq.iter().cycle().skip(seq_start).take(primer_len);
             if self.sequence.iter().eq(seq_iter) {
-                result.push((PrimerDirection::Forward, seq_start_i));
+                let seq_end = (seq_start + primer_len) % seq_len;
+                result.push((PrimerDirection::Forward, seq_start..seq_end));
             }
 
             // let end_i = (seq_start_i + self.sequence.len()) % seq_len;
@@ -299,16 +313,12 @@ impl Primer {
             // }
         }
 
-        for seq_start_i in 0..seq_len {
-            let seq_iter = seq.iter().cycle().skip(seq_start_i).take(self.sequence.len());
+        for seq_start in 0..seq_len {
+            let seq_iter = complement.iter().cycle().skip(seq_start).take(primer_len);
             if self.sequence.iter().eq(seq_iter) {
-                result.push((PrimerDirection::Forward, seq_start_i));
+                let seq_end = (seq_start + primer_len) % seq_len;
+                result.push((PrimerDirection::Reverse, seq_start..seq_end));
             }
-            //
-            // let end_i = (seq_start_i + self.sequence.len()) % seq_len;
-            // if self.sequence == complement[seq_start_i..end_i] {
-            //     result.push((PrimerDirection::Reverse, seq_start_i))
-            // }
         }
 
         result
@@ -445,10 +455,10 @@ pub struct PrimerData {
     // seq_removed_3p: Seq
     pub seq_removed_5p: String,
     pub seq_removed_3p: String,
-    pub matches_amplification_seq: Vec<(PrimerDirection, usize)>,
+    pub matches_amplification_seq: Vec<(PrimerDirection, Range<usize>)>,
     // todo: It gets a bit fuzzy for cloning; sort it out.
-    pub matches_slic_vector: Vec<(PrimerDirection, usize)>,
-    pub matches_slic_insert: Vec<(PrimerDirection, usize)>,
+    pub matches_slic_vector: Vec<(PrimerDirection, Range<usize>)>,
+    pub matches_slic_insert: Vec<(PrimerDirection, Range<usize>)>,
 }
 
 impl PrimerData {

@@ -105,23 +105,31 @@ pub fn get_row_ranges(len: usize, chars_per_row: usize) -> Vec<Range<usize>> {
     result
 }
 
-/// Maps sequence index (Which sequence?) to the relative pixel.
-pub fn seq_i_to_pixel(seq_i: usize, row_ranges: &[Range<usize>]) -> Pos2 {
-    let mut row_i = 0;
-    let mut row = 0..10;
+// todo: We currently don't use this as a standalone fn; wrap back into `seq_i_to_pixel` a/r.
+/// Maps sequence index, as displayed on a manually-wrapped UI display, to row and column indices.
+fn seq_i_to_col_row(seq_i: usize, row_ranges: &[Range<usize>]) -> (usize, usize) {
+    let mut row = 0;
+    let mut row_range = 0..10;
 
-    for (row_i_, range) in row_ranges.iter().enumerate() {
+    for (row_, range) in row_ranges.iter().enumerate() {
         if range.contains(&seq_i) {
-            row_i = row_i_;
-            row = range.clone();
+            row = row_;
+            row_range = range.clone();
             break;
         }
     }
 
-    let col = seq_i - row.start;
+    let col = seq_i - row_range.start;
+
+    (col, row)
+}
+
+/// Maps sequence index, as displayed on a manually-wrapped UI display, to the relative pixel.
+pub fn seq_i_to_pixel(seq_i: usize, row_ranges: &[Range<usize>]) -> Pos2 {
+    let (col, row) = seq_i_to_col_row(seq_i, row_ranges);
 
     pos2(
         TEXT_X_START + col as f32 * NT_WIDTH_PX,
-        TEXT_Y_START + row_i as f32 * SEQ_ROW_SPACING_PX,
+        TEXT_Y_START + row as f32 * SEQ_ROW_SPACING_PX,
     )
 }

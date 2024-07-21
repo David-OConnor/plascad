@@ -4,6 +4,7 @@ use eframe::{
         RichText, Sense, Shape, Stroke, TextEdit, Ui,
     },
     emath::RectTransform,
+    epaint::PathShape,
 };
 use egui_extras::{Column, TableBuilder};
 
@@ -17,9 +18,8 @@ use crate::{
 };
 use crate::{
     primer::{PrimerData, PrimerDirection, TuneSetting},
-    util::seq_i_to_pixel,
+    util::{get_row_ranges, seq_complement, seq_i_to_pixel},
 };
-use crate::util::{get_row_ranges, seq_complement};
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -45,63 +45,77 @@ pub const TEXT_Y_START: f32 = TEXT_X_START;
 
 /// Make a visual arrow for a primer. For  use inside a Frame::canvas.
 fn primer_arrow(
-    start_pos: Pos2,
+    mut bounds_r0: (Pos2, Pos2),
+    mut bounds_r1: Option<(Pos2, Pos2)>, // Assumes no more than two rows.
     direction: PrimerDirection,
     label: &str,
-    to_screen: &RectTransform,
     ui: &mut Ui,
 ) -> Vec<Shape> {
-    let color_arrow = Color32::LIGHT_BLUE;
+    let color_arrow = Color32::from_rgb(255, 0, 255);
     let color_label = Color32::LIGHT_GREEN;
     let arrow_width = 2.;
 
-    const HEIGHT: f32 = 20.;
+    const VERTICAL_OFFSET: f32 = 20.; // Number of pixels above the sequence text.
+    const LABEL_OFFSET: f32 = 6.;
+    const HEIGHT: f32 = 15.;
+    const SLANT: f32 = 20.; // slant different, in pixels, for the arrow.
 
-    let width = 200.; // depends on size of primer.
+    bounds_r0.0.y -= VERTICAL_OFFSET;
+    bounds_r0.1.y -= VERTICAL_OFFSET;
+    if let Some(b) = bounds_r1.as_mut() {
+        b.0.y -= VERTICAL_OFFSET;
+        b.1.y -= VERTICAL_OFFSET;
+    }
 
     let mut result = Vec::new();
 
-    // let origin = to_screen * pos2(0., 0.);
-    let origin = to_screen * start_pos;
-
     let ctx = ui.ctx();
 
-    let mut current_pt = origin;
-    let mut next_pt = pos2(current_pt.x, current_pt.y + HEIGHT);
-
     // todo: Handle rev too.
-    let left_edge = Shape::line(
-        vec![current_pt, next_pt],
-        Stroke::new(arrow_width, color_arrow),
-    );
 
-    current_pt = next_pt;
-    next_pt = pos2(current_pt.x + width, current_pt.y);
+    match direction {
+        // todo: Consolidate this A/R.
+        PrimerDirection::Forward => {
+            // Slant only if single-line.
+            let top_right = if bounds_r1.is_none() {
+                pos2(bounds_r0.1.x - SLANT, bounds_r0.1.y)
+            } else {
+                pos2(bounds_r0.1.x, bounds_r0.1.y)
+            };
 
-    let bottom_edge = Shape::line(
-        vec![current_pt, next_pt],
-        Stroke::new(arrow_width, color_arrow),
-    );
+            let points = vec![
+                bounds_r0.0,                                 // top left,
+                pos2(bounds_r0.0.x, bounds_r0.0.y + HEIGHT), // bottom left
+                pos2(bounds_r0.1.x, bounds_r0.1.y + HEIGHT), // bottom right,
+                top_right,
+            ];
 
-    current_pt = next_pt;
-    next_pt = pos2(current_pt.x - 30., origin.y);
+            result.push(Shape::Path(PathShape::closed_line(
+                points,
+                Stroke::new(arrow_width, color_arrow),
+            )));
 
-    let right_edge = Shape::line(
-        vec![current_pt, next_pt],
-        Stroke::new(arrow_width, color_arrow),
-    );
+            if let Some(b) = bounds_r1 {
+                let points = vec![
+                    b.0,                         // top left,
+                    pos2(b.0.x, b.0.y + HEIGHT), // bottom left
+                    pos2(b.1.x, b.1.y + HEIGHT), // bottom right,
+                    pos2(b.1.x - SLANT, b.1.y),  // top-right (slant)
+                ];
 
-    current_pt = next_pt;
-
-    let top_edge = Shape::line(
-        vec![current_pt, origin],
-        Stroke::new(arrow_width, color_arrow),
-    );
+                result.push(Shape::Path(PathShape::closed_line(
+                    points,
+                    Stroke::new(arrow_width, color_arrow),
+                )));
+            }
+        }
+        PrimerDirection::Reverse => {}
+    };
 
     let label = ctx.fonts(|fonts| {
         Shape::text(
             fonts,
-            pos2(origin.x, origin.y - 16.),
+            pos2(bounds_r0.0.x + LABEL_OFFSET, bounds_r0.0.y + LABEL_OFFSET),
             Align2::LEFT_CENTER,
             label,
             FontId::new(16., FontFamily::Proportional),
@@ -110,17 +124,7 @@ fn primer_arrow(
         )
     });
 
-    result.push(left_edge);
-    result.push(bottom_edge);
-    result.push(right_edge);
-    result.push(top_edge);
     result.push(label);
-
-    // result.append(&[
-    //     left_edge, bottom_edge,
-    //     label
-    // ]);
-
     result
 }
 
@@ -140,7 +144,10 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
 
         let row_ranges = get_row_ranges(state.seq_amplicon.len(), nt_chars_per_row);
         // let desired_size = ui.available_width() * vec2(1.0, 0.15);
-        let desired_size = vec2(ui.available_width(), row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.);
+        let desired_size = vec2(
+            ui.available_width(),
+            row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.,
+        );
         ui.allocate_painter(desired_size, Sense::click())
     };
 
@@ -153,9 +160,9 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
     );
 
     // let to_screen = RectTransform::from_to(
-        // Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
-        // Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-        // response.rect,
+    // Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
+    // Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+    // response.rect,
     // );
 
     let from_screen = to_screen.inverse();
@@ -196,30 +203,54 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
                 text_y += SEQ_ROW_SPACING_PX;
             }
 
+            let seq_i_to_pixel_rel = |a, b| to_screen * seq_i_to_pixel(a, b);
+
             // Add primer arrows.
             for prim_data in &state.primer_data {
                 // todo: Sort out the direction. By matches, most likely.
 
-                for (direction, seq_i) in &prim_data.matches_amplification_seq {
-                    // todo: Next: Find its pixel position, and use that to place the arrow.
-                    // todo: YOu will also need arrow wraps.
-                    let start_pos = seq_i_to_pixel(*seq_i, &row_ranges);
+                // todo: Do not run these calcs each time! Cache.
 
-                    let mut arrow_fwd = primer_arrow(start_pos, *direction, &prim_data.description, &to_screen, ui);
+                for (direction, seq_range) in &prim_data.matches_amplification_seq {
+                    let start_pos = seq_i_to_pixel_rel(seq_range.start, &row_ranges);
+                    let end_pos = seq_i_to_pixel_rel(seq_range.end, &row_ranges);
+
+                    // Check if we split across rows.
+                    let (bounds_row_0, bounds_row_1) = if start_pos.y == end_pos.y {
+                        ((start_pos, end_pos), None)
+                    } else {
+                        // let (col, row) = seq_i_to_col_row(seq_range.start, &row_ranges);
+
+                        // let row_0_end = seq_i_to_pixel_rel(seq_range.start, &row_ranges);
+                        let row_0_end = pos2(
+                            TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
+                            start_pos.y,
+                        );
+                        // let row_1_start = seq_i_to_pixel_rel(seq_range.start, &row_ranges);
+                        let row_1_start = pos2(TEXT_X_START, end_pos.y); // todo: A/R
+
+                        ((start_pos, row_0_end), Some((row_1_start, end_pos)))
+                    };
+
+                    let mut arrow_fwd = primer_arrow(
+                        bounds_row_0,
+                        bounds_row_1,
+                        *direction,
+                        &prim_data.description,
+                        ui,
+                    );
                     shapes.append(&mut arrow_fwd);
                 }
             }
         }
-        PagePrimerCreation::SlicFc => {
-
-        }
+        PagePrimerCreation::SlicFc => {}
     }
     // ScrollArea::vertical().id_source(0).show(ui, |ui| {
     Frame::canvas(ui.style())
         .fill(Color32::WHITE) // todo: Not working.
         .show(ui, |ui| {
-        ui.painter().extend(shapes);
-    });
+            ui.painter().extend(shapes);
+        });
     // });
 
     ui.add_space(ROW_SPACING);
@@ -502,8 +533,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         // if ui.button("Load").clicked() {}
 
         // todo: Temp. Find a better way.
-        if ui
-            .button("Sync primer disp").clicked() {
+        if ui.button("Sync primer disp").clicked() {
             for p_data in &mut state.primer_data {
                 p_data.matches_amplification_seq = p_data.primer.match_to_seq(&state.seq_amplicon);
                 p_data.matches_slic_insert = p_data.primer.match_to_seq(&state.seq_insert);
