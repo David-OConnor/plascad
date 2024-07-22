@@ -9,9 +9,8 @@ use bincode::{self, config, Decode, Encode};
 use eframe::egui::{pos2, Pos2};
 
 use crate::{
-    gui::primer::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
-    Nucleotide,
-    Nucleotide::{A, C, G, T},
+    gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
+    Nucleotide::{self, A, C, G, T},
     Seq,
 };
 

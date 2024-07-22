@@ -456,9 +456,9 @@ pub struct PrimerData {
     pub seq_removed_5p: String,
     pub seq_removed_3p: String,
     pub matches_amplification_seq: Vec<(PrimerDirection, Range<usize>)>,
-    // todo: It gets a bit fuzzy for cloning; sort it out.
-    pub matches_slic_vector: Vec<(PrimerDirection, Range<usize>)>,
-    pub matches_slic_insert: Vec<(PrimerDirection, Range<usize>)>,
+    pub matches_vector: Vec<(PrimerDirection, Range<usize>)>, // todo: Currently unused.
+    pub matches_insert: Vec<(PrimerDirection, Range<usize>)>, // todo: Currently unused.
+    pub matches_vector_with_insert: Vec<(PrimerDirection, Range<usize>)>,
 }
 
 impl PrimerData {

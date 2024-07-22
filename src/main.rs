@@ -14,11 +14,16 @@ use bincode::{Decode, Encode};
 use eframe::{self, egui, egui::Context};
 use primer::PrimerData;
 
-use crate::{gui::PagePrimerCreation, pcr::PolymeraseType, primer::TM_TARGET, util::load};
 // use image::GenericImageView;
 use crate::{
     gui::{Page, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::PcrParams,
+};
+use crate::{
+    gui::{PagePrimerCreation, PageSeq},
+    pcr::PolymeraseType,
+    primer::TM_TARGET,
+    util::load,
 };
 
 mod gui;
@@ -126,6 +131,7 @@ struct StateUi {
     // todo to save computation.
     page: Page,
     page_primer_creation: PagePrimerCreation,
+    page_seq: PageSeq,
     seq_insert_input: String,
     seq_vector_input: String,
     seq_amplicon_input: String,
@@ -143,6 +149,7 @@ struct State {
     /// Insert and vector are for SLIC and FC.
     seq_insert: Seq,
     seq_vector: Seq,
+    seq_vector_with_insert: Seq,
     /// Amplicon is for basic PCR.
     seq_amplicon: Seq,
     insert_loc: usize,
@@ -170,8 +177,10 @@ impl State {
 
         for p_data in p_list {
             p_data.matches_amplification_seq = p_data.primer.match_to_seq(&self.seq_amplicon);
-            p_data.matches_slic_insert = p_data.primer.match_to_seq(&self.seq_insert);
-            p_data.matches_slic_vector = p_data.primer.match_to_seq(&self.seq_vector);
+            p_data.matches_insert = p_data.primer.match_to_seq(&self.seq_insert);
+            p_data.matches_vector = p_data.primer.match_to_seq(&self.seq_vector);
+            p_data.matches_vector_with_insert =
+                p_data.primer.match_to_seq(&self.seq_vector_with_insert);
         }
     }
 
@@ -185,6 +194,27 @@ impl State {
                 metrics.update_scores();
             }
         }
+    }
+
+    /// Update the combined SLIC vector + insert sequence.
+    pub fn sync_cloning_product(&mut self) {
+        self.seq_vector_with_insert = self.seq_vector.clone(); // Clone the original vector
+        self.seq_vector_with_insert.splice(
+            self.insert_loc..self.insert_loc,
+            self.seq_insert.iter().cloned(),
+        );
+
+        println!("CLoning product len: {}", self.seq_vector_with_insert.len());
+        //
+        // self.seq_vector_with_insert = self.seq_vector[..self.insert_loc].clone();
+        //
+        // for nt in self.seq_insert {
+        //     self.seq_vector_with_insert.push(nt);
+        // }
+        //
+        // for nt in self.seq_vector[self.insert_loc..] {
+        //     self.seq_vector_with_insert.push(nt);
+        // }
     }
 }
 

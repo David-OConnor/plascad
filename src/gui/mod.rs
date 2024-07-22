@@ -1,6 +1,7 @@
 mod pcr;
 mod portions;
 pub mod primer;
+pub mod seq_view; // pub for a few consts
 
 use bincode::{Decode, Encode};
 use eframe::{
@@ -70,6 +71,28 @@ impl PagePrimerCreation {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+pub enum PageSeq {
+    Edit,
+    View,
+}
+
+impl Default for PageSeq {
+    fn default() -> Self {
+        Self::View
+    }
+}
+
+impl PageSeq {
+    pub fn to_str(self) -> String {
+        match self {
+            Self::Edit => "Edit squences",
+            Self::View => "View sequences",
+        }
+        .to_owned()
+    }
+}
+
 // // todo: Move A/R
 // /// Used to determine which side of a primer we can extend or remove from in order to optimize it.
 // #[derive(Clone, Copy, PartialEq)]
@@ -125,7 +148,25 @@ fn page_primers_button(page_state: &mut PagePrimerCreation, page: PagePrimerCrea
         *page_state = page;
     }
 
-    ui.add_space(COL_SPACING);
+    ui.add_space(COL_SPACING / 2.);
+}
+
+// todo: Use to_string and partialEq traits instead of duplicating the other page.
+fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
+    let color = if *page_state == page {
+        Color32::GREEN
+    } else {
+        Color32::WHITE
+    };
+
+    if ui
+        .button(RichText::new(page.to_str()).color(color))
+        .clicked()
+    {
+        *page_state = page;
+    }
+
+    ui.add_space(COL_SPACING / 2.);
 }
 
 pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {
@@ -140,6 +181,13 @@ pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {
             PagePrimerCreation::SlicFc,
             ui,
         );
+    });
+}
+
+pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
+    ui.horizontal(|ui| {
+        page_seq_button(&mut state.ui.page_seq, PageSeq::Edit, ui);
+        page_seq_button(&mut state.ui.page_seq, PageSeq::View, ui);
     });
 }
 

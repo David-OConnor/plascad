@@ -1,13 +1,4 @@
-use std::cmp::{max, min};
-
-use eframe::{
-    egui::{
-        pos2, vec2, Align, Align2, Color32, FontFamily, FontId, Frame, Layout, Pos2, Rect,
-        RichText, Sense, Shape, Stroke, TextEdit, Ui,
-    },
-    emath::RectTransform,
-    epaint::PathShape,
-};
+use eframe::egui::{Align, Color32, Layout, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
 // todo: monospace font for all seqs.
@@ -19,6 +10,7 @@ use crate::{
     State,
 };
 use crate::{
+    gui::{seq_view::sequence_vis, PageSeq},
     primer::{
         PrimerData,
         PrimerDirection::{self, Forward, Reverse},
@@ -26,6 +18,7 @@ use crate::{
     },
     util::{get_row_ranges, seq_complement, seq_i_to_pixel},
 };
+use crate::gui::page_seq_selector;
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -33,317 +26,10 @@ const COLOR_BAD: Color32 = Color32::LIGHT_RED;
 
 const DEFAULT_TRIM_AMT: usize = 32 - 20;
 
-// Constants related to the sequence canvas. Pub for use in `util` functions.
-pub const FONT_SIZE_SEQ: f32 = 14.;
-pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
-
-pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
-pub const VIEW_AREA_PAD: f32 = 40.;
-pub const SEQ_ROW_SPACING_PX: f32 = 40.;
-
-pub const TEXT_X_START: f32 = VIEW_AREA_PAD / 2.;
-pub const TEXT_Y_START: f32 = TEXT_X_START;
-
 // const TM_IDEAL: f32 = 59.; // todo: Fill thi sin
 //
 // const THRESHOLDS_TM: (f32, f32) = (59., 60.);
 // const THRESHOLDS_GC: (f32, f32) = (59., 60.);
-
-/// Make a visual arrow for a primer. For  use inside a Frame::canvas.
-/// Note: This function is fragile, and was constructed partly by trial and error.
-fn primer_arrow(
-    mut bounds_r0: (Pos2, Pos2),
-    mut bounds_r1: Option<(Pos2, Pos2)>, // Assumes no more than two rows.
-    direction: PrimerDirection,
-    label: &str,
-    ui: &mut Ui,
-) -> Vec<Shape> {
-    let color_arrow = match direction {
-        Forward => Color32::from_rgb(255, 0, 255),
-        Reverse => Color32::LIGHT_YELLOW,
-    };
-
-    let color_label = Color32::LIGHT_GREEN;
-    let arrow_width = 2.;
-
-    const VERTICAL_OFFSET: f32 = 20.; // Number of pixels above the sequence text.
-    const LABEL_OFFSET: f32 = 7.;
-    const HEIGHT: f32 = 16.;
-    const SLANT: f32 = 20.; // slant different, in pixels, for the arrow.
-
-    const V_OFF_SET_REV: f32 = 2. * VERTICAL_OFFSET - 5.;
-
-    bounds_r0.0.y -= VERTICAL_OFFSET;
-    bounds_r0.1.y -= VERTICAL_OFFSET;
-    if let Some(b) = bounds_r1.as_mut() {
-        b.0.y -= VERTICAL_OFFSET;
-        b.1.y -= VERTICAL_OFFSET;
-    }
-
-    let mut result = Vec::new();
-
-    let ctx = ui.ctx();
-
-    // todo: Handle rev too.
-
-    // match direction {
-    // todo: Consolidate this A/R.
-    // Forward => {
-    // Note: "Left" and "Right" are reversed for reverse primers.
-
-    let mut top_left = bounds_r0.0;
-
-    // Slant only if single-line.
-    let mut top_right = if bounds_r1.is_none() {
-        pos2(bounds_r0.1.x - SLANT, bounds_r0.1.y)
-    } else {
-        pos2(bounds_r0.1.x, bounds_r0.1.y)
-    };
-    let mut bottom_left = pos2(bounds_r0.0.x, bounds_r0.0.y + HEIGHT);
-    let mut bottom_right = pos2(bounds_r0.1.x, bounds_r0.1.y + HEIGHT);
-
-    if direction == Reverse {
-        let temp = top_right;
-        top_right = top_left;
-        top_left = temp;
-
-        let temp = bottom_left;
-        bottom_left = bottom_right;
-        bottom_right = temp;
-
-        top_left.y += V_OFF_SET_REV;
-        top_right.y += V_OFF_SET_REV;
-        bottom_left.y += V_OFF_SET_REV;
-        bottom_right.y += V_OFF_SET_REV;
-    }
-
-    let points = vec![top_left, bottom_left, bottom_right, top_right];
-
-    result.push(Shape::Path(PathShape::closed_line(
-        points,
-        Stroke::new(arrow_width, color_arrow),
-    )));
-
-    if let Some(b) = bounds_r1 {
-        let mut top_left = b.0;
-        let mut bottom_left = pos2(b.0.x, b.0.y + HEIGHT);
-        let mut bottom_right = pos2(b.1.x, b.1.y + HEIGHT);
-        let mut top_right = pos2(b.1.x - SLANT, b.1.y);
-
-        // todo: DRY.
-        if direction == Reverse {
-            top_right.x += SLANT;
-            bottom_left.x += SLANT;
-
-            let temp = top_right;
-            top_right = top_left;
-            top_left = temp;
-
-            let temp = bottom_left;
-            bottom_left = bottom_right;
-            bottom_right = temp;
-
-            top_left.y += V_OFF_SET_REV;
-            top_right.y += V_OFF_SET_REV;
-            bottom_left.y += V_OFF_SET_REV;
-            bottom_right.y += V_OFF_SET_REV;
-        }
-
-        let points = vec![top_left, bottom_left, bottom_right, top_right];
-
-        result.push(Shape::Path(PathShape::closed_line(
-            points,
-            Stroke::new(arrow_width, color_arrow),
-        )));
-    }
-    // }
-    // Reverse => {}
-    // };
-
-    let label_start_x = match direction {
-        Forward => bounds_r0.0.x,
-        Reverse => bounds_r0.1.x,
-    } + LABEL_OFFSET;
-
-    let label_pos = match direction {
-        Forward => pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET),
-        Reverse => pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET + V_OFF_SET_REV),
-    };
-
-    let label = ctx.fonts(|fonts| {
-        Shape::text(
-            fonts,
-            label_pos,
-            Align2::LEFT_CENTER,
-            label,
-            FontId::new(16., FontFamily::Proportional),
-            color_label,
-        )
-    });
-
-    result.push(label);
-    result
-}
-
-// todo: Move this graphics drawing code to a new module, A/R.
-/// Draw the sequence with primers, insertion points, and other data visible, A/R
-fn sequence_vis(state: &State, ui: &mut Ui) {
-    let nt_chars_per_row = ((ui.available_width() - VIEW_AREA_PAD) / NT_WIDTH_PX) as usize; // todo: +1 etc?
-
-    // let (id, rect) = ui.allocate_space(desired_size);
-
-    let mut shapes = vec![];
-
-    let (mut response, painter) = {
-        // Estimate required height, based on seq len.
-
-        // todo: C+P from below, in amplicon code. This needs to be branched as well, or moved below.
-
-        let row_ranges = get_row_ranges(state.seq_amplicon.len(), nt_chars_per_row);
-        // let desired_size = ui.available_width() * vec2(1.0, 0.15);
-        let desired_size = vec2(
-            ui.available_width(),
-            row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.,
-        );
-        ui.allocate_painter(desired_size, Sense::click())
-    };
-
-    // let to_screen =
-    //     RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
-
-    let to_screen = RectTransform::from_to(
-        Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-        response.rect,
-    );
-
-    // let to_screen = RectTransform::from_to(
-    // Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
-    // Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-    // response.rect,
-    // );
-
-    let from_screen = to_screen.inverse();
-
-    let ctx = ui.ctx();
-
-    match state.ui.page_primer_creation {
-        PagePrimerCreation::Amplification => {
-            let row_ranges = get_row_ranges(state.seq_amplicon.len(), nt_chars_per_row);
-
-            let mut text_y = TEXT_Y_START;
-
-            // todo: Debug temp
-            // for i in 0..200 {
-            //     let i2 = i * 1;
-            //     println!("I: {}, pos2: {:?}", i2, seq_i_to_pixel(i2, &row_ranges));
-            // }
-
-            for range in &row_ranges {
-                // This max trigger is likely to occur on the last row.
-                let r = range.start..min(range.end, state.seq_amplicon.len());
-                let seq_this_row = &state.seq_amplicon[r];
-
-                // todo: This line is causing crashes when the view is stretched.
-                let pos = to_screen * pos2(TEXT_X_START, text_y);
-
-                // todo: Find a way to get the pixel coordinates of each nt char.
-
-                shapes.push(ctx.fonts(|fonts| {
-                    Shape::text(
-                        fonts,
-                        pos,
-                        Align2::LEFT_CENTER,
-                        make_seq_str(seq_this_row),
-                        // Note: Monospace is important for sequences.
-                        FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
-                        COLOR_SEQ,
-                    )
-                }));
-                text_y += SEQ_ROW_SPACING_PX;
-            }
-
-            let seq_i_to_pixel_rel = |a, b| to_screen * seq_i_to_pixel(a, b);
-
-            // Add primer arrows.
-            for prim_data in &state.primer_data {
-                // todo: Sort out the direction. By matches, most likely.
-
-                // todo: Do not run these calcs each time! Cache.
-                for (direction, seq_range) in &prim_data.matches_amplification_seq {
-                    let (start, end) = match direction {
-                        Forward => (seq_range.start, seq_range.end),
-                        Reverse => (
-                            state.seq_amplicon.len() - seq_range.start,
-                            state.seq_amplicon.len() - seq_range.end,
-                        ),
-                    };
-
-                    let start_pos = seq_i_to_pixel_rel(start, &row_ranges);
-                    let end_pos = seq_i_to_pixel_rel(end, &row_ranges);
-
-                    // Check if we split across rows.
-                    let (bounds_row_0, bounds_row_1) = if start_pos.y == end_pos.y {
-                        ((start_pos, end_pos), None)
-                    } else {
-                        // let (col, row) = seq_i_to_col_row(seq_range.start, &row_ranges);
-
-                        // let row_0_end = seq_i_to_pixel_rel(seq_range.start, &row_ranges);
-
-                        match direction {
-                            Forward => {
-                                let row_0_end = pos2(
-                                    TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
-                                    start_pos.y,
-                                );
-                                let row_1_start = pos2(TEXT_X_START, end_pos.y);
-
-                                ((start_pos, row_0_end), Some((row_1_start, end_pos)))
-                            }
-                            Reverse => {
-                                // todo: DRY
-                                // let row_0_end = pos2(
-                                //     TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
-                                //     start_pos.y,
-                                // );
-
-                                let row_0_end = pos2(
-                                    ui.available_width()
-                                        - (TEXT_X_START
-                                            + NT_WIDTH_PX * (1. + nt_chars_per_row as f32)),
-                                    start_pos.y,
-                                );
-
-                                let row_1_start = pos2(ui.available_width(), end_pos.y);
-
-                                ((row_0_end, start_pos), Some((end_pos, row_1_start)))
-                                // ((start_pos, row_0_end), Some((row_1_start, end_pos)))
-                            }
-                        }
-                    };
-
-                    let mut arrow_fwd = primer_arrow(
-                        bounds_row_0,
-                        bounds_row_1,
-                        *direction,
-                        &prim_data.description,
-                        ui,
-                    );
-                    shapes.append(&mut arrow_fwd);
-                }
-            }
-        }
-        PagePrimerCreation::SlicFc => {}
-    }
-    // ScrollArea::vertical().id_source(0).show(ui, |ui| {
-    Frame::canvas(ui.style())
-        .fill(Color32::WHITE) // todo: Not working.
-        .show(ui, |ui| {
-            ui.painter().extend(shapes);
-        });
-    // });
-
-    ui.add_space(ROW_SPACING);
-}
 
 /// Color scores in each category according to these thresholds. These scores should be on a scale
 /// between 0 and 1.
@@ -502,10 +188,13 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     ui.label("Insert:");
-    let response = ui.add(TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(800.));
+    let response = ui.add(
+        TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(ui.available_width()),
+    );
     if response.changed() {
         state.seq_insert = seq_from_str(&state.ui.seq_insert_input);
         state.ui.seq_insert_input = make_seq_str(&state.seq_insert);
+        state.sync_cloning_product();
         state.sync_primer_matches(None);
     }
     ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
@@ -513,10 +202,13 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     ui.label("Vector:");
-    let response = ui.add(TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(800.));
+    let response = ui.add(
+        TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(ui.available_width()),
+    );
     if response.changed() {
         state.seq_vector = seq_from_str(&state.ui.seq_vector_input);
         state.ui.seq_vector_input = make_seq_str(&state.seq_vector);
+        state.sync_cloning_product();
         state.sync_primer_matches(None);
     }
     ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
@@ -526,6 +218,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
         let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
         if response.changed() {
             state.insert_loc = entry.parse().unwrap_or(0);
+            state.sync_cloning_product();
         }
 
         ui.add_space(COL_SPACING);
@@ -894,19 +587,23 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(ROW_SPACING * 3.);
 
-    // todo: Only if you have  sequence of some sort
-    sequence_vis(&state, ui);
+    ui.horizontal(|ui| {
+        page_primers_selector(state, ui);
+        ui.add_space(2. * COL_SPACING);
+        page_seq_selector(state, ui);
+    });
 
-    page_primers_selector(state, ui);
-
-    match state.ui.page_primer_creation {
-        PagePrimerCreation::Amplification => {
-            amplification(state, ui);
-        }
-        PagePrimerCreation::SlicFc => {
-            primer_creation_slic_fc(state, ui);
+    match state.ui.page_seq {
+        PageSeq::Edit => match state.ui.page_primer_creation {
+            PagePrimerCreation::Amplification => {
+                amplification(state, ui);
+            }
+            PagePrimerCreation::SlicFc => {
+                primer_creation_slic_fc(state, ui);
+            }
+        },
+        PageSeq::View => {
+            sequence_vis(&state, ui);
         }
     }
-
-    // todo: Visualizer here with the seq, the primers etc
 }
