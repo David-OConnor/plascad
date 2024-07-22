@@ -1,4 +1,5 @@
 use std::cmp::{max, min};
+
 use eframe::{
     egui::{
         pos2, vec2, Align, Align2, Color32, FontFamily, FontId, Frame, Layout, Pos2, Rect,
@@ -18,7 +19,11 @@ use crate::{
     State,
 };
 use crate::{
-    primer::{PrimerData, PrimerDirection, TuneSetting},
+    primer::{
+        PrimerData,
+        PrimerDirection::{self, Forward, Reverse},
+        TuneSetting,
+    },
     util::{get_row_ranges, seq_complement, seq_i_to_pixel},
 };
 
@@ -45,6 +50,7 @@ pub const TEXT_Y_START: f32 = TEXT_X_START;
 // const THRESHOLDS_GC: (f32, f32) = (59., 60.);
 
 /// Make a visual arrow for a primer. For  use inside a Frame::canvas.
+/// Note: This function is fragile, and was constructed partly by trial and error.
 fn primer_arrow(
     mut bounds_r0: (Pos2, Pos2),
     mut bounds_r1: Option<(Pos2, Pos2)>, // Assumes no more than two rows.
@@ -53,8 +59,8 @@ fn primer_arrow(
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let color_arrow = match direction {
-        PrimerDirection::Forward => Color32::from_rgb(255, 0, 255),
-        PrimerDirection::Reverse => Color32::LIGHT_YELLOW,
+        Forward => Color32::from_rgb(255, 0, 255),
+        Reverse => Color32::LIGHT_YELLOW,
     };
 
     let color_label = Color32::LIGHT_GREEN;
@@ -64,6 +70,8 @@ fn primer_arrow(
     const LABEL_OFFSET: f32 = 7.;
     const HEIGHT: f32 = 16.;
     const SLANT: f32 = 20.; // slant different, in pixels, for the arrow.
+
+    const V_OFF_SET_REV: f32 = 2. * VERTICAL_OFFSET - 5.;
 
     bounds_r0.0.y -= VERTICAL_OFFSET;
     bounds_r0.1.y -= VERTICAL_OFFSET;
@@ -79,77 +87,97 @@ fn primer_arrow(
     // todo: Handle rev too.
 
     // match direction {
-        // todo: Consolidate this A/R.
-        // PrimerDirection::Forward => {
-            // Note: "Left" and "Right" are reversed for reverse primers.
+    // todo: Consolidate this A/R.
+    // Forward => {
+    // Note: "Left" and "Right" are reversed for reverse primers.
 
-            let mut top_left = bounds_r0.0;
+    let mut top_left = bounds_r0.0;
 
-            // Slant only if single-line.
-            let mut top_right = if bounds_r1.is_none() {
-                pos2(bounds_r0.1.x - SLANT, bounds_r0.1.y)
-            } else {
-                pos2(bounds_r0.1.x, bounds_r0.1.y)
-            };
-            let mut bottom_left = pos2(bounds_r0.0.x, bounds_r0.0.y + HEIGHT);
-            let mut bottom_right = pos2(bounds_r0.1.x, bounds_r0.1.y + HEIGHT);
+    // Slant only if single-line.
+    let mut top_right = if bounds_r1.is_none() {
+        pos2(bounds_r0.1.x - SLANT, bounds_r0.1.y)
+    } else {
+        pos2(bounds_r0.1.x, bounds_r0.1.y)
+    };
+    let mut bottom_left = pos2(bounds_r0.0.x, bounds_r0.0.y + HEIGHT);
+    let mut bottom_right = pos2(bounds_r0.1.x, bounds_r0.1.y + HEIGHT);
 
-            if direction == PrimerDirection::Reverse {
-                let temp = top_right;
-                top_right = top_left;
-                top_left = temp;
+    if direction == Reverse {
+        let temp = top_right;
+        top_right = top_left;
+        top_left = temp;
 
-                let temp = bottom_left;
-                bottom_left = bottom_right;
-                bottom_right = temp;
+        let temp = bottom_left;
+        bottom_left = bottom_right;
+        bottom_right = temp;
 
-                top_left.x += SLANT;
-                bottom_left.x -= SLANT;
-            }
+        top_left.y += V_OFF_SET_REV;
+        top_right.y += V_OFF_SET_REV;
+        bottom_left.y += V_OFF_SET_REV;
+        bottom_right.y += V_OFF_SET_REV;
+    }
 
-            let points = vec![
-                top_left,
-                bottom_left,
-                bottom_right,
-                top_right,
-            ];
+    let points = vec![top_left, bottom_left, bottom_right, top_right];
 
-            result.push(Shape::Path(PathShape::closed_line(
-                points,
-                Stroke::new(arrow_width, color_arrow),
-            )));
+    result.push(Shape::Path(PathShape::closed_line(
+        points,
+        Stroke::new(arrow_width, color_arrow),
+    )));
 
-            if let Some(b) = bounds_r1 {
-                let points = vec![
-                    b.0,                         // top left,
-                    pos2(b.0.x, b.0.y + HEIGHT), // bottom left
-                    pos2(b.1.x, b.1.y + HEIGHT), // bottom right,
-                    pos2(b.1.x - SLANT, b.1.y),  // top-right (slant)
-                ];
+    if let Some(b) = bounds_r1 {
+        let mut top_left = b.0;
+        let mut bottom_left = pos2(b.0.x, b.0.y + HEIGHT);
+        let mut bottom_right = pos2(b.1.x, b.1.y + HEIGHT);
+        let mut top_right = pos2(b.1.x - SLANT, b.1.y);
 
-                result.push(Shape::Path(PathShape::closed_line(
-                    points,
-                    Stroke::new(arrow_width, color_arrow),
-                )));
-            }
-        // }
-        // PrimerDirection::Reverse => {}
+        // todo: DRY.
+        if direction == Reverse {
+            top_right.x += SLANT;
+            bottom_left.x += SLANT;
+
+            let temp = top_right;
+            top_right = top_left;
+            top_left = temp;
+
+            let temp = bottom_left;
+            bottom_left = bottom_right;
+            bottom_right = temp;
+
+            top_left.y += V_OFF_SET_REV;
+            top_right.y += V_OFF_SET_REV;
+            bottom_left.y += V_OFF_SET_REV;
+            bottom_right.y += V_OFF_SET_REV;
+        }
+
+        let points = vec![top_left, bottom_left, bottom_right, top_right];
+
+        result.push(Shape::Path(PathShape::closed_line(
+            points,
+            Stroke::new(arrow_width, color_arrow),
+        )));
+    }
+    // }
+    // Reverse => {}
     // };
 
     let label_start_x = match direction {
-        PrimerDirection::Forward => bounds_r0.0.x,
-        PrimerDirection::Reverse => bounds_r0.1.x,
-    }  + LABEL_OFFSET;
+        Forward => bounds_r0.0.x,
+        Reverse => bounds_r0.1.x,
+    } + LABEL_OFFSET;
+
+    let label_pos = match direction {
+        Forward => pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET),
+        Reverse => pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET + V_OFF_SET_REV),
+    };
 
     let label = ctx.fonts(|fonts| {
         Shape::text(
             fonts,
-            pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET),
+            label_pos,
             Align2::LEFT_CENTER,
             label,
             FontId::new(16., FontFamily::Proportional),
             color_label,
-            // ctx.style().visuals.text_color(),
         )
     });
 
@@ -243,8 +271,11 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
                 // todo: Do not run these calcs each time! Cache.
                 for (direction, seq_range) in &prim_data.matches_amplification_seq {
                     let (start, end) = match direction {
-                        PrimerDirection::Forward => (seq_range.start, seq_range.end),
-                        PrimerDirection::Reverse => (state.seq_amplicon.len() - seq_range.start, state.seq_amplicon.len() - seq_range.end),
+                        Forward => (seq_range.start, seq_range.end),
+                        Reverse => (
+                            state.seq_amplicon.len() - seq_range.start,
+                            state.seq_amplicon.len() - seq_range.end,
+                        ),
                     };
 
                     let start_pos = seq_i_to_pixel_rel(start, &row_ranges);
@@ -257,14 +288,37 @@ fn sequence_vis(state: &State, ui: &mut Ui) {
                         // let (col, row) = seq_i_to_col_row(seq_range.start, &row_ranges);
 
                         // let row_0_end = seq_i_to_pixel_rel(seq_range.start, &row_ranges);
-                        let row_0_end = pos2(
-                            TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
-                            start_pos.y,
-                        );
-                        // let row_1_start = seq_i_to_pixel_rel(seq_range.start, &row_ranges);
-                        let row_1_start = pos2(TEXT_X_START, end_pos.y); // todo: A/R
 
-                        ((start_pos, row_0_end), Some((row_1_start, end_pos)))
+                        match direction {
+                            Forward => {
+                                let row_0_end = pos2(
+                                    TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
+                                    start_pos.y,
+                                );
+                                let row_1_start = pos2(TEXT_X_START, end_pos.y);
+
+                                ((start_pos, row_0_end), Some((row_1_start, end_pos)))
+                            }
+                            Reverse => {
+                                // todo: DRY
+                                // let row_0_end = pos2(
+                                //     TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
+                                //     start_pos.y,
+                                // );
+
+                                let row_0_end = pos2(
+                                    ui.available_width()
+                                        - (TEXT_X_START
+                                            + NT_WIDTH_PX * (1. + nt_chars_per_row as f32)),
+                                    start_pos.y,
+                                );
+
+                                let row_1_start = pos2(ui.available_width(), end_pos.y);
+
+                                ((row_0_end, start_pos), Some((end_pos, row_1_start)))
+                                // ((start_pos, row_0_end), Some((row_1_start, end_pos)))
+                            }
+                        }
                     };
 
                     let mut arrow_fwd = primer_arrow(

@@ -164,7 +164,7 @@ impl State {
     /// Runs the match serach between primers and sequences. Run this when primers and sequences change.
     pub fn sync_primer_matches(&mut self, primer_i: Option<usize>) {
         let p_list = match primer_i {
-            Some(i) => &mut self.primer_data[i..i+1],
+            Some(i) => &mut self.primer_data[i..i + 1],
             None => &mut self.primer_data,
         };
 
