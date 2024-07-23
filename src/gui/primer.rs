@@ -269,9 +269,9 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
                     primer: primers.vector_rev,
                     sequence_input,
                     description: "SLIC Vector Rev".to_owned(),
-                    tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+                    tunable_5p: TuneSetting::Disabled,
                     // 3' is non-tunable: This is the insert location.
-                    tunable_3p: TuneSetting::Disabled,
+                    tunable_3p: TuneSetting::Enabled(crate::gui::primer::DEFAULT_TRIM_AMT),
                     ..Default::default()
                 };
                 insert_fwd.run_calcs();
@@ -598,6 +598,8 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         page_seq_selector(state, ui);
     });
 
+    ui.add_space(ROW_SPACING);
+
     match state.ui.page_seq {
         PageSeq::Edit => match state.ui.page_primer {
             PagePrimer::Amplification => {
@@ -608,6 +610,37 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
             }
         },
         PageSeq::View => {
+            match state.ui.page_primer {
+                PagePrimer::SlicFc => {
+
+                    ui.horizontal(|ui| {
+                        // todo: DRY with above
+                        let mut entry = state.insert_loc.to_string();
+                        if ui.button("⏴").clicked() {
+                            if state.insert_loc > 0 {
+                                state.insert_loc -= 1;
+                            }
+                            state.sync_cloning_product();
+                        };
+
+                        let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
+                        if response.changed() {
+                            state.insert_loc = entry.parse().unwrap_or(0);
+                            state.sync_cloning_product();
+                        }
+
+                        if ui.button("⏵").clicked() {
+                            if state.insert_loc + 1 < state.seq_vector.len() {
+                                state.insert_loc += 1;
+                            }
+                            state.sync_cloning_product();
+                        };
+                    });
+                }
+
+                _ => (),
+            }
+
             sequence_vis(&state, ui);
         }
     }
