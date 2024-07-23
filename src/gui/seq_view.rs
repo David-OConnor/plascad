@@ -51,12 +51,12 @@ fn primer_arrow(
     let color_label = Color32::LIGHT_GREEN;
     let arrow_width = 2.;
 
-    const VERTICAL_OFFSET: f32 = 20.; // Number of pixels above the sequence text.
+    const VERTICAL_OFFSET: f32 = 14.; // Number of pixels above the sequence text.
     const LABEL_OFFSET: f32 = 7.;
     const HEIGHT: f32 = 16.;
     const SLANT: f32 = 20.; // slant different, in pixels, for the arrow.
 
-    const V_OFF_SET_REV: f32 = 2. * VERTICAL_OFFSET - 12.;
+    const V_OFFSET_REV: f32 = 2. * VERTICAL_OFFSET;
 
     bounds_r0.0.y -= VERTICAL_OFFSET;
     bounds_r0.1.y -= VERTICAL_OFFSET;
@@ -89,10 +89,10 @@ fn primer_arrow(
         bottom_left = bottom_right;
         bottom_right = temp;
 
-        top_left.y += V_OFF_SET_REV;
-        top_right.y += V_OFF_SET_REV;
-        bottom_left.y += V_OFF_SET_REV;
-        bottom_right.y += V_OFF_SET_REV;
+        top_left.y += V_OFFSET_REV;
+        top_right.y += V_OFFSET_REV;
+        bottom_left.y += V_OFFSET_REV;
+        bottom_right.y += V_OFFSET_REV;
     }
 
     let points = vec![top_left, bottom_left, bottom_right, top_right];
@@ -121,10 +121,10 @@ fn primer_arrow(
             bottom_left = bottom_right;
             bottom_right = temp;
 
-            top_left.y += V_OFF_SET_REV;
-            top_right.y += V_OFF_SET_REV;
-            bottom_left.y += V_OFF_SET_REV;
-            bottom_right.y += V_OFF_SET_REV;
+            top_left.y += V_OFFSET_REV;
+            top_right.y += V_OFFSET_REV;
+            bottom_left.y += V_OFFSET_REV;
+            bottom_right.y += V_OFFSET_REV;
         }
 
         let points = vec![top_left, bottom_left, bottom_right, top_right];
@@ -145,7 +145,7 @@ fn primer_arrow(
 
     let label_pos = match direction {
         Forward => pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET),
-        Reverse => pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET + V_OFF_SET_REV),
+        Reverse => pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET + V_OFFSET_REV),
     };
 
     let label = ctx.fonts(|fonts| {
@@ -220,16 +220,12 @@ pub fn sequence_vis(state: &State, ui: &mut Ui) {
 
                     let mut color = COLOR_SEQ;
                     match state.ui.page_primer {
-                        PagePrimer::Amplification => {
-
-                        }
+                        PagePrimer::Amplification => {}
                         PagePrimer::SlicFc => {
                             if i < state.insert_loc {
-
                             } else if i < state.insert_loc + state.seq_insert.len() {
                                 color = COLOR_INSERT;
                             } else {
-
                             }
                         }
                     }
@@ -259,7 +255,6 @@ pub fn sequence_vis(state: &State, ui: &mut Ui) {
 
                     // todo: Do not run these calcs each time! Cache.
                     for (direction, seq_range) in primer_matches {
-
                         let (start, end) = match direction {
                             Forward => (seq_range.start, seq_range.end),
                             Reverse => (seq_len - seq_range.start, seq_len - seq_range.end),

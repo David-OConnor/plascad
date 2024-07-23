@@ -31,7 +31,7 @@ pub struct AmplificationPrimers {
     pub rev: Primer,
 }
 
-#[derive(Clone, Copy, Debug,  PartialEq, Encode, Decode)]
+#[derive(Clone, Copy, Debug, PartialEq, Encode, Decode)]
 pub enum PrimerDirection {
     Forward,
     Reverse,
@@ -375,12 +375,11 @@ pub fn design_slic_fc_primers(
         // We will combine these with vector seqs for the final insert primers.
         let insert_only_seq_fwd = &seq_insert[..insert_end];
         let insert_only_seq_rev = &insert_reversed[..insert_end_reversed];
-        // let insert_only_seq_rev: Vec<Nucleotide> = Vec::new();
 
-        let mut fwd = seq_vector_fwd.clone();
+        let mut fwd = seq_complement(&seq_vector_rev);
         fwd.extend(insert_only_seq_fwd);
 
-        let mut rev = seq_vector_fwd.clone();
+        let mut rev = seq_complement(&seq_vector_fwd);
         rev.extend(insert_only_seq_rev);
 
         (fwd, rev)

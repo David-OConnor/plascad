@@ -181,8 +181,6 @@ impl State {
             p_data.matches_vector = p_data.primer.match_to_seq(&self.seq_vector);
             p_data.matches_vector_with_insert =
                 p_data.primer.match_to_seq(&self.seq_vector_with_insert);
-
-            println!("MSEQ: {:?}", p_data.matches_vector_with_insert);
         }
     }
 

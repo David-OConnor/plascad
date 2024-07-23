@@ -10,7 +10,7 @@ use crate::{
     State,
 };
 use crate::{
-    gui::{seq_view::sequence_vis, PageSeq},
+    gui::{page_seq_selector, seq_view::sequence_vis, PageSeq},
     primer::{
         PrimerData,
         PrimerDirection::{self, Forward, Reverse},
@@ -18,7 +18,6 @@ use crate::{
     },
     util::{get_row_ranges, seq_complement, seq_i_to_pixel},
 };
-use crate::gui::page_seq_selector;
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
@@ -455,6 +454,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                                 if data.tunable_5p == TuneSetting::Disabled {
                                     data.run_calcs(); // To re-sync the sequence without parts removed.
                                 }
+                                run_match_sync = Some(i);
                             }
 
                             let response = ui.add(
@@ -480,6 +480,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                                 if data.tunable_3p == TuneSetting::Disabled {
                                     data.run_calcs(); // To re-sync the sequence without parts removed.
                                 }
+                                run_match_sync = Some(i);
                             }
                         });
 

@@ -171,16 +171,8 @@ fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
 
 pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        page_primers_button(
-            &mut state.ui.page_primer,
-            PagePrimer::Amplification,
-            ui,
-        );
-        page_primers_button(
-            &mut state.ui.page_primer,
-            PagePrimer::SlicFc,
-            ui,
-        );
+        page_primers_button(&mut state.ui.page_primer, PagePrimer::Amplification, ui);
+        page_primers_button(&mut state.ui.page_primer, PagePrimer::SlicFc, ui);
     });
 }
 
