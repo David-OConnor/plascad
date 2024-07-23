@@ -3,7 +3,7 @@ use egui_extras::{Column, TableBuilder};
 
 // todo: monospace font for all seqs.
 use crate::{
-    gui::{page_primers_selector, PagePrimerCreation, COL_SPACING, ROW_SPACING},
+    gui::{page_primers_selector, PagePrimer, COL_SPACING, ROW_SPACING},
     primer::{design_amplification_primers, design_slic_fc_primers},
     util,
     util::{make_seq_str, save, seq_from_str},
@@ -177,6 +177,8 @@ fn amplification(state: &mut State, ui: &mut Ui) {
                 primer_rev.run_calcs();
 
                 state.primer_data.extend([primer_fwd, primer_rev]);
+
+                state.sync_primer_matches(None); // note: Not requried to run on all primers.
             }
         }
     });
@@ -281,6 +283,8 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
                 state
                     .primer_data
                     .extend([insert_fwd, insert_rev, vector_fwd, vector_rev]);
+
+                state.sync_primer_matches(None); // note: Not requried to run on all primers.
             }
         }
     });
@@ -594,11 +598,11 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
     });
 
     match state.ui.page_seq {
-        PageSeq::Edit => match state.ui.page_primer_creation {
-            PagePrimerCreation::Amplification => {
+        PageSeq::Edit => match state.ui.page_primer {
+            PagePrimer::Amplification => {
                 amplification(state, ui);
             }
-            PagePrimerCreation::SlicFc => {
+            PagePrimer::SlicFc => {
                 primer_creation_slic_fc(state, ui);
             }
         },

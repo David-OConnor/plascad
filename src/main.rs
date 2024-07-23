@@ -20,7 +20,7 @@ use crate::{
     pcr::PcrParams,
 };
 use crate::{
-    gui::{PagePrimerCreation, PageSeq},
+    gui::{PagePrimer, PageSeq},
     pcr::PolymeraseType,
     primer::TM_TARGET,
     util::load,
@@ -130,7 +130,7 @@ struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
     // todo to save computation.
     page: Page,
-    page_primer_creation: PagePrimerCreation,
+    page_primer: PagePrimer,
     page_seq: PageSeq,
     seq_insert_input: String,
     seq_vector_input: String,
@@ -181,6 +181,8 @@ impl State {
             p_data.matches_vector = p_data.primer.match_to_seq(&self.seq_vector);
             p_data.matches_vector_with_insert =
                 p_data.primer.match_to_seq(&self.seq_vector_with_insert);
+
+            println!("MSEQ: {:?}", p_data.matches_vector_with_insert);
         }
     }
 
@@ -204,7 +206,6 @@ impl State {
             self.seq_insert.iter().cloned(),
         );
 
-        println!("CLoning product len: {}", self.seq_vector_with_insert.len());
         //
         // self.seq_vector_with_insert = self.seq_vector[..self.insert_loc].clone();
         //

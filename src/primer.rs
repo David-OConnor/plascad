@@ -31,7 +31,7 @@ pub struct AmplificationPrimers {
     pub rev: Primer,
 }
 
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+#[derive(Clone, Copy, Debug,  PartialEq, Encode, Decode)]
 pub enum PrimerDirection {
     Forward,
     Reverse,

@@ -18,12 +18,13 @@ use crate::{
         PrimerDirection::{Forward, Reverse},
     },
     util::{get_row_ranges, make_seq_str, seq_i_to_pixel},
-    PagePrimerCreation, State,
+    PagePrimer, State,
 };
 
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
 pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
+pub const COLOR_INSERT: Color32 = Color32::from_rgb(255, 127, 39);
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
 pub const VIEW_AREA_PAD: f32 = 40.;
@@ -170,9 +171,9 @@ pub fn sequence_vis(state: &State, ui: &mut Ui) {
 
     let mut shapes = vec![];
 
-    let seq_to_disp = match state.ui.page_primer_creation {
-        PagePrimerCreation::Amplification => &state.seq_amplicon,
-        PagePrimerCreation::SlicFc => &state.seq_vector_with_insert,
+    let seq_to_disp = match state.ui.page_primer {
+        PagePrimer::Amplification => &state.seq_amplicon,
+        PagePrimer::SlicFc => &state.seq_vector_with_insert,
     };
     let seq_len = seq_to_disp.len();
 
@@ -213,42 +214,52 @@ pub fn sequence_vis(state: &State, ui: &mut Ui) {
 
                 let mut text_y = TEXT_Y_START;
 
-                for range in &row_ranges {
-                    // This max trigger is likely to occur on the last row.
-                    let r = range.start..min(range.end, seq_len);
-                    let seq_this_row = &seq_to_disp[r];
+                // Draw the sequence NT by NT. This allows fine control over color, and other things.
+                for (i, nt) in seq_to_disp.iter().enumerate() {
+                    let pos = to_screen * seq_i_to_pixel(i, &row_ranges);
 
-                    // todo: This line is causing crashes when the view is stretched.
-                    let pos = to_screen * pos2(TEXT_X_START, text_y);
+                    let mut color = COLOR_SEQ;
+                    match state.ui.page_primer {
+                        PagePrimer::Amplification => {
 
-                    // todo: Find a way to get the pixel coordinates of each nt char.
+                        }
+                        PagePrimer::SlicFc => {
+                            if i < state.insert_loc {
+
+                            } else if i < state.insert_loc + state.seq_insert.len() {
+                                color = COLOR_INSERT;
+                            } else {
+
+                            }
+                        }
+                    }
 
                     shapes.push(ctx.fonts(|fonts| {
                         Shape::text(
                             fonts,
                             pos,
-                            Align2::LEFT_CENTER,
-                            make_seq_str(seq_this_row),
+                            Align2::LEFT_TOP,
+                            nt.as_str(),
                             // Note: Monospace is important for sequences.
                             FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
-                            COLOR_SEQ,
+                            color,
                         )
                     }));
-                    text_y += SEQ_ROW_SPACING_PX;
                 }
 
                 let seq_i_to_pixel_rel = |a, b| to_screen * seq_i_to_pixel(a, b);
 
                 // Add primer arrows.
                 for prim_data in &state.primer_data {
-                    let primer_matches = match state.ui.page_primer_creation {
-                        PagePrimerCreation::Amplification => &prim_data.matches_amplification_seq,
-                        PagePrimerCreation::SlicFc => &prim_data.matches_vector_with_insert,
+                    let primer_matches = match state.ui.page_primer {
+                        PagePrimer::Amplification => &prim_data.matches_amplification_seq,
+                        PagePrimer::SlicFc => &prim_data.matches_vector_with_insert,
                     };
                     // todo: Sort out the direction. By matches, most likely.
 
                     // todo: Do not run these calcs each time! Cache.
                     for (direction, seq_range) in primer_matches {
+
                         let (start, end) = match direction {
                             Forward => (seq_range.start, seq_range.end),
                             Reverse => (seq_len - seq_range.start, seq_len - seq_range.end),

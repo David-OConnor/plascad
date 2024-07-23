@@ -49,19 +49,19 @@ impl Page {
 }
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
-pub enum PagePrimerCreation {
+pub enum PagePrimer {
     /// Eg amplifying a section of a single sequence.
     Amplification,
     SlicFc,
 }
 
-impl Default for PagePrimerCreation {
+impl Default for PagePrimer {
     fn default() -> Self {
         Self::SlicFc
     }
 }
 
-impl PagePrimerCreation {
+impl PagePrimer {
     pub fn to_str(self) -> String {
         match self {
             Self::Amplification => "Amplification",
@@ -134,7 +134,7 @@ fn page_selector(state: &mut State, ui: &mut Ui) {
     });
 }
 
-fn page_primers_button(page_state: &mut PagePrimerCreation, page: PagePrimerCreation, ui: &mut Ui) {
+fn page_primers_button(page_state: &mut PagePrimer, page: PagePrimer, ui: &mut Ui) {
     let color = if *page_state == page {
         Color32::GREEN
     } else {
@@ -172,13 +172,13 @@ fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
 pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         page_primers_button(
-            &mut state.ui.page_primer_creation,
-            PagePrimerCreation::Amplification,
+            &mut state.ui.page_primer,
+            PagePrimer::Amplification,
             ui,
         );
         page_primers_button(
-            &mut state.ui.page_primer_creation,
-            PagePrimerCreation::SlicFc,
+            &mut state.ui.page_primer,
+            PagePrimer::SlicFc,
             ui,
         );
     });
