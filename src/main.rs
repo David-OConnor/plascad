@@ -33,6 +33,7 @@ mod util;
 // mod snapgene_parse;
 mod pcr;
 mod toxic_proteins;
+mod melting_temp_calcs;
 
 // Index 0: 5' end.
 type Seq = Vec<Nucleotide>;
@@ -203,6 +204,8 @@ impl State {
             self.insert_loc..self.insert_loc,
             self.seq_insert.iter().cloned(),
         );
+
+        self.sync_primer_matches(None);
 
         //
         // self.seq_vector_with_insert = self.seq_vector[..self.insert_loc].clone();

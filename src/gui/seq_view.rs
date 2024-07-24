@@ -190,7 +190,7 @@ pub fn sequence_vis(state: &State, ui: &mut Ui) {
 
                     let height = total_seq_height;
 
-                    let desired_size = vec2(ui.available_width(), height as f32);
+                    let desired_size = vec2(ui.available_width(), height);
                     ui.allocate_painter(desired_size, Sense::click())
                 };
 
@@ -202,17 +202,9 @@ pub fn sequence_vis(state: &State, ui: &mut Ui) {
                     response.rect,
                 );
 
-                // let to_screen = RectTransform::from_to(
-                // Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
-                // Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-                // response.rect,
-                // );
-
                 let from_screen = to_screen.inverse();
 
                 let ctx = ui.ctx();
-
-                let mut text_y = TEXT_Y_START;
 
                 // Draw the sequence NT by NT. This allows fine control over color, and other things.
                 for (i, nt) in seq_to_disp.iter().enumerate() {

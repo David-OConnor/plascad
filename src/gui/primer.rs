@@ -25,6 +25,8 @@ const COLOR_BAD: Color32 = Color32::LIGHT_RED;
 
 const DEFAULT_TRIM_AMT: usize = 32 - 20;
 
+const TABLE_ROW_HEIGHT : f32 = 60.;
+
 // const TM_IDEAL: f32 = 59.; // todo: Fill thi sin
 //
 // const THRESHOLDS_TM: (f32, f32) = (59., 60.);
@@ -75,13 +77,13 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) -> bool {
                 tuned = true;
             };
 
-            ui.label(&format!("({i})"));
+            // ui.label(&format!("({i})"));
         }
 
         // This section shows the trimmed sequence, with the removed parts visible to the left and right.
         ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
             ui.label(RichText::new(&data.seq_removed_5p).color(Color32::GRAY));
-            ui.add_space(COL_SPACING);
+            ui.add_space(COL_SPACING / 2.);
 
             if data.tunable_5p != TuneSetting::Disabled || data.tunable_3p != TuneSetting::Disabled
             {
@@ -90,7 +92,7 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) -> bool {
                 );
             }
 
-            ui.add_space(COL_SPACING);
+            ui.add_space(COL_SPACING / 2.);
             ui.label(RichText::new(&data.seq_removed_3p).color(Color32::GRAY));
         });
 
@@ -118,7 +120,7 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) -> bool {
                     }
                     tuned = true;
                 };
-                ui.label(&format!("({i})"));
+                // ui.label(&format!("({i})"));
             }
         });
 
@@ -196,7 +198,6 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
         state.seq_insert = seq_from_str(&state.ui.seq_insert_input);
         state.ui.seq_insert_input = make_seq_str(&state.seq_insert);
         state.sync_cloning_product();
-        state.sync_primer_matches(None);
     }
     ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
 
@@ -210,7 +211,6 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
         state.seq_vector = seq_from_str(&state.ui.seq_vector_input);
         state.ui.seq_vector_input = make_seq_str(&state.seq_vector);
         state.sync_cloning_product();
-        state.sync_primer_matches(None);
     }
     ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
 
@@ -387,16 +387,17 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
     let mut run_match_sync = None; // Avoids a double-mutation error.
 
     TableBuilder::new(ui)
-        .column(Column::initial(700.).resizable(true))
-        .column(Column::initial(160.).resizable(true))
-        .column(Column::auto().resizable(true))
-        .column(Column::auto().resizable(true))
-        .column(Column::initial(40.).resizable(true))
-        .column(Column::initial(36.).resizable(true))
-        .column(Column::auto().resizable(true))
-        .column(Column::auto().resizable(true))
-        .column(Column::auto().resizable(true))
-        .column(Column::auto().resizable(true))
+        .column(Column::initial(600.).resizable(true)) // Sequence
+        .column(Column::initial(160.).resizable(true)) // Description
+        .column(Column::auto().resizable(true))// Len
+        .column(Column::auto().resizable(true))// Matches
+        .column(Column::auto().resizable(true))// Quality
+        .column(Column::initial(40.).resizable(true)) // TM
+        .column(Column::initial(36.).resizable(true))// GC %
+        .column(Column::auto().resizable(true))// 3' GC content
+        .column(Column::auto().resizable(true))// Complexity
+        .column(Column::auto().resizable(true))// Dimer formation
+        .column(Column::auto().resizable(true))  // Repeats
         .column(Column::remainder())
         .header(20.0, |mut header| {
             header.col(|ui| {
@@ -409,6 +410,9 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 ui.heading("Len").on_hover_text("Number of nucleotides in the (tuned, if applicable) primer");
             });
             header.col(|ui| {
+                ui.heading("Mt").on_hover_text("Number of matches with the target sequence");
+            });
+            header.col(|ui| {
                 ui.heading("Qual").on_hover_text("Overall primer quality. This is an abstract estimate, taking all other listed factors into account.");
             });
             header.col(|ui| {
@@ -418,16 +422,17 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 ui.heading("GC").on_hover_text("The percentage of nucleotides that are C or G.");
             });
             header.col(|ui| {
-                ui.heading("3'GC").on_hover_text("3' end stability: The number of G or C nucleotides in the last 5 nucleotides.");
+                ui.heading("3'GC").on_hover_text("3' end stability: The number of G or C nucleotides in the last 5 nucleotides. 2-3 is ideal. Sources differ on if 4 is acceptable.");
             });
-            header.col(|ui| {
-                ui.heading("Cplx").on_hover_text("Sequence complexity. See the readme for calculations and assumptions.");
-            });
+            // header.col(|ui| {
+            //     ui.heading("Cplx").on_hover_text("Sequence complexity. See the readme for calculations and assumptions.");
+            // });
             header.col(|ui| {
                 ui.heading("Dmr").on_hover_text("Potential of forming a self-end dimer. See the readme for calculations and assumptions.");
             });
             header.col(|ui| {
-                ui.heading("Rep").on_hover_text("Count of repeats of a single or double nt sequence >4 in a row.");
+                ui.heading("Rep").on_hover_text("Count of repeats of a single or double nt sequence >4 in a row, and count of triplet \
+                repeats anywhere in the sequence.");
             });
 
             // For selecting the row.
@@ -435,12 +440,8 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         })
         .body(|mut body| {
             for (i, data) in state.primer_data.iter_mut().enumerate() {
-                body.row(30.0, |mut row| {
+                body.row(TABLE_ROW_HEIGHT, |mut row| {
                     row.col(|ui| {
-                        // gui.label(make_seq_str(&col.sequence));
-                        // gui.label(&col.sequence_input);
-                        // let mut val = col.sequence_input;
-
                         ui.horizontal(|ui| {
                             if ui
                                 .button(RichText::new("Tun").color(if let TuneSetting::Enabled(_) = data.tunable_5p {
@@ -499,6 +500,12 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                     });
 
                     row.col(|ui| {
+                        // todo: Cache this?
+                        let num_matches = data.matches_amplification_seq.len() + data.matches_vector_with_insert.len();
+                        ui.label(num_matches.to_string());
+                    });
+
+                    row.col(|ui| {
                         let text = match &data.metrics {
                             // todo: PRe-compute the * 100?
                             Some(m) => RichText::new(format!("{:.0}", m.quality_score * 100.))
@@ -538,14 +545,14 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                         ui.label(text);
                     });
 
-                    row.col(|ui| {
-                        let text = match &data.metrics {
-                            Some(m) => RichText::new(format!("{}", m.complexity))
-                                .color(color_from_score(m.complexity_score)),
-                            None => RichText::new("-"),
-                        };
-                        ui.label(text);
-                    });
+                    // row.col(|ui| {
+                    //     let text = match &data.metrics {
+                    //         Some(m) => RichText::new(format!("{}", m.complexity))
+                    //             .color(color_from_score(m.complexity_score)),
+                    //         None => RichText::new("-"),
+                    //     };
+                    //     ui.label(text);
+                    // });
 
                     row.col(|ui| {
                         let text = match &data.metrics {
@@ -590,7 +597,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         state.sync_primer_matches(run_match_sync);
     }
 
-    ui.add_space(ROW_SPACING * 3.);
+    ui.add_space(ROW_SPACING * 1.);
 
     ui.horizontal(|ui| {
         page_primers_selector(state, ui);
@@ -615,6 +622,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
                     ui.horizontal(|ui| {
                         // todo: DRY with above
+                        ui.label("Insert location: ");
                         let mut entry = state.insert_loc.to_string();
                         if ui.button("⏴").clicked() {
                             if state.insert_loc > 0 {
