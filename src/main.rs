@@ -31,9 +31,9 @@ mod primer;
 mod solution_helper;
 mod util;
 // mod snapgene_parse;
+mod melting_temp_calcs;
 mod pcr;
 mod toxic_proteins;
-mod melting_temp_calcs;
 
 // Index 0: 5' end.
 type Seq = Vec<Nucleotide>;
@@ -126,6 +126,30 @@ impl Default for PcrUi {
     }
 }
 
+#[derive(Encode, Decode)]
+/// Concentrations of common ions in the oglio solution. Affects melting temperature (TM).
+/// All values are in milliMolar.
+struct IonConcentrations {
+    /// Na+ or K+
+    pub monovalent: f32,
+    /// Mg2+
+    pub divalent: f32,
+    pub dntp: f32,
+    // pub primer_concentration: f32,
+}
+
+impl Default for IonConcentrations {
+    fn default() -> Self {
+        // todo: Adjust A/R
+        Self {
+            monovalent: 50.,
+            divalent: 1.5,
+            dntp: 0.2,
+            // primer:
+        }
+    }
+}
+
 #[derive(Default, Encode, Decode)]
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
@@ -140,6 +164,7 @@ struct StateUi {
     // pcr_primer: Option<usize>, // primer index, if primer count > 0.
     pcr_primer: usize, // primer index
     primer_selected: Option<usize>,
+    ion_concentrations: IonConcentrations,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.

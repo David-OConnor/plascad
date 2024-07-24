@@ -1,11 +1,16 @@
 //! This module contains code related to primer (oglionucleotide) design and QC.
 
-use std::collections::HashSet;
-use std::ops::Range;
+use std::{collections::HashSet, ops::Range};
 
 use bincode::{Decode, Encode};
 
-use crate::{util::{map_linear, seq_complement, seq_from_str}, Nucleotide, Nucleotide::{C, G}, Seq, melting_temp_calcs};
+use crate::{
+    melting_temp_calcs,
+    util::{map_linear, seq_complement, seq_from_str},
+    IonConcentrations, Nucleotide,
+    Nucleotide::{C, G},
+    Seq,
+};
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
@@ -49,13 +54,11 @@ pub struct PrimerMetrics {
     pub gc_portion: f32,
     /// How many G and C nts are in the last 5 (3' end) nts of the sequence.
     pub gc_3p_count: u8,
-    pub complexity: f32, // todo: Remove
     pub self_end_dimer: u8,
     pub repeats: u8,
     pub tm_score: f32,
     pub gc_score: f32,
     pub gc_3p_score: f32,
-    pub complexity_score: f32, // todo: Remove
     pub dimer_score: f32,
     /// https://www.benchling.com/primer-design-for-pcr
     /// "Avoid runs of four or more of a single base (e.g., ACCCCC), or four or more dinucleotide
@@ -140,7 +143,7 @@ impl Primer {
     /// We use the "bases stacking method" as defined hte Amplifx guide above.
     ///
     /// See [The BioPython MeltingTemp module](https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py)
-    pub fn calc_tm(&self) -> f32 {
+    pub fn calc_tm(&self, ion_concentrations: &IonConcentrations) -> f32 {
         // const NAP_K_P: f32 = 0.05;
         //
         // // TM = 81.5 +16.6 X log10([Na+]+[K+])+0.41 x(%GC) - 675/N
@@ -153,7 +156,7 @@ impl Primer {
         // let N = self.sequence.len();
         //
         // dH / (dS + 0.368 * N * NAP.ln() + R * primer.ln() / 4.)
-        melting_temp_calcs::calc_tm(&self.sequence).unwrap_or(0.)
+        melting_temp_calcs::calc_tm(&self.sequence, ion_concentrations).unwrap_or(0.)
     }
 
     /// This is a metric known as 3' end stability. Return the number of Gs and Cs in the last 5 bases.
@@ -227,7 +230,7 @@ impl Primer {
             if i == self.sequence.len() - 2 {
                 break;
             }
-            triplets.push((i, nt, self.sequence[i + 1],  self.sequence[i + 2]));
+            triplets.push((i, nt, self.sequence[i + 1], self.sequence[i + 2]));
         }
 
         let mut triplet_repeat_seqs = Vec::new();
@@ -237,13 +240,18 @@ impl Primer {
                 break;
             }
 
-            let triplet_this = (nt, self.sequence[i + 1],  self.sequence[i + 2]);
+            let triplet_this = (nt, self.sequence[i + 1], self.sequence[i + 2]);
 
             for triplet_other in &triplets {
-                if triplet_this == (triplet_other.1, triplet_other.2, triplet_other.3) && i != triplet_other.0 {
+                if triplet_this == (triplet_other.1, triplet_other.2, triplet_other.3)
+                    && i != triplet_other.0
+                {
                     // Dount count each additional nt match beyond 3 as a new repeat
-                    if i >=3 && triplet_other.0 >= 3 &&  self.sequence[i - 1] == self.sequence[triplet_other.0 - 1] {
-                        continue
+                    if i >= 3
+                        && triplet_other.0 >= 3
+                        && self.sequence[i - 1] == self.sequence[triplet_other.0 - 1]
+                    {
+                        continue;
                     }
 
                     triplet_repeat_seqs.push(triplet_this);
@@ -276,13 +284,13 @@ impl Primer {
 
     /// Calculate all primer metrics.
     /// todo: methods on Metrics instead?
-    pub fn calc_metrics(&self) -> Option<PrimerMetrics> {
+    pub fn calc_metrics(&self, ion_concentrations: &IonConcentrations) -> Option<PrimerMetrics> {
         if self.sequence.len() < MIN_PRIMER_LEN {
             return None;
         }
 
         let mut result = PrimerMetrics {
-            melting_temp: self.calc_tm(),
+            melting_temp: self.calc_tm(ion_concentrations),
             gc_portion: calc_gc(&self.sequence),
             gc_3p_count: self.count_3p_g_c(),
             // complexity: self.calc_complexity(),
@@ -475,7 +483,7 @@ pub struct PrimerData {
 impl PrimerData {
     /// Perform calculations on primer quality and related data. Run this when the sequence changes,
     /// the tuning values change etc.
-    pub fn run_calcs(&mut self) {
+    pub fn run_calcs(&mut self, ion_concentrations: &IonConcentrations) {
         let full_len = self.sequence_input.len();
         let mut start = 0;
         let mut end = full_len;
@@ -499,7 +507,7 @@ impl PrimerData {
         }
 
         self.primer.sequence = seq_from_str(&self.sequence_input[start..end]);
-        self.metrics = self.primer.calc_metrics();
+        self.metrics = self.primer.calc_metrics(ion_concentrations);
 
         self.sequence_input[..start].clone_into(&mut self.seq_removed_5p);
         self.sequence_input[end..].clone_into(&mut self.seq_removed_3p);

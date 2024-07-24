@@ -7,7 +7,7 @@ use crate::{
     primer::{design_amplification_primers, design_slic_fc_primers},
     util,
     util::{make_seq_str, save, seq_from_str},
-    State,
+    IonConcentrations, State,
 };
 use crate::{
     gui::{page_seq_selector, seq_view::sequence_vis, PageSeq},
@@ -25,7 +25,7 @@ const COLOR_BAD: Color32 = Color32::LIGHT_RED;
 
 const DEFAULT_TRIM_AMT: usize = 32 - 20;
 
-const TABLE_ROW_HEIGHT : f32 = 60.;
+const TABLE_ROW_HEIGHT: f32 = 60.;
 
 // const TM_IDEAL: f32 = 59.; // todo: Fill thi sin
 //
@@ -46,9 +46,26 @@ fn color_from_score(score: f32) -> Color32 {
     }
 }
 
+/// Allows editing ion concentration, including float manip.
+fn ion_edit(val: &mut f32, label: &str, ui: &mut Ui) {
+    ui.label(label);
+
+    let mut v = (*val as u16).to_string();
+    let response = ui.add(TextEdit::singleline(&mut v).desired_width(30.));
+
+    if response.changed() {
+        *val = v.parse().unwrap_or(0.);
+        // todo: Run temp calcs.
+    }
+}
+
 /// Shows below each primer sequence. Data and controls on trimming primer size for optimization.
 /// Returns wheather a button was clicked.
-fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) -> bool {
+fn primer_tune_display(
+    data: &mut PrimerData,
+    ion_concentrations: &IonConcentrations,
+    ui: &mut Ui,
+) -> bool {
     // This avoids a double-mutable error
     let mut tuned = false;
 
@@ -125,7 +142,7 @@ fn primer_tune_display(data: &mut PrimerData, ui: &mut Ui) -> bool {
         });
 
         if tuned {
-            data.run_calcs();
+            data.run_calcs(ion_concentrations);
         }
     });
     tuned
@@ -174,8 +191,8 @@ fn amplification(state: &mut State, ui: &mut Ui) {
                     ..Default::default()
                 };
 
-                primer_fwd.run_calcs();
-                primer_rev.run_calcs();
+                primer_fwd.run_calcs(&state.ui.ion_concentrations);
+                primer_rev.run_calcs(&state.ui.ion_concentrations);
 
                 state.primer_data.extend([primer_fwd, primer_rev]);
 
@@ -274,10 +291,10 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
                     tunable_3p: TuneSetting::Enabled(crate::gui::primer::DEFAULT_TRIM_AMT),
                     ..Default::default()
                 };
-                insert_fwd.run_calcs();
-                insert_rev.run_calcs();
-                vector_fwd.run_calcs();
-                vector_rev.run_calcs();
+                insert_fwd.run_calcs(&state.ui.ion_concentrations);
+                insert_rev.run_calcs(&state.ui.ion_concentrations);
+                vector_fwd.run_calcs(&state.ui.ion_concentrations);
+                vector_rev.run_calcs(&state.ui.ion_concentrations);
 
                 state
                     .primer_data
@@ -319,6 +336,18 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 println!("Error saving: {e}");
             }
         }
+
+        ui.add_space(2. * COL_SPACING);
+
+        ui.heading("Ion concentrations: (milliMol)");
+
+        ion_edit(
+            &mut state.ui.ion_concentrations.monovalent,
+            "Na+ and K+",
+            ui,
+        );
+        ion_edit(&mut state.ui.ion_concentrations.divalent, "mg2+", ui);
+        ion_edit(&mut state.ui.ion_concentrations.dntp, "dNTP", ui);
 
         // if ui.button("Load").clicked() {}
 
@@ -454,7 +483,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                             {
                                 data.tunable_5p.toggle();
                                 if data.tunable_5p == TuneSetting::Disabled {
-                                    data.run_calcs(); // To re-sync the sequence without parts removed.
+                                    data.run_calcs(&state.ui.ion_concentrations); // To re-sync the sequence without parts removed.
                                 }
                                 run_match_sync = Some(i);
                             }
@@ -466,7 +495,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                             if response.changed() {
                                 data.sequence_input =
                                     make_seq_str(&seq_from_str(&data.sequence_input));
-                                data.run_calcs();
+                                data.run_calcs(&state.ui.ion_concentrations);
                                 run_match_sync = Some(i);
                             }
 
@@ -480,13 +509,13 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                             {
                                 data.tunable_3p.toggle();
                                 if data.tunable_3p == TuneSetting::Disabled {
-                                    data.run_calcs(); // To re-sync the sequence without parts removed.
+                                    data.run_calcs(&state.ui.ion_concentrations); // To re-sync the sequence without parts removed.
                                 }
                                 run_match_sync = Some(i);
                             }
                         });
 
-                        let updated_seq = primer_tune_display(data, ui);
+                        let updated_seq = primer_tune_display(data, &state.ui.ion_concentrations,  ui);
                         if updated_seq {
                             run_match_sync = Some(i);
                         }
@@ -620,7 +649,6 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         PageSeq::View => {
             match state.ui.page_primer {
                 PagePrimer::SlicFc => {
-
                     ui.horizontal(|ui| {
                         // todo: DRY with above
                         ui.label("Insert location: ");

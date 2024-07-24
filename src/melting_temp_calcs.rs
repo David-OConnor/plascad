@@ -1,9 +1,11 @@
 //! Primer melting temperature calculations. Modified from [BioPython's module here](https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py)
 
-
-use crate::Nucleotide::{self, A, C, T, G};
-use crate::primer::{calc_gc, MIN_PRIMER_LEN};
-use crate::util::seq_complement;
+use crate::{
+    primer::{calc_gc, MIN_PRIMER_LEN},
+    util::seq_complement,
+    IonConcentrations,
+    Nucleotide::{self, A, C, G, T},
+};
 
 /// Enthalpy (dH) and entropy (dS) tables based on terminal missmatch
 fn get_dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
@@ -19,7 +21,6 @@ fn get_dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
         (G, G) => Some((-8.0, -19.9)),
         _ => None,
     }
-
 
     // # Terminal mismatch table (DNA)
     // # SantaLucia & Peyret (2001) Patent Application WO 01/94611
@@ -114,7 +115,6 @@ fn get_dH_dS_imm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     //     "CG/GI": (5.8, 16.9), "GG/CI": (-7.6, -22.0),
     //     "AI/TI": (-3.3, -11.9), "TI/AI": (0.1, -2.3), "CI/GI": (1.3, 3.0),
     //     "GI/CI": (-0.5, -1.3)}
-
 }
 
 /// Enthalpy (dH) and entropy (dS) tables based on nearest neighbors. Uses Biopython's DNA_NN4 table.
@@ -144,7 +144,6 @@ fn get_dH_dS_neighbors(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     // "init_allA/T": (0, 0),
     // "init_5T/A": (0, 0),
     //         "sym": (0, -1.4),
-
 }
 
 /// Enthalpy (dH) and entropy (dS) tables based on dangling ends.
@@ -161,7 +160,6 @@ fn get_dH_dS_de(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
         (G, G) => Some((-8.0, -19.9)),
         _ => None,
     }
-
 
     // # Dangling ends table (DNA)
     // # Bommarito et al. (2000), Nucl Acids Res 28: 1929-1934
@@ -182,14 +180,12 @@ fn get_dH_dS_de(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
 
 /// Calculate a Tm correction term due to salt ions.
 /// https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py#L475
-fn salt_correction(seq: &[Nucleotide]) -> Option<f32> {
-    let k: f32 = 0.;
-    let tris: f32 = 0.;
-    let mg: f32 = 0.;
-    let na: f32 = 0.;
-    let dntps: f32 = 0.;
-
+fn salt_correction(seq: &[Nucleotide], ion: &IonConcentrations) -> Option<f32> {
+    // todo: Using Some casual defaults for now.
+    // These are millimolar concentration of respective ions.
     let method = 4; // todo?
+
+    let tris = 0.; // todo: Do we want this?
 
     if method >= 5 && method <= 7 && seq.is_empty() {
         // return Err("sequence is missing (is needed to calculate GC content or sequence length).".into());
@@ -201,12 +197,18 @@ fn salt_correction(seq: &[Nucleotide]) -> Option<f32> {
         return Some(corr);
     }
 
-    let mut mon = na + k + tris / 2.0;
-    let mg_molar = mg * 1e-3;
-    if k > 0.0 || mg > 0.0 || tris > 0.0 || dntps > 0.0 && method != 7 && dntps < mg {
-        mon += 120.0 * (mg - dntps).sqrt();
-    }
+    // It appears that this section modifies the monovalent concentration with divalent values.
+    let mut mon = ion.monovalent + tris / 2.0;
     let mon_molar = mon * 1e-3;
+    let mg_molar = ion.divalent * 1e-3;
+
+    if (ion.monovalent > 0.0 || ion.divalent > 0.0 || tris > 0.0 || ion.dntp > 0.0)
+        && method != 7
+        && ion.dntp < ion.divalent
+    {
+        mon += 120.0 * (ion.divalent - ion.dntp).sqrt();
+    }
+
     if (1..=6).contains(&method) && mon_molar == 0.0 {
         // return Err("Total ion concentration of zero is not allowed in this method.".into());
         return None;
@@ -226,14 +228,16 @@ fn salt_correction(seq: &[Nucleotide]) -> Option<f32> {
                 + 9.40e-6 * mon_molar.ln().powi(2);
         }
         7 => {
-            let (a, b, c, d, e, f, g) = (3.92, -0.911, 6.26, 1.42, -48.2, 52.5, 8.31);
+            let (mut a, b, c, mut d, e, f, mut g) = (3.92, -0.911, 6.26, 1.42, -48.2, 52.5, 8.31);
             let mut mg_free = mg_molar;
-            if dntps > 0.0 {
-                let dntps_molar = dntps * 1e-3;
+            if ion.dntp > 0.0 {
+                let dntps_molar = ion.dntp * 1e-3;
                 let ka = 3e4;
+                //  Free Mg2+ calculation
                 mg_free = (-(ka * dntps_molar - ka * mg_free + 1.0)
-                    + ((ka * dntps_molar - ka * mg_free + 1.0).powi(2)
-                    + 4.0 * ka * mg_free).sqrt()) / (2.0 * ka);
+                    + ((ka * dntps_molar - ka * mg_free + 1.0).powi(2) + 4.0 * ka * mg_free)
+                        .sqrt())
+                    / (2.0 * ka);
             }
 
             if mon > 0.0 {
@@ -244,27 +248,28 @@ fn salt_correction(seq: &[Nucleotide]) -> Option<f32> {
                         + 9.40e-6 * mon_molar.ln().powi(2);
                     return Some(corr);
                 } else if r < 6.0 {
-                    let a = 3.92 * (0.843 - 0.352 * mon_molar.sqrt() * mon_molar.ln());
-                    let d = 1.42 * (1.279 - 4.03e-3 * mon_molar.ln() - 8.03e-3 * mon_molar.ln().powi(2));
-                    let g = 8.31 * (0.486 - 0.258 * mon_molar.ln() + 5.25e-3 * mon_molar.ln().powi(3));
+                    a = 3.92 * (0.843 - 0.352 * mon_molar.sqrt() * mon_molar.ln());
+                    d = 1.42
+                        * (1.279 - 4.03e-3 * mon_molar.ln() - 8.03e-3 * mon_molar.ln().powi(2));
+                    g = 8.31 * (0.486 - 0.258 * mon_molar.ln() + 5.25e-3 * mon_molar.ln().powi(3));
                 }
 
                 let gc_fraction = calc_gc(seq);
-                corr = (a + b * mg_free.ln() + gc_fraction * (c + d * mg_free.ln())
+                corr = (a
+                    + b * mg_free.ln()
+                    + gc_fraction * (c + d * mg_free.ln())
                     + (1.0 / (2.0 * (seq.len() as f32 - 1.0)))
-                    * (e + f * mg_free.ln() + g * mg_free.ln().powi(2)))
+                        * (e + f * mg_free.ln() + g * mg_free.ln().powi(2)))
                     * 1e-5;
             }
         }
         _ => return None,
     }
 
-    Ok(corr)
-
+    Some(corr)
 }
 
-
-pub fn calc_tm(seq: &[Nucleotide]) -> Option<f32> {
+pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Option<f32> {
     if seq.len() < MIN_PRIMER_LEN {
         return None;
     }
@@ -305,26 +310,23 @@ pub fn calc_tm(seq: &[Nucleotide]) -> Option<f32> {
         }
 
         let neighbors = (*nt, seq[i + 2]);
-        let neighbors_comp = (comp[i], comp[i + 2]);
 
-
-        if let Some(v) = get_dH_dS_imm(neighbors) {
+        if let Some(v) = get_dH_dS_neighbors(neighbors) {
             dH += v.0;
             dS += v.1;
         }
     }
 
-
     // dH / (dS + 0.368 * N * NAP.ln() + R * primer.ln() / 4.)
     // melting_temp = (1000 * delta_h) / (delta_s + (R * (math.log(k)))) - 273.15
 
-    const R: f32 =  1.987; // Universal gas constant (Cal/C * Mol)
+    const R: f32 = 1.987; // Universal gas constant (Cal/C * Mol)
 
     let dnac1 = 25.;
-    let dnac2 = 25.;; // todo: What are these?
+    let dnac2 = 25.; // todo: What are these?
     let k: f32 = (dnac1 - (dnac2 / 2.0)) * 1.0e-9;
 
-    let mut result =  (1_000. * dH) / (dS + (R * (k.ln()))) - 273.15;
+    let mut result = (1_000. * dH) / (dS + (R * (k.ln()))) - 273.15;
 
     // if saltcorr == 5:
     //         delta_s += corr
@@ -337,10 +339,12 @@ pub fn calc_tm(seq: &[Nucleotide]) -> Option<f32> {
 
     // todo: We will assume method 4 for now.
 
-    if let Some(sc) = salt_correction(seq) {
+    if let Some(sc) = salt_correction(seq, ion_concentrations) {
+        println!("Salt cor: {sc}");
         result += sc;
+    } else {
+        println!("Error on SC")
     }
-
 
     Some(result)
 }
