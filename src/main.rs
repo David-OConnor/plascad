@@ -40,7 +40,7 @@ type Seq = Vec<Nucleotide>;
 
 /// A DNA nucleotide.
 /// todo: RNA A/R
-#[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Encode, Decode)]
 enum Nucleotide {
     A,
     T,

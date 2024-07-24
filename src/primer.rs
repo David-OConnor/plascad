@@ -1,21 +1,24 @@
 //! This module contains code related to primer (oglionucleotide) design and QC.
 
+use std::collections::HashSet;
 use std::ops::Range;
 
 use bincode::{Decode, Encode};
 
-use crate::{
-    util::{map_linear, seq_complement, seq_from_str},
-    Nucleotide,
-    Nucleotide::{C, G},
-    Seq,
-};
+use crate::{util::{map_linear, seq_complement, seq_from_str}, Nucleotide, Nucleotide::{C, G}, Seq, melting_temp_calcs};
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
 pub const TM_TARGET: f32 = 59.; // Also used as a default for PCR GUI.
 
 // todo: Sort out your types.
+
+// todo; Move to Util A/R
+fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
+    let set: HashSet<_> = vec.into_iter().collect();
+    let vec: Vec<_> = set.into_iter().collect();
+    vec
+}
 
 /// These are also relevant for FastCloning.
 pub struct SlicPrimers {
@@ -138,31 +141,19 @@ impl Primer {
     ///
     /// See [The BioPython MeltingTemp module](https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py)
     pub fn calc_tm(&self) -> f32 {
-        const NAP_K_P: f32 = 0.05;
-
-        // TM = 81.5 +16.6 X log10([Na+]+[K+])+0.41 x(%GC) - 675/N
-        // 81.5 + 16.6 * NAP_K_P.log10() + 0.41 * self.calc_gc() * 100.
-        //     - 675. / (self.sequence.len() as f32)
-
-        const dH: f32 = 1. // todo
-        const dS: f32 = 1. // todo
-        const R: f32 =  1.987; // Universal gas constant (Cal/C * Mol)
-        let N = self.sequence.len();
-
-        dH / (dS + 0.368 * N * NAP.ln() + R * primer.ln() / 4.)
-
-    }
-
-    /// Calculate GC portion, on a scale of 0 to 1.
-    pub fn calc_gc(&self) -> f32 {
-        let mut num_gc = 0;
-        for nt in &self.sequence {
-            if *nt == C || *nt == G {
-                num_gc += 1;
-            }
-        }
-
-        num_gc as f32 / self.sequence.len() as f32
+        // const NAP_K_P: f32 = 0.05;
+        //
+        // // TM = 81.5 +16.6 X log10([Na+]+[K+])+0.41 x(%GC) - 675/N
+        // // 81.5 + 16.6 * NAP_K_P.log10() + 0.41 * self.calc_gc() * 100.
+        // //     - 675. / (self.sequence.len() as f32)
+        //
+        // const dH: f32 = 1. // todo
+        // const dS: f32 = 1. // todo
+        // const R: f32 =  1.987; // Universal gas constant (Cal/C * Mol)
+        // let N = self.sequence.len();
+        //
+        // dH / (dS + 0.368 * N * NAP.ln() + R * primer.ln() / 4.)
+        melting_temp_calcs::calc_tm(&self.sequence).unwrap_or(0.)
     }
 
     /// This is a metric known as 3' end stability. Return the number of Gs and Cs in the last 5 bases.
@@ -239,7 +230,8 @@ impl Primer {
             triplets.push((i, nt, self.sequence[i + 1],  self.sequence[i + 2]));
         }
 
-        let mut triple_nt_repeats = 0;
+        let mut triplet_repeat_seqs = Vec::new();
+
         for (i, nt) in self.sequence.iter().enumerate() {
             if i == self.sequence.len() - 2 {
                 break;
@@ -254,12 +246,17 @@ impl Primer {
                         continue
                     }
 
-                    triple_nt_repeats += 1;
+                    triplet_repeat_seqs.push(triplet_this);
+
+                    // println!("Triplet rep: i this: {}, i_other: {:?} seq: {:?}", i, triplet_other.0, (triplet_other.1, triplet_other.2, triplet_other.3));
+                    // triple_nt_repeats += 1;
                 }
             }
         }
-        // We divide by two, since each repeat will list twice using the above algorithm.
-        result += triple_nt_repeats / 2;
+
+        triplet_repeat_seqs = remove_duplicates(triplet_repeat_seqs);
+        // println!("TRS: {:?}, ", triplet_repeat_seqs);
+        result += triplet_repeat_seqs.len() as u8;
 
         // todo: Come back to adn implement this.
         // for nt in &self.sequence {
@@ -286,7 +283,7 @@ impl Primer {
 
         let mut result = PrimerMetrics {
             melting_temp: self.calc_tm(),
-            gc_portion: self.calc_gc(),
+            gc_portion: calc_gc(&self.sequence),
             gc_3p_count: self.count_3p_g_c(),
             // complexity: self.calc_complexity(),
             self_end_dimer: self.calc_self_end_dimer(),
@@ -529,4 +526,17 @@ impl TuneSetting {
             _ => Self::Disabled,
         }
     }
+}
+
+/// Calculate GC portion, on a scale of 0 to 1.
+/// This is a standalone fn, as it's used outside of Primer methods.
+pub fn calc_gc(seq: &[Nucleotide]) -> f32 {
+    let mut num_gc = 0;
+    for nt in seq {
+        if *nt == C || *nt == G {
+            num_gc += 1;
+        }
+    }
+
+    num_gc as f32 / seq.len() as f32
 }

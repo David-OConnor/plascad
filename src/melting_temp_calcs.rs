@@ -2,7 +2,8 @@
 
 
 use crate::Nucleotide::{self, A, C, T, G};
-use crate::primer::MIN_PRIMER_LEN;
+use crate::primer::{calc_gc, MIN_PRIMER_LEN};
+use crate::util::seq_complement;
 
 /// Enthalpy (dH) and entropy (dS) tables based on terminal missmatch
 fn get_dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
@@ -23,16 +24,28 @@ fn get_dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     // # Terminal mismatch table (DNA)
     // # SantaLucia & Peyret (2001) Patent Application WO 01/94611
     // DNA_TMM1 = {
-    //     "AA/TA": (-3.1, -7.8), "TA/AA": (-2.5, -6.3), "CA/GA": (-4.3, -10.7),
+    //     "AA/TA": (-3.1, -7.8),
+    //     "TA/AA": (-2.5, -6.3),
+    //     "CA/GA": (-4.3, -10.7),
     //     "GA/CA": (-8.0, -22.5),
-    //     "AC/TC": (-0.1, 0.5), "TC/AC": (-0.7, -1.3), "CC/GC": (-2.1, -5.1),
+    //     "AC/TC": (-0.1, 0.5),
+    //     "TC/AC": (-0.7, -1.3),
+    //     "CC/GC": (-2.1, -5.1),
     //     "GC/CC": (-3.9, -10.6),
-    //     "AG/TG": (-1.1, -2.1), "TG/AG": (-1.1, -2.7), "CG/GG": (-3.8, -9.5),
+    //     "AG/TG": (-1.1, -2.1),
+    //     "TG/AG": (-1.1, -2.7),
+    //     "CG/GG": (-3.8, -9.5),
     //     "GG/CG": (-0.7, -19.2),
-    //     "AT/TT": (-2.4, -6.5), "TT/AT": (-3.2, -8.9), "CT/GT": (-6.1, -16.9),
+    //     "AT/TT": (-2.4, -6.5),
+    //     "TT/AT": (-3.2, -8.9),
+    //     "CT/GT": (-6.1, -16.9),
     //     "GT/CT": (-7.4, -21.2),
-    //     "AA/TC": (-1.6, -4.0), "AC/TA": (-1.8, -3.8), "CA/GC": (-2.6, -5.9),
-    //     "CC/GA": (-2.7, -6.0), "GA/CC": (-5.0, -13.8), "GC/CA": (-3.2, -7.1),
+    //     "AA/TC": (-1.6, -4.0),
+    //     "AC/TA": (-1.8, -3.8),
+    //     "CA/GC": (-2.6, -5.9),
+    //     "CC/GA": (-2.7, -6.0),
+    //     "GA/CC": (-5.0, -13.8),
+    //     "GC/CA": (-3.2, -7.1),
     //     "TA/AC": (-2.3, -5.9), "TC/AA": (-2.7, -7.0),
     //     "AC/TT": (-0.9, -1.7), "AT/TC": (-2.3, -6.3), "CC/GT": (-3.2, -8.0),
     //     "CT/GC": (-3.9, -10.6), "GC/CT": (-4.9, -13.5), "GT/CC": (-3.0, -7.8),
@@ -167,6 +180,89 @@ fn get_dH_dS_de(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     //     ".T/TA": (-3.8, -12.6)}
 }
 
+/// Calculate a Tm correction term due to salt ions.
+/// https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py#L475
+fn salt_correction(seq: &[Nucleotide]) -> Option<f32> {
+    let k: f32 = 0.;
+    let tris: f32 = 0.;
+    let mg: f32 = 0.;
+    let na: f32 = 0.;
+    let dntps: f32 = 0.;
+
+    let method = 4; // todo?
+
+    if method >= 5 && method <= 7 && seq.is_empty() {
+        // return Err("sequence is missing (is needed to calculate GC content or sequence length).".into());
+        return None;
+    }
+
+    let mut corr = 0.0;
+    if method == 0 {
+        return Some(corr);
+    }
+
+    let mut mon = na + k + tris / 2.0;
+    let mg_molar = mg * 1e-3;
+    if k > 0.0 || mg > 0.0 || tris > 0.0 || dntps > 0.0 && method != 7 && dntps < mg {
+        mon += 120.0 * (mg - dntps).sqrt();
+    }
+    let mon_molar = mon * 1e-3;
+    if (1..=6).contains(&method) && mon_molar == 0.0 {
+        // return Err("Total ion concentration of zero is not allowed in this method.".into());
+        return None;
+    }
+
+    match method {
+        1 => corr = 16.6 * mon_molar.log10(),
+        2 => corr = 16.6 * (mon_molar / (1.0 + 0.7 * mon_molar)).log10(),
+        3 => corr = 12.5 * mon_molar.log10(),
+        4 => corr = 11.7 * mon_molar.log10(),
+        5 => {
+            corr = 0.368 * (seq.len() as f32 - 1.0) * mon_molar.ln();
+        }
+        6 => {
+            let gc_fraction = calc_gc(seq);
+            corr = ((4.29 * gc_fraction - 3.95) * 1e-5 * mon_molar.ln())
+                + 9.40e-6 * mon_molar.ln().powi(2);
+        }
+        7 => {
+            let (a, b, c, d, e, f, g) = (3.92, -0.911, 6.26, 1.42, -48.2, 52.5, 8.31);
+            let mut mg_free = mg_molar;
+            if dntps > 0.0 {
+                let dntps_molar = dntps * 1e-3;
+                let ka = 3e4;
+                mg_free = (-(ka * dntps_molar - ka * mg_free + 1.0)
+                    + ((ka * dntps_molar - ka * mg_free + 1.0).powi(2)
+                    + 4.0 * ka * mg_free).sqrt()) / (2.0 * ka);
+            }
+
+            if mon > 0.0 {
+                let r = (mg_free).sqrt() / mon_molar;
+                if r < 0.22 {
+                    let gc_fraction = calc_gc(seq);
+                    corr = (4.29 * gc_fraction - 3.95) * 1e-5 * mon_molar.ln()
+                        + 9.40e-6 * mon_molar.ln().powi(2);
+                    return Some(corr);
+                } else if r < 6.0 {
+                    let a = 3.92 * (0.843 - 0.352 * mon_molar.sqrt() * mon_molar.ln());
+                    let d = 1.42 * (1.279 - 4.03e-3 * mon_molar.ln() - 8.03e-3 * mon_molar.ln().powi(2));
+                    let g = 8.31 * (0.486 - 0.258 * mon_molar.ln() + 5.25e-3 * mon_molar.ln().powi(3));
+                }
+
+                let gc_fraction = calc_gc(seq);
+                corr = (a + b * mg_free.ln() + gc_fraction * (c + d * mg_free.ln())
+                    + (1.0 / (2.0 * (seq.len() as f32 - 1.0)))
+                    * (e + f * mg_free.ln() + g * mg_free.ln().powi(2)))
+                    * 1e-5;
+            }
+        }
+        _ => return None,
+    }
+
+    Ok(corr)
+
+}
+
 
 pub fn calc_tm(seq: &[Nucleotide]) -> Option<f32> {
     if seq.len() < MIN_PRIMER_LEN {
@@ -176,6 +272,8 @@ pub fn calc_tm(seq: &[Nucleotide]) -> Option<f32> {
     // Inititial values.
     let mut dH = 0.2;
     let mut dS = -5.7;
+
+    // Biopython's 5' end = T penalty N/A, as the values there are 0. Same for allA/t and oneG/C checks.
 
     // Add to dH and dS based on the terminal pair.
     {
@@ -197,23 +295,52 @@ pub fn calc_tm(seq: &[Nucleotide]) -> Option<f32> {
         dS += -2.8 * cg_term_count as f32;
     }
 
-    for (i, nt) in seq.iter().inumerate() {
-        if i + 2 == seq.len() {
+    // "sym": (0, -1.4),
+
+    let comp = seq_complement(&seq);
+
+    for (i, nt) in seq.iter().enumerate() {
+        if i + 2 >= seq.len() {
             continue;
         }
 
-        let v_imm = get_dH_dS_imm((nt, seq[i + 2]));
-        if v_imm.is_some() {
-            let v = v_imm.unwrap();
+        let neighbors = (*nt, seq[i + 2]);
+        let neighbors_comp = (comp[i], comp[i + 2]);
+
+
+        if let Some(v) = get_dH_dS_imm(neighbors) {
             dH += v.0;
             dS += v.1;
         }
-
     }
 
-    let N = self.sequence.len();
 
-    dH / (dS + 0.368 * N * NAP.ln() + R * primer.ln() / 4.)
+    // dH / (dS + 0.368 * N * NAP.ln() + R * primer.ln() / 4.)
     // melting_temp = (1000 * delta_h) / (delta_s + (R * (math.log(k)))) - 273.15
 
+    const R: f32 =  1.987; // Universal gas constant (Cal/C * Mol)
+
+    let dnac1 = 25.;
+    let dnac2 = 25.;; // todo: What are these?
+    let k: f32 = (dnac1 - (dnac2 / 2.0)) * 1.0e-9;
+
+    let mut result =  (1_000. * dH) / (dS + (R * (k.ln()))) - 273.15;
+
+    // if saltcorr == 5:
+    //         delta_s += corr
+    //     melting_temp = (1000 * delta_h) / (delta_s + (R * (math.log(k)))) - 273.15
+    //     if saltcorr in (1, 2, 3, 4):
+    //         melting_temp += corr
+    //     if saltcorr in (6, 7):
+    //         # Tm = 1/(1/Tm + corr)
+    //         melting_temp = 1 / (1 / (melting_temp + 273.15) + corr) - 273.15
+
+    // todo: We will assume method 4 for now.
+
+    if let Some(sc) = salt_correction(seq) {
+        result += sc;
+    }
+
+
+    Some(result)
 }

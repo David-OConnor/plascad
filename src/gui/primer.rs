@@ -416,7 +416,8 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 ui.heading("Qual").on_hover_text("Overall primer quality. This is an abstract estimate, taking all other listed factors into account.");
             });
             header.col(|ui| {
-                ui.heading("TM").on_hover_text("Primer melting temperature, in °C. See the readme for calculations and assumptions.");
+                ui.heading("TM").on_hover_text("Primer melting temperature, in °C. Calculated using base a base stacking method, where\
+                 enthalpy and entropy of neighboring base pairs are added. See the readme for calculations and assumptions.");
             });
             header.col(|ui| {
                 ui.heading("GC").on_hover_text("The percentage of nucleotides that are C or G.");
