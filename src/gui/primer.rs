@@ -46,16 +46,19 @@ fn color_from_score(score: f32) -> Color32 {
     }
 }
 
-/// Allows editing ion concentration, including float manip.
-fn ion_edit(val: &mut f32, label: &str, ui: &mut Ui) {
+/// Allows editing ion concentration, including float manip. Return if the response changed,
+/// so we can redo TM calcs downstream.
+fn ion_edit(val: &mut f32, label: &str, ui: &mut Ui) -> bool {
     ui.label(label);
 
-    let mut v = (*val as u16).to_string();
+    let mut v = format!("{:.1}", val);
     let response = ui.add(TextEdit::singleline(&mut v).desired_width(30.));
 
     if response.changed() {
         *val = v.parse().unwrap_or(0.);
-        // todo: Run temp calcs.
+        true
+    } else {
+        false
     }
 }
 
@@ -339,15 +342,20 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(2. * COL_SPACING);
 
-        ui.heading("Ion concentrations: (milliMol)");
+        ui.heading("Ions: (mMol)");
 
-        ion_edit(
+        if ion_edit(
             &mut state.ui.ion_concentrations.monovalent,
             "Na+ and K+",
             ui,
-        );
-        ion_edit(&mut state.ui.ion_concentrations.divalent, "mg2+", ui);
-        ion_edit(&mut state.ui.ion_concentrations.dntp, "dNTP", ui);
+        ) ||
+        ion_edit(&mut state.ui.ion_concentrations.divalent, "mg2+", ui) ||
+        ion_edit(&mut state.ui.ion_concentrations.dntp, "dNTP", ui) ||
+        ion_edit(&mut state.ui.ion_concentrations.primer, "primer (nM)", ui) {
+            for p_data in &mut state.primer_data {
+                p_data.run_calcs(&state.ui.ion_concentrations); // Note: We only need to run the TM calc.
+            }
+        }
 
         // if ui.button("Load").clicked() {}
 
@@ -362,8 +370,8 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
     });
 
     ui.label("Tuning instructions: Include more of the target sequence than required on the end[s] that can be tuned. These are the \
-     ends that do not define your insert, gene of interest, insertion point etc. Mark that end as tunable using the \"Tune\" button.\
-     ");
+     ends that do not define your insert, gene of interest, insertion point etc. Mark that end as tunable using the \"Tune\" button. \
+To learn about a table column, mouse over it.");
 
     ui.add_space(ROW_SPACING);
 

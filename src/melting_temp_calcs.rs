@@ -128,6 +128,7 @@ fn get_dH_dS_neighbors(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
         (T, A) => Some((-7.2, -21.3)),
         (C, A) => Some((-8.5, -22.7)),
         (C, G) => Some((-10.6, -27.2)),
+        (C, T) => Some((-7.8, -21.0)),
         (G, A) => Some((-8.2, -22.2)),
         (G, C) => Some((-9.8, -24.4)),
         (G, T) => Some((-8.4, -22.4)),
@@ -278,7 +279,13 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
     let mut dH = 0.2;
     let mut dS = -5.7;
 
-    // Biopython's 5' end = T penalty N/A, as the values there are 0. Same for allA/t and oneG/C checks.
+    // If no GC content, apply additional values.
+    if calc_gc(seq) < 0.001 {
+        dH += 2.2;
+        dS += 6.9;
+    }
+
+    // Biopython's 5' end = T penalty N/A, as the values there are 0. Same for oneG/C check.
 
     // Add to dH and dS based on the terminal pair.
     {
@@ -292,28 +299,32 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
                 cg_term_count += 1;
             }
         }
-
-        dH += 2.3 * at_term_count as f32;
-        dS += 4.1 * at_term_count as f32;
-
-        dH += 0.1 * cg_term_count as f32;
-        dS += -2.8 * cg_term_count as f32;
+        dH += 2.2 * at_term_count as f32;
+        dS += 6.9 * at_term_count as f32;
     }
-
-    // "sym": (0, -1.4),
-
-    let comp = seq_complement(&seq);
 
     for (i, nt) in seq.iter().enumerate() {
         if i + 2 >= seq.len() {
-            continue;
+            break;
         }
 
         let neighbors = (*nt, seq[i + 2]);
 
+        // if let Some(v) = get_dH_dS_imm(neighbors) {
+        //     // dH += v.0;
+        //     // dS += v.1;
+        //     // todo; Trying to double based on the complementary ?
+        //     dH += 2. * v.0;
+        //     dS += 2. * v.1;
+        // }
+
         if let Some(v) = get_dH_dS_neighbors(neighbors) {
             dH += v.0;
             dS += v.1;
+            // Note: We tried this doubling based on a misreading of the code, but it seems
+            // to match apmplifX better than without.
+            // dH += 2. * v.0;
+            // dS += 2. * v.1;
         }
     }
 
@@ -322,11 +333,18 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
 
     const R: f32 = 1.987; // Universal gas constant (Cal/C * Mol)
 
-    let dnac1 = 25.;
-    let dnac2 = 25.; // todo: What are these?
-    let k: f32 = (dnac1 - (dnac2 / 2.0)) * 1.0e-9;
+    // https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py#L206
+    // "dnac1: Concentration of the higher concentrated strand [nM]. Typically
+    //        this will be the primer (for PCR) or the probe. Default=25.
+    //      - dnac2: Concentration of the lower concentrated strand [nM]. In PCR this
+    //        is the template strand which concentration is typically very low and may
+    //        be ignored (dnac2=0). In oligo/oligo hybridization experiments, dnac1
+    //        equals dnac1. Default=25."
+    let dnac2 = 0.; // todo?
+    let k = (ion_concentrations.primer - (dnac2 / 2.0)) * 1.0e-9;
+    // let k: f32 = (ion_concentrations.primer - (ion_concentrations.primer / 2.0)) * 1.0e-9;
 
-    let mut result = (1_000. * dH) / (dS + (R * (k.ln()))) - 273.15;
+    let mut result = (1_000. * dH) / (dS + R * (k.ln())) - 273.15;
 
     // if saltcorr == 5:
     //         delta_s += corr
@@ -337,11 +355,13 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
     //         # Tm = 1/(1/Tm + corr)
     //         melting_temp = 1 / (1 / (melting_temp + 273.15) + corr) - 273.15
 
-    // todo: We will assume method 4 for now.
-
+    //  We will assume saltcorr method 1-4 for now.
     if let Some(sc) = salt_correction(seq, ion_concentrations) {
         println!("Salt cor: {sc}");
         result += sc;
+
+        // for saltcorr 6/7:
+        // result = 1. / (1. / (result + 273.15) + sc) - 273.15
     } else {
         println!("Error on SC")
     }

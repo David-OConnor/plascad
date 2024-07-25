@@ -135,7 +135,8 @@ struct IonConcentrations {
     /// Mg2+
     pub divalent: f32,
     pub dntp: f32,
-    // pub primer_concentration: f32,
+    /// Primer concentration, in nM.
+    pub primer: f32,
 }
 
 impl Default for IonConcentrations {
@@ -145,7 +146,7 @@ impl Default for IonConcentrations {
             monovalent: 50.,
             divalent: 1.5,
             dntp: 0.2,
-            // primer:
+            primer: 25.,
         }
     }
 }
