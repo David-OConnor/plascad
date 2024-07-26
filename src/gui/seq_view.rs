@@ -159,12 +159,7 @@ fn primer_arrow(
     result
 }
 
-fn re_sites(
-    state: &State,
-    ui: &mut Ui,
-    seq_len: usize,
-    seq_i_to_px_rel: impl Fn(usize) -> Pos2,
-) -> Vec<Shape> {
+fn re_sites(state: &State, ui: &mut Ui, seq_i_to_px_rel: impl Fn(usize) -> Pos2) -> Vec<Shape> {
     let mut result = Vec::new();
 
     for (i_match, re_match) in state.restriction_enzyme_sites.iter().enumerate() {
@@ -388,9 +383,9 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     // }
 
                     // todo: Needs an update
-                    if i < state.insert_loc + state.ui.seq_insert_input.len() {
-                        color = COLOR_INSERT;
-                    }
+                    // if i < state.insert_loc + state.ui.seq_insert_input.len() {
+                    //     color = COLOR_INSERT;
+                    // }
 
                     shapes.push(ctx.fonts(|fonts| {
                         Shape::text(
@@ -416,7 +411,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 }
 
                 if state.ui.show_res {
-                    shapes.append(&mut re_sites(state, ui, seq_len, seq_i_to_px_rel));
+                    shapes.append(&mut re_sites(state, ui, seq_i_to_px_rel));
                 }
                 ui.painter().extend(shapes);
             });

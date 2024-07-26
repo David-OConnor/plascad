@@ -42,23 +42,36 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
             ui.add_space(COL_SPACING);
 
             if ui.button("Load from primer: ").clicked() {
-                let primer = &state.primer_data[state.ui.pcr_primer]; // todo: Overflow check?
+                let primer = &state.primer_data[state.ui.pcr.primer_selected]; // todo: Overflow check?
 
-                state.ui.pcr = PcrUi {
-                    ..Default::default() // pub primer_tm: f32,
-                                         // pub product_len: usize,
-                                         // pub polymerase_type: PolymeraseType,
-                                         // pub num_cycles: u16,
-                };
+                if let Some(metrics) = &primer.metrics {
+                    state.ui.pcr = PcrUi {
+                        primer_tm: metrics.melting_temp,
+                        product_len: primer.primer.sequence.len(),
+                        primer_selected: state.ui.pcr.primer_selected,
+                        ..Default::default()
+                    };
+                }
                 state.sync_pcr();
             }
 
+            // Reset primer selected if an invalid one is set.
+            if state.ui.pcr.primer_selected > state.primer_data.len() {
+                state.ui.pcr.primer_selected = 0;
+            }
+
+            let primer_data = &state.primer_data[state.ui.pcr.primer_selected];
+
             ComboBox::from_id_source(0)
                 .width(80.)
-                .selected_text("test")
+                .selected_text(&primer_data.description)
                 .show_ui(ui, |ui| {
                     for (i, primer) in state.primer_data.iter().enumerate() {
-                        ui.selectable_value(&mut state.ui.pcr_primer, i, &primer.description);
+                        ui.selectable_value(
+                            &mut state.ui.pcr.primer_selected,
+                            i,
+                            &primer.description,
+                        );
                     }
                 });
         }

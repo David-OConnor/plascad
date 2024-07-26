@@ -111,6 +111,8 @@ struct PcrUi {
     pub product_len: usize,
     pub polymerase_type: PolymeraseType,
     pub num_cycles: u16,
+    /// index from primer data. For storing dropdown state.
+    pub primer_selected: usize,
 }
 
 impl Default for PcrUi {
@@ -120,6 +122,7 @@ impl Default for PcrUi {
             product_len: 1_000,
             polymerase_type: Default::default(),
             num_cycles: 30,
+            primer_selected: 0,
         }
     }
 }

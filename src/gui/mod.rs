@@ -171,7 +171,8 @@ fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
     ui.add_space(COL_SPACING / 2.);
 }
 
-// pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {
+// pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {ease
+
 //     ui.horizontal(|ui| {
 //         page_primers_button(&mut state.ui.page_primer, PagePrimer::Amplification, ui);
 //         page_primers_button(&mut state.ui.page_primer, PagePrimer::SlicFc, ui);
@@ -181,6 +182,7 @@ fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
 pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         page_seq_button(&mut state.ui.page_seq, PageSeq::EditSeq, ui);
+        page_seq_button(&mut state.ui.page_seq, PageSeq::EditSlic, ui);
         page_seq_button(&mut state.ui.page_seq, PageSeq::View, ui);
     });
 }

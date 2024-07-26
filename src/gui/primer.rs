@@ -146,11 +146,11 @@ fn primer_tune_display(
 }
 
 fn seq_editor(state: &mut State, ui: &mut Ui) {
-    ui.heading("Amplification");
+    // ui.heading("Amplification");
 
-    ui.add_space(ROW_SPACING);
+    // ui.add_space(ROW_SPACING);
 
-    ui.label("Sequence:");
+    ui.heading("Sequence:");
 
     let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
     if response.changed() {
@@ -164,7 +164,7 @@ fn seq_editor(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     ui.horizontal(|ui| {
-        if ui.button("➕ Make primers").clicked() {
+        if ui.button("➕ Make amplification primers").clicked() {
             // state.sync_seqs();
 
             if let Some(primers) = design_amplification_primers(&state.seq) {
@@ -460,7 +460,7 @@ To learn about a table column, mouse over it.");
             });
 
             // For selecting the row.
-            header.col(|ui| {});
+            header.col(|_ui| {});
         })
         .body(|mut body| {
             for (i, data) in state.primer_data.iter_mut().enumerate() {
@@ -646,6 +646,8 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
     //     page_seq_selector(state, ui);
     // });
 
+    page_seq_selector(state, ui);
+
     ui.add_space(ROW_SPACING);
 
     match state.ui.page_seq {
@@ -682,9 +684,9 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                     state.sync_cloning_product();
                 };
             });
+
+            sequence_vis(state, ui);
         } // _ => (),
     }
-
-    sequence_vis(state, ui);
     // }
 }

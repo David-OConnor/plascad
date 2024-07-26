@@ -77,7 +77,7 @@ pub fn load_re_library() -> Vec<RestrictionEnzyme> {
         RestrictionEnzyme::new("BglII", vec![A, G, A, T, C, T], 0),
         RestrictionEnzyme::new("BmtI", vec![G, C, T, A, G, C], 4),
         RestrictionEnzyme::new("ClaI", vec![A, T, C, G, A, T], 1),
-        RestrictionEnzyme::new("EcoRI", vec![G, A, C, G, T, C], 0),
+        RestrictionEnzyme::new("EcoRI", vec![G, A, A, T, T, C], 0),
         RestrictionEnzyme::new("EcoRV", vec![G, A, T, A, T, C], 2),
         RestrictionEnzyme::new("HindIII", vec![A, A, G, C, T, T], 0),
         RestrictionEnzyme::new("HpaI", vec![G, T, T, A, A, C], 2),
