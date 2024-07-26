@@ -48,46 +48,48 @@ impl Page {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
-pub enum PagePrimer {
-    /// Eg amplifying a section of a single sequence.
-    Amplification,
-    SlicFc,
-}
+// #[derive(Clone, Copy, PartialEq, Encode, Decode)]
+// pub enum PagePrimer {
+//     /// Eg amplifying a section of a single sequence.
+//     Amplification,
+//     SlicFc,
+// }
 
-impl Default for PagePrimer {
-    fn default() -> Self {
-        Self::SlicFc
-    }
-}
-
-impl PagePrimer {
-    pub fn to_str(self) -> String {
-        match self {
-            Self::Amplification => "Amplification",
-            Self::SlicFc => "SLIC and FastCloning",
-        }
-        .to_owned()
-    }
-}
+// impl Default for PagePrimer {
+//     fn default() -> Self {
+//         Self::SlicFc
+//     }
+// }
+//
+// impl PagePrimer {
+//     pub fn to_str(self) -> String {
+//         match self {
+//             Self::Amplification => "General",
+//             Self::SlicFc => "SLIC and FastCloning",
+//         }
+//         .to_owned()
+//     }
+// }
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum PageSeq {
-    Edit,
+    EditSeq,
+    EditSlic,
     View,
 }
 
 impl Default for PageSeq {
     fn default() -> Self {
-        Self::View
+        Self::EditSeq
     }
 }
 
 impl PageSeq {
     pub fn to_str(self) -> String {
         match self {
-            Self::Edit => "Edit squences",
-            Self::View => "View sequences",
+            Self::EditSeq => "Edit squence",
+            Self::EditSlic => "Edit SLIC/FC squences",
+            Self::View => "View sequence",
         }
         .to_owned()
     }
@@ -134,22 +136,22 @@ fn page_selector(state: &mut State, ui: &mut Ui) {
     });
 }
 
-fn page_primers_button(page_state: &mut PagePrimer, page: PagePrimer, ui: &mut Ui) {
-    let color = if *page_state == page {
-        Color32::GREEN
-    } else {
-        Color32::WHITE
-    };
-
-    if ui
-        .button(RichText::new(page.to_str()).color(color))
-        .clicked()
-    {
-        *page_state = page;
-    }
-
-    ui.add_space(COL_SPACING / 2.);
-}
+// fn page_primers_button(page_state: &mut PagePrimer, page: PagePrimer, ui: &mut Ui) {
+//     let color = if *page_state == page {
+//         Color32::GREEN
+//     } else {
+//         Color32::WHITE
+//     };
+//
+//     if ui
+//         .button(RichText::new(page.to_str()).color(color))
+//         .clicked()
+//     {
+//         *page_state = page;
+//     }
+//
+//     ui.add_space(COL_SPACING / 2.);
+// }
 
 // todo: Use to_string and partialEq traits instead of duplicating the other page.
 fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
@@ -169,16 +171,16 @@ fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
     ui.add_space(COL_SPACING / 2.);
 }
 
-pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {
-    ui.horizontal(|ui| {
-        page_primers_button(&mut state.ui.page_primer, PagePrimer::Amplification, ui);
-        page_primers_button(&mut state.ui.page_primer, PagePrimer::SlicFc, ui);
-    });
-}
+// pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {
+//     ui.horizontal(|ui| {
+//         page_primers_button(&mut state.ui.page_primer, PagePrimer::Amplification, ui);
+//         page_primers_button(&mut state.ui.page_primer, PagePrimer::SlicFc, ui);
+//     });
+// }
 
 pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        page_seq_button(&mut state.ui.page_seq, PageSeq::Edit, ui);
+        page_seq_button(&mut state.ui.page_seq, PageSeq::EditSeq, ui);
         page_seq_button(&mut state.ui.page_seq, PageSeq::View, ui);
     });
 }

@@ -15,7 +15,7 @@ use eframe::{self, egui, egui::Context};
 use primer::PrimerData;
 
 use crate::{
-    gui::{Page, PagePrimer, PageSeq, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
+    gui::{Page, PageSeq, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::{PrimerDirection, TM_TARGET},
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
@@ -155,7 +155,7 @@ struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
     // todo to save computation.
     page: Page,
-    page_primer: PagePrimer,
+    // page_primer: PagePrimer,
     page_seq: PageSeq,
     seq_insert_input: String,
     seq_vector_input: String,
@@ -294,7 +294,7 @@ fn main() {
     state.sync_pcr();
     state.sync_metrics();
     state.sync_re_sites();
-    state.sync_cloning_product();
+    // state.sync_cloning_product();
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

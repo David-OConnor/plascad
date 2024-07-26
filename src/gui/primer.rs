@@ -1,16 +1,16 @@
 use eframe::egui::{Align, Color32, Layout, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
-// todo: monospace font for all seqs.
-use crate::{
-    gui::{page_primers_selector, PagePrimer, COL_SPACING, ROW_SPACING},
-    primer::{design_amplification_primers, design_slic_fc_primers},
-    util::{make_seq_str, save, seq_from_str},
-    IonConcentrations, State,
-};
 use crate::{
     gui::{page_seq_selector, seq_view::sequence_vis, PageSeq},
     primer::{PrimerData, TuneSetting},
+};
+// todo: monospace font for all seqs.
+use crate::{
+    gui::{COL_SPACING, ROW_SPACING},
+    primer::{design_amplification_primers, design_slic_fc_primers},
+    util::{make_seq_str, save, seq_from_str},
+    IonConcentrations, State,
 };
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
@@ -145,12 +145,13 @@ fn primer_tune_display(
     tuned
 }
 
-fn amplification(state: &mut State, ui: &mut Ui) {
+fn seq_editor(state: &mut State, ui: &mut Ui) {
     ui.heading("Amplification");
 
     ui.add_space(ROW_SPACING);
 
-    ui.label("Amplicon:");
+    ui.label("Sequence:");
+
     let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
     if response.changed() {
         state.seq = seq_from_str(&state.ui.seq_input);
@@ -199,13 +200,14 @@ fn amplification(state: &mut State, ui: &mut Ui) {
     });
 }
 
-fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
+fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     ui.heading("SLIC and FastCloning");
 
     ui.add_space(ROW_SPACING);
 
     if ui.button("Update seq with insert and vec").clicked() {
         state.sync_cloning_product();
+        state.sync_re_sites();
     }
 
     ui.label("Insert:");
@@ -216,8 +218,6 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         let seq = seq_from_str(&state.ui.seq_insert_input);
         state.ui.seq_insert_input = make_seq_str(&seq);
-        state.sync_re_sites();
-        state.sync_cloning_product();
     }
     ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
 
@@ -230,8 +230,6 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         let seq = seq_from_str(&state.ui.seq_vector_input);
         state.ui.seq_vector_input = make_seq_str(&seq);
-        state.sync_re_sites();
-        state.sync_cloning_product();
     }
     ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
 
@@ -642,58 +640,51 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
         primer_details(state, ui);
     }
 
-    ui.add_space(ROW_SPACING * 1.);
-
-    ui.horizontal(|ui| {
-        page_primers_selector(state, ui);
-        ui.add_space(2. * COL_SPACING);
-        page_seq_selector(state, ui);
-    });
+    // ui.horizontal(|ui| {
+    //     page_primers_selector(state, ui);
+    //     ui.add_space(2. * COL_SPACING);
+    //     page_seq_selector(state, ui);
+    // });
 
     ui.add_space(ROW_SPACING);
 
     match state.ui.page_seq {
-        PageSeq::Edit => match state.ui.page_primer {
-            PagePrimer::Amplification => {
-                amplification(state, ui);
-            }
-            PagePrimer::SlicFc => {
-                primer_creation_slic_fc(state, ui);
-            }
-        },
+        PageSeq::EditSeq => {
+            seq_editor(state, ui);
+        }
+        PageSeq::EditSlic => {
+            seq_editor_slic(state, ui);
+        }
         PageSeq::View => {
-            match state.ui.page_primer {
-                PagePrimer::SlicFc => {
-                    ui.horizontal(|ui| {
-                        // todo: DRY with above
-                        ui.label("Insert location: ");
-                        let mut entry = state.insert_loc.to_string();
-                        if ui.button("⏴").clicked() {
-                            if state.insert_loc > 0 {
-                                state.insert_loc -= 1;
-                            }
-                            state.sync_cloning_product();
-                        };
+            // match state.ui.page_primer {
+            //     PagePrimer::SlicFc => {
+            ui.horizontal(|ui| {
+                // todo: DRY with above
+                ui.label("Insert location: ");
+                let mut entry = state.insert_loc.to_string();
+                if ui.button("⏴").clicked() {
+                    if state.insert_loc > 0 {
+                        state.insert_loc -= 1;
+                    }
+                    state.sync_cloning_product();
+                };
 
-                        let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
-                        if response.changed() {
-                            state.insert_loc = entry.parse().unwrap_or(0);
-                            state.sync_cloning_product();
-                        }
-
-                        if ui.button("⏵").clicked() {
-                            if state.insert_loc + 1 < state.ui.seq_vector_input.len() {
-                                state.insert_loc += 1;
-                            }
-                            state.sync_cloning_product();
-                        };
-                    });
+                let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
+                if response.changed() {
+                    state.insert_loc = entry.parse().unwrap_or(0);
+                    state.sync_cloning_product();
                 }
 
-                _ => (),
-            }
-
-            sequence_vis(state, ui);
-        }
+                if ui.button("⏵").clicked() {
+                    if state.insert_loc + 1 < state.ui.seq_vector_input.len() {
+                        state.insert_loc += 1;
+                    }
+                    state.sync_cloning_product();
+                };
+            });
+        } // _ => (),
     }
+
+    sequence_vis(state, ui);
+    // }
 }

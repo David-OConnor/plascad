@@ -16,7 +16,7 @@ use crate::{
         PrimerDirection::{Forward, Reverse},
     },
     util::{get_row_ranges, seq_i_to_pixel},
-    PagePrimer, State, StateUi,
+    State, StateUi,
 };
 
 // Pub for use in `util` functions.
@@ -189,7 +189,8 @@ fn re_sites(
             stroke: PathStroke::new(2., COLOR_RE),
         });
 
-        let label_text = format!("{} - {}", re.name, re_match.seq_index);
+        // let label_text = format!("{} - {}", re.name, re_match.seq_index);
+        let label_text = format!("{}", re.name);
         let mut label_pos = pos2(cut_pos.x + 2., cut_pos.y - 4.);
 
         // Move the label position left if there is a nearby RE site on the right.
@@ -238,11 +239,11 @@ fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
 
         ui.label("RE sites:");
         ui.checkbox(&mut state_ui.show_res, "");
-        ui.add_space(COL_SPACING);
+        ui.add_space(COL_SPACING / 2.);
 
-        ui.label("primers:");
+        ui.label("Primers:");
         ui.checkbox(&mut state_ui.show_primers, "");
-        ui.add_space(COL_SPACING);
+        ui.add_space(COL_SPACING / 2.);
     });
 }
 
@@ -375,15 +376,20 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     let pos = seq_i_to_px_rel(i);
 
                     let mut color = COLOR_SEQ;
-                    match state.ui.page_primer {
-                        PagePrimer::Amplification => {}
-                        PagePrimer::SlicFc => {
-                            if i < state.insert_loc {
-                            } else if i < state.insert_loc + state.ui.seq_insert_input.len() {
-                                color = COLOR_INSERT;
-                            } else {
-                            }
-                        }
+                    // match state.ui.page_primer {
+                    //     PagePrimer::Amplification => {}
+                    //     PagePrimer::SlicFc => {
+                    //         if i < state.insert_loc {
+                    //         } else if i < state.insert_loc + state.ui.seq_insert_input.len() {
+                    //             color = COLOR_INSERT;
+                    //         } else {
+                    //         }
+                    //     }
+                    // }
+
+                    // todo: Needs an update
+                    if i < state.insert_loc + state.ui.seq_insert_input.len() {
+                        color = COLOR_INSERT;
                     }
 
                     shapes.push(ctx.fonts(|fonts| {
