@@ -135,6 +135,21 @@ pub fn seq_i_to_pixel(seq_i: usize, row_ranges: &[Range<usize>]) -> Pos2 {
     )
 }
 
+pub fn pixel_to_seq_i(pixel: Pos2, row_ranges: &[Range<usize>]) -> Option<usize> {
+    // todo: ROunding?
+    let row = ((pixel.y - TEXT_Y_START) / SEQ_ROW_SPACING_PX) as usize;
+    let col = ((pixel.x - TEXT_X_START) / NT_WIDTH_PX) as usize;
+
+    // todo: Index vice loop?
+    for (row_, range) in row_ranges.iter().enumerate() {
+        if row_ == row {
+            return Some(range.start + col);
+        }
+    }
+
+    None
+}
+
 // todo; Move to Util A/R
 pub fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
     let set: HashSet<_> = vec.into_iter().collect();

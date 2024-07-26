@@ -6,6 +6,7 @@
 // #![windows_subsystem = "windows"]
 
 use bincode::{Decode, Encode};
+use eframe::egui::Pos2;
 // use bio::{
 //     bio_types::sequence::{Sequence, SequenceRead},
 //     data_structures::fmindex::FMIndexable,
@@ -174,6 +175,8 @@ struct StateUi {
     show_res: bool,
     /// Show and hide primers on
     show_primers: bool,
+    cursor_pos: Option<(f32, f32)>,
+    cursor_seq_i: Option<usize>,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.

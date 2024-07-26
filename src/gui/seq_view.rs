@@ -15,7 +15,7 @@ use crate::{
         PrimerDirection,
         PrimerDirection::{Forward, Reverse},
     },
-    util::{get_row_ranges, seq_i_to_pixel},
+    util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
     State, StateUi,
 };
 
@@ -325,15 +325,18 @@ fn draw_primers(
 
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
 pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
-    let nt_chars_per_row = ((ui.available_width() - VIEW_AREA_PAD) / NT_WIDTH_PX) as usize; // todo: +1 etc?
-
-    // let (id, rect) = ui.allocate_space(desired_size);
-
     let mut shapes = vec![];
 
     let seq_len = state.seq.len();
 
+    let nt_chars_per_row = ((ui.available_width() - VIEW_AREA_PAD) / NT_WIDTH_PX) as usize; // todo: +1 etc?
     let row_ranges = get_row_ranges(seq_len, nt_chars_per_row);
+
+    let cursor_posit_text = match state.ui.cursor_seq_i {
+        Some(p) => &p.to_string(),
+        None => "",
+    };
+    ui.label(format!("Cursor: {}", cursor_posit_text));
 
     display_filters(&mut state.ui, ui);
 
@@ -363,6 +366,19 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 let from_screen = to_screen.inverse();
 
                 let seq_i_to_px_rel = |i| to_screen * seq_i_to_pixel(i, &row_ranges);
+
+                // todo: Is this an apt place to handle this?
+                {
+                    state.ui.cursor_seq_i = match state.ui.cursor_pos {
+                        Some(p) => {
+                            match pixel_to_seq_i(from_screen * pos2(p.0, p.1), &row_ranges) {
+                                Some(v) => Some(v),
+                                None => None,
+                            }
+                        }
+                        None => None,
+                    };
+                }
 
                 let ctx = ui.ctx();
 

@@ -6,10 +6,15 @@ pub mod seq_view; // pub for a few consts
 use bincode::{Decode, Encode};
 use eframe::{
     egui,
-    egui::{Color32, Context, Key, RichText, ScrollArea, Ui},
+    egui::{vec2, Color32, Context, Key, Pos2, Rect, RichText, ScrollArea, Sense, Ui},
+    emath::RectTransform,
 };
 
-use crate::{util::save, State};
+use crate::{
+    gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, VIEW_AREA_PAD},
+    util::{get_row_ranges, pixel_to_seq_i, save, seq_i_to_pixel},
+    State,
+};
 
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 800.;
@@ -198,9 +203,16 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 println!("Error saving: {e}");
             }
         }
+
+        state.ui.cursor_pos = match ip.pointer.hover_pos() {
+            Some(pos) => Some((pos.x, pos.y)),
+            None => None,
+        };
     });
 
     egui::CentralPanel::default().show(ctx, |ui| {
+        // todo: This section DRY with seq viewx.
+
         let mut visuals = ctx.style().visuals.clone();
         // visuals.override_text_color = Some(Color32::from_rgb(255, 0, 0));
         visuals.override_text_color = Some(Color32::LIGHT_GRAY);
