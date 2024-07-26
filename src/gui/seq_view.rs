@@ -1,7 +1,5 @@
 //! This module contains GUI code related to the sequence visulization.
 
-use std::cmp::{max, min};
-
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
@@ -17,7 +15,7 @@ use crate::{
         PrimerDirection,
         PrimerDirection::{Forward, Reverse},
     },
-    util::{get_row_ranges, make_seq_str, seq_i_to_pixel},
+    util::{get_row_ranges, seq_i_to_pixel},
     PagePrimer, State,
 };
 

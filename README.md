@@ -52,4 +52,4 @@ We calculate the following sorts of nucleotide repeats:
 - Nucleotide pairs repeated 4 or more times in a row
 - Any sequence of 3 nucleotides or more that occurs more than once in a sequence
 
-Primer quality is a fuzzy metric, and is calcualted as a weighted average from other metrics. It's the quantity our tuning algorithm optimizes when adjusting primer length.
+Primer quality is a fuzzy metric, and is calculated as a weighted average from other metrics. It's the quantity our tuning algorithm optimizes when adjusting primer length.

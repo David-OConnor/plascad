@@ -202,7 +202,21 @@ pub fn draw(state: &mut State, ctx: &Context) {
         visuals.override_text_color = Some(Color32::LIGHT_GRAY);
         ctx.set_visuals(visuals);
 
-        page_selector(state, ui);
+        ui.horizontal(|ui| {
+            page_selector(state, ui);
+
+            ui.add_space(COL_SPACING);
+
+            if ui
+                .button("Save")
+                .on_hover_text("Save primer data. Ctrl + S")
+                .clicked()
+            {
+                if let Err(e) = save("plasmid_tools.save", state) {
+                    println!("Error saving: {e}");
+                }
+            }
+        });
 
         ui.add_space(ROW_SPACING);
 

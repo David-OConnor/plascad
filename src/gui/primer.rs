@@ -5,18 +5,12 @@ use egui_extras::{Column, TableBuilder};
 use crate::{
     gui::{page_primers_selector, PagePrimer, COL_SPACING, ROW_SPACING},
     primer::{design_amplification_primers, design_slic_fc_primers},
-    util,
     util::{make_seq_str, save, seq_from_str},
     IonConcentrations, State,
 };
 use crate::{
     gui::{page_seq_selector, seq_view::sequence_vis, PageSeq},
-    primer::{
-        PrimerData,
-        PrimerDirection::{self, Forward, Reverse},
-        TuneSetting,
-    },
-    util::{get_row_ranges, seq_complement, seq_i_to_pixel},
+    primer::{PrimerData, TuneSetting},
 };
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
@@ -162,6 +156,7 @@ fn amplification(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         state.seq_amplicon = seq_from_str(&state.ui.seq_amplicon_input);
         state.ui.seq_amplicon_input = make_seq_str(&state.seq_amplicon);
+        state.sync_re_sites();
         state.sync_primer_matches(None);
     }
     ui.label(&format!("len: {}", state.ui.seq_amplicon_input.len()));
@@ -194,8 +189,8 @@ fn amplification(state: &mut State, ui: &mut Ui) {
                     ..Default::default()
                 };
 
-                primer_fwd.run_calcs(&state.ui.ion_concentrations);
-                primer_rev.run_calcs(&state.ui.ion_concentrations);
+                primer_fwd.run_calcs(&state.ion_concentrations);
+                primer_rev.run_calcs(&state.ion_concentrations);
 
                 state.primer_data.extend([primer_fwd, primer_rev]);
 
@@ -217,6 +212,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         state.seq_insert = seq_from_str(&state.ui.seq_insert_input);
         state.ui.seq_insert_input = make_seq_str(&state.seq_insert);
+        state.sync_re_sites();
         state.sync_cloning_product();
     }
     ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
@@ -230,6 +226,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     if response.changed() {
         state.seq_vector = seq_from_str(&state.ui.seq_vector_input);
         state.ui.seq_vector_input = make_seq_str(&state.seq_vector);
+        state.sync_re_sites();
         state.sync_cloning_product();
     }
     ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
@@ -294,10 +291,10 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
                     tunable_3p: TuneSetting::Enabled(crate::gui::primer::DEFAULT_TRIM_AMT),
                     ..Default::default()
                 };
-                insert_fwd.run_calcs(&state.ui.ion_concentrations);
-                insert_rev.run_calcs(&state.ui.ion_concentrations);
-                vector_fwd.run_calcs(&state.ui.ion_concentrations);
-                vector_rev.run_calcs(&state.ui.ion_concentrations);
+                insert_fwd.run_calcs(&state.ion_concentrations);
+                insert_rev.run_calcs(&state.ion_concentrations);
+                vector_fwd.run_calcs(&state.ion_concentrations);
+                vector_rev.run_calcs(&state.ion_concentrations);
 
                 state
                     .primer_data
@@ -309,8 +306,7 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
     });
 }
 
-/// EGUI component for the Primer page
-pub fn primer_page(state: &mut State, ui: &mut Ui) {
+fn primer_details(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.heading(RichText::new("Primer QC").color(Color32::WHITE));
         ui.add_space(COL_SPACING);
@@ -330,30 +326,17 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(COL_SPACING * 2.);
 
-        if ui
-            .button("Save")
-            .on_hover_text("Save primer data. Ctrl + S")
-            .clicked()
-        {
-            if let Err(e) = save("plasmid_tools.save", state) {
-                println!("Error saving: {e}");
-            }
-        }
-
         ui.add_space(2. * COL_SPACING);
 
         ui.heading("Ions: (mMol)");
 
-        if ion_edit(
-            &mut state.ui.ion_concentrations.monovalent,
-            "Na+ and K+",
-            ui,
-        ) ||
-        ion_edit(&mut state.ui.ion_concentrations.divalent, "mg2+", ui) ||
-        ion_edit(&mut state.ui.ion_concentrations.dntp, "dNTP", ui) ||
-        ion_edit(&mut state.ui.ion_concentrations.primer, "primer (nM)", ui) {
+        if ion_edit(&mut state.ion_concentrations.monovalent, "Na+ and K+", ui)
+            || ion_edit(&mut state.ion_concentrations.divalent, "mg2+", ui)
+            || ion_edit(&mut state.ion_concentrations.dntp, "dNTP", ui)
+            || ion_edit(&mut state.ion_concentrations.primer, "primer (nM)", ui)
+        {
             for p_data in &mut state.primer_data {
-                p_data.run_calcs(&state.ui.ion_concentrations); // Note: We only need to run the TM calc.
+                p_data.run_calcs(&state.ion_concentrations); // Note: We only need to run the TM calc.
             }
         }
 
@@ -491,7 +474,7 @@ To learn about a table column, mouse over it.");
                             {
                                 data.tunable_5p.toggle();
                                 if data.tunable_5p == TuneSetting::Disabled {
-                                    data.run_calcs(&state.ui.ion_concentrations); // To re-sync the sequence without parts removed.
+                                    data.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
                                 }
                                 run_match_sync = Some(i);
                             }
@@ -503,7 +486,7 @@ To learn about a table column, mouse over it.");
                             if response.changed() {
                                 data.sequence_input =
                                     make_seq_str(&seq_from_str(&data.sequence_input));
-                                data.run_calcs(&state.ui.ion_concentrations);
+                                data.run_calcs(&state.ion_concentrations);
                                 run_match_sync = Some(i);
                             }
 
@@ -517,13 +500,13 @@ To learn about a table column, mouse over it.");
                             {
                                 data.tunable_3p.toggle();
                                 if data.tunable_3p == TuneSetting::Disabled {
-                                    data.run_calcs(&state.ui.ion_concentrations); // To re-sync the sequence without parts removed.
+                                    data.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
                                 }
                                 run_match_sync = Some(i);
                             }
                         });
 
-                        let updated_seq = primer_tune_display(data, &state.ui.ion_concentrations,  ui);
+                        let updated_seq = primer_tune_display(data, &state.ion_concentrations,  ui);
                         if updated_seq {
                             run_match_sync = Some(i);
                         }
@@ -633,6 +616,24 @@ To learn about a table column, mouse over it.");
 
     if run_match_sync.is_some() {
         state.sync_primer_matches(run_match_sync);
+    }
+}
+
+/// EGUI component for the Primer page
+pub fn primer_page(state: &mut State, ui: &mut Ui) {
+    if ui
+        .button(if state.ui.hide_primers {
+            "Show primer details"
+        } else {
+            "Hide primer details"
+        })
+        .clicked()
+    {
+        state.ui.hide_primers = !state.ui.hide_primers
+    }
+
+    if !state.ui.hide_primers {
+        primer_details(state, ui);
     }
 
     ui.add_space(ROW_SPACING * 1.);

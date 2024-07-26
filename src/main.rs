@@ -22,18 +22,21 @@ use crate::{
 use crate::{
     gui::{PagePrimer, PageSeq},
     pcr::PolymeraseType,
-    primer::TM_TARGET,
-    util::load,
+    primer::{PrimerDirection, TM_TARGET},
+    restriction_enzyme::{get_common_res, ReMatch, RestrictionEnzyme},
+    util::{load, seq_complement},
 };
 
 mod gui;
-mod primer;
-mod solution_helper;
-mod util;
-// mod snapgene_parse;
 mod melting_temp_calcs;
 mod pcr;
+mod primer;
+mod primer_metrics;
+mod restriction_enzyme;
+mod solution_helper;
 mod toxic_proteins;
+mod util;
+// mod snapgene_parse;
 
 // Index 0: 5' end.
 type Seq = Vec<Nucleotide>;
@@ -151,6 +154,7 @@ impl Default for IonConcentrations {
     }
 }
 
+/// Values defined here generally aren't worth saving to file etc.
 #[derive(Default, Encode, Decode)]
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
@@ -165,13 +169,13 @@ struct StateUi {
     // pcr_primer: Option<usize>, // primer index, if primer count > 0.
     pcr_primer: usize, // primer index
     primer_selected: Option<usize>,
-    ion_concentrations: IonConcentrations,
+    hide_primers: bool,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
 #[derive(Default, Encode, Decode)]
 struct State {
-    ui: StateUi,
+    ui: StateUi, // Does not need to be saved
     primer_data: Vec<PrimerData>,
     /// Insert and vector are for SLIC and FC.
     seq_insert: Seq,
@@ -183,7 +187,10 @@ struct State {
     /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
     insert_location_5p_limit: usize,
     insert_location_3p_limit: usize,
+    ion_concentrations: IonConcentrations,
     pcr: PcrParams,
+    restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
+    restriction_enzyme_sites: Vec<ReMatch>,
 }
 
 impl State {
@@ -213,6 +220,38 @@ impl State {
 
     pub fn sync_pcr(&mut self) {
         self.pcr = PcrParams::new(&self.ui.pcr);
+    }
+
+    /// Identify restriction enzyme sites in the sequence
+    pub fn sync_re_sites(&mut self) {
+        self.restriction_enzyme_sites = Vec::new();
+
+        let seq = match self.ui.page_primer {
+            PagePrimer::Amplification => &self.seq_amplicon,
+            PagePrimer::SlicFc => &self.seq_vector_with_insert,
+        };
+        let seq_comp = seq_complement(seq);
+
+        for (i_re, re) in self.restriction_enzyme_lib.iter().enumerate() {
+            // todo: Use bio lib?
+            for i in 0..seq.len() {
+                if re.seq == seq[i..i + re.seq.len()] {
+                    self.restriction_enzyme_sites.push(ReMatch {
+                        lib_index: i_re,
+                        seq_index: i,
+                        direction: PrimerDirection::Forward,
+                    });
+                }
+                // todo: Simpler way?
+                if re.seq == seq_comp[i..i + re.seq.len()] {
+                    self.restriction_enzyme_sites.push(ReMatch {
+                        lib_index: i_re,
+                        seq_index: i,
+                        direction: PrimerDirection::Reverse,
+                    });
+                }
+            }
+        }
     }
 
     pub fn sync_metrics(&mut self) {
@@ -250,6 +289,8 @@ fn main() {
     // todo: Move to a more robust save/load system later.
 
     let mut state = load("plasmid_tools.save").unwrap_or_else(|_| State::default());
+
+    state.restriction_enzyme_lib = get_common_res();
 
     // state.sync_seqs();
     state.sync_pcr();

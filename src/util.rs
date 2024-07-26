@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs::File,
     io,
     io::{ErrorKind, Read, Write},
@@ -132,4 +133,11 @@ pub fn seq_i_to_pixel(seq_i: usize, row_ranges: &[Range<usize>]) -> Pos2 {
         TEXT_X_START + col as f32 * NT_WIDTH_PX,
         TEXT_Y_START + row as f32 * SEQ_ROW_SPACING_PX,
     )
+}
+
+// todo; Move to Util A/R
+pub fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
+    let set: HashSet<_> = vec.into_iter().collect();
+    let vec: Vec<_> = set.into_iter().collect();
+    vec
 }
