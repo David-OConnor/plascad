@@ -6,23 +6,24 @@ use eframe::{
         Shape, Stroke, Ui,
     },
     emath::RectTransform,
-    epaint::PathShape,
+    epaint::{PathShape, PathStroke},
 };
 
 use crate::{
-    gui::ROW_SPACING,
+    gui::{COL_SPACING, ROW_SPACING},
     primer::{
         PrimerDirection,
         PrimerDirection::{Forward, Reverse},
     },
     util::{get_row_ranges, seq_i_to_pixel},
-    PagePrimer, State,
+    PagePrimer, State, StateUi,
 };
 
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
 pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
 pub const COLOR_INSERT: Color32 = Color32::from_rgb(255, 127, 39);
+pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
 pub const VIEW_AREA_PAD: f32 = 40.;
@@ -132,9 +133,6 @@ fn primer_arrow(
             Stroke::new(arrow_width, color_arrow),
         )));
     }
-    // }
-    // Reverse => {}
-    // };
 
     let label_start_x = match direction {
         Forward => bounds_r0.0.x,
@@ -161,21 +159,187 @@ fn primer_arrow(
     result
 }
 
+fn re_sites(
+    state: &State,
+    ui: &mut Ui,
+    seq_len: usize,
+    seq_i_to_px_rel: impl Fn(usize) -> Pos2,
+) -> Vec<Shape> {
+    let mut result = Vec::new();
+
+    for (i_match, re_match) in state.restriction_enzyme_sites.iter().enumerate() {
+        if re_match.lib_index + 1 > state.restriction_enzyme_lib.len() {
+            continue;
+        }
+        let re = &state.restriction_enzyme_lib[re_match.lib_index];
+
+        let cut_i = re_match.seq_index + 1; // to display in the right place.
+
+        // let cut_i = match re_match.direction {
+        //     Forward => re_match.seq_index + 1,
+        //     // todo: Rev may be deprecated.
+        //     Reverse => seq_len - re_match.seq_index,
+        // };
+        let cut_pos = seq_i_to_px_rel(cut_i + re.cut_after as usize);
+
+        let bottom = pos2(cut_pos.x, cut_pos.y + 20.);
+
+        result.push(Shape::LineSegment {
+            points: [cut_pos, bottom],
+            stroke: PathStroke::new(2., COLOR_RE),
+        });
+
+        let label_text = format!("{} - {}", re.name, re_match.seq_index);
+        let mut label_pos = pos2(cut_pos.x + 2., cut_pos.y - 4.);
+
+        // Move the label position left if there is a nearby RE site on the right.
+        // todo: Not appearing to be working well.
+        let mut neighbor_on_right = false;
+        for (i_other, re_match_other) in state.restriction_enzyme_sites.iter().enumerate() {
+            if i_other != i_match
+                && re_match_other.seq_index > re_match.seq_index
+                && re_match_other.seq_index - re_match.seq_index < 10
+            {
+                neighbor_on_right = true;
+                break;
+            }
+        }
+        if neighbor_on_right {
+            // label_pos.x -= 300.;
+        }
+
+        // Alternate above and below for legibility.
+        // This requires the RE site list to be sorted by seq index, which it currently is.
+        if i_match % 2 == 0 {
+            label_pos.y += 30.;
+        }
+
+        // Add the label
+        let label = ui.ctx().fonts(|fonts| {
+            Shape::text(
+                fonts,
+                label_pos,
+                Align2::LEFT_CENTER,
+                label_text,
+                FontId::new(16., FontFamily::Proportional),
+                COLOR_RE,
+            )
+        });
+        result.push(label)
+    }
+    result
+}
+
+/// Checkboxes to show or hide features.
+fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
+    ui.horizontal(|ui| {
+        ui.label("Show: ");
+        ui.add_space(COL_SPACING);
+
+        ui.label("RE sites:");
+        ui.checkbox(&mut state_ui.show_res, "");
+        ui.add_space(COL_SPACING);
+
+        ui.label("primers:");
+        ui.checkbox(&mut state_ui.show_primers, "");
+        ui.add_space(COL_SPACING);
+    });
+}
+
+/// Add primer arrows to the display.
+fn draw_primers(
+    state: &State,
+    ui: &mut Ui,
+    nt_chars_per_row: usize,
+    seq_len: usize,
+    seq_i_to_px_rel: impl Fn(usize) -> Pos2,
+) -> Vec<Shape> {
+    let mut shapes = Vec::new();
+
+    for prim_data in &state.primer_data {
+        // let primer_matches = match state.ui.page_primer {
+        //     PagePrimer::Amplification => &prim_data.matches_seq,
+        //     PagePrimer::SlicFc => &prim_data.matches_vector_with_insert,
+        //     PagePrimer::SlicFc => &prim_data.matches_vector_with_insert,
+        // };
+        let primer_matches = &prim_data.matches_seq;
+        // todo: Sort out the direction. By matches, most likely.
+
+        // todo: Do not run these calcs each time! Cache.
+        for (direction, seq_range) in primer_matches {
+            let (start, end) = match direction {
+                Forward => (seq_range.start, seq_range.end),
+                Reverse => (seq_len - seq_range.start, seq_len - seq_range.end),
+            };
+
+            let start_pos = seq_i_to_px_rel(start);
+            let end_pos = seq_i_to_px_rel(end);
+
+            // Check if we split across rows.
+            let (bounds_row_0, bounds_row_1) = if start_pos.y == end_pos.y {
+                ((start_pos, end_pos), None)
+            } else {
+                // let (col, row) = seq_i_to_col_row(seq_range.start);
+
+                // let row_0_end = seq_i_to_pixel_rel(seq_range.start);
+
+                match direction {
+                    Forward => {
+                        let row_0_end = pos2(
+                            TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
+                            start_pos.y,
+                        );
+                        let row_1_start = pos2(TEXT_X_START, end_pos.y);
+
+                        ((start_pos, row_0_end), Some((row_1_start, end_pos)))
+                    }
+                    Reverse => {
+                        // todo: DRY
+                        // let row_0_end = pos2(
+                        //     TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
+                        //     start_pos.y,
+                        // );
+
+                        let row_0_end = pos2(
+                            ui.available_width()
+                                - (TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32)),
+                            start_pos.y,
+                        );
+
+                        let row_1_start = pos2(ui.available_width(), end_pos.y);
+
+                        ((row_0_end, start_pos), Some((end_pos, row_1_start)))
+                        // ((start_pos, row_0_end), Some((row_1_start, end_pos)))
+                    }
+                }
+            };
+
+            let mut arrow_fwd = primer_arrow(
+                bounds_row_0,
+                bounds_row_1,
+                *direction,
+                &prim_data.description,
+                ui,
+            );
+            shapes.append(&mut arrow_fwd);
+        }
+    }
+    shapes
+}
+
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
-pub fn sequence_vis(state: &State, ui: &mut Ui) {
+pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     let nt_chars_per_row = ((ui.available_width() - VIEW_AREA_PAD) / NT_WIDTH_PX) as usize; // todo: +1 etc?
 
     // let (id, rect) = ui.allocate_space(desired_size);
 
     let mut shapes = vec![];
 
-    let seq_to_disp = match state.ui.page_primer {
-        PagePrimer::Amplification => &state.seq_amplicon,
-        PagePrimer::SlicFc => &state.seq_vector_with_insert,
-    };
-    let seq_len = seq_to_disp.len();
+    let seq_len = state.seq.len();
 
     let row_ranges = get_row_ranges(seq_len, nt_chars_per_row);
+
+    display_filters(&mut state.ui, ui);
 
     ScrollArea::vertical().id_source(0).show(ui, |ui| {
         Frame::canvas(ui.style())
@@ -184,7 +348,7 @@ pub fn sequence_vis(state: &State, ui: &mut Ui) {
                 let (mut response, painter) = {
                     // Estimate required height, based on seq len.
                     let total_seq_height = row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.;
-                    // let height = min(total_seq_height as u16, MAX_SEQ_AREA_HEIGHT);
+                    // leto height = min(total_seq_height as u16, MAX_SEQ_AREA_HEIGHT);
 
                     let height = total_seq_height;
 
@@ -202,18 +366,20 @@ pub fn sequence_vis(state: &State, ui: &mut Ui) {
 
                 let from_screen = to_screen.inverse();
 
+                let seq_i_to_px_rel = |i| to_screen * seq_i_to_pixel(i, &row_ranges);
+
                 let ctx = ui.ctx();
 
                 // Draw the sequence NT by NT. This allows fine control over color, and other things.
-                for (i, nt) in seq_to_disp.iter().enumerate() {
-                    let pos = to_screen * seq_i_to_pixel(i, &row_ranges);
+                for (i, nt) in state.seq.iter().enumerate() {
+                    let pos = seq_i_to_px_rel(i);
 
                     let mut color = COLOR_SEQ;
                     match state.ui.page_primer {
                         PagePrimer::Amplification => {}
                         PagePrimer::SlicFc => {
                             if i < state.insert_loc {
-                            } else if i < state.insert_loc + state.seq_insert.len() {
+                            } else if i < state.insert_loc + state.ui.seq_insert_input.len() {
                                 color = COLOR_INSERT;
                             } else {
                             }
@@ -233,79 +399,19 @@ pub fn sequence_vis(state: &State, ui: &mut Ui) {
                     }));
                 }
 
-                let seq_i_to_pixel_rel = |a, b| to_screen * seq_i_to_pixel(a, b);
-
-                // Add primer arrows.
-                for prim_data in &state.primer_data {
-                    let primer_matches = match state.ui.page_primer {
-                        PagePrimer::Amplification => &prim_data.matches_amplification_seq,
-                        PagePrimer::SlicFc => &prim_data.matches_vector_with_insert,
-                    };
-                    // todo: Sort out the direction. By matches, most likely.
-
-                    // todo: Do not run these calcs each time! Cache.
-                    for (direction, seq_range) in primer_matches {
-                        let (start, end) = match direction {
-                            Forward => (seq_range.start, seq_range.end),
-                            Reverse => (seq_len - seq_range.start, seq_len - seq_range.end),
-                        };
-
-                        let start_pos = seq_i_to_pixel_rel(start, &row_ranges);
-                        let end_pos = seq_i_to_pixel_rel(end, &row_ranges);
-
-                        // Check if we split across rows.
-                        let (bounds_row_0, bounds_row_1) = if start_pos.y == end_pos.y {
-                            ((start_pos, end_pos), None)
-                        } else {
-                            // let (col, row) = seq_i_to_col_row(seq_range.start, &row_ranges);
-
-                            // let row_0_end = seq_i_to_pixel_rel(seq_range.start, &row_ranges);
-
-                            match direction {
-                                Forward => {
-                                    let row_0_end = pos2(
-                                        TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
-                                        start_pos.y,
-                                    );
-                                    let row_1_start = pos2(TEXT_X_START, end_pos.y);
-
-                                    ((start_pos, row_0_end), Some((row_1_start, end_pos)))
-                                }
-                                Reverse => {
-                                    // todo: DRY
-                                    // let row_0_end = pos2(
-                                    //     TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
-                                    //     start_pos.y,
-                                    // );
-
-                                    let row_0_end = pos2(
-                                        ui.available_width()
-                                            - (TEXT_X_START
-                                                + NT_WIDTH_PX * (1. + nt_chars_per_row as f32)),
-                                        start_pos.y,
-                                    );
-
-                                    let row_1_start = pos2(ui.available_width(), end_pos.y);
-
-                                    ((row_0_end, start_pos), Some((end_pos, row_1_start)))
-                                    // ((start_pos, row_0_end), Some((row_1_start, end_pos)))
-                                }
-                            }
-                        };
-
-                        let mut arrow_fwd = primer_arrow(
-                            bounds_row_0,
-                            bounds_row_1,
-                            *direction,
-                            &prim_data.description,
-                            ui,
-                        );
-                        shapes.append(&mut arrow_fwd);
-                    }
+                if state.ui.show_primers {
+                    shapes.append(&mut draw_primers(
+                        state,
+                        ui,
+                        nt_chars_per_row,
+                        seq_len,
+                        seq_i_to_px_rel,
+                    ));
                 }
-                // }
-                // PagePrimerCreation::SlicFc => {}
-                // }
+
+                if state.ui.show_res {
+                    shapes.append(&mut re_sites(state, ui, seq_len, seq_i_to_px_rel));
+                }
                 ui.painter().extend(shapes);
             });
     });

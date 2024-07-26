@@ -151,15 +151,14 @@ fn amplification(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     ui.label("Amplicon:");
-    let response =
-        ui.add(TextEdit::multiline(&mut state.ui.seq_amplicon_input).desired_width(800.));
+    let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
     if response.changed() {
-        state.seq_amplicon = seq_from_str(&state.ui.seq_amplicon_input);
-        state.ui.seq_amplicon_input = make_seq_str(&state.seq_amplicon);
+        state.seq = seq_from_str(&state.ui.seq_input);
+        state.ui.seq_input = make_seq_str(&state.seq);
         state.sync_re_sites();
         state.sync_primer_matches(None);
     }
-    ui.label(&format!("len: {}", state.ui.seq_amplicon_input.len()));
+    ui.label(&format!("len: {}", state.ui.seq_input.len()));
 
     ui.add_space(ROW_SPACING);
 
@@ -167,7 +166,7 @@ fn amplification(state: &mut State, ui: &mut Ui) {
         if ui.button("➕ Make primers").clicked() {
             // state.sync_seqs();
 
-            if let Some(primers) = design_amplification_primers(&state.seq_amplicon) {
+            if let Some(primers) = design_amplification_primers(&state.seq) {
                 let sequence_input = make_seq_str(&primers.fwd.sequence);
 
                 let mut primer_fwd = PrimerData {
@@ -205,13 +204,18 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(ROW_SPACING);
 
+    if ui.button("Update seq with insert and vec").clicked() {
+        state.sync_cloning_product();
+    }
+
     ui.label("Insert:");
+
     let response = ui.add(
         TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(ui.available_width()),
     );
     if response.changed() {
-        state.seq_insert = seq_from_str(&state.ui.seq_insert_input);
-        state.ui.seq_insert_input = make_seq_str(&state.seq_insert);
+        let seq = seq_from_str(&state.ui.seq_insert_input);
+        state.ui.seq_insert_input = make_seq_str(&seq);
         state.sync_re_sites();
         state.sync_cloning_product();
     }
@@ -224,8 +228,8 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
         TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(ui.available_width()),
     );
     if response.changed() {
-        state.seq_vector = seq_from_str(&state.ui.seq_vector_input);
-        state.ui.seq_vector_input = make_seq_str(&state.seq_vector);
+        let seq = seq_from_str(&state.ui.seq_vector_input);
+        state.ui.seq_vector_input = make_seq_str(&seq);
         state.sync_re_sites();
         state.sync_cloning_product();
     }
@@ -242,10 +246,11 @@ fn primer_creation_slic_fc(state: &mut State, ui: &mut Ui) {
         ui.add_space(COL_SPACING);
 
         if ui.button("➕ Make cloning primers").clicked() {
-            // state.sync_seqs();
+            let seq_vector = seq_from_str(&state.ui.seq_vector_input);
+            let seq_insert = seq_from_str(&state.ui.seq_insert_input);
 
             if let Some(primers) =
-                design_slic_fc_primers(&state.seq_vector, &state.seq_insert, state.insert_loc)
+                design_slic_fc_primers(&seq_vector, &seq_insert, state.insert_loc)
             {
                 let sequence_input = make_seq_str(&primers.insert_fwd.sequence);
 
@@ -522,7 +527,8 @@ To learn about a table column, mouse over it.");
 
                     row.col(|ui| {
                         // todo: Cache this?
-                        let num_matches = data.matches_amplification_seq.len() + data.matches_vector_with_insert.len();
+                        // let num_matches = data.matches_seq.len() + data.matches_vector_with_insert.len();
+                        let num_matches = data.matches_seq.len() + data.matches_seq.len();
                         ui.label(num_matches.to_string());
                     });
 
@@ -622,17 +628,17 @@ To learn about a table column, mouse over it.");
 /// EGUI component for the Primer page
 pub fn primer_page(state: &mut State, ui: &mut Ui) {
     if ui
-        .button(if state.ui.hide_primers {
+        .button(if state.ui.hide_primer_table {
             "Show primer details"
         } else {
             "Hide primer details"
         })
         .clicked()
     {
-        state.ui.hide_primers = !state.ui.hide_primers
+        state.ui.hide_primer_table = !state.ui.hide_primer_table
     }
 
-    if !state.ui.hide_primers {
+    if !state.ui.hide_primer_table {
         primer_details(state, ui);
     }
 
@@ -676,7 +682,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                         }
 
                         if ui.button("⏵").clicked() {
-                            if state.insert_loc + 1 < state.seq_vector.len() {
+                            if state.insert_loc + 1 < state.ui.seq_vector_input.len() {
                                 state.insert_loc += 1;
                             }
                             state.sync_cloning_product();
@@ -687,7 +693,7 @@ pub fn primer_page(state: &mut State, ui: &mut Ui) {
                 _ => (),
             }
 
-            sequence_vis(&state, ui);
+            sequence_vis(state, ui);
         }
     }
 }

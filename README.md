@@ -41,7 +41,7 @@ melting temperature, polymerase type, and other parameters.
 
 
 ## Calculations used 
-Our primer melting temperature method used is based on [BioPython's](https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html). This is, in turn, derived from [SantaLucia & Hicks (2004), Annu. Rev. Biophys. Biomol. Struct 33: 415-440](https://pubmed.ncbi.nlm.nih.gov/15139820/) It uses the neighboring nucleotides of each nucleotide in the sequence to estimate entropy and enthalpy values, used in the following calcluation, where ΔH is enthalphy, and ΔS is entropy:
+Our primer melting temperature method used is based on [BioPython's](https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html). This is, in turn, derived from [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/) It uses the neighboring nucleotides of each nucleotide in the sequence to estimate entropy and enthalpy values, used in the following calcluation, where ΔH is enthalphy, and ΔS is entropy:
 
 $$ (1000 * ΔH) / (ΔS + R \times ln(k)) - 273.15 $$
 

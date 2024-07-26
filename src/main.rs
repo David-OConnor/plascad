@@ -14,17 +14,12 @@ use bincode::{Decode, Encode};
 use eframe::{self, egui, egui::Context};
 use primer::PrimerData;
 
-// use image::GenericImageView;
 use crate::{
-    gui::{Page, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
-    pcr::PcrParams,
-};
-use crate::{
-    gui::{PagePrimer, PageSeq},
-    pcr::PolymeraseType,
+    gui::{Page, PagePrimer, PageSeq, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
+    pcr::{PcrParams, PolymeraseType},
     primer::{PrimerDirection, TM_TARGET},
-    restriction_enzyme::{get_common_res, ReMatch, RestrictionEnzyme},
-    util::{load, seq_complement},
+    restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
+    util::{load, seq_complement, seq_from_str},
 };
 
 mod gui;
@@ -164,12 +159,18 @@ struct StateUi {
     page_seq: PageSeq,
     seq_insert_input: String,
     seq_vector_input: String,
-    seq_amplicon_input: String,
+    seq_input: String,
     pcr: PcrUi,
     // pcr_primer: Option<usize>, // primer index, if primer count > 0.
     pcr_primer: usize, // primer index
     primer_selected: Option<usize>,
-    hide_primers: bool,
+    // todo: suitstruct for show/hide A/R
+    /// Hide the primer addition/creation/QC panel.
+    hide_primer_table: bool,
+    /// Show or hide restriction enzymes from the sequence view.
+    show_res: bool,
+    /// Show and hide primers on
+    show_primers: bool,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
@@ -178,11 +179,11 @@ struct State {
     ui: StateUi, // Does not need to be saved
     primer_data: Vec<PrimerData>,
     /// Insert and vector are for SLIC and FC.
-    seq_insert: Seq,
-    seq_vector: Seq,
-    seq_vector_with_insert: Seq,
-    /// Amplicon is for basic PCR.
-    seq_amplicon: Seq,
+    // seq_insert: Seq,
+    // seq_vector: Seq,
+    seq: Seq,
+    // /// Amplicon is for basic PCR.
+    // seq_amplicon: Seq,
     insert_loc: usize,
     /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
     insert_location_5p_limit: usize,
@@ -194,14 +195,6 @@ struct State {
 }
 
 impl State {
-    /// Update sequences based on input strings.
-    /// todo: This fn may no longer be necessary.
-    pub fn _sync_seqs(&mut self) {
-        self.seq_insert = util::seq_from_str(&self.ui.seq_insert_input);
-        self.seq_vector = util::seq_from_str(&self.ui.seq_vector_input);
-        self.seq_amplicon = util::seq_from_str(&self.ui.seq_amplicon_input);
-    }
-
     /// Runs the match serach between primers and sequences. Run this when primers and sequences change.
     pub fn sync_primer_matches(&mut self, primer_i: Option<usize>) {
         let p_list = match primer_i {
@@ -210,11 +203,11 @@ impl State {
         };
 
         for p_data in p_list {
-            p_data.matches_amplification_seq = p_data.primer.match_to_seq(&self.seq_amplicon);
-            p_data.matches_insert = p_data.primer.match_to_seq(&self.seq_insert);
-            p_data.matches_vector = p_data.primer.match_to_seq(&self.seq_vector);
-            p_data.matches_vector_with_insert =
-                p_data.primer.match_to_seq(&self.seq_vector_with_insert);
+            p_data.matches_seq = p_data.primer.match_to_seq(&self.seq);
+            // p_data.matches_insert = p_data.primer.match_to_seq(&self.seq_insert);
+            // p_data.matches_vector = p_data.primer.match_to_seq(&self.seq_vector);
+            // p_data.matches_vector_with_insert =
+            //     p_data.primer.match_to_seq(&self.seq);
         }
     }
 
@@ -226,32 +219,37 @@ impl State {
     pub fn sync_re_sites(&mut self) {
         self.restriction_enzyme_sites = Vec::new();
 
-        let seq = match self.ui.page_primer {
-            PagePrimer::Amplification => &self.seq_amplicon,
-            PagePrimer::SlicFc => &self.seq_vector_with_insert,
-        };
-        let seq_comp = seq_complement(seq);
+        // let seq_comp = seq_complement(seq);
 
-        for (i_re, re) in self.restriction_enzyme_lib.iter().enumerate() {
+        for (lib_index, re) in self.restriction_enzyme_lib.iter().enumerate() {
             // todo: Use bio lib?
-            for i in 0..seq.len() {
-                if re.seq == seq[i..i + re.seq.len()] {
+            for i in 0..self.seq.len() {
+                if i + re.seq.len() + 1 >= self.seq.len() {
+                    continue;
+                }
+
+                if re.seq == self.seq[i..i + re.seq.len()] {
                     self.restriction_enzyme_sites.push(ReMatch {
-                        lib_index: i_re,
+                        lib_index,
                         seq_index: i,
                         direction: PrimerDirection::Forward,
                     });
                 }
                 // todo: Simpler way?
-                if re.seq == seq_comp[i..i + re.seq.len()] {
-                    self.restriction_enzyme_sites.push(ReMatch {
-                        lib_index: i_re,
-                        seq_index: i,
-                        direction: PrimerDirection::Reverse,
-                    });
-                }
+                // todo: Evaluate if this is what you want.
+                // if re.seq == seq_comp[i..i + re.seq.len()] {
+                //     self.restriction_enzyme_sites.push(ReMatch {
+                //         lib_index: i_re,
+                //         seq_index: i,
+                //         direction: PrimerDirection::Reverse,
+                //     });
+                // }
             }
         }
+
+        // This sorting aids in our up/down label alternation in the display.
+        self.restriction_enzyme_sites
+            .sort_by(|a, b| a.seq_index.cmp(&b.seq_index));
     }
 
     pub fn sync_metrics(&mut self) {
@@ -264,11 +262,12 @@ impl State {
 
     /// Update the combined SLIC vector + insert sequence.
     pub fn sync_cloning_product(&mut self) {
-        self.seq_vector_with_insert = self.seq_vector.clone(); // Clone the original vector
-        self.seq_vector_with_insert.splice(
-            self.insert_loc..self.insert_loc,
-            self.seq_insert.iter().cloned(),
-        );
+        let seq_vector = seq_from_str(&self.ui.seq_vector_input);
+        let seq_insert = seq_from_str(&self.ui.seq_insert_input);
+
+        self.seq = seq_vector.clone(); // Clone the original vector
+        self.seq
+            .splice(self.insert_loc..self.insert_loc, seq_insert.iter().cloned());
 
         self.sync_primer_matches(None);
 
@@ -290,11 +289,12 @@ fn main() {
 
     let mut state = load("plasmid_tools.save").unwrap_or_else(|_| State::default());
 
-    state.restriction_enzyme_lib = get_common_res();
+    state.restriction_enzyme_lib = load_re_library();
 
-    // state.sync_seqs();
     state.sync_pcr();
     state.sync_metrics();
+    state.sync_re_sites();
+    state.sync_cloning_product();
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

@@ -1,14 +1,19 @@
+#![allow(non_snake_case)]
+
 //! Primer melting temperature calculations. Modified from [BioPython's module here](https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py)
+//! We use an approach that calculates enthalpy and entropy of neighbors basd on empirical data,
+//! and apply salt corrections based on user input concentrations of ions and primers.
+//!
+//! The nearest-neighbor calculations are based primarily on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/)
 
 use crate::{
     primer::{calc_gc, MIN_PRIMER_LEN},
-    util::seq_complement,
     IonConcentrations,
     Nucleotide::{self, A, C, G, T},
 };
 
 /// Enthalpy (dH) and entropy (dS) tables based on terminal missmatch
-fn get_dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
+fn _get_dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     match nts {
         (A, A) => Some((-7.6, -21.3)),
         (A, T) => Some((-7.2, -20.4)),
@@ -60,7 +65,7 @@ fn get_dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
 }
 
 /// Enthalpy (dH) and entropy (dS) tables based on internal missmatch
-fn get_dH_dS_imm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
+fn _get_dH_dS_imm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     match nts {
         (A, A) => Some((-7.6, -21.3)),
         (A, T) => Some((-7.2, -20.4)),
@@ -120,9 +125,9 @@ fn get_dH_dS_imm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
 /// Enthalpy (dH) and entropy (dS) tables based on nearest neighbors. Uses Biopython's DNA_NN4 table.
 /// (SantaLucia & Hicks (2004), Annu. Rev. Biophys. Biomol. Struct 33: 415-440).
 ///
-/// `nts` refers to the NTs surrounding. This is 5' to 3'.
-fn get_dH_dS_neighbors(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
-    match nts {
+/// `neighbors refers to the neighboring nucleotides: (5', 3').
+fn get_dH_dS_neighbors(neighbors: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
+    match neighbors {
         (A, A) => Some((-7.6, -21.3)),
         (A, T) => Some((-7.2, -20.4)),
         (T, A) => Some((-7.2, -21.3)),
@@ -136,15 +141,7 @@ fn get_dH_dS_neighbors(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
         _ => None,
     }
 
-    // not all these are taken into account.
-    //     DNA_NN4 = {
-    //         "init": (0.2, -5.7),
-    // "init_A/T": (2.2, 6.9),
-    // "init_G/C": (0, 0),
-    //         "init_oneG/C": (0, 0),
-    // "init_allA/T": (0, 0),
-    // "init_5T/A": (0, 0),
-    //         "sym": (0, -1.4),
+    // todo: What about ones not listed?
 }
 
 /// Enthalpy (dH) and entropy (dS) tables based on dangling ends.
