@@ -126,7 +126,6 @@ impl Default for IonConcentrations {
 }
 
 /// Values defined here generally aren't worth saving to file etc.
-#[derive(Default)]
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
     // todo to save computation.
@@ -152,6 +151,29 @@ struct StateUi {
     open_file_dialog_import: Option<FileDialog>,
     open_file_dialog_export: Option<FileDialog>,
     opened_file: Option<PathBuf>,
+}
+
+impl Default for StateUi {
+    fn default() -> Self {
+        Self {
+            page: Default::default(),
+            page_seq: Default::default(),
+            seq_insert_input: Default::default(),
+            seq_vector_input: Default::default(),
+            seq_input: Default::default(),
+            pcr: Default::default(),
+            pcr_primer: 0,
+            primer_selected: None,
+            hide_primer_table: false,
+            show_res: true,
+            show_primers: true,
+            cursor_pos: None,
+            cursor_seq_i: None,
+            open_file_dialog_import: None,
+            open_file_dialog_export: None,
+            opened_file: None,
+        }
+    }
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
@@ -245,6 +267,15 @@ impl State {
     pub fn sync_cloning_product(&mut self) {
         let seq_vector = seq_from_str(&self.ui.seq_vector_input);
         let seq_insert = seq_from_str(&self.ui.seq_insert_input);
+
+        if self.insert_loc + 1 > seq_vector.len() {
+            eprintln!(
+                "Error creating cloning insert: insert loc {} is greater than vector len {}",
+                self.insert_loc,
+                seq_vector.len()
+            );
+            return;
+        }
 
         self.seq = seq_vector.clone(); // Clone the original vector
         self.seq

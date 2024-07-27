@@ -5,13 +5,14 @@ use std::ops::Range;
 use bincode::{Decode, Encode};
 
 use crate::{
+    gui::primer::DEFAULT_TRIM_AMT,
     primer_metrics::PrimerMetrics,
     sequence::{
-        seq_complement, seq_from_str, Nucleotide,
+        make_seq_str, seq_complement, seq_from_str, Nucleotide,
         Nucleotide::{C, G},
         Seq,
     },
-    IonConcentrations,
+    IonConcentrations, State,
 };
 
 // If a primer length is below this, many calculations will be disabled for it.
@@ -290,4 +291,99 @@ pub fn calc_gc(seq: &[Nucleotide]) -> f32 {
     }
 
     num_gc as f32 / seq.len() as f32
+}
+
+/// We run this to generate cloning primers when clicking the button
+pub fn make_cloning_primers(state: &mut State) {
+    let seq_vector = seq_from_str(&state.ui.seq_vector_input);
+    let seq_insert = seq_from_str(&state.ui.seq_insert_input);
+
+    if let Some(primers) = design_slic_fc_primers(&seq_vector, &seq_insert, state.insert_loc) {
+        let sequence_input = make_seq_str(&primers.insert_fwd.sequence);
+
+        let mut insert_fwd = PrimerData {
+            primer: primers.insert_fwd,
+            sequence_input,
+            description: "SLIC Insert Fwd".to_owned(),
+            // Both ends are  tunable, since this glues the insert to the vector
+            tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            ..Default::default()
+        };
+
+        let sequence_input = make_seq_str(&primers.insert_rev.sequence);
+        let mut insert_rev = PrimerData {
+            primer: primers.insert_rev,
+            sequence_input,
+            description: "SLIC Insert Rev".to_owned(),
+            // Both ends are tunable, since this glues the insert to the vector
+            tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            ..Default::default()
+        };
+
+        let sequence_input = make_seq_str(&primers.vector_fwd.sequence);
+        let mut vector_fwd = PrimerData {
+            primer: primers.vector_fwd,
+            sequence_input,
+            description: "SLIC Vector Fwd".to_owned(),
+            // 5' is non-tunable: This is the insert location.
+            tunable_5p: TuneSetting::Disabled,
+            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            ..Default::default()
+        };
+
+        let sequence_input = make_seq_str(&primers.vector_rev.sequence);
+        let mut vector_rev = PrimerData {
+            primer: primers.vector_rev,
+            sequence_input,
+            description: "SLIC Vector Rev".to_owned(),
+            tunable_5p: TuneSetting::Disabled,
+            // 3' is non-tunable: This is the insert location.
+            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            ..Default::default()
+        };
+        insert_fwd.run_calcs(&state.ion_concentrations);
+        insert_rev.run_calcs(&state.ion_concentrations);
+        vector_fwd.run_calcs(&state.ion_concentrations);
+        vector_rev.run_calcs(&state.ion_concentrations);
+
+        state
+            .primer_data
+            .extend([insert_fwd, insert_rev, vector_fwd, vector_rev]);
+
+        state.sync_primer_matches(None); // note: Not requried to run on all primers.
+    }
+}
+
+pub fn make_amplification_primers(state: &mut State) {
+    if let Some(primers) = design_amplification_primers(&state.seq) {
+        let sequence_input = make_seq_str(&primers.fwd.sequence);
+
+        let mut primer_fwd = PrimerData {
+            primer: primers.fwd,
+            sequence_input,
+            description: "Amplification Fwd".to_owned(),
+            tunable_5p: TuneSetting::Disabled,
+            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            ..Default::default()
+        };
+
+        let sequence_input = make_seq_str(&primers.rev.sequence);
+        let mut primer_rev = PrimerData {
+            primer: primers.rev,
+            sequence_input,
+            description: "Amplification Rev".to_owned(),
+            tunable_5p: TuneSetting::Disabled,
+            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            ..Default::default()
+        };
+
+        primer_fwd.run_calcs(&state.ion_concentrations);
+        primer_rev.run_calcs(&state.ion_concentrations);
+
+        state.primer_data.extend([primer_fwd, primer_rev]);
+
+        state.sync_primer_matches(None); // note: Not requried to run on all primers.
+    }
 }

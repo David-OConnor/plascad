@@ -5,7 +5,7 @@ use egui_extras::{Column, TableBuilder};
 use crate::sequence::{make_seq_str, seq_from_str};
 use crate::{
     gui::{page_seq_selector, seq_view::sequence_vis, PageSeq},
-    primer::{PrimerData, TuneSetting},
+    primer::{make_amplification_primers, make_cloning_primers, PrimerData, TuneSetting},
 };
 // todo: monospace font for all seqs.
 use crate::{
@@ -18,7 +18,7 @@ const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;
 const COLOR_BAD: Color32 = Color32::LIGHT_RED;
 
-const DEFAULT_TRIM_AMT: usize = 32 - 20;
+pub const DEFAULT_TRIM_AMT: usize = 32 - 20;
 
 const TABLE_ROW_HEIGHT: f32 = 60.;
 
@@ -151,7 +151,16 @@ fn seq_editor(state: &mut State, ui: &mut Ui) {
 
     // ui.add_space(ROW_SPACING);
 
-    ui.heading("Sequence:");
+    ui.horizontal(|ui| {
+        ui.heading("Sequence:");
+        ui.label(&format!("len: {}", state.ui.seq_input.len()));
+
+        ui.add_space(COL_SPACING);
+
+        if ui.button("➕ Make amplification primers").clicked() {
+            make_amplification_primers(state);
+        }
+    });
 
     let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
     if response.changed() {
@@ -160,45 +169,6 @@ fn seq_editor(state: &mut State, ui: &mut Ui) {
         state.sync_re_sites();
         state.sync_primer_matches(None);
     }
-    ui.label(&format!("len: {}", state.ui.seq_input.len()));
-
-    ui.add_space(ROW_SPACING);
-
-    ui.horizontal(|ui| {
-        if ui.button("➕ Make amplification primers").clicked() {
-            // state.sync_seqs();
-
-            if let Some(primers) = design_amplification_primers(&state.seq) {
-                let sequence_input = make_seq_str(&primers.fwd.sequence);
-
-                let mut primer_fwd = PrimerData {
-                    primer: primers.fwd,
-                    sequence_input,
-                    description: "Amplification Fwd".to_owned(),
-                    tunable_5p: TuneSetting::Disabled,
-                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-                    ..Default::default()
-                };
-
-                let sequence_input = make_seq_str(&primers.rev.sequence);
-                let mut primer_rev = PrimerData {
-                    primer: primers.rev,
-                    sequence_input,
-                    description: "Amplification Rev".to_owned(),
-                    tunable_5p: TuneSetting::Disabled,
-                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-                    ..Default::default()
-                };
-
-                primer_fwd.run_calcs(&state.ion_concentrations);
-                primer_rev.run_calcs(&state.ion_concentrations);
-
-                state.primer_data.extend([primer_fwd, primer_rev]);
-
-                state.sync_primer_matches(None); // note: Not requried to run on all primers.
-            }
-        }
-    });
 }
 
 fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
@@ -206,35 +176,8 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(ROW_SPACING);
 
-    if ui.button("Update seq with insert and vec").clicked() {
-        state.sync_cloning_product();
-        state.sync_re_sites();
-    }
-
-    ui.label("Insert:");
-
-    let response = ui.add(
-        TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(ui.available_width()),
-    );
-    if response.changed() {
-        let seq = seq_from_str(&state.ui.seq_insert_input);
-        state.ui.seq_insert_input = make_seq_str(&seq);
-    }
-    ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
-
-    ui.add_space(ROW_SPACING);
-
-    ui.label("Vector:");
-    let response = ui.add(
-        TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(ui.available_width()),
-    );
-    if response.changed() {
-        let seq = seq_from_str(&state.ui.seq_vector_input);
-        state.ui.seq_vector_input = make_seq_str(&seq);
-    }
-    ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
-
     ui.horizontal(|ui| {
+        ui.label("Insert location: ");
         let mut entry = state.insert_loc.to_string();
         let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
         if response.changed() {
@@ -245,69 +188,42 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
         ui.add_space(COL_SPACING);
 
         if ui.button("➕ Make cloning primers").clicked() {
-            let seq_vector = seq_from_str(&state.ui.seq_vector_input);
-            let seq_insert = seq_from_str(&state.ui.seq_insert_input);
+            make_cloning_primers(state);
+        }
 
-            if let Some(primers) =
-                design_slic_fc_primers(&seq_vector, &seq_insert, state.insert_loc)
-            {
-                let sequence_input = make_seq_str(&primers.insert_fwd.sequence);
-
-                let mut insert_fwd = PrimerData {
-                    primer: primers.insert_fwd,
-                    sequence_input,
-                    description: "SLIC Insert Fwd".to_owned(),
-                    // Both ends are  tunable, since this glues the insert to the vector
-                    tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-                    ..Default::default()
-                };
-
-                let sequence_input = make_seq_str(&primers.insert_rev.sequence);
-                let mut insert_rev = PrimerData {
-                    primer: primers.insert_rev,
-                    sequence_input,
-                    description: "SLIC Insert Rev".to_owned(),
-                    // Both ends are tunable, since this glues the insert to the vector
-                    tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-                    ..Default::default()
-                };
-
-                let sequence_input = make_seq_str(&primers.vector_fwd.sequence);
-                let mut vector_fwd = PrimerData {
-                    primer: primers.vector_fwd,
-                    sequence_input,
-                    description: "SLIC Vector Fwd".to_owned(),
-                    // 5' is non-tunable: This is the insert location.
-                    tunable_5p: TuneSetting::Disabled,
-                    tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-                    ..Default::default()
-                };
-
-                let sequence_input = make_seq_str(&primers.vector_rev.sequence);
-                let mut vector_rev = PrimerData {
-                    primer: primers.vector_rev,
-                    sequence_input,
-                    description: "SLIC Vector Rev".to_owned(),
-                    tunable_5p: TuneSetting::Disabled,
-                    // 3' is non-tunable: This is the insert location.
-                    tunable_3p: TuneSetting::Enabled(crate::gui::primer::DEFAULT_TRIM_AMT),
-                    ..Default::default()
-                };
-                insert_fwd.run_calcs(&state.ion_concentrations);
-                insert_rev.run_calcs(&state.ion_concentrations);
-                vector_fwd.run_calcs(&state.ion_concentrations);
-                vector_rev.run_calcs(&state.ion_concentrations);
-
-                state
-                    .primer_data
-                    .extend([insert_fwd, insert_rev, vector_fwd, vector_rev]);
-
-                state.sync_primer_matches(None); // note: Not requried to run on all primers.
-            }
+        if ui.button("Update seq with insert and vec").clicked() {
+            state.sync_cloning_product();
+            state.sync_re_sites();
         }
     });
+
+    ui.horizontal(|ui| {
+        ui.heading("Insert:");
+        ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
+    });
+
+    let response = ui.add(
+        TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(ui.available_width()),
+    );
+    if response.changed() {
+        let seq = seq_from_str(&state.ui.seq_insert_input);
+        state.ui.seq_insert_input = make_seq_str(&seq);
+    }
+
+    ui.add_space(ROW_SPACING);
+
+    ui.horizontal(|ui| {
+        ui.heading("Vector:");
+        ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
+    });
+
+    let response = ui.add(
+        TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(ui.available_width()),
+    );
+    if response.changed() {
+        let seq = seq_from_str(&state.ui.seq_vector_input);
+        state.ui.seq_vector_input = make_seq_str(&seq);
+    }
 }
 
 fn primer_details(state: &mut State, ui: &mut Ui) {

@@ -104,7 +104,6 @@ pub fn import_fasta(path: &Path) -> io::Result<Seq> {
     let mut result = Vec::new();
 
     while let Some(Ok(record)) = records.next() {
-        println!("Record: {:?}", record);
         for r in record.seq() {
             result.push(Nucleotide::from_u8(*r)?);
         }

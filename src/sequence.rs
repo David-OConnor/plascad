@@ -30,10 +30,10 @@ impl Nucleotide {
     /// For parsing from bio::FASTA
     pub fn from_u8(val_u8: u8) -> io::Result<Self> {
         match val_u8 {
-            b'A' => Ok(A),
-            b'T' => Ok(T),
-            b'G' => Ok(G),
-            b'C' => Ok(C),
+            b'A' | b'a' => Ok(A),
+            b'T' | b't' => Ok(T),
+            b'G' | b'g' => Ok(G),
+            b'C' | b'c' => Ok(C),
             _ => Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "Invalid nucleotide",

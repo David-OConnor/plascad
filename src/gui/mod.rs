@@ -14,6 +14,7 @@ use egui_file::FileDialog;
 
 use crate::{
     save::{export_fasta, import_fasta, save, StateToSave, DEFAULT_FASTA_FILE, DEFAULT_SAVE_FILE},
+    sequence::make_seq_str,
     State,
 };
 
@@ -144,7 +145,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
 
     if ui
         .button("Import FASTA")
-        .on_hover_text("Import sequence from the FASTA format")
+        .on_hover_text("Import a sequence in the FASTA format")
         .clicked()
     {
         let mut dialog = FileDialog::open_file(state.ui.opened_file.clone());
@@ -154,7 +155,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
 
     if ui
         .button("Export FASTA")
-        .on_hover_text("Export the sequence in FASTA format")
+        .on_hover_text("Export the sequence in the FASTA format")
         .clicked()
     {
         let mut dialog = FileDialog::save_file(state.ui.opened_file.clone())
@@ -168,9 +169,9 @@ fn save_section(state: &mut State, ui: &mut Ui) {
             if let Some(path) = dialog.path() {
                 state.ui.opened_file = Some(path.to_owned());
 
-                // todo: Insert code here to load the FASTA to our state seq, then run various syncs.
                 if let Ok(seq) = import_fasta(path) {
                     state.seq = seq;
+                    state.ui.seq_input = make_seq_str(&state.seq);
                 }
 
                 state.ui.opened_file = None;
