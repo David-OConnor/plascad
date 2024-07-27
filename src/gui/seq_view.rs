@@ -380,9 +380,15 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 {
                     state.ui.cursor_seq_i = match state.ui.cursor_pos {
                         Some(p) => {
-                            match pixel_to_seq_i(from_screen * pos2(p.0, p.1), &row_ranges) {
-                                Some(v) => Some(v),
-                                None => None,
+                            // We've had issues where cursor above the seq would be treated as first row.
+                            let pos_relative = from_screen * pos2(p.0, p.1);
+                            if pos_relative.x > 0. && pos_relative.y > 0. {
+                                match pixel_to_seq_i(pos_relative, &row_ranges) {
+                                    Some(v) => Some(v),
+                                    None => None,
+                                }
+                            } else {
+                                None
                             }
                         }
                         None => None,

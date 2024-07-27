@@ -1,3 +1,5 @@
+use std::io;
+
 use bincode::{Decode, Encode};
 
 use crate::sequence::Nucleotide::{A, C, G, T};
@@ -16,11 +18,28 @@ impl Nucleotide {
 /// A DNA nucleotide.
 /// todo: RNA A/R
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Encode, Decode)]
+#[repr(u8)] // For bio::FASTA compatibility
 pub enum Nucleotide {
-    A,
-    T,
-    G,
-    C,
+    A = b'A',
+    T = b'T',
+    G = b'G',
+    C = b'C',
+}
+
+impl Nucleotide {
+    /// For parsing from bio::FASTA
+    pub fn from_u8(val_u8: u8) -> io::Result<Self> {
+        match val_u8 {
+            b'A' => Ok(A),
+            b'T' => Ok(T),
+            b'G' => Ok(G),
+            b'C' => Ok(C),
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "Invalid nucleotide",
+            )),
+        }
+    }
 }
 
 // Index 0: 5' end.

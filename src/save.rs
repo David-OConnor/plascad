@@ -1,17 +1,23 @@
 //! This module includes code for saving and loading to variou file formats.
 
 use std::{
-    fs::File,
+    fs::{File, OpenOptions},
     io,
     io::{ErrorKind, Read, Write},
+    path::Path,
 };
 
 use bincode::{config, Decode, Encode};
+use bio::io::fasta;
 
-use crate::{primer::PrimerData, sequence::Seq, IonConcentrations, State};
+use crate::{
+    primer::PrimerData,
+    sequence::{Nucleotide, Seq},
+    IonConcentrations, State,
+};
 
 pub const DEFAULT_SAVE_FILE: &str = "plasmid_tools.save";
-pub const DEFAULT_FASTA_FILE: &str = "export.FASTA";
+pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
 
 /// This is similar to `State`, but excludes the UI, and other things we don't wish to save.
 #[derive(Encode, Decode)]
@@ -67,4 +73,42 @@ pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
         }
     };
     Ok(decoded)
+}
+
+/// Export a sequence in FASTA format.
+pub fn export_fasta(seq: &[Nucleotide], path: &Path) -> io::Result<()> {
+    let file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true) // Create the file if it doesn't exist
+        .open(path)?;
+
+    let seq_u8: Vec<u8> = seq.iter().map(|nt| *nt as u8).collect();
+    let mut writer = fasta::Writer::new(file);
+
+    writer.write(
+        "Plasmid tools export",
+        Some("A DNA export from Plasmid tools"),
+        seq_u8.as_slice(),
+    )?;
+
+    Ok(())
+}
+
+/// Import from a FASTA file
+pub fn import_fasta(path: &Path) -> io::Result<Seq> {
+    let file = File::open(path)?;
+
+    let mut records = fasta::Reader::new(file).records();
+
+    let mut result = Vec::new();
+
+    while let Some(Ok(record)) = records.next() {
+        println!("Record: {:?}", record);
+        for r in record.seq() {
+            result.push(Nucleotide::from_u8(*r)?);
+        }
+    }
+
+    Ok(result)
 }

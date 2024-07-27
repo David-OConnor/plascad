@@ -3,6 +3,9 @@ mod portions;
 pub mod primer;
 pub mod seq_view; // pub for a few consts
 
+use std::{fs::OpenOptions, io};
+
+use bio::io::fasta;
 use eframe::{
     egui,
     egui::{Color32, Context, Key, RichText, ScrollArea, Ui},
@@ -10,7 +13,7 @@ use eframe::{
 use egui_file::FileDialog;
 
 use crate::{
-    save::{save, StateToSave, DEFAULT_FASTA_FILE, DEFAULT_SAVE_FILE},
+    save::{export_fasta, import_fasta, save, StateToSave, DEFAULT_FASTA_FILE, DEFAULT_SAVE_FILE},
     State,
 };
 
@@ -51,29 +54,6 @@ impl Page {
     }
 }
 
-// #[derive(Clone, Copy, PartialEq, Encode, Decode)]
-// pub enum PagePrimer {
-//     /// Eg amplifying a section of a single sequence.
-//     Amplification,
-//     SlicFc,
-// }
-
-// impl Default for PagePrimer {
-//     fn default() -> Self {
-//         Self::SlicFc
-//     }
-// }
-//
-// impl PagePrimer {
-//     pub fn to_str(self) -> String {
-//         match self {
-//             Self::Amplification => "General",
-//             Self::SlicFc => "SLIC and FastCloning",
-//         }
-//         .to_owned()
-//     }
-// }
-
 #[derive(Clone, Copy, PartialEq)]
 pub enum PageSeq {
     EditSeq,
@@ -83,7 +63,7 @@ pub enum PageSeq {
 
 impl Default for PageSeq {
     fn default() -> Self {
-        Self::EditSeq
+        Self::View
     }
 }
 
@@ -97,22 +77,6 @@ impl PageSeq {
         .to_owned()
     }
 }
-
-// // todo: Move A/R
-// /// Used to determine which side of a primer we can extend or remove from in order to optimize it.
-// #[derive(Clone, Copy, PartialEq)]
-// enum TunableEnd {
-//     None,
-//     Left,
-//     Right,
-//     Both,
-// }
-
-// impl Default for TunableEnd {
-//     fn default() -> Self {
-//         Self::None
-//     }
-// }
 
 fn page_button(page_state: &mut Page, page: Page, ui: &mut Ui) {
     let color = if *page_state == page {
@@ -139,23 +103,6 @@ fn page_selector(state: &mut State, ui: &mut Ui) {
     });
 }
 
-// fn page_primers_button(page_state: &mut PagePrimer, page: PagePrimer, ui: &mut Ui) {
-//     let color = if *page_state == page {
-//         Color32::GREEN
-//     } else {
-//         Color32::WHITE
-//     };
-//
-//     if ui
-//         .button(RichText::new(page.to_str()).color(color))
-//         .clicked()
-//     {
-//         *page_state = page;
-//     }
-//
-//     ui.add_space(COL_SPACING / 2.);
-// }
-
 // todo: Use to_string and partialEq traits instead of duplicating the other page.
 fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
     let color = if *page_state == page {
@@ -173,14 +120,6 @@ fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
 
     ui.add_space(COL_SPACING / 2.);
 }
-
-// pub fn page_primers_selector(state: &mut State, ui: &mut Ui) {ease
-
-//     ui.horizontal(|ui| {
-//         page_primers_button(&mut state.ui.page_primer, PagePrimer::Amplification, ui);
-//         page_primers_button(&mut state.ui.page_primer, PagePrimer::SlicFc, ui);
-//     });
-// }
 
 pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
@@ -230,6 +169,9 @@ fn save_section(state: &mut State, ui: &mut Ui) {
                 state.ui.opened_file = Some(path.to_owned());
 
                 // todo: Insert code here to load the FASTA to our state seq, then run various syncs.
+                if let Ok(seq) = import_fasta(path) {
+                    state.seq = seq;
+                }
 
                 state.ui.opened_file = None;
                 state.ui.open_file_dialog_import = None;
@@ -240,7 +182,9 @@ fn save_section(state: &mut State, ui: &mut Ui) {
             if let Some(path) = dialog.path() {
                 state.ui.opened_file = Some(path.to_owned());
 
-                // INsert code here to export to the path.
+                if let Err(e) = export_fasta(&state.seq, path) {
+                    eprintln!("Error exporting to FASTA: {:?}", e);
+                };
 
                 state.ui.opened_file = None;
                 state.ui.open_file_dialog_export = None;
