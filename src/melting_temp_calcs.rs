@@ -4,7 +4,7 @@
 //! We use an approach that calculates enthalpy and entropy of neighbors basd on empirical data,
 //! and apply salt corrections based on user input concentrations of ions and primers.
 //!
-//! The nearest-neighbor calculations are based primarily on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/)
+//! The calculations are based primarily on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/)
 
 use crate::{
     primer::{calc_gc, MIN_PRIMER_LEN},
@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// Enthalpy (dH) and entropy (dS) tables based on terminal missmatch
-fn _get_dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
+fn _dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     match nts {
         (A, A) => Some((-7.6, -21.3)),
         (A, T) => Some((-7.2, -20.4)),
@@ -65,7 +65,7 @@ fn _get_dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
 }
 
 /// Enthalpy (dH) and entropy (dS) tables based on internal missmatch
-fn _get_dH_dS_imm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
+fn _dH_dS_imm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     match nts {
         (A, A) => Some((-7.6, -21.3)),
         (A, T) => Some((-7.2, -20.4)),
@@ -122,30 +122,8 @@ fn _get_dH_dS_imm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     //     "GI/CI": (-0.5, -1.3)}
 }
 
-/// Enthalpy (dH) and entropy (dS) tables based on nearest neighbors. Uses Biopython's DNA_NN4 table.
-/// (SantaLucia & Hicks (2004), Annu. Rev. Biophys. Biomol. Struct 33: 415-440).
-///
-/// `neighbors refers to the neighboring nucleotides: (5', 3').
-fn get_dH_dS_neighbors(neighbors: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
-    match neighbors {
-        (A, A) => Some((-7.6, -21.3)),
-        (A, T) => Some((-7.2, -20.4)),
-        (T, A) => Some((-7.2, -21.3)),
-        (C, A) => Some((-8.5, -22.7)),
-        (C, G) => Some((-10.6, -27.2)),
-        (C, T) => Some((-7.8, -21.0)),
-        (G, A) => Some((-8.2, -22.2)),
-        (G, C) => Some((-9.8, -24.4)),
-        (G, T) => Some((-8.4, -22.4)),
-        (G, G) => Some((-8.0, -19.9)),
-        _ => None,
-    }
-
-    // todo: What about ones not listed?
-}
-
 /// Enthalpy (dH) and entropy (dS) tables based on dangling ends.
-fn get_dH_dS_de(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
+fn _dH_dS_de(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     match nts {
         (A, A) => Some((0.2, 2.3)),
         (A, T) => Some((-7.2, -20.4)),
@@ -175,6 +153,26 @@ fn get_dH_dS_de(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
     //     ".A/TT": (2.9, 10.4), ".C/TG": (-4.4, -13.1), ".G/TC": (-5.2, -15.0),
     //     ".T/TA": (-3.8, -12.6)}
 }
+
+/// Enthalpy (dH) and entropy (dS) based on nearest neighbors.
+/// SantaLucia & Hicks, 2004, Table 1. Value are in kcal/Mol.
+///
+/// `neighbors` refers to the values between adjacent pairs of NTs.
+fn dH_dS_neighbors(neighbors: (Nucleotide, Nucleotide)) -> (f32, f32) {
+    match neighbors {
+        (A, A) | (T, T) => (-7.6, -21.3),
+        (A, T) => (-7.2, -20.4),
+        (T, A) => (-7.2, -21.3),
+        (T, G) | (C, A)  => (-8.5, -22.7),
+        (A, C) | (G, T) => (-8.4, -22.4),
+        (A, G) | (C, T) => (-7.8, -21.0),
+        (T, C) | (G, A) => (-8.2, -22.2),
+        (C, G) => (-10.6, -27.2),
+        (G, C) => (-9.8, -24.4),
+        (C, C) | (G, G) => (-8.0, -19.9),
+    }
+}
+
 
 /// Calculate a Tm correction term due to salt ions.
 /// https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py#L475
@@ -272,17 +270,15 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
         return None;
     }
 
-    // Inititial values.
+    // Inititial values. (Table 1)
     let mut dH = 0.2;
     let mut dS = -5.7;
 
-    // If no GC content, apply additional values.
+    // If no GC content, apply additional values. (Table 1)
     if calc_gc(seq) < 0.001 {
         dH += 2.2;
         dS += 6.9;
     }
-
-    // Biopython's 5' end = T penalty N/A, as the values there are 0. Same for oneG/C check.
 
     // Add to dH and dS based on the terminal pair.
     {
@@ -301,47 +297,24 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
     }
 
     for (i, nt) in seq.iter().enumerate() {
-        if i + 2 >= seq.len() {
+        if i + 1 >= seq.len() {
             break;
         }
 
-        let neighbors = (*nt, seq[i + 2]);
+        let neighbors = (*nt, seq[i + 1]);
 
-        // if let Some(v) = get_dH_dS_imm(neighbors) {
-        //     // dH += v.0;
-        //     // dS += v.1;
-        //     // todo; Trying to double based on the complementary ?
-        //     dH += 2. * v.0;
-        //     dS += 2. * v.1;
-        // }
-
-        if let Some(v) = get_dH_dS_neighbors(neighbors) {
-            dH += v.0;
-            dS += v.1;
-            // Note: We tried this doubling based on a misreading of the code, but it seems
-            // to match apmplifX better than without.
-            // dH += 2. * v.0;
-            // dS += 2. * v.1;
-        }
+        let (dH_nn, dS_nn) = dH_dS_neighbors(neighbors);
+        dH += dH_nn;
+        dS += dS_nn;
     }
-
-    // dH / (dS + 0.368 * N * NAP.ln() + R * primer.ln() / 4.)
-    // melting_temp = (1000 * delta_h) / (delta_s + (R * (math.log(k)))) - 273.15
 
     const R: f32 = 1.987; // Universal gas constant (Cal/C * Mol)
 
-    // https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py#L206
-    // "dnac1: Concentration of the higher concentrated strand [nM]. Typically
-    //        this will be the primer (for PCR) or the probe. Default=25.
-    //      - dnac2: Concentration of the lower concentrated strand [nM]. In PCR this
-    //        is the template strand which concentration is typically very low and may
-    //        be ignored (dnac2=0). In oligo/oligo hybridization experiments, dnac1
-    //        equals dnac1. Default=25."
-    let dnac2 = 0.; // todo?
-    let k = (ion_concentrations.primer - (dnac2 / 2.0)) * 1.0e-9;
-    // let k: f32 = (ion_concentrations.primer - (ion_concentrations.primer / 2.0)) * 1.0e-9;
+    // We are multiplying by two, as it's one per strand.
+    let C_T = (ion_concentrations.primer * 2.) * 1.0e-9;
 
-    let mut result = (1_000. * dH) / (dS + R * (k.ln())) - 273.15;
+    // SantaLucia and Hicks, Equation 3.
+    let mut result = (1_000. * dH) / (dS + R * ((C_T/4.).ln())) - 273.15;
 
     // if saltcorr == 5:
     //         delta_s += corr
@@ -354,7 +327,6 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
 
     //  We will assume saltcorr method 1-4 for now.
     if let Some(sc) = salt_correction(seq, ion_concentrations) {
-        println!("Salt cor: {sc}");
         result += sc;
 
         // for saltcorr 6/7:

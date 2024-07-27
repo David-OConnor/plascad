@@ -333,9 +333,16 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     let row_ranges = get_row_ranges(seq_len, nt_chars_per_row);
 
     let cursor_posit_text = match state.ui.cursor_seq_i {
-        Some(p) => &p.to_string(),
+        Some(p) => {
+            if p +1 <= state.seq.len() {
+                // + 1, as the convention is to use 1-based indexing vice 0.
+                &(p + 1).to_string()
+                // This occurs if the cursor is on the last row, right of the last NT.
+            } else {""}
+        },
         None => "",
     };
+
     ui.label(format!("Cursor: {}", cursor_posit_text));
 
     display_filters(&mut state.ui, ui);
