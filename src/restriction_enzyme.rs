@@ -6,11 +6,13 @@
 //! Note: This module only currently includes a selection of popular REs, and only ones that match
 //! exact NTs.
 
-use bincode::{Decode, Encode};
-
-use crate::primer::PrimerDirection;
-use crate::sequence::Nucleotide::{A, C, G, T};
-use crate::sequence::Seq;
+use crate::{
+    primer::PrimerDirection,
+    sequence::{
+        Nucleotide::{A, C, G, T},
+        Seq,
+    },
+};
 
 /// Unlike `Nucleotide`, this includes wildcards
 #[derive(Clone, Copy)]
@@ -35,7 +37,6 @@ pub enum NucleotideGeneral {
     K,
 }
 
-#[derive(Encode, Decode)]
 pub struct ReMatch {
     pub lib_index: usize,
     pub seq_index: usize,
@@ -43,7 +44,6 @@ pub struct ReMatch {
     pub direction: PrimerDirection,
 }
 
-#[derive(Encode, Decode)] // todo: IDeally, remove this Enc/Dec, once you re-org what is saved.
 pub struct RestrictionEnzyme {
     pub name: String,
     /// From the 5' end.

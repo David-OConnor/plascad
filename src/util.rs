@@ -1,12 +1,5 @@
-use std::{
-    collections::HashSet,
-    fs::File,
-    io,
-    io::{ErrorKind, Read, Write},
-    ops::Range,
-};
+use std::{collections::HashSet, ops::Range};
 
-use bincode::{self, config, Decode, Encode};
 use eframe::egui::{pos2, Pos2};
 
 use crate::gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START};
@@ -17,31 +10,6 @@ pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 
     let portion = (val - range_in.0) / (range_in.1 - range_in.0);
 
     portion * (range_out.1 - range_out.0) + range_out.0
-}
-
-pub fn save<T: Encode>(filename: &str, data: &T) -> io::Result<()> {
-    let config = config::standard();
-
-    let encoded: Vec<u8> = bincode::encode_to_vec(data, config).unwrap();
-    let mut file = File::create(filename)?;
-    file.write_all(&encoded)?;
-    Ok(())
-}
-
-pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
-    let config = config::standard();
-
-    let mut file = File::open(filename)?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
-    let (decoded, len) = match bincode::decode_from_slice(&buffer, config) {
-        Ok(v) => v,
-        Err(_) => {
-            eprintln!("Error loading from file. Did the format change?");
-            return Err(io::Error::new(ErrorKind::Other, "error loading"));
-        }
-    };
-    Ok(decoded)
 }
 
 /// We use this for dividing a nucleotied sequence into rows, for display in a canvas UI.

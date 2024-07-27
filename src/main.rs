@@ -5,6 +5,8 @@
 // Disables the terminal window. Use this for releases, but disable when debugging.
 // #![windows_subsystem = "windows"]
 
+use std::{io, path::PathBuf};
+
 use bincode::{Decode, Encode};
 // use bio::{
 //     bio_types::sequence::{Sequence, SequenceRead},
@@ -12,14 +14,17 @@ use bincode::{Decode, Encode};
 //     io::fastq::FastqRead,
 // };
 use eframe::{self, egui, egui::Context};
+use egui_file::FileDialog;
 use primer::PrimerData;
-use sequence::{Seq, seq_from_str};
+use save::load;
+use sequence::{seq_from_str, Seq};
+
 use crate::{
     gui::{Page, PageSeq, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::{PrimerDirection, TM_TARGET},
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
-    util::load,
+    save::{StateToSave, DEFAULT_SAVE_FILE},
 };
 
 mod gui;
@@ -28,12 +33,12 @@ mod pcr;
 mod primer;
 mod primer_metrics;
 mod restriction_enzyme;
+mod save;
+mod sequence;
 mod solution_helper;
 mod toxic_proteins;
 mod util;
-mod sequence;
 // mod snapgene_parse;
-
 
 #[derive(Clone, Copy)]
 enum AminoAcid {
@@ -74,7 +79,6 @@ impl eframe::App for State {
 }
 
 /// Variables for UI fields, for determining PCR parameters.
-#[derive(Encode, Decode)]
 struct PcrUi {
     pub primer_tm: f32,
     pub product_len: usize,
@@ -96,7 +100,7 @@ impl Default for PcrUi {
     }
 }
 
-#[derive(Encode, Decode)]
+#[derive(Clone, Encode, Decode)]
 /// Concentrations of common ions in the oglio solution. Affects melting temperature (TM).
 /// All values are in milliMolar.
 struct IonConcentrations {
@@ -122,7 +126,7 @@ impl Default for IonConcentrations {
 }
 
 /// Values defined here generally aren't worth saving to file etc.
-#[derive(Default, Encode, Decode)]
+#[derive(Default)]
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
     // todo to save computation.
@@ -145,10 +149,13 @@ struct StateUi {
     show_primers: bool,
     cursor_pos: Option<(f32, f32)>,
     cursor_seq_i: Option<usize>,
+    open_file_dialog_import: Option<FileDialog>,
+    open_file_dialog_export: Option<FileDialog>,
+    opened_file: Option<PathBuf>,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
-#[derive(Default, Encode, Decode)]
+#[derive(Default)]
 struct State {
     ui: StateUi, // Does not need to be saved
     primer_data: Vec<PrimerData>,
@@ -159,9 +166,9 @@ struct State {
     // /// Amplicon is for basic PCR.
     // seq_amplicon: Seq,
     insert_loc: usize,
-    /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
-    insert_location_5p_limit: usize,
-    insert_location_3p_limit: usize,
+    // /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
+    // insert_location_5p_limit: usize,
+    // insert_location_3p_limit: usize,
     ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
@@ -261,7 +268,11 @@ impl State {
 fn main() {
     // todo: Move to a more robust save/load system later.
 
-    let mut state = load("plasmid_tools.save").unwrap_or_else(|_| State::default());
+    let state_loaded: io::Result<StateToSave> = load(DEFAULT_SAVE_FILE);
+    let mut state = match state_loaded {
+        Ok(s) => s.to_state(),
+        Err(_) => Default::default(),
+    };
 
     state.restriction_enzyme_lib = load_re_library();
 

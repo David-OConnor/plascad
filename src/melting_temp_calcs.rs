@@ -7,10 +7,10 @@
 //! The calculations are based primarily on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/)
 
 use crate::{
-    IonConcentrations,
     primer::{calc_gc, MIN_PRIMER_LEN},
+    sequence::Nucleotide::{self, A, C, G, T},
+    IonConcentrations,
 };
-use crate::sequence::Nucleotide::{self, A, C, G, T};
 
 /// Enthalpy (dH) and entropy (dS) tables based on terminal missmatch
 fn _dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {
@@ -163,7 +163,7 @@ fn dH_dS_neighbors(neighbors: (Nucleotide, Nucleotide)) -> (f32, f32) {
         (A, A) | (T, T) => (-7.6, -21.3),
         (A, T) => (-7.2, -20.4),
         (T, A) => (-7.2, -21.3),
-        (T, G) | (C, A)  => (-8.5, -22.7),
+        (T, G) | (C, A) => (-8.5, -22.7),
         (A, C) | (G, T) => (-8.4, -22.4),
         (A, G) | (C, T) => (-7.8, -21.0),
         (T, C) | (G, A) => (-8.2, -22.2),
@@ -172,7 +172,6 @@ fn dH_dS_neighbors(neighbors: (Nucleotide, Nucleotide)) -> (f32, f32) {
         (C, C) | (G, G) => (-8.0, -19.9),
     }
 }
-
 
 /// Calculate a Tm correction term due to salt ions.
 /// https://github.com/biopython/biopython/blob/master/Bio/SeqUtils/MeltingTemp.py#L475
@@ -314,7 +313,7 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
     let C_T = (ion_concentrations.primer * 2.) * 1.0e-9;
 
     // SantaLucia and Hicks, Equation 3.
-    let mut result = (1_000. * dH) / (dS + R * ((C_T/4.).ln())) - 273.15;
+    let mut result = (1_000. * dH) / (dS + R * ((C_T / 4.).ln())) - 273.15;
 
     // if saltcorr == 5:
     //         delta_s += corr

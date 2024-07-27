@@ -2,9 +2,16 @@
 
 use bincode::{Decode, Encode};
 
-use crate::{IonConcentrations, melting_temp_calcs, primer::{calc_gc, MIN_PRIMER_LEN, Primer}, TM_TARGET, util::{map_linear, remove_duplicates}};
-use crate::sequence::Nucleotide;
-use crate::sequence::Nucleotide::{C, G};
+use crate::{
+    melting_temp_calcs,
+    primer::{calc_gc, Primer, MIN_PRIMER_LEN},
+    sequence::{
+        Nucleotide,
+        Nucleotide::{C, G},
+    },
+    util::{map_linear, remove_duplicates},
+    IonConcentrations, TM_TARGET,
+};
 
 /// Metrics related to primer quality.
 #[derive(Clone, Debug, Default, Encode, Decode)]
@@ -219,9 +226,9 @@ fn double_nt_repeats(seq: &[Nucleotide]) -> u16 {
     let mut prev_nt = (seq[0], seq[1]);
     let mut repeat_len = 1; // Counts the char.
 
-    for i in 0..seq.len() / 2 -1 {
+    for i in 0..seq.len() / 2 - 1 {
         // todo: Incomplete: Need to do the same offset by one.
-        let nts = (seq[i * 2], seq[(i * 2)+1]);
+        let nts = (seq[i * 2], seq[(i * 2) + 1]);
         if nts == prev_nt {
             repeat_len += 1;
 
@@ -263,10 +270,7 @@ fn triplet_repeats(seq: &[Nucleotide]) -> u16 {
                 && i != triplet_other.0
             {
                 // Dount count each additional nt match beyond 3 as a new repeat
-                if i >= 3
-                    && triplet_other.0 >= 3
-                    && seq[i - 1] == seq[triplet_other.0 - 1]
-                {
+                if i >= 3 && triplet_other.0 >= 3 && seq[i - 1] == seq[triplet_other.0 - 1] {
                     continue;
                 }
 

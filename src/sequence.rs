@@ -1,5 +1,7 @@
 use bincode::{Decode, Encode};
 
+use crate::sequence::Nucleotide::{A, C, G, T};
+
 impl Nucleotide {
     pub fn as_str(&self) -> &str {
         match self {
@@ -23,6 +25,13 @@ pub enum Nucleotide {
 
 // Index 0: 5' end.
 pub type Seq = Vec<Nucleotide>;
+
+#[derive(Encode, Decode)]
+pub struct Feature {
+    pub index_range: (usize, usize),
+    pub name: String,
+    pub color: (u8, u8, u8),
+}
 
 /// Reverse direction, and swap C for G, A for T.
 pub fn seq_complement(seq: &[Nucleotide]) -> Seq {

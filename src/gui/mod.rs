@@ -3,16 +3,14 @@ mod portions;
 pub mod primer;
 pub mod seq_view; // pub for a few consts
 
-use bincode::{Decode, Encode};
 use eframe::{
     egui,
-    egui::{vec2, Color32, Context, Key, Pos2, Rect, RichText, ScrollArea, Sense, Ui},
-    emath::RectTransform,
+    egui::{Color32, Context, Key, RichText, ScrollArea, Ui},
 };
+use egui_file::FileDialog;
 
 use crate::{
-    gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, VIEW_AREA_PAD},
-    util::{get_row_ranges, pixel_to_seq_i, save, seq_i_to_pixel},
+    save::{save, StateToSave, DEFAULT_FASTA_FILE, DEFAULT_SAVE_FILE},
     State,
 };
 
@@ -24,7 +22,7 @@ pub const WINDOW_TITLE: &str = "Plasmid tools";
 pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
 
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Page {
     /// Primer design and QC, including for cloning
     Primers,
@@ -76,7 +74,7 @@ impl Page {
 //     }
 // }
 
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum PageSeq {
     EditSeq,
     EditSlic,
@@ -192,6 +190,65 @@ pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
     });
 }
 
+/// Ui elements for saving and loading data in various file formats. This includes our own format,
+/// FASTA, and (eventually) SnapGene's DNA format.
+fn save_section(state: &mut State, ui: &mut Ui) {
+    if ui
+        .button("Save")
+        .on_hover_text("Save primer data. Ctrl + S")
+        .clicked()
+    {
+        if let Err(e) = save(DEFAULT_SAVE_FILE, &StateToSave::from_state(&state)) {
+            println!("Error saving: {e}");
+        }
+    }
+
+    if ui
+        .button("Import FASTA")
+        .on_hover_text("Import sequence from the FASTA format")
+        .clicked()
+    {
+        let mut dialog = FileDialog::open_file(state.ui.opened_file.clone());
+        dialog.open();
+        state.ui.open_file_dialog_import = Some(dialog);
+    }
+
+    if ui
+        .button("Export FASTA")
+        .on_hover_text("Export the sequence in FASTA format")
+        .clicked()
+    {
+        let mut dialog = FileDialog::save_file(state.ui.opened_file.clone())
+            .default_filename(DEFAULT_FASTA_FILE);
+        dialog.open();
+        state.ui.open_file_dialog_export = Some(dialog);
+    }
+
+    if let Some(dialog) = &mut state.ui.open_file_dialog_import {
+        if dialog.show(ui.ctx()).selected() {
+            if let Some(path) = dialog.path() {
+                state.ui.opened_file = Some(path.to_owned());
+
+                // todo: Insert code here to load the FASTA to our state seq, then run various syncs.
+
+                state.ui.opened_file = None;
+                state.ui.open_file_dialog_import = None;
+            }
+        }
+    } else if let Some(dialog) = &mut state.ui.open_file_dialog_export {
+        if dialog.show(ui.ctx()).selected() {
+            if let Some(path) = dialog.path() {
+                state.ui.opened_file = Some(path.to_owned());
+
+                // INsert code here to export to the path.
+
+                state.ui.opened_file = None;
+                state.ui.open_file_dialog_export = None;
+            }
+        }
+    }
+}
+
 pub fn draw(state: &mut State, ctx: &Context) {
     ctx.input(|ip| {
         if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
@@ -199,7 +256,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
         }
 
         if ip.key_pressed(Key::S) && ip.modifiers.ctrl {
-            if let Err(e) = save("plasmid_tools.save", state) {
+            if let Err(e) = save(DEFAULT_SAVE_FILE, &StateToSave::from_state(&state)) {
                 println!("Error saving: {e}");
             }
         }
@@ -223,15 +280,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             ui.add_space(COL_SPACING);
 
-            if ui
-                .button("Save")
-                .on_hover_text("Save primer data. Ctrl + S")
-                .clicked()
-            {
-                if let Err(e) = save("plasmid_tools.save", state) {
-                    println!("Error saving: {e}");
-                }
-            }
+            save_section(state, ui);
         });
 
         ui.add_space(ROW_SPACING);

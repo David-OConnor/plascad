@@ -1,19 +1,18 @@
 use eframe::egui::{Align, Color32, Layout, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
+// todo: monospace font for all seqs.
+use crate::sequence::{make_seq_str, seq_from_str};
 use crate::{
-    gui::{page_seq_selector, PageSeq, seq_view::sequence_vis},
+    gui::{page_seq_selector, seq_view::sequence_vis, PageSeq},
     primer::{PrimerData, TuneSetting},
 };
 // todo: monospace font for all seqs.
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
-    IonConcentrations,
     primer::{design_amplification_primers, design_slic_fc_primers},
-    State,
+    IonConcentrations, State,
 };
-// todo: monospace font for all seqs.
-use crate::sequence::{make_seq_str, seq_from_str};
 
 const COLOR_GOOD: Color32 = Color32::GREEN;
 const COLOR_MARGINAL: Color32 = Color32::GOLD;

@@ -334,12 +334,14 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
     let cursor_posit_text = match state.ui.cursor_seq_i {
         Some(p) => {
-            if p +1 <= state.seq.len() {
+            if p + 1 <= state.seq.len() {
                 // + 1, as the convention is to use 1-based indexing vice 0.
                 &(p + 1).to_string()
                 // This occurs if the cursor is on the last row, right of the last NT.
-            } else {""}
-        },
+            } else {
+                ""
+            }
+        }
         None => "",
     };
 

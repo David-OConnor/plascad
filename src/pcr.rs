@@ -19,7 +19,7 @@ impl TempTime {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum PolymeraseType {
     NormalFidelity,
     /// Eg Phusion; results in a shorter extension time.

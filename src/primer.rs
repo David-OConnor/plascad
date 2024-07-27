@@ -5,11 +5,14 @@ use std::ops::Range;
 use bincode::{Decode, Encode};
 
 use crate::{
-    IonConcentrations,
     primer_metrics::PrimerMetrics,
+    sequence::{
+        seq_complement, seq_from_str, Nucleotide,
+        Nucleotide::{C, G},
+        Seq,
+    },
+    IonConcentrations,
 };
-use crate::sequence::Nucleotide::{C, G};
-use crate::sequence::{Nucleotide, Seq, seq_complement, seq_from_str};
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;
@@ -37,7 +40,7 @@ pub enum PrimerDirection {
     Reverse,
 }
 
-#[derive(Default, Encode, Decode)]
+#[derive(Default, Clone, Encode, Decode)]
 pub struct Primer {
     pub sequence: Seq,
 }
@@ -194,7 +197,7 @@ pub fn design_amplification_primers(seq: &[Nucleotide]) -> Option<AmplificationP
     Some(result)
 }
 
-#[derive(Default, Encode, Decode)]
+#[derive(Default, Clone, Encode, Decode)]
 pub struct PrimerData {
     /// This primer excludes nts past the tuning offsets.
     pub primer: Primer,
