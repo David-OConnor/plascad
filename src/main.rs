@@ -25,6 +25,7 @@ use crate::{
     primer::{PrimerDirection, TM_TARGET},
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     save::{StateToSave, DEFAULT_SAVE_FILE},
+    sequence::Feature,
 };
 
 mod gui;
@@ -195,6 +196,7 @@ struct State {
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
     restriction_enzyme_sites: Vec<ReMatch>,
+    features: Vec<Feature>,
 }
 
 impl State {

@@ -45,7 +45,7 @@ impl Nucleotide {
 // Index 0: 5' end.
 pub type Seq = Vec<Nucleotide>;
 
-#[derive(Encode, Decode)]
+#[derive(Clone, Encode, Decode)]
 pub struct Feature {
     pub index_range: (usize, usize),
     pub name: String,

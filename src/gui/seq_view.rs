@@ -80,13 +80,8 @@ fn primer_arrow(
     let mut bottom_right = pos2(bounds_r0.1.x, bounds_r0.1.y + HEIGHT);
 
     if direction == Reverse {
-        let temp = top_right;
-        top_right = top_left;
-        top_left = temp;
-
-        let temp = bottom_left;
-        bottom_left = bottom_right;
-        bottom_right = temp;
+        std::mem::swap(&mut top_left, &mut top_right);
+        std::mem::swap(&mut bottom_left, &mut bottom_right);
 
         top_left.y += V_OFFSET_REV;
         top_right.y += V_OFFSET_REV;
@@ -112,13 +107,8 @@ fn primer_arrow(
             top_right.x += SLANT;
             bottom_left.x += SLANT;
 
-            let temp = top_right;
-            top_right = top_left;
-            top_left = temp;
-
-            let temp = bottom_left;
-            bottom_left = bottom_right;
-            bottom_right = temp;
+            std::mem::swap(&mut top_left, &mut top_right);
+            std::mem::swap(&mut bottom_left, &mut bottom_right);
 
             top_left.y += V_OFFSET_REV;
             top_right.y += V_OFFSET_REV;
@@ -382,11 +372,9 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                         Some(p) => {
                             // We've had issues where cursor above the seq would be treated as first row.
                             let pos_relative = from_screen * pos2(p.0, p.1);
+
                             if pos_relative.x > 0. && pos_relative.y > 0. {
-                                match pixel_to_seq_i(pos_relative, &row_ranges) {
-                                    Some(v) => Some(v),
-                                    None => None,
-                                }
+                                pixel_to_seq_i(pos_relative, &row_ranges).map(|v| v)
                             } else {
                                 None
                             }

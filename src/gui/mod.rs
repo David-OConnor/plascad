@@ -138,7 +138,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
         .on_hover_text("Save primer data. Ctrl + S")
         .clicked()
     {
-        if let Err(e) = save(DEFAULT_SAVE_FILE, &StateToSave::from_state(&state)) {
+        if let Err(e) = save(DEFAULT_SAVE_FILE, &StateToSave::from_state(state)) {
             println!("Error saving: {e}");
         }
     }
@@ -201,15 +201,12 @@ pub fn draw(state: &mut State, ctx: &Context) {
         }
 
         if ip.key_pressed(Key::S) && ip.modifiers.ctrl {
-            if let Err(e) = save(DEFAULT_SAVE_FILE, &StateToSave::from_state(&state)) {
+            if let Err(e) = save(DEFAULT_SAVE_FILE, &StateToSave::from_state(state)) {
                 println!("Error saving: {e}");
             }
         }
 
-        state.ui.cursor_pos = match ip.pointer.hover_pos() {
-            Some(pos) => Some((pos.x, pos.y)),
-            None => None,
-        };
+        state.ui.cursor_pos = ip.pointer.hover_pos().map(|pos| (pos.x, pos.y));
     });
 
     egui::CentralPanel::default().show(ctx, |ui| {

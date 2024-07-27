@@ -12,7 +12,7 @@ use bio::io::fasta;
 
 use crate::{
     primer::PrimerData,
-    sequence::{Nucleotide, Seq},
+    sequence::{Feature, Nucleotide, Seq},
     IonConcentrations, State,
 };
 
@@ -26,6 +26,7 @@ pub struct StateToSave {
     seq: Seq,
     insert_loc: usize,
     ion_concentrations: IonConcentrations,
+    features: Vec<Feature>,
 }
 
 impl StateToSave {
@@ -35,6 +36,7 @@ impl StateToSave {
             seq: state.seq.clone(),
             insert_loc: state.insert_loc,
             ion_concentrations: state.ion_concentrations.clone(),
+            features: state.features.clone(),
         }
     }
 
@@ -45,6 +47,7 @@ impl StateToSave {
             seq: self.seq,
             insert_loc: self.insert_loc,
             ion_concentrations: self.ion_concentrations,
+            features: self.features,
             ..Default::default()
         }
     }
@@ -78,7 +81,6 @@ pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
 /// Export a sequence in FASTA format.
 pub fn export_fasta(seq: &[Nucleotide], path: &Path) -> io::Result<()> {
     let file = OpenOptions::new()
-        .write(true)
         .append(true)
         .create(true) // Create the file if it doesn't exist
         .open(path)?;

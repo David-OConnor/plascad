@@ -182,7 +182,7 @@ fn salt_correction(seq: &[Nucleotide], ion: &IonConcentrations) -> Option<f32> {
 
     let tris = 0.; // todo: Do we want this?
 
-    if method >= 5 && method <= 7 && seq.is_empty() {
+    if (5..=7).contains(&method) && seq.is_empty() {
         // return Err("sequence is missing (is needed to calculate GC content or sequence length).".into());
         return None;
     }
