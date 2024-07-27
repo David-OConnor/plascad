@@ -9,12 +9,7 @@ use std::{
 use bincode::{self, config, Decode, Encode};
 use eframe::egui::{pos2, Pos2};
 
-use crate::{
-    gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
-    Nucleotide::{self, A, C, G, T},
-    Seq,
-};
-
+use crate::gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START};
 /// Utility function to linearly map an input value to an output
 pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 {
     // todo: You may be able to optimize calls to this by having the ranges pre-store
@@ -22,49 +17,6 @@ pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 
     let portion = (val - range_in.0) / (range_in.1 - range_in.0);
 
     portion * (range_out.1 - range_out.0) + range_out.0
-}
-
-pub fn make_seq_str(seq: &[Nucleotide]) -> String {
-    let mut result = String::new();
-
-    for nt in seq {
-        result.push_str(nt.as_str());
-    }
-
-    result
-}
-
-pub fn seq_from_str(str: &str) -> Seq {
-    let mut result = Vec::new();
-
-    for char in str.to_lowercase().chars() {
-        match char {
-            'a' => result.push(A),
-            't' => result.push(T),
-            'c' => result.push(C),
-            'g' => result.push(G),
-            _ => (),
-        };
-    }
-
-    result
-}
-
-/// Reverse direction, and swap C for G, A for T.
-pub fn seq_complement(seq: &[Nucleotide]) -> Seq {
-    let mut result = seq.to_vec();
-    result.reverse();
-
-    for nt in &mut result {
-        *nt = match *nt {
-            A => T,
-            T => A,
-            C => G,
-            G => C,
-        };
-    }
-
-    result
 }
 
 pub fn save<T: Encode>(filename: &str, data: &T) -> io::Result<()> {

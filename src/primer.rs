@@ -5,12 +5,11 @@ use std::ops::Range;
 use bincode::{Decode, Encode};
 
 use crate::{
+    IonConcentrations,
     primer_metrics::PrimerMetrics,
-    util::{seq_complement, seq_from_str},
-    IonConcentrations, Nucleotide,
-    Nucleotide::{C, G},
-    Seq,
 };
+use crate::sequence::Nucleotide::{C, G};
+use crate::sequence::{Nucleotide, Seq, seq_complement, seq_from_str};
 
 // If a primer length is below this, many calculations will be disabled for it.
 pub const MIN_PRIMER_LEN: usize = 10;

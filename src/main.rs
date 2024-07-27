@@ -6,7 +6,6 @@
 // #![windows_subsystem = "windows"]
 
 use bincode::{Decode, Encode};
-use eframe::egui::Pos2;
 // use bio::{
 //     bio_types::sequence::{Sequence, SequenceRead},
 //     data_structures::fmindex::FMIndexable,
@@ -14,13 +13,13 @@ use eframe::egui::Pos2;
 // };
 use eframe::{self, egui, egui::Context};
 use primer::PrimerData;
-
+use sequence::{Seq, seq_from_str};
 use crate::{
     gui::{Page, PageSeq, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::{PrimerDirection, TM_TARGET},
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
-    util::{load, seq_complement, seq_from_str},
+    util::load,
 };
 
 mod gui;
@@ -32,31 +31,9 @@ mod restriction_enzyme;
 mod solution_helper;
 mod toxic_proteins;
 mod util;
+mod sequence;
 // mod snapgene_parse;
 
-// Index 0: 5' end.
-type Seq = Vec<Nucleotide>;
-
-/// A DNA nucleotide.
-/// todo: RNA A/R
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Encode, Decode)]
-enum Nucleotide {
-    A,
-    T,
-    G,
-    C,
-}
-
-impl Nucleotide {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::A => "a",
-            Self::T => "t",
-            Self::C => "c",
-            Self::G => "g",
-        }
-    }
-}
 
 #[derive(Clone, Copy)]
 enum AminoAcid {
@@ -71,15 +48,6 @@ enum AminoAcid {
     Leu,
     Cys,
     Asp,
-}
-
-#[derive(Clone, Copy)]
-enum Enzyme {
-    AsiSi,
-    BamHI,
-    BclI,
-    BlpI,
-    BmtI,
 }
 
 struct PlasmidData {

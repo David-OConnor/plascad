@@ -2,14 +2,9 @@
 
 use bincode::{Decode, Encode};
 
-use crate::{
-    melting_temp_calcs,
-    primer::{calc_gc, Primer, MIN_PRIMER_LEN},
-    util::{map_linear, remove_duplicates},
-    IonConcentrations,
-    Nucleotide::{C, G},
-    TM_TARGET,
-};
+use crate::{IonConcentrations, melting_temp_calcs, primer::{calc_gc, MIN_PRIMER_LEN, Primer}, TM_TARGET, util::{map_linear, remove_duplicates}};
+use crate::sequence::Nucleotide;
+use crate::sequence::Nucleotide::{C, G};
 
 /// Metrics related to primer quality.
 #[derive(Clone, Debug, Default, Encode, Decode)]
@@ -164,81 +159,9 @@ impl Primer {
 
         let mut result = 0;
 
-        // Check for single nt repeats.
-        let mut prev_nt = self.sequence[0];
-        let mut single_repeat_len = 0;
-
-        for nt in &self.sequence {
-            if *nt == prev_nt {
-                single_repeat_len += 1;
-
-                if single_repeat_len > 2 {
-                    // todo: Why off by one?
-                    result += 1;
-                    single_repeat_len = 0;
-                }
-            } else {
-                single_repeat_len = 0;
-            }
-            prev_nt = *nt;
-        }
-
-        let mut prev_nts = (self.sequence[0], self.sequence[1]);
-        let mut double_repeat_len = 0;
-
-        let mut triplets = Vec::new();
-        for (i, nt) in self.sequence.iter().enumerate() {
-            if i == self.sequence.len() - 2 {
-                break;
-            }
-            triplets.push((i, nt, self.sequence[i + 1], self.sequence[i + 2]));
-        }
-
-        let mut triplet_repeat_seqs = Vec::new();
-
-        for (i, nt) in self.sequence.iter().enumerate() {
-            if i == self.sequence.len() - 2 {
-                break;
-            }
-
-            let triplet_this = (nt, self.sequence[i + 1], self.sequence[i + 2]);
-
-            for triplet_other in &triplets {
-                if triplet_this == (triplet_other.1, triplet_other.2, triplet_other.3)
-                    && i != triplet_other.0
-                {
-                    // Dount count each additional nt match beyond 3 as a new repeat
-                    if i >= 3
-                        && triplet_other.0 >= 3
-                        && self.sequence[i - 1] == self.sequence[triplet_other.0 - 1]
-                    {
-                        continue;
-                    }
-
-                    triplet_repeat_seqs.push(triplet_this);
-
-                    // println!("Triplet rep: i this: {}, i_other: {:?} seq: {:?}", i, triplet_other.0, (triplet_other.1, triplet_other.2, triplet_other.3));
-                    // triple_nt_repeats += 1;
-                }
-            }
-        }
-
-        triplet_repeat_seqs = remove_duplicates(triplet_repeat_seqs);
-        // println!("TRS: {:?}, ", triplet_repeat_seqs);
-        result += triplet_repeat_seqs.len() as u8;
-
-        // todo: Come back to adn implement this.
-        // for nt in &self.sequence {
-        //     if nt == prev_nt {
-        //         prev_nt = nt;
-        //         double_repeat_len += 1;
-        //
-        //         if double_repeat_len >= 4 {
-        //             result += 1;
-        //             double_repeat_len = 0;
-        //         }
-        //     }
-        // }
+        result += single_nt_repeats(&self.sequence) as u8;
+        result += double_nt_repeats(&self.sequence) as u8;
+        result += triplet_repeats(&self.sequence) as u8;
 
         result
     }
@@ -263,4 +186,95 @@ impl Primer {
 
         Some(result)
     }
+}
+
+/// Count the number of single-nucleotide repeats in a sequence. Counts when it's > 4.
+fn single_nt_repeats(seq: &[Nucleotide]) -> u16 {
+    let mut result = 0;
+
+    let mut prev_nt = seq[0];
+    let mut repeat_len = 1; // Counts the char.
+
+    for nt in seq {
+        if *nt == prev_nt {
+            repeat_len += 1;
+
+            if repeat_len >= 4 {
+                result += 1;
+                repeat_len = 1;
+            }
+        } else {
+            repeat_len = 1;
+        }
+        prev_nt = *nt;
+    }
+
+    result
+}
+
+/// Count the number of double-nucleotide repeats in a sequence. Counts when it's > 4. eg `atatatat`
+fn double_nt_repeats(seq: &[Nucleotide]) -> u16 {
+    let mut result = 0;
+
+    let mut prev_nt = (seq[0], seq[1]);
+    let mut repeat_len = 1; // Counts the char.
+
+    for i in 0..seq.len() / 2 -1 {
+        // todo: Incomplete: Need to do the same offset by one.
+        let nts = (seq[i * 2], seq[(i * 2)+1]);
+        if nts == prev_nt {
+            repeat_len += 1;
+
+            if repeat_len >= 4 {
+                result += 1;
+                repeat_len = 1;
+            }
+        } else {
+            repeat_len = 1;
+        }
+        prev_nt = nts;
+    }
+
+    result
+}
+
+/// Count the number of times a set of three nucleotides is repeated in a sequence.
+/// This does not have to be adjacent.
+fn triplet_repeats(seq: &[Nucleotide]) -> u16 {
+    let mut triplets = Vec::new();
+    for (i, nt) in seq.iter().enumerate() {
+        if i == seq.len() - 2 {
+            break;
+        }
+        triplets.push((i, nt, seq[i + 1], seq[i + 2]));
+    }
+
+    let mut triplet_repeat_seqs = Vec::new();
+
+    for (i, nt) in seq.iter().enumerate() {
+        if i == seq.len() - 2 {
+            break;
+        }
+
+        let triplet_this = (nt, seq[i + 1], seq[i + 2]);
+
+        for triplet_other in &triplets {
+            if triplet_this == (triplet_other.1, triplet_other.2, triplet_other.3)
+                && i != triplet_other.0
+            {
+                // Dount count each additional nt match beyond 3 as a new repeat
+                if i >= 3
+                    && triplet_other.0 >= 3
+                    && seq[i - 1] == seq[triplet_other.0 - 1]
+                {
+                    continue;
+                }
+
+                triplet_repeat_seqs.push(triplet_this);
+            }
+        }
+    }
+
+    triplet_repeat_seqs = remove_duplicates(triplet_repeat_seqs);
+    triplet_repeat_seqs.len() as u16
 }

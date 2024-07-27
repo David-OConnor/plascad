@@ -8,11 +8,9 @@
 
 use bincode::{Decode, Encode};
 
-use crate::{
-    primer::PrimerDirection,
-    Nucleotide::{A, C, G, T},
-    Seq,
-};
+use crate::primer::PrimerDirection;
+use crate::sequence::Nucleotide::{A, C, G, T};
+use crate::sequence::Seq;
 
 /// Unlike `Nucleotide`, this includes wildcards
 #[derive(Clone, Copy)]

@@ -10,9 +10,12 @@ primer validation tool. Expect a gradual increase in new features.
 ## Current functionality
 
 ### Primer QC and tuning
-Evaluates primers for quality in several metrics: melting temperature, GC content, 3' end stability, repeats, and possibility of forming self-end dimers.
+Evaluates primers for quality in several metrics: melting temperature, GC content, 3' end stability, repeats, and possibility
+of forming self-end dimers.
 
-This allows primer length to be automatically or manually changed to optimize these parameters. This is done by marking one or more primer end as not having a fixed starting point, and providing more-than-expected nucleotides of the matching sequence on this end. The end point can then be adjusted to optimize primer qualities.
+This allows primer length to be automatically or manually changed to optimize these parameters. This is done by marking
+one or more primer end as not having a fixed starting point, and providing more-than-expected nucleotides of the matching 
+sequence on this end. The end point can then be adjusted to optimize primer qualities.
 
 
 ### Primer generation for SLIC and FastCloning
@@ -41,14 +44,14 @@ melting temperature, polymerase type, and other parameters.
 
 
 ## Calculations used 
-Our primer melting temperature method used is based on [BioPython's](https://biopython.org/docs/1.75/api/Bio.SeqUtils.MeltingTemp.html). This is, in turn, derived from 
-[SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/) It uses the neighboring nucleotides of each nucleotide in the sequence to estimate 
-entropy and enthalpy values, used in the following calcluation, where ΔH is enthalphy, ΔS is entropy, and $C_T$ is 
+Our primer melting temperature method used is based on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/) It uses each pair of nucleotides in the
+primer sequence to estimate entropy and enthalpy values, used in the following calcluation, where ΔH is enthalphy, ΔS is entropy, and $C_T$ is 
 primer Molar concentration:
 
 $$ (1000 * ΔH) / (ΔS + R \times ln(\frac{C_T}{4})) - 273.15 $$
 
-It includes salt correction, also derived from BioPython, using concentrations of K+, Na+, Mg2+, and dntp concentration, provided by the user, or initiated with defaults.
+It includes salt correction, derived from BioPython, using concentrations of $K^+$, $Na^+$, $Mg^{2+}$, and dntp concentration, 
+provided by the user, or initiated with defaults.
 
 We calculate the following sorts of nucleotide repeats:
 - Single nucleotides repeated 4 or more times in a row

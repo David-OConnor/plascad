@@ -2,7 +2,7 @@
 
 // use bio::bio_types::sequence::Sequence;
 
-use crate::Seq;
+use crate::sequence::Seq;
 
 enum AminoAcid {
     A,
