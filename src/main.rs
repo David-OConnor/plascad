@@ -305,7 +305,6 @@ fn main() {
     state.sync_pcr();
     state.sync_metrics();
     state.sync_seq_related(None);
-    // state.sync_cloning_product();
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

@@ -239,11 +239,16 @@ fn primer_details(state: &mut State, ui: &mut Ui) {
             make_amplification_primers(state);
         }
 
+        let mut sync_primer_matches = false; // Prevents a double-borrow error.
         if ui.button("Tune all").clicked() {
             for data in &mut state.primer_data {
                 data.tune(&state.ion_concentrations);
-                state.sync_primer_matches(None);
+                sync_primer_matches = true;
             }
+        }
+
+        if sync_primer_matches {
+            state.sync_primer_matches(None);
         }
 
         ui.add_space(COL_SPACING * 2.);
@@ -434,7 +439,7 @@ To learn about a table column, mouse over it.");
                                     .button(RichText::new("Tune")).on_hover_text("Tune selected ends for this primer").clicked()
                                 {
                                     data.tune(&state.ion_concentrations);
-                                    state.sync_primer_matches(Some(i));
+                                    run_match_sync = Some(i);
                                 }
                             }
                         });
@@ -499,15 +504,6 @@ To learn about a table column, mouse over it.");
                         };
                         ui.label(text);
                     });
-
-                    // row.col(|ui| {
-                    //     let text = match &data.metrics {
-                    //         Some(m) => RichText::new(format!("{}", m.complexity))
-                    //             .color(color_from_score(m.complexity_score)),
-                    //         None => RichText::new("-"),
-                    //     };
-                    //     ui.label(text);
-                    // });
 
                     row.col(|ui| {
                         let text = match &data.metrics {

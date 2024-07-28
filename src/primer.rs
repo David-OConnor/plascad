@@ -442,10 +442,11 @@ pub fn make_cloning_primers(state: &mut State) {
             tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
         };
-        insert_fwd.run_calcs(&state.ion_concentrations);
-        insert_rev.run_calcs(&state.ion_concentrations);
-        vector_fwd.run_calcs(&state.ion_concentrations);
-        vector_rev.run_calcs(&state.ion_concentrations);
+
+        insert_fwd.tune(&state.ion_concentrations);
+        insert_rev.tune(&state.ion_concentrations);
+        vector_fwd.tune(&state.ion_concentrations);
+        vector_rev.tune(&state.ion_concentrations);
 
         state
             .primer_data
@@ -478,8 +479,8 @@ pub fn make_amplification_primers(state: &mut State) {
             ..Default::default()
         };
 
-        primer_fwd.run_calcs(&state.ion_concentrations);
-        primer_rev.run_calcs(&state.ion_concentrations);
+        primer_fwd.tune(&state.ion_concentrations);
+        primer_rev.tune(&state.ion_concentrations);
 
         state.primer_data.extend([primer_fwd, primer_rev]);
 
