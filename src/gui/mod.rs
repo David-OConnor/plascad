@@ -172,6 +172,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
                 if let Ok(seq) = import_fasta(path) {
                     state.seq = seq;
                     state.ui.seq_input = make_seq_str(&state.seq);
+                    state.sync_re_sites();
                 }
 
                 state.ui.opened_file = None;

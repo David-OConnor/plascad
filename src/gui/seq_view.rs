@@ -149,6 +149,15 @@ fn primer_arrow(
     result
 }
 
+fn features(state: &State, ui: &mut Ui, seq_i_to_px_rel: impl Fn(usize) -> Pos2) -> Vec<Shape> {
+    let mut result = Vec::new();
+
+    for feature in &state.features {
+        // name, color, index_range
+    }
+    result
+}
+
 fn re_sites(state: &State, ui: &mut Ui, seq_i_to_px_rel: impl Fn(usize) -> Pos2) -> Vec<Shape> {
     let mut result = Vec::new();
 
@@ -432,6 +441,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 if state.ui.show_res {
                     shapes.append(&mut re_sites(state, ui, seq_i_to_px_rel));
                 }
+                shapes.append(&mut features(state, ui, seq_i_to_px_rel));
                 ui.painter().extend(shapes);
             });
     });

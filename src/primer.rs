@@ -256,6 +256,105 @@ impl PrimerData {
         self.sequence_input[..start].clone_into(&mut self.seq_removed_5p);
         self.sequence_input[end..].clone_into(&mut self.seq_removed_3p);
     }
+
+    /// Automatically select primer length based on quality score.
+    pub fn tune(&mut self, ion: &IonConcentrations) {
+        if self.tunable_3p != TuneSetting::Disabled && self.tunable_5p == TuneSetting::Disabled {
+            self.tune_single_end(ion);
+        }
+        if self.tunable_3p == TuneSetting::Disabled && self.tunable_5p != TuneSetting::Disabled {
+            self.tune_single_end(ion);
+        }
+        if self.tunable_3p != TuneSetting::Disabled && self.tunable_5p != TuneSetting::Disabled {
+            self.tune_both_ends(ion);
+        }
+    }
+
+    fn tune_single_end(&mut self, ion: &IonConcentrations) {
+        let primer_len = self.primer.sequence.len();
+        if primer_len <= MIN_PRIMER_LEN {
+            return;
+        }
+
+        let mut best_val = 0;
+        let mut best_score = 0.;
+
+        let num_vals = primer_len - MIN_PRIMER_LEN;
+
+        for val in 0..num_vals {
+            // When this function is called, exactly one of these ends should be enabled.
+            if let TuneSetting::Enabled(tune_val) = &mut self.tunable_3p {
+                *tune_val = val;
+            }
+            if let TuneSetting::Enabled(tune_val) = &mut self.tunable_5p {
+                *tune_val = val;
+            }
+            self.run_calcs(ion);
+
+            if let Some(metrics) = &self.metrics {
+                if metrics.quality_score > best_score {
+                    best_val = val;
+                    best_score = metrics.quality_score;
+                }
+            }
+        }
+
+        if let TuneSetting::Enabled(tune_val) = &mut self.tunable_3p {
+            // This is getting a bit verbose.
+            *tune_val = best_val;
+        }
+
+        self.run_calcs(ion);
+    }
+
+    fn tune_both_ends(&mut self, ion: &IonConcentrations) {
+        let primer_len = self.primer.sequence.len();
+        if primer_len <= MIN_PRIMER_LEN {
+            return;
+        }
+
+        let mut best_val_5p = 0;
+        let mut best_val_3p = 0;
+        let mut best_score = 0.;
+
+        // We will iterate over all possible tunings within the bounds of the limits of both ends,
+        // and minimum primer length. We do so by varying the start point (We set this, starting at
+        // the 5' end and expanding towards 3', but either direction will do), and length, up
+        // to the other end.
+
+        for val_5p in 0..primer_len - MIN_PRIMER_LEN {
+            for len in MIN_PRIMER_LEN..primer_len - val_5p {
+                let val_3p = primer_len - (val_5p + len);
+
+                if let TuneSetting::Enabled(tune_val) = &mut self.tunable_3p {
+                    *tune_val = val_3p;
+                }
+                if let TuneSetting::Enabled(tune_val) = &mut self.tunable_5p {
+                    *tune_val = val_5p;
+                }
+                self.run_calcs(ion);
+
+                if let Some(metrics) = &self.metrics {
+                    if metrics.quality_score > best_score {
+                        best_val_5p = val_5p;
+                        best_val_3p = val_3p;
+                        best_score = metrics.quality_score;
+                    }
+                }
+            }
+        }
+
+        if let TuneSetting::Enabled(tune_val) = &mut self.tunable_5p {
+            // This is getting a bit verbose.
+            *tune_val = best_val_5p;
+        }
+
+        if let TuneSetting::Enabled(tune_val) = &mut self.tunable_3p {
+            // This is getting a bit verbose.
+            *tune_val = best_val_3p;
+        }
+        self.run_calcs(ion);
+    }
 }
 
 impl Default for TuneSetting {

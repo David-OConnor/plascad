@@ -284,23 +284,16 @@ impl State {
             .splice(self.insert_loc..self.insert_loc, seq_insert.iter().cloned());
 
         self.sync_primer_matches(None);
+    }
 
-        //
-        // self.seq_vector_with_insert = self.seq_vector[..self.insert_loc].clone();
-        //
-        // for nt in self.seq_insert {
-        //     self.seq_vector_with_insert.push(nt);
-        // }
-        //
-        // for nt in self.seq_vector[self.insert_loc..] {
-        //     self.seq_vector_with_insert.push(nt);
-        // }
+    /// Run this when the sequence changes.
+    pub fn sync_seq_related(&mut self, primer_i: Option<usize>) {
+        self.sync_primer_matches(primer_i);
+        self.sync_re_sites();
     }
 }
 
 fn main() {
-    // todo: Move to a more robust save/load system later.
-
     let state_loaded: io::Result<StateToSave> = load(DEFAULT_SAVE_FILE);
     let mut state = match state_loaded {
         Ok(s) => s.to_state(),
@@ -311,7 +304,7 @@ fn main() {
 
     state.sync_pcr();
     state.sync_metrics();
-    state.sync_re_sites();
+    state.sync_seq_related(None);
     // state.sync_cloning_product();
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");

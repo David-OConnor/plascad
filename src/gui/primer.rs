@@ -154,20 +154,13 @@ fn seq_editor(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.heading("Sequence:");
         ui.label(&format!("len: {}", state.ui.seq_input.len()));
-
-        ui.add_space(COL_SPACING);
-
-        if ui.button("➕ Make amplification primers").clicked() {
-            make_amplification_primers(state);
-        }
     });
 
     let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
     if response.changed() {
         state.seq = seq_from_str(&state.ui.seq_input);
         state.ui.seq_input = make_seq_str(&state.seq);
-        state.sync_re_sites();
-        state.sync_primer_matches(None);
+        state.sync_seq_related(None);
     }
 }
 
@@ -193,7 +186,7 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
 
         if ui.button("Update seq with insert and vec").clicked() {
             state.sync_cloning_product();
-            state.sync_re_sites();
+            state.sync_seq_related(None);
         }
     });
 
@@ -238,9 +231,18 @@ fn primer_details(state: &mut State, ui: &mut Ui) {
             state.primer_data.push(Default::default())
         }
 
+        if ui
+            .button("➕ Make whole seq primers")
+            .on_hover_text("Adds a primer pair that amplify the entire loaded sequence.")
+            .clicked()
+        {
+            make_amplification_primers(state);
+        }
+
         if ui.button("Tune all").clicked() {
             for data in &mut state.primer_data {
-                // todo
+                data.tune(&state.ion_concentrations);
+                state.sync_primer_matches(None);
             }
         }
 
@@ -273,7 +275,7 @@ fn primer_details(state: &mut State, ui: &mut Ui) {
     });
 
     ui.label("Tuning instructions: Include more of the target sequence than required on the end[s] that can be tuned. These are the \
-     ends that do not define your insert, gene of interest, insertion point etc. Mark that end as tunable using the \"Tune\" button. \
+     ends that do not define your insert, gene of interest, insertion point etc. Mark that end as tunable using the \"T\" button. \
 To learn about a table column, mouse over it.");
 
     ui.add_space(ROW_SPACING);
@@ -385,7 +387,7 @@ To learn about a table column, mouse over it.");
                     row.col(|ui| {
                         ui.horizontal(|ui| {
                             if ui
-                                .button(RichText::new("Tun").color(if let TuneSetting::Enabled(_) = data.tunable_5p {
+                                .button(RichText::new("T").color(if let TuneSetting::Enabled(_) = data.tunable_5p {
                                     Color32::GREEN
                                 } else {
                                     Color32::LIGHT_GRAY
@@ -411,7 +413,7 @@ To learn about a table column, mouse over it.");
                             }
 
                             if ui
-                                .button(RichText::new("Tun").color(if let TuneSetting::Enabled(_) = data.tunable_3p {
+                                .button(RichText::new("T").color(if let TuneSetting::Enabled(_) = data.tunable_3p {
                                     Color32::GREEN
                                 } else {
                                     Color32::LIGHT_GRAY
@@ -423,6 +425,17 @@ To learn about a table column, mouse over it.");
                                     data.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
                                 }
                                 run_match_sync = Some(i);
+                            }
+
+                            ui.add_space(COL_SPACING);
+
+                            if data.tunable_3p != TuneSetting::Disabled || data.tunable_5p != TuneSetting::Disabled {
+                                if ui
+                                    .button(RichText::new("Tune")).on_hover_text("Tune selected ends for this primer").clicked()
+                                {
+                                    data.tune(&state.ion_concentrations);
+                                    state.sync_primer_matches(Some(i));
+                                }
                             }
                         });
 
@@ -536,7 +549,7 @@ To learn about a table column, mouse over it.");
         });
 
     if run_match_sync.is_some() {
-        state.sync_primer_matches(run_match_sync);
+        state.sync_seq_related(run_match_sync);
     }
 }
 
