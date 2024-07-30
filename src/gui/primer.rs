@@ -2,15 +2,18 @@ use eframe::egui::{Align, Color32, Layout, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
 // todo: monospace font for all seqs.
-use crate::sequence::{make_seq_str, seq_from_str};
+use crate::sequence::{seq_from_str, seq_to_str};
 use crate::{
-    gui::{page_seq_selector, seq_view::sequence_vis, PageSeq},
+    gui::{
+        features::feature_table,
+        navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
+        seq_view::sequence_vis,
+    },
     primer::{make_amplification_primers, make_cloning_primers, PrimerData, TuneSetting},
 };
 // todo: monospace font for all seqs.
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
-    primer::{design_amplification_primers, design_slic_fc_primers},
     IonConcentrations, State,
 };
 
@@ -103,7 +106,7 @@ fn primer_tune_display(
             if data.tunable_5p != TuneSetting::Disabled || data.tunable_3p != TuneSetting::Disabled
             {
                 ui.label(
-                    RichText::new(make_seq_str(&data.primer.sequence)).color(Color32::LIGHT_BLUE),
+                    RichText::new(seq_to_str(&data.primer.sequence)).color(Color32::LIGHT_BLUE),
                 );
             }
 
@@ -159,7 +162,7 @@ fn seq_editor(state: &mut State, ui: &mut Ui) {
     let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
     if response.changed() {
         state.seq = seq_from_str(&state.ui.seq_input);
-        state.ui.seq_input = make_seq_str(&state.seq);
+        state.ui.seq_input = seq_to_str(&state.seq);
         state.sync_seq_related(None);
     }
 }
@@ -200,7 +203,7 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     );
     if response.changed() {
         let seq = seq_from_str(&state.ui.seq_insert_input);
-        state.ui.seq_insert_input = make_seq_str(&seq);
+        state.ui.seq_insert_input = seq_to_str(&seq);
     }
 
     ui.add_space(ROW_SPACING);
@@ -215,15 +218,12 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     );
     if response.changed() {
         let seq = seq_from_str(&state.ui.seq_vector_input);
-        state.ui.seq_vector_input = make_seq_str(&seq);
+        state.ui.seq_vector_input = seq_to_str(&seq);
     }
 }
 
 fn primer_details(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        ui.heading(RichText::new("Primer QC").color(Color32::WHITE));
-        ui.add_space(COL_SPACING);
-
         let add_btn = ui
             .button("➕ Add primer")
             .on_hover_text("Adds a primer to the list below. Ctrl + A");
@@ -288,9 +288,13 @@ To learn about a table column, mouse over it.");
     if let Some(sel_i) = state.ui.primer_selected {
         ui.horizontal(|ui| {
             if sel_i + 1 > state.primer_data.len() {
-                // This currently happens if deleting the final primer.
-                eprintln!("Error: Exceeded primer selection len");
-                state.ui.primer_selected = None;
+                // This currently happens if deleting the bottom-most primer.
+                // If so, select the primer above it.
+                state.ui.primer_selected = if !state.primer_data.is_empty() {
+                    Some(state.primer_data.len() - 1)
+                } else {
+                    None
+                };
                 return;
             }
 
@@ -348,7 +352,7 @@ To learn about a table column, mouse over it.");
         .column(Column::remainder())
         .header(20.0, |mut header| {
             header.col(|ui| {
-                ui.heading("Sequence (5' ⏵ 3')");
+                ui.heading("Primer sequence (5' ⏵ 3')");
             });
             header.col(|ui| {
                 ui.heading("Description");
@@ -412,7 +416,7 @@ To learn about a table column, mouse over it.");
 
                             if response.changed() {
                                 data.sequence_input =
-                                    make_seq_str(&seq_from_str(&data.sequence_input));
+                                    seq_to_str(&seq_from_str(&data.sequence_input));
                                 data.run_calcs(&state.ion_concentrations);
                                 run_match_sync = Some(i);
                             }
@@ -551,26 +555,15 @@ To learn about a table column, mouse over it.");
 
 /// EGUI component for the Primer page
 pub fn primer_page(state: &mut State, ui: &mut Ui) {
-    if ui
-        .button(if state.ui.hide_primer_table {
-            "Show primer details"
-        } else {
-            "Hide primer details"
-        })
-        .clicked()
-    {
-        state.ui.hide_primer_table = !state.ui.hide_primer_table
+    page_seq_top_selector(state, ui);
+
+    match state.ui.page_seq_top {
+        PageSeqTop::Primers => primer_details(state, ui),
+        PageSeqTop::Features => feature_table(&mut state.features, ui),
+        PageSeqTop::None => (),
     }
 
-    if !state.ui.hide_primer_table {
-        primer_details(state, ui);
-    }
-
-    // ui.horizontal(|ui| {
-    //     page_primers_selector(state, ui);
-    //     ui.add_space(2. * COL_SPACING);
-    //     page_seq_selector(state, ui);
-    // });
+    ui.add_space(ROW_SPACING);
 
     page_seq_selector(state, ui);
 

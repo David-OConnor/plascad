@@ -3,18 +3,19 @@
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
-        Shape, Stroke, Ui,
+        Shape, Stroke, TextEdit, Ui,
     },
     emath::RectTransform,
     epaint::{PathShape, PathStroke},
 };
 
 use crate::{
-    gui::{COL_SPACING, ROW_SPACING},
+    gui::{features::feature_add_disp, int_field, COL_SPACING, ROW_SPACING},
     primer::{
         PrimerDirection,
         PrimerDirection::{Forward, Reverse},
     },
+    sequence::Feature,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
     State, StateUi,
 };
@@ -344,7 +345,13 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
         None => "",
     };
 
-    ui.label(format!("Cursor: {}", cursor_posit_text));
+    ui.horizontal(|ui| {
+        feature_add_disp(state, ui);
+
+        ui.add_space(COL_SPACING * 3.);
+
+        ui.label(format!("Cursor: {}", cursor_posit_text));
+    });
 
     display_filters(&mut state.ui, ui);
 

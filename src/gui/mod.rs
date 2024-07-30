@@ -1,20 +1,23 @@
+mod features;
+pub mod navigation;
 mod pcr;
 mod portions;
 pub mod primer;
-pub mod seq_view; // pub for a few consts
+pub mod seq_view;
+// pub for a few consts
 
-use std::{fs::OpenOptions, io};
+use std::fmt::Display;
 
-use bio::io::fasta;
 use eframe::{
     egui,
-    egui::{Color32, Context, Key, RichText, ScrollArea, Ui},
+    egui::{Color32, Context, Key, ScrollArea, TextEdit, Ui},
 };
 use egui_file::FileDialog;
+use navigation::Page;
 
 use crate::{
     save::{export_fasta, import_fasta, save, StateToSave, DEFAULT_FASTA_FILE, DEFAULT_SAVE_FILE},
-    sequence::make_seq_str,
+    sequence::seq_to_str,
     State,
 };
 
@@ -26,108 +29,13 @@ pub const WINDOW_TITLE: &str = "Plasmid tools";
 pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum Page {
-    /// Primer design and QC, including for cloning
-    Primers,
-    /// Determine optimal PCR parameters
-    Pcr,
-    Portions,
-    // Sequence,
-    // Enzymes,
-    // Features,
-}
-
-impl Default for Page {
-    fn default() -> Self {
-        Self::Primers
+pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
+    ui.label("Start:");
+    let mut entry = val.to_string();
+    let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
+    if response.changed() {
+        *val = entry.parse().unwrap_or(0);
     }
-}
-
-impl Page {
-    pub fn to_str(self) -> String {
-        match self {
-            Self::Primers => "Primers",
-            Self::Pcr => "PCR",
-            Self::Portions => "Mixing portions",
-        }
-        .to_owned()
-    }
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum PageSeq {
-    EditSeq,
-    EditSlic,
-    View,
-}
-
-impl Default for PageSeq {
-    fn default() -> Self {
-        Self::View
-    }
-}
-
-impl PageSeq {
-    pub fn to_str(self) -> String {
-        match self {
-            Self::EditSeq => "Edit squence",
-            Self::EditSlic => "Edit SLIC/FC squences",
-            Self::View => "View sequence",
-        }
-        .to_owned()
-    }
-}
-
-fn page_button(page_state: &mut Page, page: Page, ui: &mut Ui) {
-    let color = if *page_state == page {
-        Color32::GREEN
-    } else {
-        Color32::WHITE
-    };
-
-    if ui
-        .button(RichText::new(page.to_str()).color(color))
-        .clicked()
-    {
-        *page_state = page;
-    }
-
-    ui.add_space(COL_SPACING);
-}
-
-fn page_selector(state: &mut State, ui: &mut Ui) {
-    ui.horizontal(|ui| {
-        page_button(&mut state.ui.page, Page::Primers, ui);
-        page_button(&mut state.ui.page, Page::Pcr, ui);
-        page_button(&mut state.ui.page, Page::Portions, ui);
-    });
-}
-
-// todo: Use to_string and partialEq traits instead of duplicating the other page.
-fn page_seq_button(page_state: &mut PageSeq, page: PageSeq, ui: &mut Ui) {
-    let color = if *page_state == page {
-        Color32::GREEN
-    } else {
-        Color32::WHITE
-    };
-
-    if ui
-        .button(RichText::new(page.to_str()).color(color))
-        .clicked()
-    {
-        *page_state = page;
-    }
-
-    ui.add_space(COL_SPACING / 2.);
-}
-
-pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
-    ui.horizontal(|ui| {
-        page_seq_button(&mut state.ui.page_seq, PageSeq::EditSeq, ui);
-        page_seq_button(&mut state.ui.page_seq, PageSeq::EditSlic, ui);
-        page_seq_button(&mut state.ui.page_seq, PageSeq::View, ui);
-    });
 }
 
 /// Ui elements for saving and loading data in various file formats. This includes our own format,
@@ -171,7 +79,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
 
                 if let Ok(seq) = import_fasta(path) {
                     state.seq = seq;
-                    state.ui.seq_input = make_seq_str(&state.seq);
+                    state.ui.seq_input = seq_to_str(&state.seq);
                     state.sync_re_sites();
                 }
 
@@ -219,7 +127,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
         ctx.set_visuals(visuals);
 
         ui.horizontal(|ui| {
-            page_selector(state, ui);
+            navigation::page_selector(state, ui);
 
             ui.add_space(COL_SPACING);
 
@@ -229,7 +137,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
         ui.add_space(ROW_SPACING);
 
         ScrollArea::vertical().show(ui, |ui| match state.ui.page {
-            Page::Primers => primer::primer_page(state, ui),
+            Page::Sequence => primer::primer_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Portions => portions::portions_page(state, ui),
         });

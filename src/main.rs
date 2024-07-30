@@ -15,19 +15,21 @@ use bincode::{Decode, Encode};
 // };
 use eframe::{self, egui, egui::Context};
 use egui_file::FileDialog;
+use gui::navigation::{Page, PageSeq};
 use primer::PrimerData;
 use save::load;
 use sequence::{seq_from_str, Seq};
 
 use crate::{
-    gui::{Page, PageSeq, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
+    gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::{PrimerDirection, TM_TARGET},
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     save::{StateToSave, DEFAULT_SAVE_FILE},
-    sequence::Feature,
+    sequence::{seq_to_str, Feature},
 };
 
+mod features_known;
 mod gui;
 mod melting_temp_calcs;
 mod pcr;
@@ -126,6 +128,15 @@ impl Default for IonConcentrations {
     }
 }
 
+#[derive(Default)]
+struct StateFeatureAdd {
+    // This is in 1-based indexing.
+    start_posit: usize,
+    end_posit: usize,
+    label: String,
+    color: (u8, u8, u8),
+}
+
 /// Values defined here generally aren't worth saving to file etc.
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
@@ -133,16 +144,18 @@ struct StateUi {
     page: Page,
     // page_primer: PagePrimer,
     page_seq: PageSeq,
+    page_seq_top: PageSeqTop,
     seq_insert_input: String,
     seq_vector_input: String,
     seq_input: String,
     pcr: PcrUi,
+    feature_add: StateFeatureAdd,
     // pcr_primer: Option<usize>, // primer index, if primer count > 0.
-    pcr_primer: usize, // primer index
+    // pcr_primer: usize, // primer index
     primer_selected: Option<usize>,
     // todo: suitstruct for show/hide A/R
-    /// Hide the primer addition/creation/QC panel.
-    hide_primer_table: bool,
+    // /// Hide the primer addition/creation/QC panel.
+    // hide_primer_table: bool,
     /// Show or hide restriction enzymes from the sequence view.
     show_res: bool,
     /// Show and hide primers on
@@ -159,13 +172,15 @@ impl Default for StateUi {
         Self {
             page: Default::default(),
             page_seq: Default::default(),
+            page_seq_top: Default::default(),
             seq_insert_input: Default::default(),
             seq_vector_input: Default::default(),
             seq_input: Default::default(),
             pcr: Default::default(),
-            pcr_primer: 0,
+            feature_add: Default::default(),
+            // pcr_primer: 0,
             primer_selected: None,
-            hide_primer_table: false,
+            // hide_primer_table: false,
             show_res: true,
             show_primers: true,
             cursor_pos: None,
@@ -305,6 +320,8 @@ fn main() {
     state.sync_pcr();
     state.sync_metrics();
     state.sync_seq_related(None);
+
+    state.ui.seq_input = seq_to_str(&state.seq);
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

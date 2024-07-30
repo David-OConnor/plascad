@@ -24,14 +24,13 @@ It generates primers to amplify the entire vector, and insert primers that conta
 
 
 ### A simple sequence viewer
-This shows the sequence of interest (as generated from cloning, or manually input) with primers overlayed based on their match location.
+This shows the sequence of interest (as generated from cloning, or manually input) with primers overlayed based on their
+match location. It also displays cut sites for common restriction enzymes.
 
 
 ### PCR parameter generation
 Generates PCR parameters (eg temperature and time for the various steps), based on product length, primer
 melting temperature, polymerase type, and other parameters.
-
-(todo: Add details on the calculations and assumptions used)
 
 
 ## Near-term plans

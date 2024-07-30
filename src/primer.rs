@@ -8,7 +8,7 @@ use crate::{
     gui::primer::DEFAULT_TRIM_AMT,
     primer_metrics::PrimerMetrics,
     sequence::{
-        make_seq_str, seq_complement, seq_from_str, Nucleotide,
+        seq_complement, seq_from_str, seq_to_str, Nucleotide,
         Nucleotide::{C, G},
         Seq,
     },
@@ -398,7 +398,7 @@ pub fn make_cloning_primers(state: &mut State) {
     let seq_insert = seq_from_str(&state.ui.seq_insert_input);
 
     if let Some(primers) = design_slic_fc_primers(&seq_vector, &seq_insert, state.insert_loc) {
-        let sequence_input = make_seq_str(&primers.insert_fwd.sequence);
+        let sequence_input = seq_to_str(&primers.insert_fwd.sequence);
 
         let mut insert_fwd = PrimerData {
             primer: primers.insert_fwd,
@@ -410,7 +410,7 @@ pub fn make_cloning_primers(state: &mut State) {
             ..Default::default()
         };
 
-        let sequence_input = make_seq_str(&primers.insert_rev.sequence);
+        let sequence_input = seq_to_str(&primers.insert_rev.sequence);
         let mut insert_rev = PrimerData {
             primer: primers.insert_rev,
             sequence_input,
@@ -421,7 +421,7 @@ pub fn make_cloning_primers(state: &mut State) {
             ..Default::default()
         };
 
-        let sequence_input = make_seq_str(&primers.vector_fwd.sequence);
+        let sequence_input = seq_to_str(&primers.vector_fwd.sequence);
         let mut vector_fwd = PrimerData {
             primer: primers.vector_fwd,
             sequence_input,
@@ -432,7 +432,7 @@ pub fn make_cloning_primers(state: &mut State) {
             ..Default::default()
         };
 
-        let sequence_input = make_seq_str(&primers.vector_rev.sequence);
+        let sequence_input = seq_to_str(&primers.vector_rev.sequence);
         let mut vector_rev = PrimerData {
             primer: primers.vector_rev,
             sequence_input,
@@ -458,7 +458,7 @@ pub fn make_cloning_primers(state: &mut State) {
 
 pub fn make_amplification_primers(state: &mut State) {
     if let Some(primers) = design_amplification_primers(&state.seq) {
-        let sequence_input = make_seq_str(&primers.fwd.sequence);
+        let sequence_input = seq_to_str(&primers.fwd.sequence);
 
         let mut primer_fwd = PrimerData {
             primer: primers.fwd,
@@ -469,7 +469,7 @@ pub fn make_amplification_primers(state: &mut State) {
             ..Default::default()
         };
 
-        let sequence_input = make_seq_str(&primers.rev.sequence);
+        let sequence_input = seq_to_str(&primers.rev.sequence);
         let mut primer_rev = PrimerData {
             primer: primers.rev,
             sequence_input,

@@ -4,19 +4,21 @@ use bincode::{Decode, Encode};
 
 use crate::sequence::Nucleotide::{A, C, G, T};
 
+// Index 0: 5' end.
+pub type Seq = Vec<Nucleotide>;
+
 impl Nucleotide {
     pub fn as_str(&self) -> &str {
         match self {
-            Self::A => "a",
-            Self::T => "t",
-            Self::C => "c",
-            Self::G => "g",
+            A => "a",
+            T => "t",
+            C => "c",
+            G => "g",
         }
     }
 }
 
 /// A DNA nucleotide.
-/// todo: RNA A/R
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Encode, Decode)]
 #[repr(u8)] // For bio::FASTA compatibility
 pub enum Nucleotide {
@@ -42,13 +44,11 @@ impl Nucleotide {
     }
 }
 
-// Index 0: 5' end.
-pub type Seq = Vec<Nucleotide>;
-
 #[derive(Clone, Encode, Decode)]
 pub struct Feature {
+    /// 1-based indexing.
     pub index_range: (usize, usize),
-    pub name: String,
+    pub label: String,
     pub color: (u8, u8, u8),
 }
 
@@ -85,7 +85,7 @@ pub fn seq_from_str(str: &str) -> Seq {
     result
 }
 
-pub fn make_seq_str(seq: &[Nucleotide]) -> String {
+pub fn seq_to_str(seq: &[Nucleotide]) -> String {
     let mut result = String::new();
 
     for nt in seq {
