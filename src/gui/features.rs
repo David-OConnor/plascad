@@ -1,8 +1,21 @@
 //! GUI code for the features editor and related.
 
-use eframe::egui::{ComboBox, TextEdit, Ui};
+use eframe::{
+    egui::{
+        pos2, Align2, Color32, ComboBox, FontFamily, FontId, Pos2, Shape, Stroke, TextEdit, Ui,
+    },
+    epaint::PathShape,
+};
 
-use crate::{gui::int_field, sequence::Feature, State};
+use crate::{
+    gui::int_field,
+    sequence::{
+        Feature,
+        FeatureDirection::{self, Forward, Reverse},
+        FeatureType,
+    },
+    State,
+};
 
 const LABEL_EDIT_WIDTH: f32 = 140.;
 
@@ -30,6 +43,23 @@ fn color_picker(val: &mut (u8, u8, u8), id: usize, ui: &mut Ui) {
         });
 }
 
+/// A selector for use with feature addition and editing.
+/// todo: Generic selector creator?
+fn feature_type_picker(val: &mut FeatureType, id: usize, ui: &mut Ui) {
+    ComboBox::from_id_source(id)
+        .width(170.)
+        .selected_text(val.to_string())
+        .show_ui(ui, |ui| {
+            for feature_type in [
+                FeatureType::Generic,
+                FeatureType::Ori,
+                FeatureType::RnaPolyBindSite,
+            ] {
+                ui.selectable_value(val, feature_type, feature_type.to_string());
+            }
+        });
+}
+
 pub fn feature_table(features: &mut [Feature], ui: &mut Ui) {
     for (i, feature) in features.iter_mut().enumerate() {
         ui.horizontal(|ui| {
@@ -39,6 +69,9 @@ pub fn feature_table(features: &mut [Feature], ui: &mut Ui) {
 
             ui.label("Label:");
             ui.add(TextEdit::singleline(&mut feature.label).desired_width(LABEL_EDIT_WIDTH));
+
+            ui.label("Type:");
+            feature_type_picker(&mut feature.feature_type, 100 + i, ui);
 
             ui.label("Color:");
             color_picker(&mut feature.color, 3 + i, ui);
@@ -54,6 +87,9 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
 
     ui.label("Label:");
     ui.add(TextEdit::singleline(&mut state.ui.feature_add.label).desired_width(LABEL_EDIT_WIDTH));
+
+    ui.label("Type:");
+    feature_type_picker(&mut state.ui.feature_add.feature_type, 200, ui);
 
     ui.label("Color:");
     color_picker(&mut state.ui.feature_add.color, 2, ui);
@@ -78,11 +114,10 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
                 state.ui.feature_add.start_posit,
                 state.ui.feature_add.end_posit,
             ),
+            feature_type: FeatureType::Generic,
+            direction: FeatureDirection::None,
             label: state.ui.feature_add.label.clone(),
             color: (0, 0, 0), // todo temp
         });
     }
 }
-
-/// Draw an indicator near a feature's sequence highlighting the feature visually, showing its label etc.
-pub fn feature_overlay(feature: &Feature, ui: &mut Ui) {}

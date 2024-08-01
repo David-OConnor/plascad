@@ -2,7 +2,10 @@ use std::io;
 
 use bincode::{Decode, Encode};
 
-use crate::sequence::Nucleotide::{A, C, G, T};
+use crate::{
+    sequence::Nucleotide::{A, C, G, T},
+    StateUi,
+};
 
 // Index 0: 5' end.
 pub type Seq = Vec<Nucleotide>;
@@ -44,10 +47,62 @@ impl Nucleotide {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+pub enum FeatureType {
+    Generic,
+    Gene,
+    Ori,
+    RnaPolyBindSite,
+}
+
+impl Default for FeatureType {
+    fn default() -> Self {
+        Self::Generic
+    }
+}
+
+impl FeatureType {
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::Generic => "Generic",
+            Self::Gene => "Gene",
+            Self::Ori => "Origin of replication",
+            Self::RnaPolyBindSite => "RNA polymerase bind site",
+        }
+        .to_owned()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+pub enum FeatureDirection {
+    None,
+    Forward,
+    Reverse,
+}
+
+impl Default for FeatureDirection {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl FeatureDirection {
+    pub fn to_string(&self) -> String {
+        match self {
+            Self::None => "None",
+            Self::Forward => "Forward",
+            Self::Reverse => "Reverse",
+        }
+        .to_owned()
+    }
+}
+
 #[derive(Clone, Encode, Decode)]
 pub struct Feature {
     /// 1-based indexing.
     pub index_range: (usize, usize),
+    pub feature_type: FeatureType,
+    pub direction: FeatureDirection,
     pub label: String,
     pub color: (u8, u8, u8),
 }
@@ -91,6 +146,18 @@ pub fn seq_to_str(seq: &[Nucleotide]) -> String {
     for nt in seq {
         result.push_str(nt.as_str());
     }
+
+    result
+}
+
+// todo: This may not be feasible without aligning reading frames. Come back to this.
+/// Automatically generate transient features for start and stop codons.
+pub fn _start_stop_codons(seq: &[Nucleotide]) -> Vec<Feature> {
+    let start_codons = vec![[T, A, A], [T, A, G], [T, G, A]];
+
+    const START_CODON: [Nucleotide; 3] = [A, T, G];
+
+    let mut result = Vec::new();
 
     result
 }

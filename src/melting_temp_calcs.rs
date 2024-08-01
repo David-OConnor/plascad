@@ -283,12 +283,10 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
     {
         let term_pair = vec![seq[0], seq[seq.len() - 1]];
         let mut at_term_count = 0;
-        let mut cg_term_count = 0;
+        //C onstants for the CG term are 0, so we don't need it.
         for nt in term_pair {
             if nt == A || nt == T {
                 at_term_count += 1;
-            } else {
-                cg_term_count += 1;
             }
         }
         dH += 2.2 * at_term_count as f32;

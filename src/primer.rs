@@ -5,7 +5,7 @@ use std::ops::Range;
 use bincode::{Decode, Encode};
 
 use crate::{
-    gui::primer::DEFAULT_TRIM_AMT,
+    gui::primer_qc::DEFAULT_TRIM_AMT,
     primer_metrics::PrimerMetrics,
     sequence::{
         seq_complement, seq_from_str, seq_to_str, Nucleotide,
@@ -149,7 +149,8 @@ pub fn design_slic_fc_primers(
         (fwd, rev)
     };
 
-    let mut result = SlicPrimers {
+    // We tune downstream.
+    Some(SlicPrimers {
         vector_fwd: Primer {
             sequence: seq_vector_fwd,
         },
@@ -162,11 +163,7 @@ pub fn design_slic_fc_primers(
         insert_rev: Primer {
             sequence: seq_insert_rev,
         },
-    };
-
-    // todo: Optimize.
-
-    Some(result)
+    })
 }
 
 // todo: Use this A/R, called from the UI page.
@@ -188,14 +185,11 @@ pub fn design_amplification_primers(seq: &[Nucleotide]) -> Option<AmplificationP
         (seq[..end].to_owned(), reversed[..end_reversed].to_owned())
     };
 
-    let mut result = AmplificationPrimers {
+    // We tune downstream.
+    Some(AmplificationPrimers {
         fwd: Primer { sequence: seq_fwd },
         rev: Primer { sequence: seq_rev },
-    };
-
-    // todo: Optimize.
-
-    Some(result)
+    })
 }
 
 #[derive(Default, Clone, Encode, Decode)]

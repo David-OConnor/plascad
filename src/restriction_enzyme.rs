@@ -40,8 +40,8 @@ pub enum NucleotideGeneral {
 pub struct ReMatch {
     pub lib_index: usize,
     pub seq_index: usize,
-    /// Direction helps align the cut site.
-    pub direction: PrimerDirection,
+    // /// Direction helps align the cut site.
+    // pub direction: PrimerDirection,
 }
 
 pub struct RestrictionEnzyme {

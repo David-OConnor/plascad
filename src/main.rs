@@ -26,7 +26,7 @@ use crate::{
     primer::{PrimerDirection, TM_TARGET},
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     save::{StateToSave, DEFAULT_SAVE_FILE},
-    sequence::{seq_to_str, Feature},
+    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType},
 };
 
 mod features_known;
@@ -133,6 +133,8 @@ struct StateFeatureAdd {
     // This is in 1-based indexing.
     start_posit: usize,
     end_posit: usize,
+    feature_type: FeatureType,
+    direction: FeatureDirection,
     label: String,
     color: (u8, u8, u8),
 }
@@ -160,6 +162,7 @@ struct StateUi {
     show_res: bool,
     /// Show and hide primers on
     show_primers: bool,
+    show_start_stop_codons: bool,
     cursor_pos: Option<(f32, f32)>,
     cursor_seq_i: Option<usize>,
     open_file_dialog_import: Option<FileDialog>,
@@ -183,6 +186,7 @@ impl Default for StateUi {
             // hide_primer_table: false,
             show_res: true,
             show_primers: true,
+            show_start_stop_codons: true,
             cursor_pos: None,
             cursor_seq_i: None,
             open_file_dialog_import: None,
@@ -252,7 +256,7 @@ impl State {
                     self.restriction_enzyme_sites.push(ReMatch {
                         lib_index,
                         seq_index: i,
-                        direction: PrimerDirection::Forward,
+                        // direction: PrimerDirection::Forward,
                     });
                 }
                 // todo: Simpler way?

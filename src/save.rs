@@ -18,6 +18,7 @@ use crate::{
 
 pub const DEFAULT_SAVE_FILE: &str = "plasmid_tools.save";
 pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
+pub const DEFAULT_DNA_FILE: &str = "export.dna";
 
 /// This is similar to `State`, but excludes the UI, and other things we don't wish to save.
 #[derive(Encode, Decode)]

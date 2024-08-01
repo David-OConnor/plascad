@@ -1,12 +1,14 @@
+mod circle;
+mod feature_overlay;
 mod features;
 pub mod navigation;
 mod pcr;
 mod portions;
-pub mod primer;
+mod primer_arrow;
+pub mod primer_qc;
 pub mod seq_view;
+pub mod sequence;
 // pub for a few consts
-
-use std::fmt::Display;
 
 use eframe::{
     egui,
@@ -16,7 +18,10 @@ use egui_file::FileDialog;
 use navigation::Page;
 
 use crate::{
-    save::{export_fasta, import_fasta, save, StateToSave, DEFAULT_FASTA_FILE, DEFAULT_SAVE_FILE},
+    save::{
+        export_fasta, import_fasta, save, StateToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE,
+        DEFAULT_SAVE_FILE,
+    },
     sequence::seq_to_str,
     State,
 };
@@ -68,6 +73,27 @@ fn save_section(state: &mut State, ui: &mut Ui) {
     {
         let mut dialog = FileDialog::save_file(state.ui.opened_file.clone())
             .default_filename(DEFAULT_FASTA_FILE);
+        dialog.open();
+        state.ui.open_file_dialog_export = Some(dialog);
+    }
+
+    if ui
+        .button("Import DNA")
+        .on_hover_text("Import a sequence in the DNA (SnapGene) format")
+        .clicked()
+    {
+        let mut dialog = FileDialog::open_file(state.ui.opened_file.clone());
+        dialog.open();
+        state.ui.open_file_dialog_import = Some(dialog);
+    }
+
+    if ui
+        .button("Export DNA")
+        .on_hover_text("Export the sequence in the DNA (SnapGene) format")
+        .clicked()
+    {
+        let mut dialog =
+            FileDialog::save_file(state.ui.opened_file.clone()).default_filename(DEFAULT_DNA_FILE);
         dialog.open();
         state.ui.open_file_dialog_export = Some(dialog);
     }
@@ -137,7 +163,8 @@ pub fn draw(state: &mut State, ctx: &Context) {
         ui.add_space(ROW_SPACING);
 
         ScrollArea::vertical().show(ui, |ui| match state.ui.page {
-            Page::Sequence => primer::primer_page(state, ui),
+            Page::Sequence => sequence::seq_page(state, ui),
+            Page::Circle => circle::circle_page(&state.seq, &state.features, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Portions => portions::portions_page(state, ui),
         });
