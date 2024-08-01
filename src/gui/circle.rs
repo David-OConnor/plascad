@@ -26,7 +26,7 @@ fn seq_i_to_angle(seq_i: usize, seq_len: usize) -> f32 {
 /// is clockwise.
 fn angle_to_pixel(angle: f32, radius: f32) -> Pos2 {
     // Offset and reverse the angle to reflect an origin of 0.
-    let angle = -(angle - TAU/4.);
+    let angle = (angle - TAU/4.);
 
     pos2(angle.cos() * radius, angle.sin() * radius)
 }
@@ -40,12 +40,16 @@ pub fn circle_page(seq: &[Nucleotide], features: &[Feature], ui: &mut Ui) {
         .show(ui, |ui| {
             let (mut response, _painter) = {
                 // todo: Sort this out to make effective use of the space. Check the examples
+
+                // todo: avail height showing 0.
                 let desired_size = vec2(ui.available_width(), ui.available_height());
+
+                // let (_id, rect) = ui.allocate_space(desired_size);
+
                 ui.allocate_painter(desired_size, Sense::click())
+
             };
 
-            // let to_screen =
-            //     RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
 
             let to_screen = RectTransform::from_to(
                 Rect::from_min_size(Pos2::ZERO, response.rect.size()),
@@ -54,27 +58,43 @@ pub fn circle_page(seq: &[Nucleotide], features: &[Feature], ui: &mut Ui) {
 
             let from_screen = to_screen.inverse();
 
-            let center = to_screen * pos2(ui.available_width() / 2., ui.available_height() / 2. + 500.);
+            // todo: Sort out avail height.
+            let center = pos2(ui.available_width() / 2., ui.available_width() / 2.);
+
+            // todo: Set radius to use the minimum of avial width/avail height, once avail_height works.
             let radius = ui.available_width() * 0.4;
 
+            println!("CENTER: {:?}, av h: {}", center, ui.available_height());
+
             // Draw the backbone circle
-            // center: Pos2, radius: f32, stroke: impl Into<Stroke>
             shapes.push(Shape::Circle(CircleShape::stroke(center, radius, Stroke::new(BACKBONE_WIDTH, BACKBONE_COLOR))));
 
-
             let seq_len = seq.len();
- add
+
             // Draw ticks every 1kbp.
             for i_div_1k in 0..seq_len / 1_000 { // todo: Confirm this always rounds down.
                 let i = i_div_1k * 1_000;
 
                 let angle = seq_i_to_angle(i, seq_len);
-                let intersection = angle_to_pixel(angle, radius);
+                let intersection = angle_to_pixel(angle, radius) + center.to_vec2();
 
                 shapes.push(Shape::line_segment(
-                    [intersection, pos2(0., 0.)],
+                    [intersection, center],
                     Stroke::new(TICK_WIDTH, TICK_COLOR),
                 ));
+
+                let label = ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        intersection,
+                        Align2::LEFT_CENTER,
+                        i.to_string(),
+                        FontId::new(16., FontFamily::Proportional),
+                        TICK_COLOR
+                    )
+                });
+
+                shapes.push(label);
 
             }
 
