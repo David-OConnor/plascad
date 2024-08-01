@@ -96,6 +96,8 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
 pub fn seq_page(state: &mut State, ui: &mut Ui) {
     page_seq_top_selector(state, ui);
 
+    ui.add_space(ROW_SPACING / 2.);
+
     match state.ui.page_seq_top {
         PageSeqTop::Primers => primer_details(state, ui),
         PageSeqTop::Features => feature_table(&mut state.features, ui),
@@ -106,7 +108,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
 
     page_seq_selector(state, ui);
 
-    ui.add_space(ROW_SPACING);
+    ui.add_space(ROW_SPACING / 2.);
 
     match state.ui.page_seq {
         PageSeq::EditSeq => {

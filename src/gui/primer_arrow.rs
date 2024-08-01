@@ -6,7 +6,7 @@ use eframe::{
     egui::{pos2, Align2, Color32, Direction, FontFamily, FontId, Pos2, Shape, Stroke, Ui},
     epaint::PathShape,
 };
-
+use eframe::egui::accesskit::VerticalOffset;
 use crate::{
     gui::seq_view::{NT_WIDTH_PX, TEXT_X_START},
     primer::{
@@ -15,108 +15,132 @@ use crate::{
     },
 };
 
+const STROKE_WIDTH: f32 = 2.;
+
+const VERTICAL_OFFSET_PRIMER: f32 = 14.; // Number of pixels above the sequence text.
+const LABEL_OFFSET: f32 = 7.;
+const HEIGHT: f32 = 16.;
+const SLANT: f32 = 20.; // slant different, in pixels, for the arrow.
+
 /// Make a visual arrow for a primer. For  use inside a Frame::canvas.
 /// Note: This function is fragile, and was constructed partly by trial and error.
-fn primer_arrow(
-    mut bounds_r0: (Pos2, Pos2),
-    mut bounds_r1: Option<(Pos2, Pos2)>, // Assumes no more than two rows.
+pub fn primer_arrow(
+    row_ranges_px: &[(Pos2, Pos2)],
+    // mut bounds_r0: (Pos2, Pos2),
+    // mut bounds_r1: Option<(Pos2, Pos2)>, // Assumes no more than two rows.
+    vertical_offset: f32,
     direction: PrimerDirection,
     label: &str,
     ui: &mut Ui,
 ) -> Vec<Shape> {
+    println!("RRP LEN: {}", row_ranges_px.len());
+
+    if row_ranges_px.is_empty() {
+        return Vec::new();
+    }
+
     let color_arrow = match direction {
         Forward => Color32::from_rgb(255, 0, 255),
         Reverse => Color32::LIGHT_YELLOW,
     };
 
     let color_label = Color32::LIGHT_GREEN;
-    const STROKE_WIDTH: f32 = 2.;
 
-    const VERTICAL_OFFSET: f32 = 14.; // Number of pixels above the sequence text.
-    const LABEL_OFFSET: f32 = 7.;
-    const HEIGHT: f32 = 16.;
-    const SLANT: f32 = 20.; // slant different, in pixels, for the arrow.
+    let v_offset_rev = 2. * vertical_offset;
 
-    const V_OFFSET_REV: f32 = 2. * VERTICAL_OFFSET;
+    // Apply a vertical offset from the sequence.
+    // todo:
+    let row_ranges_px: Vec<(Pos2, Pos2)> = row_ranges_px
+        .iter()
+        .map(|(start, end)| {
+            (
+                pos2(start.x, start.y - vertical_offset),
+                pos2(end.x, end.y - vertical_offset),
 
-    bounds_r0.0.y -= VERTICAL_OFFSET;
-    bounds_r0.1.y -= VERTICAL_OFFSET;
-    if let Some(b) = bounds_r1.as_mut() {
-        b.0.y -= VERTICAL_OFFSET;
-        b.1.y -= VERTICAL_OFFSET;
-    }
+            )
+        })
+        .collect();
 
     let mut result = Vec::new();
 
-    let ctx = ui.ctx();
+    println!("\n A");
+    for (start, end) in &row_ranges_px {
+        let mut top_left = *start;
+        let mut top_right = *end;
+        let bottom_left = pos2(start.x, start.y + HEIGHT);
+        let bottom_right = pos2(end.x, end.y + HEIGHT);
 
-    let mut top_left = bounds_r0.0;
 
-    // Slant only if single-line.
-    let mut top_right = if bounds_r1.is_none() {
-        pos2(bounds_r0.1.x - SLANT, bounds_r0.1.y)
-    } else {
-        pos2(bounds_r0.1.x, bounds_r0.1.y)
-    };
-    let mut bottom_left = pos2(bounds_r0.0.x, bounds_r0.0.y + HEIGHT);
-    let mut bottom_right = pos2(bounds_r0.1.x, bounds_r0.1.y + HEIGHT);
-
-    if direction == Reverse {
-        std::mem::swap(&mut top_left, &mut top_right);
-        std::mem::swap(&mut bottom_left, &mut bottom_right);
-
-        top_left.y += V_OFFSET_REV;
-        top_right.y += V_OFFSET_REV;
-        bottom_left.y += V_OFFSET_REV;
-        bottom_right.y += V_OFFSET_REV;
-    }
-
-    let points = vec![top_left, bottom_left, bottom_right, top_right];
-
-    result.push(Shape::Path(PathShape::closed_line(
-        points,
-        Stroke::new(STROKE_WIDTH, color_arrow),
-    )));
-
-    if let Some(b) = bounds_r1 {
-        let mut top_left = b.0;
-        let mut bottom_left = pos2(b.0.x, b.0.y + HEIGHT);
-        let mut bottom_right = pos2(b.1.x, b.1.y + HEIGHT);
-        let mut top_right = pos2(b.1.x - SLANT, b.1.y);
-
-        // todo: DRY.
-        if direction == Reverse {
-            top_right.x += SLANT;
-            bottom_left.x += SLANT;
-
-            std::mem::swap(&mut top_left, &mut top_right);
-            std::mem::swap(&mut bottom_left, &mut bottom_right);
-
-            top_left.y += V_OFFSET_REV;
-            top_right.y += V_OFFSET_REV;
-            bottom_left.y += V_OFFSET_REV;
-            bottom_right.y += V_OFFSET_REV;
-        }
-
-        let points = vec![top_left, bottom_left, bottom_right, top_right];
+        println!("Points: {:?}", [top_left, bottom_left, bottom_right, top_right]);
+        // todo: Update with slant.
 
         result.push(Shape::Path(PathShape::closed_line(
-            points,
+            vec![top_left, bottom_left, bottom_right, top_right],
             Stroke::new(STROKE_WIDTH, color_arrow),
         )));
     }
+    //
+    //
+    //
+    // // Slant only if single-line.
+    // let mut top_right = if bounds_r1.is_none() {
+    //     pos2(bounds_r0.1.x - SLANT, bounds_r0.1.y)
+    // } else {
+    //     pos2(bounds_r0.1.x, bounds_r0.1.y)
+    // };
+    // let mut bottom_left = pos2(bounds_r0.0.x, bounds_r0.0.y + HEIGHT);
+    // let mut bottom_right = pos2(bounds_r0.1.x, bounds_r0.1.y + HEIGHT);
+    //
+    // if direction == Reverse {
+    //     std::mem::swap(&mut top_left, &mut top_right);
+    //     std::mem::swap(&mut bottom_left, &mut bottom_right);
+    //
+    //     top_left.y += V_OFFSET_REV;
+    //     top_right.y += V_OFFSET_REV;
+    //     bottom_left.y += V_OFFSET_REV;
+    //     bottom_right.y += V_OFFSET_REV;
+    // }
+
+    // if let Some(b) = bounds_r1 {
+    //     let mut top_left = b.0;
+    //     let mut bottom_left = pos2(b.0.x, b.0.y + HEIGHT);
+    //     let mut bottom_right = pos2(b.1.x, b.1.y + HEIGHT);
+    //     let mut top_right = pos2(b.1.x - SLANT, b.1.y);
+    //
+    //     // todo: DRY.
+    //     if direction == Reverse {
+    //         top_right.x += SLANT;
+    //         bottom_left.x += SLANT;
+    //
+    //         std::mem::swap(&mut top_left, &mut top_right);
+    //         std::mem::swap(&mut bottom_left, &mut bottom_right);
+    //
+    //         top_left.y += V_OFFSET_REV;
+    //         top_right.y += V_OFFSET_REV;
+    //         bottom_left.y += V_OFFSET_REV;
+    //         bottom_right.y += V_OFFSET_REV;
+    //     }
+    //
+    //     result.push(Shape::Path(PathShape::closed_line(
+    //         vec![top_left, bottom_left, bottom_right, top_right],
+    //         Stroke::new(STROKE_WIDTH, color_arrow),
+    //     )));
+    // }
 
     let label_start_x = match direction {
-        Forward => bounds_r0.0.x,
-        Reverse => bounds_r0.1.x,
+        Forward => row_ranges_px[0].0.x,
+        Reverse => row_ranges_px[row_ranges_px.len() - 1].1.x,
     } + LABEL_OFFSET;
 
     let label_pos = match direction {
-        Forward => pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET),
-        Reverse => pos2(label_start_x, bounds_r0.0.y + LABEL_OFFSET + V_OFFSET_REV),
+        Forward => pos2(label_start_x, row_ranges_px[0].0.y + LABEL_OFFSET),
+        Reverse => pos2(
+            label_start_x,
+            row_ranges_px[0].0.y + LABEL_OFFSET + v_offset_rev,
+        ),
     };
 
-    let label = ctx.fonts(|fonts| {
+    let label = ui.ctx().fonts(|fonts| {
         Shape::text(
             fonts,
             label_pos,
@@ -131,68 +155,17 @@ fn primer_arrow(
     result
 }
 
-/// Todo: Abstract this so it works for A: Arbitrary row count. B: Features.
-// pub fn find_rows(primer_data: &PrimerData) {
-pub fn find_rows(
-    direction: PrimerDirection,
-    seq_range: Range<usize>,
-    ui: &mut Ui,
-    nt_chars_per_row: usize,
-    seq_len: usize,
-    seq_i_to_px_rel: impl Fn(usize) -> Pos2,
-) -> ((Pos2, Pos2), Option<(Pos2, Pos2)>) {
-    let (start, end) = match direction {
-        Forward => (seq_range.start, seq_range.end),
-        Reverse => (seq_len - seq_range.start, seq_len - seq_range.end),
-    };
 
-    let start_pos = seq_i_to_px_rel(start);
-    let end_pos = seq_i_to_px_rel(end);
+// todo: Abstract out/use in feature overlay
+/// Given an index range of a feature, return sequence ranges for each row the feature occupies.
+pub fn get_feature_ranges(range: &Range<usize>, row_ranges: &[Range<usize>]) -> Vec<Range<usize>> {
 
-    // Check if we split across rows.
-    let (bounds_row_0, bounds_row_1) = if start_pos.y == end_pos.y {
-        ((start_pos, end_pos), None)
-    } else {
-        // let (col, row) = seq_i_to_col_row(seq_range.start);
-
-        // let row_0_end = seq_i_to_pixel_rel(seq_range.start);
-
-        match direction {
-            Forward => {
-                let row_0_end = pos2(
-                    TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
-                    start_pos.y,
-                );
-                let row_1_start = pos2(TEXT_X_START, end_pos.y);
-
-                ((start_pos, row_0_end), Some((row_1_start, end_pos)))
-            }
-            Reverse => {
-                // todo: DRY
-                // let row_0_end = pos2(
-                //     TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32),
-                //     start_pos.y,
-                // );
-
-                let row_0_end = pos2(
-                    ui.available_width()
-                        - (TEXT_X_START + NT_WIDTH_PX * (1. + nt_chars_per_row as f32)),
-                    start_pos.y,
-                );
-
-                let row_1_start = pos2(ui.available_width(), end_pos.y);
-
-                ((row_0_end, start_pos), Some((end_pos, row_1_start)))
-            }
-        }
-    };
-
-    (bounds_row_0, bounds_row_1)
 }
 
 /// Add primer arrows to the display.
 pub fn draw_primers(
     primer_data: &[PrimerData],
+    row_ranges: &[Range<usize>],
     ui: &mut Ui,
     nt_chars_per_row: usize,
     seq_len: usize,
@@ -207,18 +180,29 @@ pub fn draw_primers(
         // todo: Do not run these calcs each time! Cache.
         for (direction, seq_range) in primer_matches {
             // todo: We need to match an arbitrary number of rows.
-            let (bounds_row_0, bounds_row_1) = find_rows(
-                *direction,
-                seq_range.clone(),
-                ui,
-                nt_chars_per_row,
-                seq_len,
-                &seq_i_to_px_rel,
-            );
+            // let (bounds_row_0, bounds_row_1) = get_row_range_px(
+            //     row_ranges,
+            //     *direction,
+            //     seq_range.clone(),
+            //     ui,
+            //     nt_chars_per_row,
+            //     seq_len,
+            //     &seq_i_to_px_rel,
+            // );
 
+            let feature_ranges = get_feature_ranges(seq_range, row_ranges);
+
+            let row_ranges_px: Vec<(Pos2, Pos2)> = feature_ranges
+                .iter()
+                .map(|r| (seq_i_to_px_rel(r.start), seq_i_to_px_rel(r.end)))
+                .collect();
+
+            // todo: PUt back; temp check on compiling.
             shapes.append(&mut primer_arrow(
-                bounds_row_0,
-                bounds_row_1,
+                &row_ranges_px,
+                // bounds_row_0,
+                // bounds_row_1,
+                VERTICAL_OFFSET_PRIMER,
                 *direction,
                 &prim_data.description,
                 ui,

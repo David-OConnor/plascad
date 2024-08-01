@@ -1,11 +1,20 @@
-# Plasmid tools
+# PlasCAD
 
-This program is a set of tools for assisting with plasmid creation and assessment.
+[![Crate](https://img.shields.io/crates/v/plascad.svg)](https://crates.io/crates/plascad)
+[![Docs](https://docs.rs/plascad/badge.svg)](https://docs.rs/plascad)
 
-It is a work in progress, and the current feature set is limited. It is currently similar to AmplifX's 
-primer validation tool. Expect a gradual increase in new features.
+This is design software for plasmid and primer creation and validation.
 
-[Download for Windows, and Linux](https://github.com/David-OConnor/plasmid_tools/releases). (Unzip, and run). If using Mac, you can compile from source by [downloading Rust](https://www.rust-lang.org/tools/install), and running `cargo install plasmid_tools` in the CLI.
+
+## Installation
+
+### Windows and Linux
+[Download, unzip, and run](https://github.com/David-OConnor/plascad/releases). 
+
+
+### Mac
+Compile from source by [downloading and installing Rust](https://www.rust-lang.org/tools/install), then running `cargo install plascad` from a CLI.
+
 
 ## Current functionality
 
@@ -23,9 +32,13 @@ Given the sequences for an insert, a vector, and insertion point, it will genera
 It generates primers to amplify the entire vector, and insert primers that contain suitable overlap regions with the vector.
 
 
-### A simple sequence viewer
+### Sequence viewer
 This shows the sequence of interest (as generated from cloning, or manually input) with primers overlayed based on their
-match location. It also displays cut sites for common restriction enzymes.
+match location. It also displays cut sites for common restriction enzymes, and features loaded from a file, or set by the user.
+
+
+### Circular map
+A circular sequence map of the plasmid being edited, with features and other data displayed
 
 
 ### PCR parameter generation
@@ -33,18 +46,24 @@ Generates PCR parameters (eg temperature and time for the various steps), based 
 melting temperature, polymerase type, and other parameters.
 
 
+## Why another plasmid editor
+We believe that the more tools available for scientists, the better. In particular, our goal is to make
+a fast, lightweight program that's as easy to use as possible, without sacrificing functionality. We also added
+some functionality we didn't see elsewhere, like automatic primer tuning, and primer generation for SLIC and FastCloning.
+
+
 ## Near-term plans
-- Visualization of primers along sequences
 - A better save and load system
-- Reading and writing FASTA, FASTQ, and SnapGene (.dna) files
+- Reading and writing SnapGene (.dna) files
 - QCing plasmids for toxic proteins, and various forms of error
 - QC primers for problems in context of plasmids. (Eg multiple binding sites)
-- Plasmid view and edit functionality, expanding the sequence view.
+- Identifying secondary structures, hairpins etc
+- Better sequence view and edit functionality, expanding the sequence view.
 
 
 ## Calculations used 
 Our primer melting temperature method used is based on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/) It uses each pair of nucleotides in the
-primer sequence to estimate entropy and enthalpy values, used in the following calcluation, where ΔH is enthalphy, ΔS is entropy, and $C_T$ is 
+primer sequence to estimate entropy and enthalpy values, used in the following calcluation, where $ΔH$ is enthalphy, $ΔS$ is entropy, and $C_T$ is 
 primer Molar concentration:
 
 $$ (1000 * ΔH) / (ΔS + R \times ln(\frac{C_T}{4})) - 273.15 $$

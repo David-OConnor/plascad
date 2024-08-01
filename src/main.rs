@@ -163,6 +163,7 @@ struct StateUi {
     /// Show and hide primers on
     show_primers: bool,
     show_start_stop_codons: bool,
+    hide_map_feature_editor: bool,
     cursor_pos: Option<(f32, f32)>,
     cursor_seq_i: Option<usize>,
     open_file_dialog_import: Option<FileDialog>,
@@ -187,6 +188,7 @@ impl Default for StateUi {
             show_res: true,
             show_primers: true,
             show_start_stop_codons: true,
+            hide_map_feature_editor: false,
             cursor_pos: None,
             cursor_seq_i: None,
             open_file_dialog_import: None,
@@ -216,6 +218,7 @@ struct State {
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
     restriction_enzyme_sites: Vec<ReMatch>,
     features: Vec<Feature>,
+    plasmid_name: String,
 }
 
 impl State {

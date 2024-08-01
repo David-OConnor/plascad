@@ -29,7 +29,7 @@ use crate::{
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 800.;
 
-pub const WINDOW_TITLE: &str = "Plasmid tools";
+pub const WINDOW_TITLE: &str = "PlasCAD";
 
 pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
@@ -103,8 +103,9 @@ fn save_section(state: &mut State, ui: &mut Ui) {
             if let Some(path) = dialog.path() {
                 state.ui.opened_file = Some(path.to_owned());
 
-                if let Ok(seq) = import_fasta(path) {
+                if let Ok((seq, id)) = import_fasta(path) {
                     state.seq = seq;
+                    state.plasmid_name = id;
                     state.ui.seq_input = seq_to_str(&state.seq);
                     state.sync_re_sites();
                 }
@@ -118,7 +119,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
             if let Some(path) = dialog.path() {
                 state.ui.opened_file = Some(path.to_owned());
 
-                if let Err(e) = export_fasta(&state.seq, path) {
+                if let Err(e) = export_fasta(&state.seq, &state.plasmid_name, path) {
                     eprintln!("Error exporting to FASTA: {:?}", e);
                 };
 
@@ -164,7 +165,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
         ScrollArea::vertical().show(ui, |ui| match state.ui.page {
             Page::Sequence => sequence::seq_page(state, ui),
-            Page::Circle => circle::circle_page(&state.seq, &state.features, ui),
+            Page::Map => circle::circle_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Portions => portions::portions_page(state, ui),
         });

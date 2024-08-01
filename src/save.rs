@@ -69,7 +69,7 @@ pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
     let mut file = File::open(filename)?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
-    let (decoded, len) = match bincode::decode_from_slice(&buffer, config) {
+    let (decoded, _len) = match bincode::decode_from_slice(&buffer, config) {
         Ok(v) => v,
         Err(_) => {
             eprintln!("Error loading from file. Did the format change?");
@@ -80,7 +80,7 @@ pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
 }
 
 /// Export a sequence in FASTA format.
-pub fn export_fasta(seq: &[Nucleotide], path: &Path) -> io::Result<()> {
+pub fn export_fasta(seq: &[Nucleotide], name: &str, path: &Path) -> io::Result<()> {
     let file = OpenOptions::new()
         .append(true)
         .create(true) // Create the file if it doesn't exist
@@ -89,28 +89,28 @@ pub fn export_fasta(seq: &[Nucleotide], path: &Path) -> io::Result<()> {
     let seq_u8: Vec<u8> = seq.iter().map(|nt| *nt as u8).collect();
     let mut writer = fasta::Writer::new(file);
 
-    writer.write(
-        "Plasmid tools export",
-        Some("A DNA export from Plasmid tools"),
-        seq_u8.as_slice(),
-    )?;
+    writer.write(name, Some("A DNA export from PlasCAD"), seq_u8.as_slice())?;
 
     Ok(())
 }
 
 /// Import from a FASTA file
-pub fn import_fasta(path: &Path) -> io::Result<Seq> {
+pub fn import_fasta(path: &Path) -> io::Result<(Seq, String)> {
     let file = File::open(path)?;
 
     let mut records = fasta::Reader::new(file).records();
 
     let mut result = Vec::new();
 
+    // todo: Do we want id, or description?
+    let mut id = String::new();
+
     while let Some(Ok(record)) = records.next() {
         for r in record.seq() {
             result.push(Nucleotide::from_u8(*r)?);
+            id = record.id().to_owned(); // Note that this overrides previous records, if applicable.
         }
     }
 
-    Ok(result)
+    Ok((result, id))
 }

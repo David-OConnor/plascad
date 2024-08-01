@@ -1,15 +1,15 @@
 [package]
-name = "plasmid_tools"
+name = "plascad"
 version = "0.6.9"
 edition = "2021"
 authors = ["David O'Connor <the_alchemist@fastmail.com>"]
-description = "Tools for primer design, PCR, and other plasmid-related work."
+description = "Tools primer design, PCR, and other plasmid-related work."
 keywords = ["plasmid", "primer", "biology", "pcr"]
 categories = [
     "science", "science::bioinformatics",
 ]
-repository = "https://github.com/David-OConnor/plasmid_tools"
-documentation = "https://docs.rs/plasmid_tools"
+repository = "https://github.com/David-OConnor/plascad"
+documentation = "https://docs.rs/plascad"
 readme = "README.md"
 license = "MIT"
 exclude = [".gitignore"]

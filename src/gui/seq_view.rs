@@ -213,6 +213,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 if state.ui.show_primers {
                     shapes.append(&mut primer_arrow::draw_primers(
                         &state.primer_data,
+                        &row_ranges,
                         ui,
                         nt_chars_per_row,
                         seq_len,

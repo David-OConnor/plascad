@@ -14,7 +14,7 @@ pub enum Page {
     /// (Replacement name: Sequence?
     Sequence,
     /// A circular "graphical map" of the plasmid
-    Circle,
+    Map,
     /// Determine optimal PCR parameters
     Pcr,
     Portions,
@@ -33,7 +33,7 @@ impl Display for Page {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Self::Sequence => "Sequence",
-            Self::Circle => "Circle",
+            Self::Map => "Map",
             Self::Pcr => "PCR",
             Self::Portions => "Mixing portions",
         }
@@ -45,9 +45,9 @@ impl Display for Page {
 pub fn page_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         page_button(&mut state.ui.page, Page::Sequence, ui);
-        page_button(&mut state.ui.page, Page::Circle, ui);
+        page_button(&mut state.ui.page, Page::Map, ui);
         page_button(&mut state.ui.page, Page::Pcr, ui);
-        page_button(&mut state.ui.page, Page::Portions, ui);
+        // page_button(&mut state.ui.page, Page::Portions, ui);
     });
 }
 

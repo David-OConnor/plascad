@@ -80,44 +80,48 @@ pub fn feature_table(features: &mut [Feature], ui: &mut Ui) {
 }
 
 pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
-    ui.heading("Add feature: ");
+    ui.horizontal(|ui| {
+        ui.heading("Add feature: ");
 
-    int_field(&mut state.ui.feature_add.start_posit, "Start:", ui);
-    int_field(&mut state.ui.feature_add.end_posit, "End:", ui);
+        int_field(&mut state.ui.feature_add.start_posit, "Start:", ui);
+        int_field(&mut state.ui.feature_add.end_posit, "End:", ui);
 
-    ui.label("Label:");
-    ui.add(TextEdit::singleline(&mut state.ui.feature_add.label).desired_width(LABEL_EDIT_WIDTH));
+        ui.label("Label:");
+        ui.add(
+            TextEdit::singleline(&mut state.ui.feature_add.label).desired_width(LABEL_EDIT_WIDTH),
+        );
 
-    ui.label("Type:");
-    feature_type_picker(&mut state.ui.feature_add.feature_type, 200, ui);
+        ui.label("Type:");
+        feature_type_picker(&mut state.ui.feature_add.feature_type, 200, ui);
 
-    ui.label("Color:");
-    color_picker(&mut state.ui.feature_add.color, 2, ui);
+        ui.label("Color:");
+        color_picker(&mut state.ui.feature_add.color, 2, ui);
 
-    if ui.button("➕ Add").clicked() {
-        if state.ui.feature_add.start_posit == 0 {
-            state.ui.feature_add.start_posit = 1;
+        if ui.button("➕ Add").clicked() {
+            if state.ui.feature_add.start_posit == 0 {
+                state.ui.feature_add.start_posit = 1;
+            }
+            if state.ui.feature_add.end_posit == 0 {
+                state.ui.feature_add.end_posit = 1;
+            }
+
+            if state.ui.feature_add.start_posit > state.ui.feature_add.end_posit {
+                std::mem::swap(
+                    &mut state.ui.feature_add.start_posit,
+                    &mut state.ui.feature_add.end_posit,
+                );
+            }
+
+            state.features.push(Feature {
+                index_range: (
+                    state.ui.feature_add.start_posit,
+                    state.ui.feature_add.end_posit,
+                ),
+                feature_type: FeatureType::Generic,
+                direction: FeatureDirection::None,
+                label: state.ui.feature_add.label.clone(),
+                color: (0, 0, 0), // todo temp
+            });
         }
-        if state.ui.feature_add.end_posit == 0 {
-            state.ui.feature_add.end_posit = 1;
-        }
-
-        if state.ui.feature_add.start_posit > state.ui.feature_add.end_posit {
-            std::mem::swap(
-                &mut state.ui.feature_add.start_posit,
-                &mut state.ui.feature_add.end_posit,
-            );
-        }
-
-        state.features.push(Feature {
-            index_range: (
-                state.ui.feature_add.start_posit,
-                state.ui.feature_add.end_posit,
-            ),
-            feature_type: FeatureType::Generic,
-            direction: FeatureDirection::None,
-            label: state.ui.feature_add.label.clone(),
-            color: (0, 0, 0), // todo temp
-        });
-    }
+    });
 }
