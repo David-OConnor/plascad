@@ -215,8 +215,6 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                         &state.primer_data,
                         &row_ranges,
                         ui,
-                        nt_chars_per_row,
-                        seq_len,
                         seq_i_to_px_rel,
                     ));
                 }
@@ -226,9 +224,8 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 }
                 shapes.append(&mut draw_features(
                     &state.features,
+                    &row_ranges,
                     ui,
-                    nt_chars_per_row,
-                    seq_len,
                     seq_i_to_px_rel,
                 ));
                 ui.painter().extend(shapes);

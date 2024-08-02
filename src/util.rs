@@ -1,4 +1,4 @@
-use std::{collections::HashSet, ops::Range};
+use std::{cmp::min, collections::HashSet, ops::Range};
 
 use eframe::egui::{pos2, Pos2};
 
@@ -75,4 +75,31 @@ pub fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
     let set: HashSet<_> = vec.into_iter().collect();
     let vec: Vec<_> = set.into_iter().collect();
     vec
+}
+
+// todo: Abstract out/use in feature overlay
+/// Given an index range of a feature, return sequence ranges for each row the feature occupies, that
+/// contain the sequence. This, after converting to pixels, corresponds to how we draw features and primers.
+pub fn get_feature_ranges(
+    feature_rng: &Range<usize>,
+    all_ranges: &[Range<usize>],
+) -> Vec<Range<usize>> {
+    let mut result = Vec::new();
+
+    for range in all_ranges {
+        if range.contains(&feature_rng.start) {
+            // Contains start only, or start and end.
+            let end = min(range.end, feature_rng.end);
+            result.push(feature_rng.start..end - 1); // todo experimenting.
+        } else if range.contains(&feature_rng.end) {
+            // Contains end only.
+            result.push(range.start..feature_rng.end); // todo experimenting.
+        } else if feature_rng.start < range.start && feature_rng.end > range.end {
+            // Include this entire row
+            result.push(range.start..range.end - 1);
+        }
+        // If none of the above, this row doesn't contain any of the sequence of interest.
+    }
+
+    result
 }

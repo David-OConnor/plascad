@@ -3,6 +3,7 @@ use std::io;
 use bincode::{Decode, Encode};
 
 use crate::{
+    primer::PrimerDirection,
     sequence::Nucleotide::{A, C, G, T},
     StateUi,
 };
@@ -53,6 +54,7 @@ pub enum FeatureType {
     Gene,
     Ori,
     RnaPolyBindSite,
+    AntibioticResistance,
 }
 
 impl Default for FeatureType {
@@ -68,6 +70,7 @@ impl FeatureType {
             Self::Gene => "Gene",
             Self::Ori => "Origin of replication",
             Self::RnaPolyBindSite => "RNA polymerase bind site",
+            Self::AntibioticResistance => "Antibiotic resistance",
         }
         .to_owned()
     }
@@ -78,6 +81,15 @@ pub enum FeatureDirection {
     None,
     Forward,
     Reverse,
+}
+
+impl From<PrimerDirection> for FeatureDirection {
+    fn from(value: PrimerDirection) -> Self {
+        match value {
+            PrimerDirection::Forward => Self::Forward,
+            PrimerDirection::Reverse => Self::Reverse,
+        }
+    }
 }
 
 impl Default for FeatureDirection {

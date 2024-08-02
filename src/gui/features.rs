@@ -2,7 +2,8 @@
 
 use eframe::{
     egui::{
-        pos2, Align2, Color32, ComboBox, FontFamily, FontId, Pos2, Shape, Stroke, TextEdit, Ui,
+        pos2, Align2, Color32, ComboBox, FontFamily, FontId, Pos2, RichText, Shape, Stroke,
+        TextEdit, Ui,
     },
     epaint::PathShape,
 };
@@ -60,7 +61,8 @@ fn feature_type_picker(val: &mut FeatureType, id: usize, ui: &mut Ui) {
         });
 }
 
-pub fn feature_table(features: &mut [Feature], ui: &mut Ui) {
+pub fn feature_table(features: &mut Vec<Feature>, ui: &mut Ui) {
+    let mut removed = None;
     for (i, feature) in features.iter_mut().enumerate() {
         ui.horizontal(|ui| {
             // todo: This may be confoudning your 0 vs 1.
@@ -75,7 +77,17 @@ pub fn feature_table(features: &mut [Feature], ui: &mut Ui) {
 
             ui.label("Color:");
             color_picker(&mut feature.color, 3 + i, ui);
+
+            if ui
+                .button(RichText::new("Delete 🗑").color(Color32::RED))
+                .clicked()
+            {
+                removed = Some(i);
+            }
         });
+    }
+    if let Some(rem_i) = removed {
+        features.remove(rem_i);
     }
 }
 
