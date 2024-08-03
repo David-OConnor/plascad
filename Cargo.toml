@@ -23,7 +23,8 @@ egui_file = "^0.18.0" # For file dialogs.
 
 bio = "^2.0.0"
 
-#chrono = "^0.4.38"
+# todo: Confirm you need these.
+chrono = "^0.4.38"
 #regex = "1.10.5"
 
 # We use bincode for saving and loading to files.

@@ -6,6 +6,7 @@
 workspace.xml
 
 
-# Project-specific
+# Saved file formats
 *.save
 *.fasta
+*.dna

@@ -5,7 +5,7 @@ use bincode::{Decode, Encode};
 use crate::{
     primer::PrimerDirection,
     sequence::Nucleotide::{A, C, G, T},
-    StateUi,
+    Color, StateUi,
 };
 
 // Index 0: 5' end.
@@ -55,6 +55,9 @@ pub enum FeatureType {
     Ori,
     RnaPolyBindSite,
     AntibioticResistance,
+    /// Note: This one behaves a bit different from the others; we use it here so we can share the feature
+    /// overlay code.
+    Primer,
 }
 
 impl Default for FeatureType {
@@ -71,8 +74,20 @@ impl FeatureType {
             Self::Ori => "Origin of replication",
             Self::RnaPolyBindSite => "RNA polymerase bind site",
             Self::AntibioticResistance => "Antibiotic resistance",
+            Self::Primer => "Primer",
         }
         .to_owned()
+    }
+
+    pub fn color(&self) -> Color {
+        match self {
+            Self::Generic => (255, 0, 255),
+            Self::Gene => (255, 128, 128),
+            Self::Ori => (40, 128, 128),
+            Self::RnaPolyBindSite => (255, 0, 20),
+            Self::AntibioticResistance => (128, 128, 100),
+            Self::Primer => (0, 0, 0), // N/A for now at least.
+        }
     }
 }
 
@@ -116,7 +131,21 @@ pub struct Feature {
     pub feature_type: FeatureType,
     pub direction: FeatureDirection,
     pub label: String,
-    pub color: (u8, u8, u8),
+    /// By default, we display features using featuretype-specific color. Allow the user
+    /// to override this.
+    pub color_override: Option<Color>,
+}
+
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+pub enum SeqTopology {
+    Linear,
+    Circular,
+}
+
+impl Default for SeqTopology {
+    fn default() -> Self {
+        Self::Circular
+    }
 }
 
 /// Reverse direction, and swap C for G, A for T.

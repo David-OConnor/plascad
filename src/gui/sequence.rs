@@ -1,6 +1,6 @@
 //! This module contains GUI code related to the sequence view.
 
-use eframe::egui::{Color32, TextEdit, Ui};
+use eframe::egui::{TextEdit, Ui};
 
 // todo: monospace font for all seqs.
 use crate::sequence::{seq_from_str, seq_to_str};

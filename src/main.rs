@@ -26,7 +26,7 @@ use crate::{
     primer::{PrimerDirection, TM_TARGET},
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     save::{StateToSave, DEFAULT_SAVE_FILE},
-    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType},
+    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, SeqTopology},
 };
 
 mod features_known;
@@ -37,11 +37,14 @@ mod primer;
 mod primer_metrics;
 mod restriction_enzyme;
 mod save;
+mod save_compat;
 mod sequence;
+mod snapgene_parse;
 mod solution_helper;
 mod toxic_proteins;
 mod util;
-// mod snapgene_parse;
+
+type Color = (u8, u8, u8); // RGB
 
 #[derive(Clone, Copy)]
 enum AminoAcid {
@@ -136,7 +139,7 @@ struct StateFeatureAdd {
     feature_type: FeatureType,
     direction: FeatureDirection,
     label: String,
-    color: (u8, u8, u8),
+    color: Option<Color>,
 }
 
 /// Values defined here generally aren't worth saving to file etc.
@@ -219,6 +222,7 @@ struct State {
     restriction_enzyme_sites: Vec<ReMatch>,
     features: Vec<Feature>,
     plasmid_name: String,
+    topology: SeqTopology,
 }
 
 impl State {

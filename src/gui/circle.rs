@@ -19,6 +19,7 @@ use crate::{
         seq_view::{COLOR_SEQ, FONT_SIZE_SEQ, SEQ_ROW_SPACING_PX},
         COL_SPACING, ROW_SPACING,
     },
+    primer::{PrimerData, PrimerDirection},
     sequence::{Feature, Nucleotide},
     util::{pixel_to_seq_i, seq_i_to_pixel},
     State,
@@ -174,10 +175,11 @@ fn draw_features(
         let point_mid_outer =
             angle_to_pixel(angle_mid, radius + feature_width / 2.) + center.to_vec2();
 
-        let stroke = Stroke::new(
-            feature_stroke_width,
-            Color32::from_rgb(feature.color.0, feature.color.1, feature.color.2),
-        );
+        let (r, g, b) = match feature.color_override {
+            Some(c) => c,
+            None => feature.feature_type.color(),
+        };
+        let stroke = Stroke::new(feature_stroke_width, Color32::from_rgb(r, g, b));
 
         result.push(Shape::Path(PathShape::line(
             arc_points(
@@ -237,6 +239,120 @@ fn draw_features(
     result
 }
 
+/// todo: C+P from draw_features! Build this into the feature one like you did in seq view.
+fn draw_primers(
+    primer_data: &[PrimerData],
+    seq_len: usize,
+    center: Pos2,
+    radius: f32,
+    to_screen: &RectTransform,
+    ui: &mut Ui,
+) -> Vec<Shape> {
+    let mut result = Vec::new();
+
+    for prim_data in primer_data {
+        let primer_matches = &prim_data.matches_seq;
+
+        // todo: Do not run these calcs each time. Cache.
+        for (direction, seq_range) in primer_matches {
+            // We currently index primers relative to the end they started.
+            let seq_range = match direction {
+                PrimerDirection::Forward => seq_range.clone(),
+                PrimerDirection::Reverse => (seq_len - seq_range.end)..(seq_len - seq_range.start),
+            };
+
+            let angle_start = seq_i_to_angle(seq_range.start, seq_len);
+            let angle_end = seq_i_to_angle(seq_range.end, seq_len);
+            let angle_mid = (angle_start + angle_end) / 2.;
+
+            // todo: Adjust feature, tick etc width (stroke width, and dimensions from cicle) based on window size.
+
+            // todo: Sort out how to handle feature widths. Byy type?
+            let feature_width = 40.;
+            let feature_stroke_width = 3.;
+            // todo: Sort out color, as you have a note elsewhere. Type or custom? Type with avail override?
+
+            let point_start_inner =
+                angle_to_pixel(angle_start, radius - feature_width / 2.) + center.to_vec2();
+            let point_start_outer =
+                angle_to_pixel(angle_start, radius + feature_width / 2.) + center.to_vec2();
+
+            let point_end_inner =
+                angle_to_pixel(angle_end, radius - feature_width / 2.) + center.to_vec2();
+            let point_end_outer =
+                angle_to_pixel(angle_end, radius + feature_width / 2.) + center.to_vec2();
+
+            let point_mid_outer =
+                angle_to_pixel(angle_mid, radius + feature_width / 2.) + center.to_vec2();
+
+            // todo: This color code is DRY from primer_arrow. Consolidate.
+            let outline_color = match direction {
+                PrimerDirection::Forward => Color32::from_rgb(255, 0, 255),
+                PrimerDirection::Reverse => Color32::LIGHT_YELLOW,
+                // FeatureDirection::None => Color32::GOLD,
+            };
+
+            let stroke = Stroke::new(feature_stroke_width, outline_color);
+
+            result.push(Shape::Path(PathShape::line(
+                arc_points(
+                    to_screen * center,
+                    radius + feature_width / 2.,
+                    angle_start,
+                    angle_end,
+                ),
+                stroke,
+            )));
+            result.push(Shape::Path(PathShape::line(
+                arc_points(
+                    to_screen * center,
+                    radius - feature_width / 2.,
+                    angle_start,
+                    angle_end,
+                ),
+                stroke,
+            )));
+
+            // Lines connected the inner and outer arcs.
+            result.push(Shape::line_segment(
+                [to_screen * point_start_inner, to_screen * point_start_outer],
+                stroke,
+            ));
+            result.push(Shape::line_segment(
+                [to_screen * point_end_inner, to_screen * point_end_outer],
+                stroke,
+            ));
+
+            // todo: A/R
+
+            let (label_pt, label_align) = if angle_mid > TAU / 2. {
+                (
+                    point_mid_outer + vec2(-TICK_LABEL_OFFSET, 0.),
+                    Align2::RIGHT_CENTER,
+                )
+            } else {
+                (
+                    point_mid_outer + vec2(TICK_LABEL_OFFSET, 0.),
+                    Align2::LEFT_CENTER,
+                )
+            };
+
+            result.push(ui.ctx().fonts(|fonts| {
+                Shape::text(
+                    fonts,
+                    to_screen * label_pt,
+                    label_align,
+                    &prim_data.description,
+                    FontId::new(16., FontFamily::Proportional),
+                    stroke.color,
+                )
+            }));
+        }
+    }
+
+    result
+}
+
 pub fn circle_page(state: &mut State, ui: &mut Ui) {
     let mut shapes = Vec::new();
 
@@ -272,7 +388,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
     Frame::canvas(ui.style())
         .fill(Color32::from_rgb(10, 20, 10))
         .show(ui, |ui| {
-            let (mut response, _painter) = {
+            let (response, _painter) = {
                 // todo: Sort this out to make effective use of the space. Check the examples
 
                 // todo: avail height showing 0.
@@ -310,6 +426,15 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             shapes.append(&mut draw_ticks(seq_len, center, radius, &to_screen, ui));
             shapes.append(&mut draw_features(
                 &state.features,
+                seq_len,
+                center,
+                radius,
+                &to_screen,
+                ui,
+            ));
+
+            shapes.append(&mut draw_primers(
+                &state.primer_data,
                 seq_len,
                 center,
                 radius,

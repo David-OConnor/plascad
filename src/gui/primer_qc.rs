@@ -4,7 +4,7 @@ use eframe::egui::{Align, Color32, Layout, RichText, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
 use crate::{
-    gui::{sequence, COL_SPACING, ROW_SPACING},
+    gui::{COL_SPACING, ROW_SPACING},
     primer::{make_amplification_primers, PrimerData, TuneSetting},
     sequence::{seq_from_str, seq_to_str},
     IonConcentrations, State,

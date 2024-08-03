@@ -15,7 +15,7 @@ use crate::{
         FeatureDirection::{self, Forward, Reverse},
         FeatureType,
     },
-    State,
+    Color, State,
 };
 
 const LABEL_EDIT_WIDTH: f32 = 140.;
@@ -29,15 +29,21 @@ const COLORS: [(u8, u8, u8, &str); 4] = [
 ];
 
 /// A color selector for use with feature addition and editing.
-fn color_picker(val: &mut (u8, u8, u8), id: usize, ui: &mut Ui) {
+fn color_picker(val: &mut Option<Color>, id: usize, ui: &mut Ui) {
+    let label_none = "Use type color";
+    let text = match val {
+        Some((r, g, b)) => &format!("{}, {}, {}", r, g, b),
+        None => label_none,
+    };
     ComboBox::from_id_source(id)
         .width(80.)
-        .selected_text(&format!("{}, {}, {}", val.0, val.1, val.2)) // todo temp
+        .selected_text(text) // todo temp
         .show_ui(ui, |ui| {
+            ui.selectable_value(val, None, label_none);
             for color in COLORS {
                 ui.selectable_value(
                     val,
-                    (color.0, color.1, color.2),
+                    Some((color.0, color.1, color.2)),
                     color.3, // todo temp. How can you show a color image?
                 );
             }
@@ -53,8 +59,10 @@ fn feature_type_picker(val: &mut FeatureType, id: usize, ui: &mut Ui) {
         .show_ui(ui, |ui| {
             for feature_type in [
                 FeatureType::Generic,
+                FeatureType::Gene,
                 FeatureType::Ori,
                 FeatureType::RnaPolyBindSite,
+                FeatureType::AntibioticResistance,
             ] {
                 ui.selectable_value(val, feature_type, feature_type.to_string());
             }
@@ -76,7 +84,7 @@ pub fn feature_table(features: &mut Vec<Feature>, ui: &mut Ui) {
             feature_type_picker(&mut feature.feature_type, 100 + i, ui);
 
             ui.label("Color:");
-            color_picker(&mut feature.color, 3 + i, ui);
+            color_picker(&mut feature.color_override, 3 + i, ui);
 
             if ui
                 .button(RichText::new("Delete 🗑").color(Color32::RED))
@@ -132,7 +140,7 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
                 feature_type: FeatureType::Generic,
                 direction: FeatureDirection::None,
                 label: state.ui.feature_add.label.clone(),
-                color: (0, 0, 0), // todo temp
+                color_override: None,
             });
         }
     });

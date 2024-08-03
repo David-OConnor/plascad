@@ -21,7 +21,6 @@ use crate::{
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
 pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
-pub const COLOR_INSERT: Color32 = Color32::from_rgb(255, 127, 39);
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
@@ -151,7 +150,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
         Frame::canvas(ui.style())
             .fill(Color32::from_rgb(10, 20, 10))
             .show(ui, |ui| {
-                let (mut response, _painter) = {
+                let (response, _painter) = {
                     // Estimate required height, based on seq len.
                     let total_seq_height = row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.;
                     // leto height = min(total_seq_height as u16, MAX_SEQ_AREA_HEIGHT);
@@ -214,6 +213,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     shapes.append(&mut primer_arrow::draw_primers(
                         &state.primer_data,
                         &row_ranges,
+                        state.seq.len(),
                         ui,
                         seq_i_to_px_rel,
                     ));

@@ -1,3 +1,21 @@
+use eframe::{
+    egui,
+    egui::{Color32, Context, Key, ScrollArea, TextEdit, Ui},
+};
+use egui_file::FileDialog;
+use navigation::Page;
+
+use crate::{
+    primer::PrimerData,
+    save::{
+        export_fasta, import_fasta, save, StateToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE,
+        DEFAULT_SAVE_FILE,
+    },
+    sequence::seq_to_str,
+    snapgene_parse::import_snapgene,
+    State,
+};
+
 mod circle;
 mod feature_overlay;
 mod features;
@@ -9,22 +27,6 @@ pub mod primer_qc;
 pub mod seq_view;
 pub mod sequence;
 // pub for a few consts
-
-use eframe::{
-    egui,
-    egui::{Color32, Context, Key, ScrollArea, TextEdit, Ui},
-};
-use egui_file::FileDialog;
-use navigation::Page;
-
-use crate::{
-    save::{
-        export_fasta, import_fasta, save, StateToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE,
-        DEFAULT_SAVE_FILE,
-    },
-    sequence::seq_to_str,
-    State,
-};
 
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 800.;
@@ -57,8 +59,8 @@ fn save_section(state: &mut State, ui: &mut Ui) {
     }
 
     if ui
-        .button("Import FASTA")
-        .on_hover_text("Import a sequence in the FASTA format")
+        .button("Import FASTA/.dna")
+        .on_hover_text("Import a sequence in the FASTA or .dna (SnapGene) format")
         .clicked()
     {
         let mut dialog = FileDialog::open_file(state.ui.opened_file.clone());
@@ -76,19 +78,19 @@ fn save_section(state: &mut State, ui: &mut Ui) {
         dialog.open();
         state.ui.open_file_dialog_export = Some(dialog);
     }
+    //
+    // if ui
+    //     .button("Import DNA")
+    //     .on_hover_text("Import a sequence in the DNA (SnapGene) format")
+    //     .clicked()
+    // {
+    //     let mut dialog = FileDialog::open_file(state.ui.opened_file.clone());
+    //     dialog.open();
+    //     state.ui.open_file_dialog_import = Some(dialog);
+    // }
 
     if ui
-        .button("Import DNA")
-        .on_hover_text("Import a sequence in the DNA (SnapGene) format")
-        .clicked()
-    {
-        let mut dialog = FileDialog::open_file(state.ui.opened_file.clone());
-        dialog.open();
-        state.ui.open_file_dialog_import = Some(dialog);
-    }
-
-    if ui
-        .button("Export DNA")
+        .button("Export .dna")
         .on_hover_text("Export the sequence in the DNA (SnapGene) format")
         .clicked()
     {
@@ -103,11 +105,53 @@ fn save_section(state: &mut State, ui: &mut Ui) {
             if let Some(path) = dialog.path() {
                 state.ui.opened_file = Some(path.to_owned());
 
-                if let Ok((seq, id)) = import_fasta(path) {
-                    state.seq = seq;
-                    state.plasmid_name = id;
-                    state.ui.seq_input = seq_to_str(&state.seq);
-                    state.sync_re_sites();
+                if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
+                    match extension {
+                        // Does this work for FASTQ too?
+                        "fast" => {
+                            if let Ok((seq, id)) = import_fasta(path) {
+                                state.seq = seq;
+                                state.plasmid_name = id;
+                                state.ui.seq_input = seq_to_str(&state.seq);
+                                state.sync_re_sites();
+                            }
+                        }
+                        "dna" => {
+                            if let Ok(data) = import_snapgene(path) {
+                                // todo: Likely wipe non-relevant data if present in state.
+                                if let Some(v) = data.seq {
+                                    state.seq = v;
+                                    state.ui.seq_input = seq_to_str(&state.seq);
+                                }
+
+                                if let Some(v) = data.topology {
+                                    state.topology = v;
+                                }
+
+                                if let Some(v) = data.features {
+                                    state.features = v;
+                                }
+
+                                if let Some(v) = data.primers {
+                                    state.primer_data = v
+                                        .into_iter()
+                                        .map(|v| {
+                                            let mut result = PrimerData::default();
+                                            result.primer = v;
+                                            result
+                                        })
+                                        .collect();
+                                }
+
+                                // todo: Other sync A/R here
+                                state.sync_re_sites();
+                            }
+                        }
+
+                        _ => {
+                            eprintln!("The file to import must be in FASTA or .dna format.")
+                        }
+                    }
                 }
 
                 state.ui.opened_file = None;
@@ -155,6 +199,11 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
         ui.horizontal(|ui| {
             navigation::page_selector(state, ui);
+
+            ui.add_space(COL_SPACING);
+
+            ui.label("Name: ");
+            ui.add(TextEdit::singleline(&mut state.plasmid_name).desired_width(140.));
 
             ui.add_space(COL_SPACING);
 
