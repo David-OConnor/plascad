@@ -78,27 +78,18 @@ fn save_section(state: &mut State, ui: &mut Ui) {
         dialog.open();
         state.ui.open_file_dialog_export = Some(dialog);
     }
-    //
+
+    // todo: Put back when ready.
     // if ui
-    //     .button("Import DNA")
-    //     .on_hover_text("Import a sequence in the DNA (SnapGene) format")
+    //     .button("Export .dna")
+    //     .on_hover_text("Export the sequence in the DNA (SnapGene) format")
     //     .clicked()
     // {
-    //     let mut dialog = FileDialog::open_file(state.ui.opened_file.clone());
+    //     let mut dialog =
+    //         FileDialog::save_file(state.ui.opened_file.clone()).default_filename(DEFAULT_DNA_FILE);
     //     dialog.open();
-    //     state.ui.open_file_dialog_import = Some(dialog);
+    //     state.ui.open_file_dialog_export = Some(dialog);
     // }
-
-    if ui
-        .button("Export .dna")
-        .on_hover_text("Export the sequence in the DNA (SnapGene) format")
-        .clicked()
-    {
-        let mut dialog =
-            FileDialog::save_file(state.ui.opened_file.clone()).default_filename(DEFAULT_DNA_FILE);
-        dialog.open();
-        state.ui.open_file_dialog_export = Some(dialog);
-    }
 
     if let Some(dialog) = &mut state.ui.open_file_dialog_import {
         if dialog.show(ui.ctx()).selected() {

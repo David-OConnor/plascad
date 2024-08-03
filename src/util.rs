@@ -1,7 +1,7 @@
 use std::{cmp::min, collections::HashSet, ops::Range};
-
+use std::num::ParseIntError;
 use eframe::egui::{pos2, Pos2};
-
+use crate::Color;
 use crate::gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START};
 /// Utility function to linearly map an input value to an output
 pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 {
@@ -102,4 +102,16 @@ pub fn get_feature_ranges(
     }
 
     result
+}
+
+pub fn color_from_hex(hex: &str) -> Result<Color, ParseIntError> {
+    // if hex.len() != 6 {
+    //     return Err(std::num::ParseIntError::new()); // This line won't actually compile since there's no ParseIntError::new(), we'll handle the length check below.
+    // }
+
+    let r = u8::from_str_radix(&hex[0..2], 16)?;
+    let g = u8::from_str_radix(&hex[2..4], 16)?;
+    let b = u8::from_str_radix(&hex[4..6], 16)?;
+
+    Ok((r, g, b))
 }

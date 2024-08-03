@@ -10,3 +10,4 @@ workspace.xml
 *.save
 *.fasta
 *.dna
+*.xml

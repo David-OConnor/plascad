@@ -54,10 +54,13 @@ pub enum FeatureType {
     Gene,
     Ori,
     RnaPolyBindSite,
+    RibosomeBindSite,
+    Promoter,
     AntibioticResistance,
     /// Note: This one behaves a bit different from the others; we use it here so we can share the feature
     /// overlay code.
     Primer,
+    CodingRegion,
 }
 
 impl Default for FeatureType {
@@ -73,8 +76,11 @@ impl FeatureType {
             Self::Gene => "Gene",
             Self::Ori => "Origin of replication",
             Self::RnaPolyBindSite => "RNA polymerase bind site",
+            Self::RibosomeBindSite => "Ribosome bind site",
+            Self::Promoter => "Promoter",
             Self::AntibioticResistance => "Antibiotic resistance",
             Self::Primer => "Primer",
+            Self::CodingRegion => "Coding region",
         }
         .to_owned()
     }
@@ -85,8 +91,24 @@ impl FeatureType {
             Self::Gene => (255, 128, 128),
             Self::Ori => (40, 128, 128),
             Self::RnaPolyBindSite => (255, 0, 20),
+            Self::RibosomeBindSite => (255, 0, 100),
+            Self::Promoter => (120, 120, 70),
             Self::AntibioticResistance => (128, 128, 100),
             Self::Primer => (0, 0, 0), // N/A for now at least.
+            Self::CodingRegion => (100, 200, 255), // N/A for now at least.
+        }
+    }
+
+    pub fn from_snapgene_str(v: &str) -> Self {
+        // todo: Update as required with more
+        let v = &v.to_lowercase();
+
+        match v.as_ref() {
+            "cds" => Self::CodingRegion,
+            "rbs" => Self::RibosomeBindSite,
+            "rep_origin" => Self::Ori,
+            "promoter" => Self::Promoter,
+            _ => Self::Generic,
         }
     }
 }

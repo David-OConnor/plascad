@@ -62,7 +62,9 @@ fn feature_type_picker(val: &mut FeatureType, id: usize, ui: &mut Ui) {
                 FeatureType::Gene,
                 FeatureType::Ori,
                 FeatureType::RnaPolyBindSite,
+                FeatureType::RibosomeBindSite,
                 FeatureType::AntibioticResistance,
+                FeatureType::CodingRegion,
             ] {
                 ui.selectable_value(val, feature_type, feature_type.to_string());
             }
