@@ -108,6 +108,10 @@ fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
         ui.checkbox(&mut state_ui.show_res, "");
         ui.add_space(COL_SPACING / 2.);
 
+        ui.label("Features:");
+        ui.checkbox(&mut state_ui.show_features, "");
+        ui.add_space(COL_SPACING / 2.);
+
         ui.label("Primers:");
         ui.checkbox(&mut state_ui.show_primers, "");
         ui.add_space(COL_SPACING / 2.);
@@ -222,12 +226,16 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 if state.ui.show_res {
                     shapes.append(&mut re_sites(state, ui, seq_i_to_px_rel));
                 }
-                shapes.append(&mut draw_features(
-                    &state.features,
-                    &row_ranges,
-                    ui,
-                    seq_i_to_px_rel,
-                ));
+
+                if state.ui.show_features {
+                    shapes.append(&mut draw_features(
+                        &state.features,
+                        &row_ranges,
+                        ui,
+                        seq_i_to_px_rel,
+                    ));
+                }
+
                 ui.painter().extend(shapes);
             });
     });

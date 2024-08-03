@@ -165,6 +165,8 @@ struct StateUi {
     show_res: bool,
     /// Show and hide primers on
     show_primers: bool,
+    /// todo: Show and hide individual features?
+    show_features: bool,
     show_start_stop_codons: bool,
     hide_map_feature_editor: bool,
     cursor_pos: Option<(f32, f32)>,
@@ -190,6 +192,7 @@ impl Default for StateUi {
             // hide_primer_table: false,
             show_res: true,
             show_primers: true,
+            show_features: true,
             show_start_stop_codons: true,
             hide_map_feature_editor: false,
             cursor_pos: None,

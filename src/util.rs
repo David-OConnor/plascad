@@ -109,6 +109,8 @@ pub fn color_from_hex(hex: &str) -> Result<Color, ParseIntError> {
     //     return Err(std::num::ParseIntError::new()); // This line won't actually compile since there's no ParseIntError::new(), we'll handle the length check below.
     // }
 
+    let hex = &hex[1..]; // Remove the leading #
+
     let r = u8::from_str_radix(&hex[0..2], 16)?;
     let g = u8::from_str_radix(&hex[2..4], 16)?;
     let b = u8::from_str_radix(&hex[4..6], 16)?;

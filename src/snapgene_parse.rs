@@ -331,7 +331,7 @@ mod feature_xml {
 
     #[derive(Debug, Deserialize)]
     pub struct QualifierValue {
-        pub text: Option<String>,go +
+        pub text: Option<String>,
         pub predef: Option<String>,
         pub int: Option<i32>,
     }
