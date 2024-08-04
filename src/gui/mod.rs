@@ -6,6 +6,7 @@ use egui_file::FileDialog;
 use navigation::Page;
 
 use crate::{
+    gui::primer_qc::primer_details,
     primer::PrimerData,
     save::{
         export_fasta, import_fasta, save, StateToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE,
@@ -15,7 +16,6 @@ use crate::{
     snapgene_parse::{export_snapgene, import_snapgene},
     State,
 };
-use crate::gui::primer_qc::primer_details;
 
 mod circle;
 mod feature_overlay;
@@ -61,7 +61,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
 
     if ui
         .button("Import FASTA/.dna")
-        .on_hover_text("Import a sequence in the FASTA or .dna (SnapGene) format")
+        .on_hover_text("Import a sequence in the FASTA or .dna (SnapGene) formats")
         .clicked()
     {
         let mut dialog = FileDialog::open_file(state.ui.opened_file.clone());
@@ -71,7 +71,9 @@ fn save_section(state: &mut State, ui: &mut Ui) {
 
     if ui
         .button("Export FASTA")
-        .on_hover_text("Export the sequence in the FASTA format")
+        .on_hover_text(
+            "Export the sequence in the FASTA format. This does not include features or primers.",
+        )
         .clicked()
     {
         let mut dialog = FileDialog::save_file(state.ui.opened_file.clone())
@@ -82,7 +84,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
 
     if ui
         .button("Export .dna")
-        .on_hover_text("Export the sequence in the .dna (SnapGene) format")
+        .on_hover_text("Export data in the .dna (SnapGene) format")
         .clicked()
     {
         let mut dialog =

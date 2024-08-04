@@ -147,14 +147,19 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
                 Err(e) => eprintln!("Error parsing Features packet: {:?}", e),
             },
             PacketType::Unknown => {
-                println!("Unknown packet type: {:x} len: {payload_len}", buf[i - 5 - payload_len]);
+                println!(
+                    "Unknown packet type: {:x} len: {payload_len}",
+                    buf[i - 5 - payload_len]
+                );
 
-                let payload_str = str::from_utf8(payload).map_err(|_| {
-                    io::Error::new(
-                        ErrorKind::InvalidData,
-                        "Unable to convert payload to string",
-                    )
-                }).ok();
+                let payload_str = str::from_utf8(payload)
+                    .map_err(|_| {
+                        io::Error::new(
+                            ErrorKind::InvalidData,
+                            "Unable to convert payload to string",
+                        )
+                    })
+                    .ok();
 
                 println!("Payload str: \n{:?}", payload_str);
             }
@@ -176,7 +181,7 @@ fn parse_dna(payload: &[u8]) -> io::Result<(Seq, SeqTopology)> {
     let mut seq = Vec::new();
 
     for nt in sequence {
-        match Nucleotide::from_u8(*nt) {
+        match Nucleotide::from_u8_letter(*nt) {
             Ok(n) => seq.push(n),
             Err(_) => {
                 eprintln!("Unexpected char in DNA sequence: {:?}", nt);
@@ -367,7 +372,6 @@ fn parse_notes(payload: &[u8]) -> io::Result<(Vec<String>)> {
             "Unable to convert payload to string",
         )
     })?;
-
 
     let notes: feature_xml::Notes = from_str(payload_str)
         .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Unable to parse notes"))?;

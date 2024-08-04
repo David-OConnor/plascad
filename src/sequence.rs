@@ -1,6 +1,7 @@
 use std::io;
 
 use bincode::{Decode, Encode};
+use num_enum::TryFromPrimitive;
 
 use crate::{
     primer::PrimerDirection,
@@ -22,19 +23,19 @@ impl Nucleotide {
     }
 }
 
-/// A DNA nucleotide.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Encode, Decode)]
-#[repr(u8)] // For bio::FASTA compatibility
+/// A DNA nucleotide. The u8 repr is for use with a compact binary format.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Encode, Decode, TryFromPrimitive)]
+#[repr(u8)]
 pub enum Nucleotide {
-    A = b'A',
-    T = b'T',
-    G = b'G',
-    C = b'C',
+    A = 0,
+    T = 1,
+    G = 2,
+    C = 3,
 }
 
 impl Nucleotide {
-    /// For parsing from bio::FASTA
-    pub fn from_u8(val_u8: u8) -> io::Result<Self> {
+    /// For parsing from FASTA and SnapGene
+    pub fn from_u8_letter(val_u8: u8) -> io::Result<Self> {
         match val_u8 {
             b'A' | b'a' => Ok(A),
             b'T' | b't' => Ok(T),
@@ -44,6 +45,16 @@ impl Nucleotide {
                 io::ErrorKind::InvalidData,
                 "Invalid nucleotide",
             )),
+        }
+    }
+
+    /// For FASTA and SnapGEne
+    pub fn to_u8_letter(&self) -> u8 {
+        match self {
+            A => b'A',
+            T => b'T',
+            G => b'G',
+            C => b'C',
         }
     }
 }

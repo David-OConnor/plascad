@@ -28,3 +28,4 @@ serde-xml-rs = "0.6.0"   # For Snapgene feature parsing.
 # We use bincode for saving and loading to files.
 bincode = "^2.0.0-rc.3"
 serde = { version = "1.0.204", features = ["derive"] }
+num_enum = "0.7.3"  # reversing a u8-repr.

@@ -55,6 +55,8 @@ We believe that the more tools available for scientists, the better. In particul
 a fast, lightweight program that's as easy to use as possible, without sacrificing functionality. We also added
 some functionality we didn't see elsewhere, like automatic primer tuning, and primer generation for SLIC and FastCloning.
 
+Also of note, the save/load format this program uses is much more compact, including for DNA sequences, where each nucleotide only takes up 2 bits, as opposed to 8 in common formats.
+
 
 ## Near-term plans
 - A better save and load system

@@ -7,7 +7,7 @@
 
 use std::{io, path::PathBuf};
 
-use bincode::{Decode, Encode};
+use bincode::{config, Decode, Encode};
 // use bio::{
 //     bio_types::sequence::{Sequence, SequenceRead},
 //     data_structures::fmindex::FMIndexable,
@@ -24,9 +24,9 @@ use crate::{
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::{PrimerDirection, TM_TARGET},
-    restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
+    restriction_enzyme::{load_re_library, NucleotideGeneral::N, ReMatch, RestrictionEnzyme},
     save::{StateToSave, DEFAULT_SAVE_FILE},
-    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, SeqTopology},
+    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, SeqTopology},
 };
 
 mod features_known;
@@ -206,6 +206,18 @@ impl Default for StateUi {
     }
 }
 
+pub enum Selection {
+    Feature(usize), // index
+    Primer(usize),
+    None,
+}
+
+impl Default for Selection {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
 #[derive(Default)]
 struct State {
@@ -228,6 +240,7 @@ struct State {
     features: Vec<Feature>,
     plasmid_name: String,
     topology: SeqTopology,
+    selected_item: Selection,
 }
 
 impl State {
@@ -338,6 +351,14 @@ fn main() {
     state.sync_seq_related(None);
 
     state.ui.seq_input = seq_to_str(&state.seq);
+    //
+    // let a: Vec<Nucleotide> = vec![Nucleotide::A, Nucleotide::C, Nucleotide::G, Nucleotide::T, Nucleotide::A, Nucleotide::A, Nucleotide::G];
+    // let ser = save::serialize_seq_bin(&a);
+    //
+    // println!("Ser result: {:?}", ser);
+    //
+    // let deser = save::deser_seq_bin(&ser);
+    // println!("Deser result: {:?}", deser);
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

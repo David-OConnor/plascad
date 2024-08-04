@@ -14,7 +14,7 @@ use eframe::{
 
 use crate::{
     gui::{
-        features::{feature_table},
+        features::feature_table,
         navigation::NAV_BUTTON_COLOR,
         seq_view::{COLOR_SEQ, FONT_SIZE_SEQ, SEQ_ROW_SPACING_PX},
         COL_SPACING, ROW_SPACING,
@@ -370,7 +370,6 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             {
                 state.ui.hide_map_feature_editor = true;
             }
-
         });
 
         ui.add_space(ROW_SPACING / 2.);
