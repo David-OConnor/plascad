@@ -46,8 +46,8 @@ Generates PCR parameters (eg temperature and time for the various steps), based 
 melting temperature, polymerase type, and other parameters.
 
 
-### Interop with SnapGene and FASTA
-Can read and write FASTA and SnapGene .dna files.
+### Interop with FASTA, GenBank, and SnapGene
+Can read and write FASTA, GenBank, and SnapGene .dna files.
 
 
 ## Why another plasmid editor

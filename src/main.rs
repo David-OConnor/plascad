@@ -176,6 +176,7 @@ struct FileDialogs {
     load: FileDialog,
     import: FileDialog,
     export_fasta: FileDialog,
+    export_genbank: FileDialog,
     export_dna: FileDialog,
     selected: Option<PathBuf>,
 }
@@ -207,17 +208,26 @@ impl Default for FileDialogs {
                 Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
             )
             .add_file_filter(
+                "GenBank files",
+                Arc::new(|p| {
+                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
+                    ext == "gb" || ext == "gbk"
+
+                })
+            )
+            .add_file_filter(
                 "SnapGene DNA files",
                 Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
             )
             .add_file_filter(
-                "FASTA and SnapGene files",
+                // Note: We experience glitches if this name is too long. (Window extends horizontally)
+                "FASTA/GB/SnapGene",
                 Arc::new(|p| {
                     let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                    ext == "dna" || ext == "fasta"
-                }),
+                    ext == "fasta" || ext == "gb" || ext == "gbk" || ext == "dna"
+                })
             )
-            .default_file_filter("FASTA and SnapGene files")
+            .default_file_filter("FASTA/GB/SnapGene")
             .id("2");
 
         let export_fasta = FileDialog::new()
@@ -228,19 +238,31 @@ impl Default for FileDialogs {
             .default_file_filter("FASTA files")
             .id("3");
 
+        let export_genbank = FileDialog::new()
+            .add_file_filter(
+                "GenBank files",
+                Arc::new(|p| {
+                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
+                    ext == "gb" || ext == "gbk"
+                }),
+            )
+            .default_file_filter("GenBank files")
+            .id("4");
+
         let export_dna = FileDialog::new()
             .add_file_filter(
                 "SnapGene DNA files",
                 Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
             )
             .default_file_filter("SnapGene DNA files")
-            .id("4");
+            .id("5");
 
         Self {
             save,
             load: load_,
             import,
             export_fasta,
+            export_genbank,
             export_dna,
             selected: None,
         }

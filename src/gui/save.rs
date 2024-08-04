@@ -82,7 +82,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
     load_button(
         &mut state.ui.file_dialogs.import,
-        "Import FASTA/.dna",
+        "Import FASTA/GenBank/SnapGene",
         "Import a sequence in the FASTA or .dna (SnapGene) formats",
         ui,
     );
@@ -93,6 +93,15 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         "fasta",
         "Export FASTA",
         "Export the sequence in the FASTA format. This does not include features or primers.",
+        ui,
+    );
+
+    save_button(
+        &mut state.ui.file_dialogs.export_genbank,
+        &state.plasmid_name,
+        "gb",
+        "Export GenBank",
+        "Export the sequence in the GenBank format.",
         ui,
     );
 
@@ -112,6 +121,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     state.ui.file_dialogs.save.update(ctx);
     state.ui.file_dialogs.load.update(ctx);
     state.ui.file_dialogs.export_fasta.update(ctx);
+    state.ui.file_dialogs.export_genbank.update(ctx);
     state.ui.file_dialogs.export_dna.update(ctx);
     state.ui.file_dialogs.import.update(ctx);
 
@@ -154,9 +164,34 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                         state.sync_seq_related(None);
                     }
                 }
+                // todo: C+P currently. Fill this out.as
+                "dna" => {
+                    if let Ok(data) = import_snapgene(&path) {
+                        // todo: Likely wipe non-relevant data if present in state.
+                        if let Some(v) = data.seq {
+                            state.seq = v;
+                            state.ui.seq_input = seq_to_str(&state.seq);
+                        }
 
+                        if let Some(v) = data.topology {
+                            state.topology = v;
+                        }
+
+                        if let Some(v) = data.features {
+                            state.features = v;
+                        }
+
+                        if let Some(v) = data.primers {
+                            state.primer_data = v.into_iter().map(|v| PrimerData::new(v)).collect();
+
+                            state.sync_primer_metrics();
+                        }
+
+                        state.sync_seq_related(None);
+                    }
+                }
                 _ => {
-                    eprintln!("The file to import must be in FASTA or .dna format.")
+                    eprintln!("The file to import must be in FASTA, GenBank, or SnapGene format.")
                 }
             }
         }
