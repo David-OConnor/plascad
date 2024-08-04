@@ -15,6 +15,7 @@ use crate::{
     snapgene_parse::{export_snapgene, import_snapgene},
     State,
 };
+use crate::gui::primer_qc::primer_details;
 
 mod circle;
 mod feature_overlay;
@@ -96,9 +97,9 @@ fn save_section(state: &mut State, ui: &mut Ui) {
                 state.ui.opened_file = Some(path.to_owned());
 
                 if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
-                    match extension {
+                    match extension.to_lowercase().as_ref() {
                         // Does this work for FASTQ too?
-                        "fast" => {
+                        "fasta" => {
                             if let Ok((seq, id)) = import_fasta(path) {
                                 state.seq = seq;
                                 state.plasmid_name = id;
@@ -222,6 +223,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Sequence => sequence::seq_page(state, ui),
             Page::Map => circle::circle_page(state, ui),
             Page::Features => features::features_page(state, ui),
+            Page::Primers => primer_details(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Portions => portions::portions_page(state, ui),
         });

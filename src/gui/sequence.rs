@@ -100,7 +100,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
 
     match state.ui.page_seq_top {
         PageSeqTop::Primers => primer_details(state, ui),
-        PageSeqTop::Features => feature_table(&mut state.features, ui),
+        PageSeqTop::Features => feature_table(state, ui),
         PageSeqTop::None => (),
     }
 

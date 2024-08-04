@@ -71,9 +71,12 @@ fn feature_type_picker(val: &mut FeatureType, id: usize, ui: &mut Ui) {
         });
 }
 
-pub fn feature_table(features: &mut Vec<Feature>, ui: &mut Ui) {
+pub fn feature_table(state: &mut State, ui: &mut Ui) {
+    feature_add_disp(state, ui);
+    ui.add_space(ROW_SPACING);
+
     let mut removed = None;
-    for (i, feature) in features.iter_mut().enumerate() {
+    for (i, feature) in state.features.iter_mut().enumerate() {
         ui.horizontal(|ui| {
             // todo: This may be confoudning your 0 vs 1.
             int_field(&mut feature.index_range.0, "Start:", ui);
@@ -97,7 +100,7 @@ pub fn feature_table(features: &mut Vec<Feature>, ui: &mut Ui) {
         });
     }
     if let Some(rem_i) = removed {
-        features.remove(rem_i);
+        state.features.remove(rem_i);
     }
 }
 
@@ -149,9 +152,5 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
 }
 
 pub fn features_page(state: &mut State, ui: &mut Ui) {
-    feature_table(&mut state.features, ui);
-
-    ui.add_space(ROW_SPACING / 2.);
-
-    feature_add_disp(state, ui);
+    feature_table(state, ui);
 }

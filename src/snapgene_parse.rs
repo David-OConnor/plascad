@@ -43,7 +43,10 @@ enum PacketType {
     Dna = 0x00,
     Primers = 0x05,
     Notes = 0x06,
-    Features = 0x0A,
+    Features = 0x0a,
+    AdditionalSequenceProperties = 0x08,
+    AlignableSequences = 0x11,
+    CustomEnzymeSets = 0xe,
     Unknown = 0x99, // Placeholder for encountering one we don't recognize
 }
 
@@ -55,6 +58,9 @@ impl PacketType {
             0x05 => Ok(Self::Primers),
             0x06 => Ok(Self::Notes),
             0x0A => Ok(Self::Features),
+            0x08 => Ok(Self::AdditionalSequenceProperties),
+            0x11 => Ok(Self::AlignableSequences),
+            0x0e => Ok(Self::CustomEnzymeSets),
             _ => Err(io::Error::new(
                 ErrorKind::InvalidData,
                 "Invalid byte for packet SnapGene packet type",
@@ -84,10 +90,7 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
         }
         let packet_type = match PacketType::from_byte(buf[i]) {
             Ok(t) => t,
-            Err(_) => {
-                println!("Unknown packet type: {:x}", buf[i]);
-                PacketType::Unknown
-            }
+            Err(_) => PacketType::Unknown,
         };
         i += 1;
 
@@ -96,7 +99,7 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
 
         if i + payload_len + 1 > buf.len() {
             eprintln!(
-                "Error parsing DNA file: Payload would exceed file length. Index: {}, buff len: {}",
+                "Error parsing DNA file: Payload would exceed file length. Index: {}, buf len: {}",
                 i + payload_len,
                 buf.len()
             );
@@ -144,8 +147,18 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
                 Err(e) => eprintln!("Error parsing Features packet: {:?}", e),
             },
             PacketType::Unknown => {
-                println!("Unknown packet type: {:?}", buf[i - 5 - payload_len]);
+                println!("Unknown packet type: {:x} len: {payload_len}", buf[i - 5 - payload_len]);
+
+                let payload_str = str::from_utf8(payload).map_err(|_| {
+                    io::Error::new(
+                        ErrorKind::InvalidData,
+                        "Unable to convert payload to string",
+                    )
+                }).ok();
+
+                println!("Payload str: \n{:?}", payload_str);
             }
+            _ => (),
         }
     }
 
@@ -355,10 +368,9 @@ fn parse_notes(payload: &[u8]) -> io::Result<(Vec<String>)> {
         )
     })?;
 
-    println!("Notes payload: \n\n {:?}", payload_str);
 
-    // let notes: feature_xml::Notes = from_str(payload_str)
-    //     .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Unable to parse notes"))?;
+    let notes: feature_xml::Notes = from_str(payload_str)
+        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Unable to parse notes"))?;
 
     let mut result = Vec::new();
     // for note in &notes.inner {

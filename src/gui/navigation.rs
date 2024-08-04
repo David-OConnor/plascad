@@ -16,7 +16,7 @@ pub enum Page {
     /// A circular "graphical map" of the plasmid
     Map,
     Features,
-    // Primers,
+    Primers,
     /// Determine optimal PCR parameters
     Pcr,
     Portions,
@@ -36,6 +36,7 @@ impl Display for Page {
             Self::Map => "Map",
             Self::Pcr => "PCR",
             Self::Features => "Features",
+            Self::Primers => "Primers",
             Self::Portions => "Mixing portions",
         }
         .to_owned();
@@ -48,6 +49,7 @@ pub fn page_selector(state: &mut State, ui: &mut Ui) {
         page_button(&mut state.ui.page, Page::Sequence, ui);
         page_button(&mut state.ui.page, Page::Map, ui);
         page_button(&mut state.ui.page, Page::Features, ui);
+        page_button(&mut state.ui.page, Page::Primers, ui);
         page_button(&mut state.ui.page, Page::Pcr, ui);
         // page_button(&mut state.ui.page, Page::Portions, ui);
     });

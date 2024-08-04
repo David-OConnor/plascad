@@ -141,10 +141,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     };
 
     ui.horizontal(|ui| {
-        feature_add_disp(state, ui);
-
-        ui.add_space(COL_SPACING * 3.);
-
+        // todo: Share row with ins loc
         ui.label(format!("Cursor: {}", cursor_posit_text));
     });
 
