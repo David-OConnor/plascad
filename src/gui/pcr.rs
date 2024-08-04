@@ -64,13 +64,13 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
 
             ComboBox::from_id_source(0)
                 .width(80.)
-                .selected_text(&primer_data.description)
+                .selected_text(&primer_data.primer.description)
                 .show_ui(ui, |ui| {
                     for (i, primer) in state.primer_data.iter().enumerate() {
                         ui.selectable_value(
                             &mut state.ui.pcr.primer_selected,
                             i,
-                            &primer.description,
+                            &primer.primer.description,
                         );
                     }
                 });

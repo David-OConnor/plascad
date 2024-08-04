@@ -37,7 +37,7 @@ pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
 
 pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
-    ui.label("Start:");
+    ui.label(label);
     let mut entry = val.to_string();
     let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
     if response.changed() {
@@ -104,7 +104,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
                                 state.seq = seq;
                                 state.plasmid_name = id;
                                 state.ui.seq_input = seq_to_str(&state.seq);
-                                state.sync_re_sites();
+                                state.sync_seq_related(None);
                             }
                         }
                         "dna" => {
@@ -124,18 +124,13 @@ fn save_section(state: &mut State, ui: &mut Ui) {
                                 }
 
                                 if let Some(v) = data.primers {
-                                    state.primer_data = v
-                                        .into_iter()
-                                        .map(|v| {
-                                            let mut result = PrimerData::default();
-                                            result.primer = v;
-                                            result
-                                        })
-                                        .collect();
+                                    state.primer_data =
+                                        v.into_iter().map(|v| PrimerData::new(v)).collect();
+
+                                    state.sync_primer_metrics();
                                 }
 
-                                // todo: Other sync A/R here
-                                state.sync_re_sites();
+                                state.sync_seq_related(None);
                             }
                         }
 

@@ -23,11 +23,8 @@ egui_file = "^0.18.0" # For file dialogs.
 
 bio = "^2.0.0"
 
-# todo: Confirm you need these.
-chrono = "^0.4.38"
+chrono = "^0.4.38"# todo: Confirm you need this
 serde-xml-rs = "0.6.0"   # For Snapgene feature parsing.
-#xml = "^0.8.20"  # For Snapgene feature parsing.
-#regex = "1.10.5"
 
 # We use bincode for saving and loading to files.
 bincode = "^2.0.0-rc.3"

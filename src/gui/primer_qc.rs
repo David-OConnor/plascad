@@ -131,7 +131,7 @@ To learn about a table column, mouse over it.");
 
             ui.heading(&format!(
                 "Selected: {}",
-                &state.primer_data[sel_i].description
+                &state.primer_data[sel_i].primer.description
             ));
 
             ui.add_space(COL_SPACING);
@@ -286,7 +286,7 @@ To learn about a table column, mouse over it.");
                     });
 
                     row.col(|ui| {
-                        ui.add(TextEdit::singleline(&mut data.description));
+                        ui.add(TextEdit::singleline(&mut data.primer.description));
                     });
 
                     row.col(|ui| {

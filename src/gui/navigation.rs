@@ -90,7 +90,7 @@ impl Display for PageSeq {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Self::EditSeq => "Edit sequence",
-            Self::EditSlic => "Edit SLIC/FC squences",
+            Self::EditSlic => "SLIC/FC cloning",
             Self::View => "View sequence",
         }
         .to_owned();
@@ -101,8 +101,8 @@ impl Display for PageSeq {
 pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         page_button(&mut state.ui.page_seq, PageSeq::EditSeq, ui);
-        page_button(&mut state.ui.page_seq, PageSeq::EditSlic, ui);
         page_button(&mut state.ui.page_seq, PageSeq::View, ui);
+        page_button(&mut state.ui.page_seq, PageSeq::EditSlic, ui);
     });
 }
 

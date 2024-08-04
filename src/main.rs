@@ -286,7 +286,7 @@ impl State {
             .sort_by(|a, b| a.seq_index.cmp(&b.seq_index));
     }
 
-    pub fn sync_metrics(&mut self) {
+    pub fn sync_primer_metrics(&mut self) {
         for primer in &mut self.primer_data {
             if let Some(metrics) = &mut primer.metrics {
                 metrics.update_scores();
@@ -332,7 +332,7 @@ fn main() {
     state.restriction_enzyme_lib = load_re_library();
 
     state.sync_pcr();
-    state.sync_metrics();
+    state.sync_primer_metrics();
     state.sync_seq_related(None);
 
     state.ui.seq_input = seq_to_str(&state.seq);

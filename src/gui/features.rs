@@ -54,14 +54,14 @@ fn color_picker(val: &mut Option<Color>, id: usize, ui: &mut Ui) {
 /// todo: Generic selector creator?
 fn feature_type_picker(val: &mut FeatureType, id: usize, ui: &mut Ui) {
     ComboBox::from_id_source(id)
-        .width(170.)
+        .width(140.)
         .selected_text(val.to_string())
         .show_ui(ui, |ui| {
             for feature_type in [
                 FeatureType::Generic,
                 FeatureType::Gene,
                 FeatureType::Ori,
-                FeatureType::RnaPolyBindSite,
+                // FeatureType::RnaPolyBindSite,
                 FeatureType::RibosomeBindSite,
                 FeatureType::AntibioticResistance,
                 FeatureType::CodingRegion,

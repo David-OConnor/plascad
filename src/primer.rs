@@ -44,6 +44,7 @@ pub enum PrimerDirection {
 #[derive(Default, Clone, Encode, Decode)]
 pub struct Primer {
     pub sequence: Seq,
+    pub description: String,
 }
 
 impl Primer {
@@ -153,15 +154,19 @@ pub fn design_slic_fc_primers(
     Some(SlicPrimers {
         vector_fwd: Primer {
             sequence: seq_vector_fwd,
+            description: "Vector fwd".to_owned(),
         },
         vector_rev: Primer {
             sequence: seq_vector_rev,
+            description: "Vector rev".to_owned(),
         },
         insert_fwd: Primer {
             sequence: seq_insert_fwd,
+            description: "Insert fwd".to_owned(),
         },
         insert_rev: Primer {
             sequence: seq_insert_rev,
+            description: "Insert rev".to_owned(),
         },
     })
 }
@@ -187,8 +192,14 @@ pub fn design_amplification_primers(seq: &[Nucleotide]) -> Option<AmplificationP
 
     // We tune downstream.
     Some(AmplificationPrimers {
-        fwd: Primer { sequence: seq_fwd },
-        rev: Primer { sequence: seq_rev },
+        fwd: Primer {
+            sequence: seq_fwd,
+            description: "Amplification fwd".to_owned(),
+        },
+        rev: Primer {
+            sequence: seq_rev,
+            description: "Amplification rev".to_owned(),
+        },
     })
 }
 
@@ -199,7 +210,6 @@ pub struct PrimerData {
     /// Editing is handled using this string; we convert the string to our nucleotide sequence as needed.
     /// This includes nts past the tuning offsets.
     pub sequence_input: String,
-    pub description: String,
     pub metrics: Option<PrimerMetrics>,
     // tunable_end: TunableEnd,
     /// These fields control if a given primer end is fixed (Eg marking the start of an insert,
@@ -219,6 +229,14 @@ pub struct PrimerData {
 }
 
 impl PrimerData {
+    pub fn new(primer: Primer) -> Self {
+        let mut result = Self::default();
+        result.primer = primer;
+        result.sequence_input = seq_to_str(&result.primer.sequence);
+
+        result
+    }
+
     /// Perform calculations on primer quality and related data. Run this when the sequence changes,
     /// the tuning values change etc.
     pub fn run_calcs(&mut self, ion_concentrations: &IonConcentrations) {
@@ -397,7 +415,6 @@ pub fn make_cloning_primers(state: &mut State) {
         let mut insert_fwd = PrimerData {
             primer: primers.insert_fwd,
             sequence_input,
-            description: "SLIC Insert Fwd".to_owned(),
             // Both ends are  tunable, since this glues the insert to the vector
             tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
@@ -408,7 +425,6 @@ pub fn make_cloning_primers(state: &mut State) {
         let mut insert_rev = PrimerData {
             primer: primers.insert_rev,
             sequence_input,
-            description: "SLIC Insert Rev".to_owned(),
             // Both ends are tunable, since this glues the insert to the vector
             tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
@@ -419,7 +435,6 @@ pub fn make_cloning_primers(state: &mut State) {
         let mut vector_fwd = PrimerData {
             primer: primers.vector_fwd,
             sequence_input,
-            description: "SLIC Vector Fwd".to_owned(),
             // 5' is non-tunable: This is the insert location.
             tunable_5p: TuneSetting::Disabled,
             tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
@@ -430,7 +445,6 @@ pub fn make_cloning_primers(state: &mut State) {
         let mut vector_rev = PrimerData {
             primer: primers.vector_rev,
             sequence_input,
-            description: "SLIC Vector Rev".to_owned(),
             tunable_5p: TuneSetting::Disabled,
             // 3' is non-tunable: This is the insert location.
             tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
@@ -457,7 +471,6 @@ pub fn make_amplification_primers(state: &mut State) {
         let mut primer_fwd = PrimerData {
             primer: primers.fwd,
             sequence_input,
-            description: "Amplification Fwd".to_owned(),
             tunable_5p: TuneSetting::Disabled,
             tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
@@ -467,7 +480,6 @@ pub fn make_amplification_primers(state: &mut State) {
         let mut primer_rev = PrimerData {
             primer: primers.rev,
             sequence_input,
-            description: "Amplification Rev".to_owned(),
             tunable_5p: TuneSetting::Disabled,
             tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()

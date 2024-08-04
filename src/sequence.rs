@@ -53,7 +53,7 @@ pub enum FeatureType {
     Generic,
     Gene,
     Ori,
-    RnaPolyBindSite,
+    // RnaPolyBindSite,
     RibosomeBindSite,
     Promoter,
     AntibioticResistance,
@@ -75,7 +75,7 @@ impl FeatureType {
             Self::Generic => "Generic",
             Self::Gene => "Gene",
             Self::Ori => "Origin of replication",
-            Self::RnaPolyBindSite => "RNA polymerase bind site",
+            // Self::RnaPolyBindSite => "RNA poly bind site",
             Self::RibosomeBindSite => "Ribosome bind site",
             Self::Promoter => "Promoter",
             Self::AntibioticResistance => "Antibiotic resistance",
@@ -90,11 +90,11 @@ impl FeatureType {
             Self::Generic => (255, 0, 255),
             Self::Gene => (255, 128, 128),
             Self::Ori => (40, 128, 128),
-            Self::RnaPolyBindSite => (255, 0, 20),
+            // Self::RnaPolyBindSite => (255, 0, 20),
             Self::RibosomeBindSite => (255, 0, 100),
             Self::Promoter => (120, 120, 70),
             Self::AntibioticResistance => (128, 128, 100),
-            Self::Primer => (0, 0, 0), // N/A for now at least.
+            Self::Primer => (0, 0, 0),             // N/A for now at least.
             Self::CodingRegion => (100, 200, 255), // N/A for now at least.
         }
     }

@@ -342,7 +342,7 @@ fn draw_primers(
                     fonts,
                     to_screen * label_pt,
                     label_align,
-                    &prim_data.description,
+                    &prim_data.primer.description,
                     FontId::new(16., FontFamily::Proportional),
                     stroke.color,
                 )

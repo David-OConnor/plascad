@@ -1,8 +1,11 @@
-use std::{cmp::min, collections::HashSet, ops::Range};
-use std::num::ParseIntError;
+use std::{cmp::min, collections::HashSet, num::ParseIntError, ops::Range};
+
 use eframe::egui::{pos2, Pos2};
-use crate::Color;
-use crate::gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START};
+
+use crate::{
+    gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
+    Color,
+};
 /// Utility function to linearly map an input value to an output
 pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 {
     // todo: You may be able to optimize calls to this by having the ranges pre-store

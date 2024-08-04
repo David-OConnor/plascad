@@ -58,7 +58,7 @@ pub fn draw_primers(
                 Some(color),
                 VERTICAL_OFFSET_PRIMER,
                 (*direction).into(),
-                &prim_data.description,
+                &prim_data.primer.description,
                 ui,
             ));
         }
