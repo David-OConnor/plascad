@@ -1,7 +1,11 @@
 // Disables the terminal window. Use this for releases, but disable when debugging.
 // #![windows_subsystem = "windows"]
 
-use std::{io, path::PathBuf, sync::Arc};
+use std::{
+    io,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use bincode::{config, Decode, Encode};
 // use bio::{
@@ -181,47 +185,55 @@ impl Default for FileDialogs {
         let save = FileDialog::new()
             // .add_quick_access("Project", |s| {
             //     s.add_path("☆  Examples", "examples");
-            //     s.add_path("📷  Media", "media");
-            //     s.add_path("📂  Source", "src");
             // })
-            // todo: Do we need this arc?
             .add_file_filter(
                 "PlasCAD files",
-                Arc::new(|p| p.extension().unwrap_or_default() == "pcad"),
+                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
             )
+            .default_file_filter("PlasCAD files")
             .id("0");
         // .id("egui_file_dialog");
 
         let load_ = FileDialog::new()
             .add_file_filter(
                 "PlasCAD files",
-                Arc::new(|p| p.extension().unwrap_or_default() == "pcad"),
+                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
             )
             .id("1");
 
         let import = FileDialog::new()
             .add_file_filter(
                 "FASTA files",
-                Arc::new(|p| p.extension().unwrap_or_default() == "fasta"),
+                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
             )
             .add_file_filter(
                 "SnapGene DNA files",
-                Arc::new(|p| p.extension().unwrap_or_default() == "dna"),
+                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
             )
+            .add_file_filter(
+                "FASTA and SnapGene files",
+                Arc::new(|p| {
+                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
+                    ext == "dna" || ext == "fasta"
+                }),
+            )
+            .default_file_filter("FASTA and SnapGene files")
             .id("2");
 
         let export_fasta = FileDialog::new()
             .add_file_filter(
                 "FASTA files",
-                Arc::new(|p| p.extension().unwrap_or_default() == "fasta"),
+                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
             )
+            .default_file_filter("FASTA files")
             .id("3");
 
         let export_dna = FileDialog::new()
             .add_file_filter(
                 "SnapGene DNA files",
-                Arc::new(|p| p.extension().unwrap_or_default() == "dna"),
+                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
             )
+            .default_file_filter("SnapGene DNA files")
             .id("4");
 
         Self {
@@ -435,30 +447,28 @@ impl State {
         self.sync_re_sites();
         self.sync_reading_frame();
     }
+
+    /// Load state from a (our format) file.
+    pub fn load(path: &str) -> Self {
+        let state_loaded: io::Result<StateToSave> = load(path);
+        let mut result = match state_loaded {
+            Ok(s) => s.to_state(),
+            Err(_) => Default::default(),
+        };
+
+        result.restriction_enzyme_lib = load_re_library();
+
+        result.sync_pcr();
+        result.sync_primer_metrics();
+        result.sync_seq_related(None);
+        result.ui.seq_input = seq_to_str(&result.seq);
+
+        result
+    }
 }
 
 fn main() {
-    let state_loaded: io::Result<StateToSave> = load(DEFAULT_SAVE_FILE);
-    let mut state = match state_loaded {
-        Ok(s) => s.to_state(),
-        Err(_) => Default::default(),
-    };
-
-    state.restriction_enzyme_lib = load_re_library();
-
-    state.sync_pcr();
-    state.sync_primer_metrics();
-    state.sync_seq_related(None);
-
-    state.ui.seq_input = seq_to_str(&state.seq);
-    //
-    // let a: Vec<Nucleotide> = vec![Nucleotide::A, Nucleotide::C, Nucleotide::G, Nucleotide::T, Nucleotide::A, Nucleotide::A, Nucleotide::G];
-    // let ser = save::serialize_seq_bin(&a);
-    //
-    // println!("Ser result: {:?}", ser);
-    //
-    // let deser = save::deser_seq_bin(&ser);
-    // println!("Deser result: {:?}", deser);
+    let state = State::load(DEFAULT_SAVE_FILE);
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

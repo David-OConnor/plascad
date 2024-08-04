@@ -1,7 +1,7 @@
 //! GUI code for saving and loading
 
 use std::{
-    env,
+    env, io,
     path::{Path, PathBuf},
 };
 
@@ -11,7 +11,8 @@ use egui_file_dialog::FileDialog;
 
 use crate::{
     primer::PrimerData,
-    save::{export_fasta, import_fasta, save, StateToSave, DEFAULT_SAVE_FILE},
+    restriction_enzyme::load_re_library,
+    save::{export_fasta, import_fasta, load, save, StateToSave, DEFAULT_SAVE_FILE},
     sequence::seq_to_str,
     snapgene_parse::{export_snapgene, import_snapgene},
     State,
@@ -176,6 +177,9 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         if let Err(e) = save(&filename, &StateToSave::from_state(state)) {
             eprintln!("Error saving in PlasCAD format: {:?}", e);
         };
+    } else if let Some(path) = state.ui.file_dialogs.load.take_selected() {
+        state.ui.file_dialogs.selected = Some(path.to_owned());
+        *state = State::load(&path.to_str().unwrap());
     } else if let Some(path) = state.ui.file_dialogs.export_fasta.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());
 
