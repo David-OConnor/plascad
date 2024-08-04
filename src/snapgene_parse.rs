@@ -1,27 +1,30 @@
 //! Parse and write SnapGene DNA files. This converts between the Snapgene format for sequences, features,
-//! primers, notes etc, and our own equivalents.
+//! primers, notes etc., and our own equivalents.
 //!
 //! (Unofficial file format description)[https://incenp.org/dvlpt/docs/binary-sequence-formats/binary-sequence-formats.pdf]
 
 use std::{
-    collections::HashMap,
-    fs::File,
-    io::{self, ErrorKind, Read, Seek},
+    fs::{File, OpenOptions},
+    io::{self, ErrorKind, Read, Seek, Write},
     path::Path,
     str,
 };
 
-// use xml::reader::{EventReader, XmlEvent};
-use chrono::NaiveDate;
-use serde_xml_rs::from_str;
+use serde::Serialize;
+use serde_xml_rs::{from_str, to_string};
 
 use crate::{
     primer::{Primer, PrimerData},
     sequence::{
-        seq_from_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq, SeqTopology,
+        seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq,
+        SeqTopology,
     },
-    util::color_from_hex,
+    snapgene_parse::feature_xml::{FeatureSnapGene, Features, PrimerSnapGene, Primers, Segment},
+    util::{color_from_hex, color_to_hex},
+    State,
 };
+
+const COOKIE_PACKET_LEN: usize = 14;
 
 #[derive(Default)]
 pub struct SnapgeneData {
@@ -60,19 +63,11 @@ impl PacketType {
     }
 }
 
-fn read_bytes<R: Read>(reader: &mut R, length: usize) -> io::Result<Vec<u8>> {
-    let mut buffer = vec![0; length];
-    reader.read_exact(&mut buffer)?;
-    Ok(buffer)
-}
-
 /// DNA files are divided into packets. Packet structure:///
 /// - A byte indicating the packet's type
 /// - A BE 32-bit integer of packet len
 /// - The payload
 fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
-    println!("Starting read...");
-
     let buf = {
         let mut b = Vec::new();
         file.read_to_end(&mut b)?;
@@ -99,8 +94,6 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
         let payload_len = u32::from_be_bytes(buf[i..i + 4].try_into().unwrap()) as usize;
         i += 4;
 
-        println!("\nPacket type: {:?}, len: {:?}", packet_type, payload_len);
-
         if i + payload_len + 1 > buf.len() {
             eprintln!(
                 "Error parsing DNA file: Payload would exceed file length. Index: {}, buff len: {}",
@@ -117,8 +110,7 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
 
         match packet_type {
             PacketType::Cookie => {
-                println!("Cookie packet type.");
-                if payload_len != 14 {
+                if payload_len != COOKIE_PACKET_LEN {
                     eprintln!("Invalid cookie packet length: {}", payload_len);
                 }
                 if &payload[..8] != b"SnapGene" {
@@ -131,7 +123,6 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
                 // todo: Note: This doesn't properly handle if there are multiple DNA packets.
                 // todo: How should we do that?
 
-                println!("DNA packet type");
                 match parse_dna(&payload) {
                     Ok(v) => {
                         result.seq = Some(v.0);
@@ -140,23 +131,18 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
                     Err(e) => eprintln!("Error parsing DNA packet: {:?}", e),
                 }
             }
-            PacketType::Primers => {
-                println!("Primers packet type");
-                match parse_primers(&payload) {
-                    Ok(v) => result.primers = Some(v),
-                    Err(e) => eprintln!("Error parsing Features packet: {:?}", e),
-                }
-            }
-            PacketType::Notes => {
-                println!("Notes packet type");
-            }
-            PacketType::Features => {
-                println!("Features packet type");
-                match parse_features(&payload) {
-                    Ok(v) => result.features = Some(v),
-                    Err(e) => eprintln!("Error parsing Features packet: {:?}", e),
-                }
-            }
+            PacketType::Primers => match parse_primers(&payload) {
+                Ok(v) => result.primers = Some(v),
+                Err(e) => eprintln!("Error parsing Primers packet: {:?}", e),
+            },
+            PacketType::Notes => match parse_notes(&payload) {
+                Ok(v) => (),
+                Err(e) => eprintln!("Error parsing Notes packet: {:?}", e),
+            },
+            PacketType::Features => match parse_features(&payload) {
+                Ok(v) => result.features = Some(v),
+                Err(e) => eprintln!("Error parsing Features packet: {:?}", e),
+            },
             PacketType::Unknown => {
                 println!("Unknown packet type: {:?}", buf[i - 5 - payload_len]);
             }
@@ -164,12 +150,6 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
     }
 
     Ok(result)
-    //
-    //
-    // let length = read_bytes(buffer, 4)?;
-    // let length = u32::from_be_bytes(length.try_into().unwrap()) as usize;
-    //
-    // let payload = read_bytes(buffer, length)?;
 }
 
 fn parse_dna(payload: &[u8]) -> io::Result<(Seq, SeqTopology)> {
@@ -269,6 +249,27 @@ mod feature_xml {
         pub name: String,
         pub description: String, // Currently unused
     }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Notes {
+        #[serde(rename = "Notes", default)]
+        pub inner: Vec<Notes_>,
+    }
+
+    // Note; We have left out the binding site and other fields, as they are not relevant for us at this time.
+    #[derive(Debug, Serialize, Deserialize)]
+    pub struct Notes_ {}
+
+    // <Notes>
+    //     <UUID>0962493c-08f0-4964-91b9-24840fea051e</UUID>
+    //     <Type>Synthetic</Type>
+    //     <ConfirmedExperimentally>0</ConfirmedExperimentally>
+    //     <Created UTC="22:48:15">2024.7.12</Created>
+    //     <LastModified UTC="18:2:52">2024.7.14</LastModified>
+    //     <CreatedBy>SnapGene License</CreatedBy>
+    //     <SequenceClass>UNA</SequenceClass>
+    //     <TransformedInto>DH5α™</TransformedInto>
+    // </Notes>
 }
 
 fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
@@ -318,6 +319,7 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
                 color_override,
             });
         }
+        // todo: Handle qualifiers too?
     }
 
     Ok(result)
@@ -342,19 +344,31 @@ fn parse_primers(payload: &[u8]) -> io::Result<(Vec<Primer>)> {
         });
     }
 
-    for r in &result {
-        println!("Prim: seq: {:?} descript: {}", r.sequence, r.description);
-    }
-
     Ok(result)
 }
 
-fn parse_notes(payload: &[u8]) -> io::Result<()> {
-    let xml = str::from_utf8(payload).unwrap();
-    // let notes: Notes = from_str(xml).unwrap();
+fn parse_notes(payload: &[u8]) -> io::Result<(Vec<String>)> {
+    let payload_str = str::from_utf8(payload).map_err(|_| {
+        io::Error::new(
+            ErrorKind::InvalidData,
+            "Unable to convert payload to string",
+        )
+    })?;
 
-    // Process notes data
-    Ok(())
+    println!("Notes payload: \n\n {:?}", payload_str);
+
+    // let notes: feature_xml::Notes = from_str(payload_str)
+    //     .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Unable to parse notes"))?;
+
+    let mut result = Vec::new();
+    // for note in &notes.inner {
+    // result.push(Primer {
+    //     sequence: seq_from_str(&primer_sg.sequence),
+    //     description: primer_sg.name.clone(),
+    // });
+    // }
+
+    Ok(result)
 }
 
 fn range_from_str(range: &str) -> Result<(usize, usize), &'static str> {
@@ -373,7 +387,122 @@ fn range_from_str(range: &str) -> Result<(usize, usize), &'static str> {
     Ok((start, end))
 }
 
+/// Import data from a SnapGene .dna file into local state. This includes sequence, features, and primers.
 pub fn import_snapgene(path: &Path) -> io::Result<(SnapgeneData)> {
     let mut file = File::open(path)?;
     parse(&mut file)
+}
+
+/// Add feature data to the buffer.
+fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
+    let mut features_sg = Features { inner: Vec::new() };
+    for feature in features {
+        let directionality = match feature.direction {
+            FeatureDirection::Forward => Some(1),
+            FeatureDirection::Reverse => Some(2),
+            FeatureDirection::None => None,
+        };
+
+        let segments = vec![Segment {
+            segment_type: None,
+            range: Some(format!(
+                "{}-{}",
+                feature.index_range.0, feature.index_range.1
+            )),
+            name: None,
+            color: feature.color_override.map(color_to_hex),
+        }];
+
+        features_sg.inner.push(FeatureSnapGene {
+            feature_type: Some(feature.feature_type.to_string()),
+            segments,
+            qualifiers: Vec::new(),
+            name: Some(feature.label.clone()),
+            directionality,
+        });
+    }
+
+    let xml_str = to_string(&features_sg).map_err(|e| {
+        io::Error::new(
+            ErrorKind::InvalidData,
+            format!("Unable to convert features to an XML string: {e}"),
+        )
+    })?;
+
+    let xml = xml_str.into_bytes();
+
+    buf.push(PacketType::Features as u8);
+    buf.extend((xml.len() as u32).to_be_bytes());
+    buf.extend(&xml);
+
+    Ok(())
+}
+
+/// Add primer data to the buffer.
+fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> io::Result<()> {
+    let mut primers_sg = Primers { inner: Vec::new() };
+    for primer in primers {
+        primers_sg.inner.push(PrimerSnapGene {
+            sequence: seq_to_str(&primer.primer.sequence),
+            name: primer.primer.description.clone(),
+            description: "".to_owned(),
+        });
+    }
+
+    let xml_str = to_string(&primers_sg).map_err(|e| {
+        io::Error::new(
+            ErrorKind::InvalidData,
+            format!("Unable to convert features to an XML string: {e}"),
+        )
+    })?;
+
+    let xml = xml_str.into_bytes();
+
+    buf.push(PacketType::Features as u8);
+    buf.extend((xml.len() as u32).to_be_bytes());
+    buf.extend(&xml);
+
+    Ok(())
+}
+
+/// Export our local state into the SnapGene dna format. This includes sequence, features, and primers.
+// pub fn export_snapgene(state: &State, path: &Path) -> io::Result<()> {
+pub fn export_snapgene(
+    seq: &[Nucleotide],
+    topology: SeqTopology,
+    features: &[Feature],
+    primers: &[PrimerData],
+    path: &Path,
+) -> io::Result<()> {
+    let mut file = OpenOptions::new()
+        .append(true)
+        .create(true) // Create the file if it doesn't exist
+        .open(path)?;
+
+    let mut buf = Vec::new();
+
+    let mut cookie_packet = [0; 19];
+
+    cookie_packet[0] = PacketType::Cookie as u8;
+    cookie_packet[1..5].clone_from_slice(&(COOKIE_PACKET_LEN as u32).to_be_bytes());
+    cookie_packet[5..13].clone_from_slice(b"SnapGene");
+
+    buf.extend(&cookie_packet);
+
+    buf.push(PacketType::Dna as u8);
+    buf.extend(((seq.len() + 1) as u32).to_be_bytes());
+
+    let flag = match topology {
+        SeqTopology::Circular => 1,
+        SeqTopology::Linear => 0,
+    };
+    buf.push(flag);
+    buf.extend(seq_to_str(seq).as_bytes());
+
+    export_features(&mut buf, features)?;
+    export_primers(&mut buf, primers)?;
+
+    file.write_all(&buf)?;
+
+    Ok(())
 }

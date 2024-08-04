@@ -15,12 +15,12 @@ pub enum Page {
     Sequence,
     /// A circular "graphical map" of the plasmid
     Map,
+    Features,
+    // Primers,
     /// Determine optimal PCR parameters
     Pcr,
     Portions,
-    // Sequence,
     // Enzymes,
-    // Features,
 }
 
 impl Default for Page {
@@ -35,6 +35,7 @@ impl Display for Page {
             Self::Sequence => "Sequence",
             Self::Map => "Map",
             Self::Pcr => "PCR",
+            Self::Features => "Features",
             Self::Portions => "Mixing portions",
         }
         .to_owned();
@@ -46,6 +47,7 @@ pub fn page_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         page_button(&mut state.ui.page, Page::Sequence, ui);
         page_button(&mut state.ui.page, Page::Map, ui);
+        page_button(&mut state.ui.page, Page::Features, ui);
         page_button(&mut state.ui.page, Page::Pcr, ui);
         // page_button(&mut state.ui.page, Page::Portions, ui);
     });
@@ -116,7 +118,7 @@ pub enum PageSeqTop {
 
 impl Default for PageSeqTop {
     fn default() -> Self {
-        Self::Primers
+        Self::None
     }
 }
 

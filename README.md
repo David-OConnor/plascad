@@ -46,6 +46,10 @@ Generates PCR parameters (eg temperature and time for the various steps), based 
 melting temperature, polymerase type, and other parameters.
 
 
+### Interop with SnapGene and FASTA
+Can read and write FASTA and SnapGene .dna files.
+
+
 ## Why another plasmid editor
 We believe that the more tools available for scientists, the better. In particular, my goal is to make
 a fast, lightweight program that's as easy to use as possible, without sacrificing functionality. We also added
@@ -54,7 +58,6 @@ some functionality we didn't see elsewhere, like automatic primer tuning, and pr
 
 ## Near-term plans
 - A better save and load system
-- Reading and writing SnapGene (.dna) files
 - QCing plasmids for toxic proteins, and various forms of error
 - QC primers for problems in context of plasmids. (Eg multiple binding sites)
 - Identifying secondary structures, hairpins etc

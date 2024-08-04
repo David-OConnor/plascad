@@ -172,7 +172,8 @@ struct StateUi {
     cursor_pos: Option<(f32, f32)>,
     cursor_seq_i: Option<usize>,
     open_file_dialog_import: Option<FileDialog>,
-    open_file_dialog_export: Option<FileDialog>,
+    open_file_dialog_export_fasta: Option<FileDialog>,
+    open_file_dialog_export_dna: Option<FileDialog>,
     opened_file: Option<PathBuf>,
 }
 
@@ -194,11 +195,12 @@ impl Default for StateUi {
             show_primers: true,
             show_features: true,
             show_start_stop_codons: true,
-            hide_map_feature_editor: false,
+            hide_map_feature_editor: true,
             cursor_pos: None,
             cursor_seq_i: None,
             open_file_dialog_import: None,
-            open_file_dialog_export: None,
+            open_file_dialog_export_fasta: None,
+            open_file_dialog_export_dna: None,
             opened_file: None,
         }
     }

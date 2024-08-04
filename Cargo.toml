@@ -15,15 +15,14 @@ license = "MIT"
 exclude = [".gitignore"]
 
 [dependencies]
+# For BLAST integration
 reqwest = { version = "^0.12.5", features = ["blocking", "json"], default-features = false }
 
 eframe = "^0.28.1"
 egui_extras = "^0.28.1"  # For tables.
 egui_file = "^0.18.0" # For file dialogs.
 
-bio = "^2.0.0"
-
-chrono = "^0.4.38"# todo: Confirm you need this
+bio = "^2.0.0" # For FASTA read and write.
 serde-xml-rs = "0.6.0"   # For Snapgene feature parsing.
 
 # We use bincode for saving and loading to files.

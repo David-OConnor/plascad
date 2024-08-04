@@ -12,7 +12,7 @@ use crate::{
         DEFAULT_SAVE_FILE,
     },
     sequence::seq_to_str,
-    snapgene_parse::import_snapgene,
+    snapgene_parse::{export_snapgene, import_snapgene},
     State,
 };
 
@@ -76,20 +76,19 @@ fn save_section(state: &mut State, ui: &mut Ui) {
         let mut dialog = FileDialog::save_file(state.ui.opened_file.clone())
             .default_filename(DEFAULT_FASTA_FILE);
         dialog.open();
-        state.ui.open_file_dialog_export = Some(dialog);
+        state.ui.open_file_dialog_export_fasta = Some(dialog);
     }
 
-    // todo: Put back when ready.
-    // if ui
-    //     .button("Export .dna")
-    //     .on_hover_text("Export the sequence in the DNA (SnapGene) format")
-    //     .clicked()
-    // {
-    //     let mut dialog =
-    //         FileDialog::save_file(state.ui.opened_file.clone()).default_filename(DEFAULT_DNA_FILE);
-    //     dialog.open();
-    //     state.ui.open_file_dialog_export = Some(dialog);
-    // }
+    if ui
+        .button("Export .dna")
+        .on_hover_text("Export the sequence in the .dna (SnapGene) format")
+        .clicked()
+    {
+        let mut dialog =
+            FileDialog::save_file(state.ui.opened_file.clone()).default_filename(DEFAULT_DNA_FILE);
+        dialog.open();
+        state.ui.open_file_dialog_export_dna = Some(dialog);
+    }
 
     if let Some(dialog) = &mut state.ui.open_file_dialog_import {
         if dialog.show(ui.ctx()).selected() {
@@ -144,7 +143,7 @@ fn save_section(state: &mut State, ui: &mut Ui) {
                 state.ui.open_file_dialog_import = None;
             }
         }
-    } else if let Some(dialog) = &mut state.ui.open_file_dialog_export {
+    } else if let Some(dialog) = &mut state.ui.open_file_dialog_export_fasta {
         if dialog.show(ui.ctx()).selected() {
             if let Some(path) = dialog.path() {
                 state.ui.opened_file = Some(path.to_owned());
@@ -154,7 +153,28 @@ fn save_section(state: &mut State, ui: &mut Ui) {
                 };
 
                 state.ui.opened_file = None;
-                state.ui.open_file_dialog_export = None;
+                state.ui.open_file_dialog_export_fasta = None;
+            }
+        }
+    }
+    // todo: DRY
+    else if let Some(dialog) = &mut state.ui.open_file_dialog_export_dna {
+        if dialog.show(ui.ctx()).selected() {
+            if let Some(path) = dialog.path() {
+                state.ui.opened_file = Some(path.to_owned());
+
+                if let Err(e) = export_snapgene(
+                    &state.seq,
+                    state.topology,
+                    &state.features,
+                    &state.primer_data,
+                    path,
+                ) {
+                    eprintln!("Error exporting to .dna: {:?}", e);
+                };
+
+                state.ui.opened_file = None;
+                state.ui.open_file_dialog_export_dna = None;
             }
         }
     }
@@ -201,6 +221,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
         ScrollArea::vertical().show(ui, |ui| match state.ui.page {
             Page::Sequence => sequence::seq_page(state, ui),
             Page::Map => circle::circle_page(state, ui),
+            Page::Features => features::features_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Portions => portions::portions_page(state, ui),
         });

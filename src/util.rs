@@ -120,3 +120,7 @@ pub fn color_from_hex(hex: &str) -> Result<Color, ParseIntError> {
 
     Ok((r, g, b))
 }
+
+pub fn color_to_hex(color: Color) -> String {
+    format!("#{:x}{:x}{:x}", color.0, color.1, color.2)
+}

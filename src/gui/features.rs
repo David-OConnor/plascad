@@ -9,7 +9,7 @@ use eframe::{
 };
 
 use crate::{
-    gui::int_field,
+    gui::{int_field, navigation::NAV_BUTTON_COLOR, COL_SPACING, ROW_SPACING},
     sequence::{
         Feature,
         FeatureDirection::{self, Forward, Reverse},
@@ -146,4 +146,12 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
             });
         }
     });
+}
+
+pub fn features_page(state: &mut State, ui: &mut Ui) {
+    feature_table(&mut state.features, ui);
+
+    ui.add_space(ROW_SPACING / 2.);
+
+    feature_add_disp(state, ui);
 }
