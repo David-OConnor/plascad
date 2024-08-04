@@ -47,7 +47,17 @@ melting temperature, polymerase type, and other parameters.
 
 
 ### Interop with FASTA, GenBank, and SnapGene
-Can read and write FASTA, GenBank, and SnapGene .dna files.
+Can read and write FASTA, GenBank, and SnapGene .dna files. FASTA files store sequence data only, while GenBank, SnapGene, and PlasCAD's own format store sequence data, features, primers, and metadata.
+
+### When to use each file format
+If you don't have interoperability requirements, you can use PlasCAD's own file format (.pcad extension) using the *Save* and *Load* buttons. This is a binary format that results in smaller file sizes (eg 4-10x smaller) than the others, due to using 2-bits to store each nucelotide, and a compact format in general.
+
+(GenBank)[https://www.ncbi.nlm.nih.gov/genbank/] and SnapGene are popular formats, and provide the best interoperability with other software. [AddGene](https://www.addgene.org/) and other resources have files available in these formats.
+
+FASTA files contain sequence data, so using this format will result in the lossof feature and primer data.
+
+GenBank, SnapGene, and PlasCAD files are all generally compatible with each other; they can be switched between freely. However, PlasCAD currently does not support some features from the other formats, including Qualifiers.
+
 
 
 ## Why another plasmid editor

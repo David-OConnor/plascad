@@ -10,6 +10,7 @@ use eframe::egui::Ui;
 use egui_file_dialog::FileDialog;
 
 use crate::{
+    genbank_parse::import_genbank,
     primer::PrimerData,
     restriction_enzyme::load_re_library,
     save::{export_fasta, import_fasta, load, save, StateToSave, DEFAULT_SAVE_FILE},
@@ -141,7 +142,6 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                 }
                 "dna" => {
                     if let Ok(data) = import_snapgene(&path) {
-                        // todo: Likely wipe non-relevant data if present in state.
                         if let Some(v) = data.seq {
                             state.seq = v;
                             state.ui.seq_input = seq_to_str(&state.seq);
@@ -164,28 +164,28 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                         state.sync_seq_related(None);
                     }
                 }
-                // todo: C+P currently. Fill this out.as
-                "dna" => {
-                    if let Ok(data) = import_snapgene(&path) {
-                        // todo: Likely wipe non-relevant data if present in state.
-                        if let Some(v) = data.seq {
-                            state.seq = v;
-                            state.ui.seq_input = seq_to_str(&state.seq);
-                        }
+                "gb" | "gbk" => {
+                    // todo: This is repetative with the above.
+                    if let Ok(data) = import_genbank(&path) {
+                        // if let Some(v) = data.seq {
+                        state.seq = data.seq;
+                        state.ui.seq_input = seq_to_str(&state.seq);
+                        // }
 
-                        if let Some(v) = data.topology {
-                            state.topology = v;
-                        }
+                        // if let Some(v) = data.topology {
+                        state.topology = data.topology;
+                        // }
 
-                        if let Some(v) = data.features {
-                            state.features = v;
-                        }
+                        // if let Some(v) = data.features {
+                        state.features = data.features;
+                        // }
 
-                        if let Some(v) = data.primers {
-                            state.primer_data = v.into_iter().map(|v| PrimerData::new(v)).collect();
-
-                            state.sync_primer_metrics();
-                        }
+                        // todo: No primers?
+                        // if let Some(v) = data.primers {
+                        //     state.primer_data = v.into_iter().map(|v| PrimerData::new(v)).collect();
+                        //
+                        //     state.sync_primer_metrics();
+                        // }
 
                         state.sync_seq_related(None);
                     }

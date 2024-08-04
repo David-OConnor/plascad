@@ -11,8 +11,10 @@ use std::{
 };
 
 use num_enum::TryFromPrimitive;
+use quick_xml::de::from_str;
+// use serde_xml_rs::{from_str, to_string};
+use quick_xml::se::to_string;
 use serde::Serialize;
-use serde_xml_rs::{from_str, to_string};
 
 use crate::{
     primer::{Primer, PrimerData},
@@ -20,7 +22,9 @@ use crate::{
         seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq,
         SeqTopology,
     },
-    snapgene_parse::feature_xml::{FeatureSnapGene, Features, PrimerSnapGene, Primers, Segment},
+    snapgene_parse::feature_xml::{
+        FeatureSnapGene, Features, PrimerSnapGene, Primers, Qualifier, Segment,
+    },
     util::{color_from_hex, color_to_hex},
     State,
 };
@@ -88,9 +92,7 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
             break;
         }
 
-        // let end = min(payload_len + i, buf.len() - 1); // todo temp. want ot see the dna eq
         let payload = &buf[i..i + payload_len];
-        // let payload = &buf[i..end];
         i += payload_len;
 
         match packet_type {
@@ -135,10 +137,10 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
                 );
 
                 let payload_str = str::from_utf8(payload)
-                    .map_err(|_| {
+                    .map_err(|e| {
                         io::Error::new(
                             ErrorKind::InvalidData,
-                            "Unable to convert payload to string",
+                            format!("Unable to convert payload to string: {e}",),
                         )
                     })
                     .ok();
@@ -184,8 +186,6 @@ fn parse_dna(payload: &[u8]) -> io::Result<(Seq, SeqTopology)> {
 
 // todo: Consider a sub-module for XML parsing.
 mod feature_xml {
-    use std::collections::HashMap;
-
     use serde::{Deserialize, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -196,27 +196,35 @@ mod feature_xml {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct FeatureSnapGene {
-        #[serde(rename = "type")]
+        #[serde(rename = "type", default)]
         pub feature_type: Option<String>,
         #[serde(rename = "Segment", default)]
         pub segments: Vec<Segment>,
         #[serde(rename = "Q", default)]
         pub qualifiers: Vec<Qualifier>,
+        // pub qualifiers: Option<Vec<Qualifier>>,
+        #[serde(default)]
         pub name: Option<String>,
-        pub directionality: Option<u8>,
+        #[serde(default)]
+        // pub directionality: Option<u8>,
+        pub directionality: u8,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Segment {
-        #[serde(rename = "type")]
+        #[serde(rename = "type", default)]
         pub segment_type: Option<String>,
+        #[serde(default)]
         pub range: Option<String>,
+        #[serde(default)]
         pub name: Option<String>,
+        #[serde(default)]
         pub color: Option<String>, // Hex.
     }
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Qualifier {
+        #[serde(default)]
         pub name: String,
         #[serde(rename = "V", default)]
         pub values: Vec<QualifierValue>,
@@ -224,16 +232,12 @@ mod feature_xml {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct QualifierValue {
+        #[serde(default)]
         pub text: Option<String>,
+        #[serde(default)]
         pub predef: Option<String>,
+        #[serde(default)]
         pub int: Option<i32>,
-    }
-
-    #[derive(Debug)]
-    pub struct SeqFeature {
-        pub location: Option<String>,
-        pub feature_type: String,
-        pub qualifiers: HashMap<String, Vec<String>>,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -273,15 +277,19 @@ mod feature_xml {
 }
 
 fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
-    let payload_str = str::from_utf8(payload).map_err(|_| {
+    let payload_str = str::from_utf8(payload).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
-            "Unable to convert payload to string",
+            format!("Unable to convert payload to string: {e}",),
         )
     })?;
 
-    let features: feature_xml::Features = from_str(payload_str)
-        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Unable to parse features"))?;
+    let features: Features = from_str(payload_str).map_err(|e| {
+        io::Error::new(
+            ErrorKind::InvalidData,
+            format!("Unable to parse features: {e}"),
+        )
+    })?;
 
     let mut result = Vec::new();
 
@@ -290,8 +298,10 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
         let name = feature_sg.name.clone().unwrap_or(String::new());
 
         let direction = match feature_sg.directionality {
-            Some(1) => FeatureDirection::Forward,
-            Some(2) => FeatureDirection::Reverse,
+            1 => FeatureDirection::Forward,
+            2 => FeatureDirection::Reverse,
+            // Some(1) => FeatureDirection::Forward,
+            // Some(2) => FeatureDirection::Reverse,
             _ => FeatureDirection::None,
         };
 
@@ -326,15 +336,19 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
 }
 
 fn parse_primers(payload: &[u8]) -> io::Result<(Vec<Primer>)> {
-    let payload_str = str::from_utf8(payload).map_err(|_| {
+    let payload_str = str::from_utf8(payload).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
-            "Unable to convert payload to string",
+            format!("Unable to convert payload to string: {e}",),
         )
     })?;
 
-    let primers: feature_xml::Primers = from_str(payload_str)
-        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Unable to parse primers"))?;
+    let primers: Primers = from_str(payload_str).map_err(|e| {
+        io::Error::new(
+            ErrorKind::InvalidData,
+            format!("Unable to parse primers: {e}"),
+        )
+    })?;
 
     let mut result = Vec::new();
     for primer_sg in &primers.inner {
@@ -348,15 +362,19 @@ fn parse_primers(payload: &[u8]) -> io::Result<(Vec<Primer>)> {
 }
 
 fn parse_notes(payload: &[u8]) -> io::Result<(Vec<String>)> {
-    let payload_str = str::from_utf8(payload).map_err(|_| {
+    let payload_str = str::from_utf8(payload).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
-            "Unable to convert payload to string",
+            format!("Unable to convert payload to string: {e}",),
         )
     })?;
 
-    let notes: feature_xml::Notes = from_str(payload_str)
-        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Unable to parse notes"))?;
+    let notes: feature_xml::Notes = from_str(payload_str).map_err(|e| {
+        io::Error::new(
+            ErrorKind::InvalidData,
+            format!("Unable to parse notes: {e}"),
+        )
+    })?;
 
     let mut result = Vec::new();
     // for note in &notes.inner {
@@ -396,9 +414,12 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
     let mut features_sg = Features { inner: Vec::new() };
     for feature in features {
         let directionality = match feature.direction {
-            FeatureDirection::Forward => Some(1),
-            FeatureDirection::Reverse => Some(2),
-            FeatureDirection::None => None,
+            // FeatureDirection::Forward => Some(1),
+            // FeatureDirection::Reverse => Some(2),
+            // FeatureDirection::None => None,
+            FeatureDirection::None => 0,
+            FeatureDirection::Forward => 1,
+            FeatureDirection::Reverse => 2,
         };
 
         let segments = vec![Segment {
@@ -450,7 +471,7 @@ fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> io::Result<()> {
     let xml_str = to_string(&primers_sg).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
-            format!("Unable to convert features to an XML string: {e}"),
+            format!("Unable to convert primers to an XML string: {e}"),
         )
     })?;
 
@@ -464,7 +485,6 @@ fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> io::Result<()> {
 }
 
 /// Export our local state into the SnapGene dna format. This includes sequence, features, and primers.
-// pub fn export_snapgene(state: &State, path: &Path) -> io::Result<()> {
 pub fn export_snapgene(
     seq: &[Nucleotide],
     topology: SeqTopology,
@@ -499,7 +519,6 @@ pub fn export_snapgene(
 
     export_features(&mut buf, features)?;
     export_primers(&mut buf, primers)?;
-
     file.write_all(&buf)?;
 
     Ok(())

@@ -89,10 +89,21 @@ pub fn get_feature_ranges(
 ) -> Vec<Range<usize>> {
     let mut result = Vec::new();
 
+    if feature_rng.end < feature_rng.start || feature_rng.end == 0 {
+        // eprintln!("Error with feature ranges; start after end. Start: {}, end: {}", feature_rng.start, feature_rng.end);
+        return result;
+    }
+
     for range in all_ranges {
+        if range.end < range.start || range.end == 0 {
+            // eprintln!("Error with ranges; start after end. Start: {}, end: {}", range.start, range.end);
+            return result;
+        }
+
         if range.contains(&feature_rng.start) {
             // Contains start only, or start and end.
             let end = min(range.end, feature_rng.end);
+
             result.push(feature_rng.start..end - 1); // todo experimenting.
         } else if range.contains(&feature_rng.end) {
             // Contains end only.

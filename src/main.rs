@@ -35,6 +35,7 @@ use crate::{
 };
 
 mod features_known;
+mod genbank_parse;
 mod gui;
 mod melting_temp_calcs;
 mod pcr;
@@ -212,8 +213,7 @@ impl Default for FileDialogs {
                 Arc::new(|p| {
                     let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
                     ext == "gb" || ext == "gbk"
-
-                })
+                }),
             )
             .add_file_filter(
                 "SnapGene DNA files",
@@ -225,7 +225,7 @@ impl Default for FileDialogs {
                 Arc::new(|p| {
                     let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
                     ext == "fasta" || ext == "gb" || ext == "gbk" || ext == "dna"
-                })
+                }),
             )
             .default_file_filter("FASTA/GB/SnapGene")
             .id("2");
