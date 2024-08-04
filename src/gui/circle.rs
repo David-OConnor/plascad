@@ -16,7 +16,7 @@ use crate::{
     gui::{
         features::feature_table,
         navigation::NAV_BUTTON_COLOR,
-        seq_view::{COLOR_SEQ, FONT_SIZE_SEQ, SEQ_ROW_SPACING_PX},
+        seq_view::{display_filters, COLOR_SEQ, FONT_SIZE_SEQ, SEQ_ROW_SPACING_PX},
         COL_SPACING, ROW_SPACING,
     },
     primer::{PrimerData, PrimerDirection},
@@ -370,16 +370,26 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             {
                 state.ui.hide_map_feature_editor = true;
             }
+
+            // todo: A/R
+            // ui.add_space(COL_SPACING);
+            // display_filters(&mut state.ui, ui);
         });
 
         ui.add_space(ROW_SPACING / 2.);
     } else {
-        if ui
-            .button(RichText::new("Show feature editor").background_color(NAV_BUTTON_COLOR))
-            .clicked()
-        {
-            state.ui.hide_map_feature_editor = false;
-        }
+        ui.horizontal(|ui| {
+            if ui
+                .button(RichText::new("Show feature editor").background_color(NAV_BUTTON_COLOR))
+                .clicked()
+            {
+                state.ui.hide_map_feature_editor = false;
+            }
+
+            // todo: A/R
+            // ui.add_space(COL_SPACING);
+            // display_filters(&mut state.ui, ui);
+        });
     }
 
     Frame::canvas(ui.style())

@@ -1,9 +1,10 @@
-use std::io;
+use std::{fmt::Display, io};
 
 use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;
 
 use crate::{
+    gui::navigation::Page,
     primer::PrimerDirection,
     sequence::Nucleotide::{A, C, G, T},
     Color, StateUi,
@@ -34,7 +35,7 @@ pub enum Nucleotide {
 }
 
 impl Nucleotide {
-    /// For parsing from FASTA and SnapGene
+    /// For parsing from FASTA and SnapGene compatibility.
     pub fn from_u8_letter(val_u8: u8) -> io::Result<Self> {
         match val_u8 {
             b'A' | b'a' => Ok(A),
@@ -48,7 +49,7 @@ impl Nucleotide {
         }
     }
 
-    /// For FASTA and SnapGEne
+    /// For FASTA and SnapGene compatibility.
     pub fn to_u8_letter(&self) -> u8 {
         match self {
             A => b'A',
@@ -57,6 +58,44 @@ impl Nucleotide {
             C => b'C',
         }
     }
+}
+
+/// Of the 6 possible reading frames.
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+pub enum ReadingFrame {
+    /// Forward, with 0 offset (This pattern applies for all variants)
+    Fwd0,
+    Fwd1,
+    Fwd2,
+    Rev0,
+    Rev1,
+    Rev2,
+}
+
+impl Default for ReadingFrame {
+    fn default() -> Self {
+        Self::Fwd0
+    }
+}
+
+impl Display for ReadingFrame {
+    /// For use with selector buttons.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            Self::Fwd0 => "Fwd 0",
+            Self::Fwd1 => "Fwd 1",
+            Self::Fwd2 => "Fwd 2",
+            Self::Rev0 => "Rev 0",
+            Self::Rev1 => "Rev 1",
+            Self::Rev2 => "Rev 2",
+        }
+        .to_owned();
+        write!(f, "{}", str)
+    }
+}
+
+pub struct ReadingFrameMatch {
+    pub range: (usize, usize),
 }
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]

@@ -1,11 +1,7 @@
-//! "yeah i would just use AF2 and homology for this"
-
-//! todo: Sort out when to use `bio` types.
-
 // Disables the terminal window. Use this for releases, but disable when debugging.
 // #![windows_subsystem = "windows"]
 
-use std::{io, path::PathBuf};
+use std::{io, path::PathBuf, sync::Arc};
 
 use bincode::{config, Decode, Encode};
 // use bio::{
@@ -14,7 +10,8 @@ use bincode::{config, Decode, Encode};
 //     io::fastq::FastqRead,
 // };
 use eframe::{self, egui, egui::Context};
-use egui_file::FileDialog;
+// use egui_file::FileDialog;
+use egui_file_dialog::FileDialog;
 use gui::navigation::{Page, PageSeq};
 use primer::PrimerData;
 use save::load;
@@ -26,7 +23,11 @@ use crate::{
     primer::{PrimerDirection, TM_TARGET},
     restriction_enzyme::{load_re_library, NucleotideGeneral::N, ReMatch, RestrictionEnzyme},
     save::{StateToSave, DEFAULT_SAVE_FILE},
-    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, SeqTopology},
+    sequence::{
+        seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide,
+        Nucleotide::{A, G, T},
+        ReadingFrame, ReadingFrameMatch, SeqTopology,
+    },
 };
 
 mod features_known;
@@ -142,6 +143,98 @@ struct StateFeatureAdd {
     color: Option<Color>,
 }
 
+/// This Ui struct is used to determine which items on the sequence and map views to show and hide.
+struct SeqVisibility {
+    /// Show or hide restriction enzymes from the sequence view.
+    show_res: bool,
+    /// Show and hide primers on
+    show_primers: bool,
+    /// todo: Show and hide individual features?
+    show_features: bool,
+    show_reading_frame: bool,
+    show_start_stop_codons: bool,
+}
+
+impl Default for SeqVisibility {
+    fn default() -> Self {
+        Self {
+            show_res: true,
+            show_primers: true,
+            show_features: true,
+            show_reading_frame: true,
+            show_start_stop_codons: false,
+        }
+    }
+}
+
+struct FileDialogs {
+    save: FileDialog,
+    load: FileDialog,
+    import: FileDialog,
+    export_fasta: FileDialog,
+    export_dna: FileDialog,
+    selected: Option<PathBuf>,
+}
+
+impl Default for FileDialogs {
+    fn default() -> Self {
+        let save = FileDialog::new()
+            // .add_quick_access("Project", |s| {
+            //     s.add_path("☆  Examples", "examples");
+            //     s.add_path("📷  Media", "media");
+            //     s.add_path("📂  Source", "src");
+            // })
+            // todo: Do we need this arc?
+            .add_file_filter(
+                "PlasCAD files",
+                Arc::new(|p| p.extension().unwrap_or_default() == "pcad"),
+            )
+            .id("0");
+        // .id("egui_file_dialog");
+
+        let load_ = FileDialog::new()
+            .add_file_filter(
+                "PlasCAD files",
+                Arc::new(|p| p.extension().unwrap_or_default() == "pcad"),
+            )
+            .id("1");
+
+        let import = FileDialog::new()
+            .add_file_filter(
+                "FASTA files",
+                Arc::new(|p| p.extension().unwrap_or_default() == "fasta"),
+            )
+            .add_file_filter(
+                "SnapGene DNA files",
+                Arc::new(|p| p.extension().unwrap_or_default() == "dna"),
+            )
+            .id("2");
+
+        let export_fasta = FileDialog::new()
+            .add_file_filter(
+                "FASTA files",
+                Arc::new(|p| p.extension().unwrap_or_default() == "fasta"),
+            )
+            .id("3");
+
+        let export_dna = FileDialog::new()
+            .add_file_filter(
+                "SnapGene DNA files",
+                Arc::new(|p| p.extension().unwrap_or_default() == "dna"),
+            )
+            .id("4");
+
+        Self {
+            save,
+            load: load_,
+            import,
+            export_fasta,
+            export_dna,
+            selected: None,
+        }
+    }
+}
+
 /// Values defined here generally aren't worth saving to file etc.
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
@@ -161,20 +254,11 @@ struct StateUi {
     // todo: suitstruct for show/hide A/R
     // /// Hide the primer addition/creation/QC panel.
     // hide_primer_table: bool,
-    /// Show or hide restriction enzymes from the sequence view.
-    show_res: bool,
-    /// Show and hide primers on
-    show_primers: bool,
-    /// todo: Show and hide individual features?
-    show_features: bool,
-    show_start_stop_codons: bool,
+    seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
     cursor_pos: Option<(f32, f32)>,
     cursor_seq_i: Option<usize>,
-    open_file_dialog_import: Option<FileDialog>,
-    open_file_dialog_export_fasta: Option<FileDialog>,
-    open_file_dialog_export_dna: Option<FileDialog>,
-    opened_file: Option<PathBuf>,
+    file_dialogs: FileDialogs,
 }
 
 impl Default for StateUi {
@@ -191,17 +275,11 @@ impl Default for StateUi {
             // pcr_primer: 0,
             primer_selected: None,
             // hide_primer_table: false,
-            show_res: true,
-            show_primers: true,
-            show_features: true,
-            show_start_stop_codons: true,
+            seq_visibility: Default::default(),
             hide_map_feature_editor: true,
             cursor_pos: None,
             cursor_seq_i: None,
-            open_file_dialog_import: None,
-            open_file_dialog_export_fasta: None,
-            open_file_dialog_export_dna: None,
-            opened_file: None,
+            file_dialogs: Default::default(),
         }
     }
 }
@@ -218,12 +296,20 @@ impl Default for Selection {
     }
 }
 
+/// This struct contains state that does not need to persist between sessesions or saves, but is not
+/// a good fit for `StateUi`. This is, generally, calculated data from persistent staet.
+#[derive(Default)]
+struct StateVolatile {
+    restriction_enzyme_sites: Vec<ReMatch>,
+    reading_frame_matches: Vec<ReadingFrameMatch>,
+}
+
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
 #[derive(Default)]
 struct State {
     ui: StateUi, // Does not need to be saved
     primer_data: Vec<PrimerData>,
-    /// Insert and vector are for SLIC and FC.
+    // /// Insert and vector are for SLIC and FC.
     // seq_insert: Seq,
     // seq_vector: Seq,
     seq: Seq,
@@ -236,11 +322,12 @@ struct State {
     ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
-    restriction_enzyme_sites: Vec<ReMatch>,
     features: Vec<Feature>,
     plasmid_name: String,
     topology: SeqTopology,
     selected_item: Selection,
+    reading_frame: ReadingFrame,
+    volatile: StateVolatile,
 }
 
 impl State {
@@ -266,7 +353,7 @@ impl State {
 
     /// Identify restriction enzyme sites in the sequence
     pub fn sync_re_sites(&mut self) {
-        self.restriction_enzyme_sites = Vec::new();
+        self.volatile.restriction_enzyme_sites = Vec::new();
 
         // let seq_comp = seq_complement(seq);
 
@@ -278,7 +365,7 @@ impl State {
                 }
 
                 if re.seq == self.seq[i..i + re.seq.len()] {
-                    self.restriction_enzyme_sites.push(ReMatch {
+                    self.volatile.restriction_enzyme_sites.push(ReMatch {
                         lib_index,
                         seq_index: i,
                         // direction: PrimerDirection::Forward,
@@ -297,8 +384,20 @@ impl State {
         }
 
         // This sorting aids in our up/down label alternation in the display.
-        self.restriction_enzyme_sites
+        self.volatile
+            .restriction_enzyme_sites
             .sort_by(|a, b| a.seq_index.cmp(&b.seq_index));
+    }
+
+    pub fn sync_reading_frame(&mut self) {
+        const START_CODON: [Nucleotide; 3] = [A, T, G];
+
+        self.volatile.reading_frame_matches = Vec::new();
+
+        let seq = match self.reading_frame {
+            ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => (),
+            _ => (),
+        };
     }
 
     pub fn sync_primer_metrics(&mut self) {
@@ -334,6 +433,7 @@ impl State {
     pub fn sync_seq_related(&mut self, primer_i: Option<usize>) {
         self.sync_primer_matches(primer_i);
         self.sync_re_sites();
+        self.sync_reading_frame();
     }
 }
 

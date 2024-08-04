@@ -12,7 +12,7 @@ use eframe::{
 use crate::{
     gui::{
         primer_arrow::{HEIGHT, LABEL_OFFSET, SLANT, STROKE_WIDTH},
-        seq_view::NT_WIDTH_PX,
+        seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX},
     },
     sequence::{
         Feature, FeatureDirection,
@@ -22,7 +22,6 @@ use crate::{
     util::get_feature_ranges,
     Color,
 };
-use crate::gui::seq_view::SEQ_ROW_SPACING_PX;
 
 const VERTICAL_OFFSET_FEATURE: f32 = 14.; // Number of pixels above the sequence text.
 

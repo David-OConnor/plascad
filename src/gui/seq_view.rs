@@ -1,6 +1,7 @@
 //! This module contains GUI code related to the sequence visulization.
 
 use std::ops::Range;
+
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
@@ -12,9 +13,10 @@ use eframe::{
 
 use crate::{
     gui::{
-        feature_overlay::draw_features, features::feature_add_disp, primer_arrow, COL_SPACING,
-        ROW_SPACING,
+        feature_overlay::draw_features, features::feature_add_disp, navigation::page_button,
+        primer_arrow, COL_SPACING, ROW_SPACING,
     },
+    sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
     State, StateUi,
 };
@@ -25,7 +27,7 @@ pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
-pub const VIEW_AREA_PAD_LEFT: f32 = 54.; // Bigger to accomodate the index display.
+pub const VIEW_AREA_PAD_LEFT: f32 = 60.; // Bigger to accomodate the index display.
 pub const VIEW_AREA_PAD_RIGHT: f32 = 20.;
 pub const SEQ_ROW_SPACING_PX: f32 = 34.;
 
@@ -36,7 +38,7 @@ const MAX_SEQ_AREA_HEIGHT: u16 = 300;
 fn re_sites(state: &State, ui: &mut Ui, seq_i_to_px_rel: impl Fn(usize) -> Pos2) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    for (i_match, re_match) in state.restriction_enzyme_sites.iter().enumerate() {
+    for (i_match, re_match) in state.volatile.restriction_enzyme_sites.iter().enumerate() {
         if re_match.lib_index + 1 > state.restriction_enzyme_lib.len() {
             continue;
         }
@@ -65,7 +67,8 @@ fn re_sites(state: &State, ui: &mut Ui, seq_i_to_px_rel: impl Fn(usize) -> Pos2)
         // Move the label position left if there is a nearby RE site on the right.
         // todo: Not appearing to be working well.
         let mut neighbor_on_right = false;
-        for (i_other, re_match_other) in state.restriction_enzyme_sites.iter().enumerate() {
+        for (i_other, re_match_other) in state.volatile.restriction_enzyme_sites.iter().enumerate()
+        {
             if i_other != i_match
                 && re_match_other.seq_index > re_match.seq_index
                 && re_match_other.seq_index - re_match.seq_index < 10
@@ -101,27 +104,32 @@ fn re_sites(state: &State, ui: &mut Ui, seq_i_to_px_rel: impl Fn(usize) -> Pos2)
 }
 
 /// Checkboxes to show or hide features.
-fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
+pub fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        ui.label("Show: ");
-        ui.add_space(COL_SPACING);
-
         ui.label("RE sites:");
-        ui.checkbox(&mut state_ui.show_res, "");
+        ui.checkbox(&mut state_ui.seq_visibility.show_res, "");
         ui.add_space(COL_SPACING / 2.);
 
         ui.label("Features:");
-        ui.checkbox(&mut state_ui.show_features, "");
+        ui.checkbox(&mut state_ui.seq_visibility.show_features, "");
         ui.add_space(COL_SPACING / 2.);
 
         ui.label("Primers:");
-        ui.checkbox(&mut state_ui.show_primers, "");
+        ui.checkbox(&mut state_ui.seq_visibility.show_primers, "");
+        ui.add_space(COL_SPACING / 2.);
+
+        ui.label("Reading frame:");
+        ui.checkbox(&mut state_ui.seq_visibility.show_reading_frame, "");
         ui.add_space(COL_SPACING / 2.);
     });
 }
 
 /// Draw each row's start sequence range to its left.
-fn draw_seq_indexes(row_ranges: &[Range<usize>], seq_i_to_px_rel: impl Fn(usize) -> Pos2, ui: &mut Ui) -> Vec<Shape> {
+fn draw_seq_indexes(
+    row_ranges: &[Range<usize>],
+    seq_i_to_px_rel: impl Fn(usize) -> Pos2,
+    ui: &mut Ui,
+) -> Vec<Shape> {
     let mut result = Vec::new();
     for range in row_ranges {
         let mut pos = seq_i_to_px_rel(range.start);
@@ -137,13 +145,23 @@ fn draw_seq_indexes(row_ranges: &[Range<usize>], seq_i_to_px_rel: impl Fn(usize)
                 text,
                 // Note: Monospace is important for sequences.
                 FontId::new(FONT_SIZE_SEQ, FontFamily::Proportional),
-                Color32::WHITE
+                Color32::WHITE,
             )
         }));
-
     }
 
     result
+}
+
+fn orf_selector(orf: &mut ReadingFrame, ui: &mut Ui) {
+    ui.label("Reading frame:");
+
+    page_button(orf, ReadingFrame::Fwd0, ui, false);
+    page_button(orf, ReadingFrame::Fwd1, ui, false);
+    page_button(orf, ReadingFrame::Fwd2, ui, false);
+    page_button(orf, ReadingFrame::Rev0, ui, false);
+    page_button(orf, ReadingFrame::Rev1, ui, false);
+    page_button(orf, ReadingFrame::Rev2, ui, false);
 }
 
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
@@ -152,7 +170,8 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
     let seq_len = state.seq.len();
 
-    let nt_chars_per_row = ((ui.available_width() - (VIEW_AREA_PAD_LEFT + VIEW_AREA_PAD_RIGHT)) / NT_WIDTH_PX) as usize;
+    let nt_chars_per_row = ((ui.available_width() - (VIEW_AREA_PAD_LEFT + VIEW_AREA_PAD_RIGHT))
+        / NT_WIDTH_PX) as usize;
     let row_ranges = get_row_ranges(seq_len, nt_chars_per_row);
 
     let cursor_posit_text = match state.ui.cursor_seq_i {
@@ -169,12 +188,15 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     };
 
     ui.horizontal(|ui| {
-        // todo: Share row with ins loc
-        ui.label(format!("Cursor: {}", cursor_posit_text));
+        orf_selector(&mut state.reading_frame, ui);
+        ui.add_space(COL_SPACING);
+
+        display_filters(&mut state.ui, ui);
+        ui.add_space(COL_SPACING);
+
+        ui.label("Cursor:");
+        ui.heading(cursor_posit_text);
     });
-
-    display_filters(&mut state.ui, ui);
-
     ScrollArea::vertical().id_source(0).show(ui, |ui| {
         Frame::canvas(ui.style())
             .fill(Color32::from_rgb(10, 20, 10))
@@ -240,7 +262,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     }));
                 }
 
-                if state.ui.show_primers {
+                if state.ui.seq_visibility.show_primers {
                     shapes.append(&mut primer_arrow::draw_primers(
                         &state.primer_data,
                         &row_ranges,
@@ -250,11 +272,11 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     ));
                 }
 
-                if state.ui.show_res {
+                if state.ui.seq_visibility.show_res {
                     shapes.append(&mut re_sites(state, ui, seq_i_to_px_rel));
                 }
 
-                if state.ui.show_features {
+                if state.ui.seq_visibility.show_features {
                     shapes.append(&mut draw_features(
                         &state.features,
                         &row_ranges,

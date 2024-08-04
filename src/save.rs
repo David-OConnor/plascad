@@ -16,11 +16,11 @@ use bio::io::fasta;
 
 use crate::{
     primer::PrimerData,
-    sequence::{Feature, Nucleotide, Seq, SeqTopology},
+    sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology},
     IonConcentrations, State,
 };
 
-pub const DEFAULT_SAVE_FILE: &str = "plasmid_tools.save";
+pub const DEFAULT_SAVE_FILE: &str = "plasmid_tools.pcad";
 pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
 pub const DEFAULT_DNA_FILE: &str = "export.dna";
 
@@ -34,6 +34,7 @@ pub struct StateToSave {
     ion_concentrations: IonConcentrations,
     plasmid_name: String,
     topology: SeqTopology,
+    reading_frame: ReadingFrame,
 }
 
 impl Encode for StateToSave {
@@ -49,6 +50,7 @@ impl Encode for StateToSave {
         self.ion_concentrations.encode(encoder)?;
         self.plasmid_name.encode(encoder)?;
         self.topology.encode(encoder)?;
+        self.reading_frame.encode(encoder)?;
 
         Ok(())
     }
@@ -68,6 +70,7 @@ impl Decode for StateToSave {
         let ion_concentrations = IonConcentrations::decode(decoder)?;
         let plasmid_name = String::decode(decoder)?;
         let topology = SeqTopology::decode(decoder)?;
+        let reading_frame = ReadingFrame::decode(decoder)?;
 
         Ok(StateToSave {
             seq,
@@ -77,6 +80,7 @@ impl Decode for StateToSave {
             ion_concentrations,
             plasmid_name,
             topology,
+            reading_frame,
         })
     }
 }
@@ -91,6 +95,7 @@ impl StateToSave {
             ion_concentrations: state.ion_concentrations.clone(),
             plasmid_name: state.plasmid_name.clone(),
             topology: state.topology.clone(),
+            reading_frame: state.reading_frame.clone(),
         }
     }
 
@@ -104,6 +109,7 @@ impl StateToSave {
             features: self.features,
             plasmid_name: self.plasmid_name,
             topology: self.topology,
+            reading_frame: self.reading_frame,
             ..Default::default()
         }
     }

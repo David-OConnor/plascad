@@ -96,7 +96,7 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
 pub fn seq_page(state: &mut State, ui: &mut Ui) {
     page_seq_top_selector(state, ui);
 
-    ui.add_space(ROW_SPACING / 2.);
+    // ui.add_space(ROW_SPACING / 2.);
 
     match state.ui.page_seq_top {
         PageSeqTop::Primers => primer_details(state, ui),
@@ -118,31 +118,31 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             seq_editor_slic(state, ui);
         }
         PageSeq::View => {
-            // match state.ui.page_primer {
-            //     PagePrimer::SlicFc => {
             ui.horizontal(|ui| {
                 // todo: DRY with above
-                ui.label("Insert location: ");
-                let mut entry = state.insert_loc.to_string();
-                if ui.button("⏴").clicked() {
-                    if state.insert_loc > 0 {
-                        state.insert_loc -= 1;
-                    }
-                    state.sync_cloning_product();
-                };
 
-                let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
-                if response.changed() {
-                    state.insert_loc = entry.parse().unwrap_or(0);
-                    state.sync_cloning_product();
-                }
+                // todo: Impl insert loc changing A/R. Likely in a specialty cloning mode.
+                // ui.label("Insert location: ");
+                // let mut entry = state.insert_loc.to_string();
+                // if ui.button("⏴").clicked() {
+                //     if state.insert_loc > 0 {
+                //         state.insert_loc -= 1;
+                //     }
+                //     state.sync_cloning_product();
+                // };
+                //
+                // let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
+                // if response.changed() {
+                //     state.insert_loc = entry.parse().unwrap_or(0);
+                //     state.sync_cloning_product();
+                // }
 
-                if ui.button("⏵").clicked() {
-                    if state.insert_loc + 1 < state.ui.seq_vector_input.len() {
-                        state.insert_loc += 1;
-                    }
-                    state.sync_cloning_product();
-                };
+                // if ui.button("⏵").clicked() {
+                //     if state.insert_loc + 1 < state.ui.seq_vector_input.len() {
+                //         state.insert_loc += 1;
+                //     }
+                //     state.sync_cloning_product();
+                // };
             });
 
             sequence_vis(state, ui);

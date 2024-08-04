@@ -10,6 +10,7 @@ use std::{
     str,
 };
 
+use num_enum::TryFromPrimitive;
 use serde::Serialize;
 use serde_xml_rs::{from_str, to_string};
 
@@ -34,7 +35,7 @@ pub struct SnapgeneData {
     pub primers: Option<Vec<Primer>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, TryFromPrimitive)]
 #[repr(u8)]
 // todo: We are observing other packet types: 0x9, 0x3, 0x11, 0x8, 0xd, 0xe, 0x1c
 enum PacketType {
@@ -48,25 +49,6 @@ enum PacketType {
     AlignableSequences = 0x11,
     CustomEnzymeSets = 0xe,
     Unknown = 0x99, // Placeholder for encountering one we don't recognize
-}
-
-impl PacketType {
-    pub fn from_byte(byte: u8) -> io::Result<Self> {
-        match byte {
-            0x09 => Ok(Self::Cookie),
-            0x00 => Ok(Self::Dna),
-            0x05 => Ok(Self::Primers),
-            0x06 => Ok(Self::Notes),
-            0x0A => Ok(Self::Features),
-            0x08 => Ok(Self::AdditionalSequenceProperties),
-            0x11 => Ok(Self::AlignableSequences),
-            0x0e => Ok(Self::CustomEnzymeSets),
-            _ => Err(io::Error::new(
-                ErrorKind::InvalidData,
-                "Invalid byte for packet SnapGene packet type",
-            )),
-        }
-    }
 }
 
 /// DNA files are divided into packets. Packet structure:///
@@ -88,7 +70,7 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
         if i + 6 >= buf.len() {
             break;
         }
-        let packet_type = match PacketType::from_byte(buf[i]) {
+        let packet_type = match PacketType::try_from_primitive(buf[i]) {
             Ok(t) => t,
             Err(_) => PacketType::Unknown,
         };

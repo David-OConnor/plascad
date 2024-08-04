@@ -3,7 +3,7 @@ name = "plascad"
 version = "0.6.9"
 edition = "2021"
 authors = ["David O'Connor <the_alchemist@fastmail.com>"]
-description = "Tools primer design, PCR, and other plasmid-related work."
+description = "Tools plasmidm and primer design, PCR, and related."
 keywords = ["plasmid", "primer", "biology", "pcr"]
 categories = [
     "science", "science::bioinformatics",
@@ -16,15 +16,15 @@ exclude = [".gitignore"]
 
 [dependencies]
 # For BLAST integration
-reqwest = { version = "^0.12.5", features = ["blocking", "json"], default-features = false }
+#reqwest = { version = "^0.12.5", features = ["blocking", "json"], default-features = false }
 
 eframe = "^0.28.1"
 egui_extras = "^0.28.1"  # For tables.
-egui_file = "^0.18.0" # For file dialogs.
+egui-file-dialog = "0.6.0" #  For file dialogs.
 
-bio = "^2.0.0" # For FASTA read and write.
+# For FASTA read and write. Note: We can ditch this for a custom parser; FASTA is easy.
+bio = "^2.0.0"
 serde-xml-rs = "0.6.0"   # For Snapgene feature parsing.
-
 # We use bincode for saving and loading to files.
 bincode = "^2.0.0-rc.3"
 serde = { version = "1.0.204", features = ["derive"] }

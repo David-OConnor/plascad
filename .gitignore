@@ -8,6 +8,7 @@ workspace.xml
 
 # Saved file formats
 *.save
+*.pcad
 *.fasta
 *.dna
 *.xml

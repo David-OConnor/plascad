@@ -46,16 +46,16 @@ impl Display for Page {
 
 pub fn page_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        page_button(&mut state.ui.page, Page::Sequence, ui);
-        page_button(&mut state.ui.page, Page::Map, ui);
-        page_button(&mut state.ui.page, Page::Features, ui);
-        page_button(&mut state.ui.page, Page::Primers, ui);
-        page_button(&mut state.ui.page, Page::Pcr, ui);
+        page_button(&mut state.ui.page, Page::Sequence, ui, true);
+        page_button(&mut state.ui.page, Page::Map, ui, true);
+        page_button(&mut state.ui.page, Page::Features, ui, true);
+        page_button(&mut state.ui.page, Page::Primers, ui, true);
+        page_button(&mut state.ui.page, Page::Pcr, ui, true);
         // page_button(&mut state.ui.page, Page::Portions, ui);
     });
 }
 
-fn page_button<T: PartialEq + ToString>(page_state: &mut T, page: T, ui: &mut Ui) {
+pub fn page_button<T: PartialEq + ToString>(page_state: &mut T, page: T, ui: &mut Ui, space: bool) {
     let color = if *page_state == page {
         Color32::GREEN
     } else {
@@ -73,7 +73,9 @@ fn page_button<T: PartialEq + ToString>(page_state: &mut T, page: T, ui: &mut Ui
         *page_state = page;
     }
 
-    ui.add_space(COL_SPACING / 2.);
+    if space {
+        ui.add_space(COL_SPACING / 2.);
+    }
 }
 
 /// This is used for selecting what is displayed in the sequence view, ie view or edit.
@@ -104,9 +106,9 @@ impl Display for PageSeq {
 
 pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        page_button(&mut state.ui.page_seq, PageSeq::EditSeq, ui);
-        page_button(&mut state.ui.page_seq, PageSeq::View, ui);
-        page_button(&mut state.ui.page_seq, PageSeq::EditSlic, ui);
+        page_button(&mut state.ui.page_seq, PageSeq::EditSeq, ui, true);
+        page_button(&mut state.ui.page_seq, PageSeq::View, ui, true);
+        page_button(&mut state.ui.page_seq, PageSeq::EditSlic, ui, true);
     });
 }
 
@@ -140,8 +142,8 @@ pub fn page_seq_top_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.label("Display above sequence:");
 
-        page_button(&mut state.ui.page_seq_top, PageSeqTop::Primers, ui);
-        page_button(&mut state.ui.page_seq_top, PageSeqTop::Features, ui);
-        page_button(&mut state.ui.page_seq_top, PageSeqTop::None, ui);
+        page_button(&mut state.ui.page_seq_top, PageSeqTop::Primers, ui, true);
+        page_button(&mut state.ui.page_seq_top, PageSeqTop::Features, ui, true);
+        page_button(&mut state.ui.page_seq_top, PageSeqTop::None, ui, true);
     });
 }
