@@ -491,7 +491,7 @@ pub fn export_snapgene(
     path: &Path,
 ) -> io::Result<()> {
     let mut file = OpenOptions::new()
-        .append(true)
+        .write(true)
         .create(true) // Create the file if it doesn't exist
         .open(path)?;
 

@@ -138,6 +138,8 @@ impl Display for PageSeqTop {
 
 pub fn page_seq_top_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
+        ui.label("Display above sequence:");
+
         page_button(&mut state.ui.page_seq_top, PageSeqTop::Primers, ui);
         page_button(&mut state.ui.page_seq_top, PageSeqTop::Features, ui);
         page_button(&mut state.ui.page_seq_top, PageSeqTop::None, ui);

@@ -1,5 +1,6 @@
 //! This module contains GUI code related to the sequence visulization.
 
+use std::ops::Range;
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
@@ -24,10 +25,11 @@ pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
-pub const VIEW_AREA_PAD: f32 = 40.;
+pub const VIEW_AREA_PAD_LEFT: f32 = 54.; // Bigger to accomodate the index display.
+pub const VIEW_AREA_PAD_RIGHT: f32 = 20.;
 pub const SEQ_ROW_SPACING_PX: f32 = 34.;
 
-pub const TEXT_X_START: f32 = VIEW_AREA_PAD / 2.;
+pub const TEXT_X_START: f32 = VIEW_AREA_PAD_LEFT;
 pub const TEXT_Y_START: f32 = TEXT_X_START;
 const MAX_SEQ_AREA_HEIGHT: u16 = 300;
 
@@ -118,13 +120,39 @@ fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
     });
 }
 
+/// Draw each row's start sequence range to its left.
+fn draw_seq_indexes(row_ranges: &[Range<usize>], seq_i_to_px_rel: impl Fn(usize) -> Pos2, ui: &mut Ui) -> Vec<Shape> {
+    let mut result = Vec::new();
+    for range in row_ranges {
+        let mut pos = seq_i_to_px_rel(range.start);
+        pos.x -= VIEW_AREA_PAD_LEFT;
+
+        let text = range.start; // tood: 1k etc?
+
+        result.push(ui.ctx().fonts(|fonts| {
+            Shape::text(
+                fonts,
+                pos,
+                Align2::LEFT_TOP,
+                text,
+                // Note: Monospace is important for sequences.
+                FontId::new(FONT_SIZE_SEQ, FontFamily::Proportional),
+                Color32::WHITE
+            )
+        }));
+
+    }
+
+    result
+}
+
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
 pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     let mut shapes = vec![];
 
     let seq_len = state.seq.len();
 
-    let nt_chars_per_row = ((ui.available_width() - VIEW_AREA_PAD) / NT_WIDTH_PX) as usize; // todo: +1 etc?
+    let nt_chars_per_row = ((ui.available_width() - (VIEW_AREA_PAD_LEFT + VIEW_AREA_PAD_RIGHT)) / NT_WIDTH_PX) as usize;
     let row_ranges = get_row_ranges(seq_len, nt_chars_per_row);
 
     let cursor_posit_text = match state.ui.cursor_seq_i {
@@ -190,6 +218,8 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                         None => None,
                     };
                 }
+
+                shapes.extend(draw_seq_indexes(&row_ranges, seq_i_to_px_rel, ui));
 
                 let ctx = ui.ctx();
 

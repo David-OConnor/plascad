@@ -22,6 +22,7 @@ use crate::{
     util::get_feature_ranges,
     Color,
 };
+use crate::gui::seq_view::SEQ_ROW_SPACING_PX;
 
 const VERTICAL_OFFSET_FEATURE: f32 = 14.; // Number of pixels above the sequence text.
 
@@ -93,8 +94,14 @@ pub fn feature_seq_overlay(
 
     let mut result = Vec::new();
 
-    for (i, (start, end)) in feature_ranges_px.iter().enumerate() {
-        let mut top_left = *start;
+    for (i, (mut start, mut end)) in feature_ranges_px.iter().enumerate() {
+        // Display the overlay centered around the NT letters, vice above, for non-primer features.
+        if feature_type != FeatureType::Primer {
+            start.y += SEQ_ROW_SPACING_PX / 2. - 2.;
+            end.y += SEQ_ROW_SPACING_PX / 2. - 2.;
+        }
+
+        let mut top_left = start;
         let mut top_right = pos2(end.x + NT_WIDTH_PX, end.y);
         let bottom_left = pos2(start.x, start.y + HEIGHT);
         let bottom_right = pos2(end.x + NT_WIDTH_PX, end.y + HEIGHT);

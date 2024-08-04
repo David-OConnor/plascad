@@ -137,7 +137,7 @@ pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
 /// Export a sequence in FASTA format.
 pub fn export_fasta(seq: &[Nucleotide], name: &str, path: &Path) -> io::Result<()> {
     let file = OpenOptions::new()
-        .append(true)
+        .write(true)
         .create(true) // Create the file if it doesn't exist
         .open(path)?;
 
@@ -170,7 +170,7 @@ pub fn import_fasta(path: &Path) -> io::Result<(Seq, String)> {
     Ok((result, id))
 }
 
-/// A compact, little-endian binary serialization of our sequence. Useful for file storage.
+/// A compact binary serialization of our sequence. Useful for file storage.
 /// The first byte is sequence length; we need this, since one of our nucleotides necessarily serializes
 /// to 0b00.
 /// todo: Is this MSB or LSB?
@@ -193,7 +193,7 @@ pub fn serialize_seq_bin(seq: &[Nucleotide]) -> Vec<u8> {
     result
 }
 
-/// A compact, little-endian binary deserialization of our sequence. Useful for file storage.
+/// A compact binary deserialization of our sequence.
 /// todo: Is this MSB or LSB?
 pub fn deser_seq_bin(data: &[u8]) -> io::Result<Seq> {
     let mut result = Vec::new();

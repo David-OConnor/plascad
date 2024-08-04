@@ -146,7 +146,6 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             });
 
             sequence_vis(state, ui);
-        } // _ => (),
+        }
     }
-    // }
 }
