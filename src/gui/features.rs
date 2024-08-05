@@ -1,12 +1,7 @@
 //! GUI code for the features editor and related.
 
-use eframe::{
-    egui::{
-        Color32, ComboBox, RichText,
-        TextEdit, Ui,
-    },
-};
-use eframe::egui::{Painter, Sense, Vec2};
+use eframe::egui::{Color32, ComboBox, Painter, RichText, Sense, TextEdit, Ui, Vec2};
+
 use crate::{
     gui::{int_field, ROW_SPACING},
     sequence::{
@@ -19,12 +14,7 @@ use crate::{
 
 const LABEL_EDIT_WIDTH: f32 = 140.;
 
-const COLORS: [Color; 4] = [
-    (255, 255, 255),
-    (255, 0, 0),
-    (0, 255, 0),
-    (0, 0, 255),
-];
+const COLORS: [Color; 4] = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255)];
 
 /// Add a rectangle of the color for the selector.
 fn color_rect(color: Color, ui: &mut Ui) {
@@ -48,13 +38,12 @@ fn color_picker(val: &mut Option<Color>, id: usize, ui: &mut Ui) {
     ComboBox::from_id_source(id)
         .width(80.)
         // .selected_text(text) // todo temp
-
         .show_ui(ui, |ui| {
             ui.selectable_value(val, None, label_none);
 
             for color in COLORS {
                 ui.horizontal(|ui| {
-                    ui.selectable_value(val, Some(color),  "");
+                    ui.selectable_value(val, Some(color), "");
                     color_rect(color, ui);
                 });
 

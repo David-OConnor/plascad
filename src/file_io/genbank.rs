@@ -11,32 +11,25 @@ use std::{
     path::Path,
 };
 
-use gb_io::{self, reader::SeqReader};
-use gb_io::writer::SeqWriter;
+use gb_io::{self, reader::SeqReader, writer::SeqWriter};
+
 use crate::{
+    file_io::GenericData,
     primer::{Primer, PrimerData},
     sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq, SeqTopology},
+    Reference,
 };
-
-#[derive(Default)]
-pub struct GenBankData {
-    pub seq: Seq,
-    pub topology: SeqTopology,
-    pub features: Vec<Feature>,
-    // pub primers: Option<Vec<Primer>>,
-}
-
-// fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
+// fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> file_io::Result<()> {
 //     Ok(())
 // }
 //
-// fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> io::Result<()> {
+// fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> file_io::Result<()> {
 //     Ok(())
 // }
 
 /// Read a file in the GenBank format.
 /// [Rust docs ref of fields](https://docs.rs/gb-io/latest/gb_io/seq/struct.Seq.html)
-pub fn import_genbank(path: &Path) -> io::Result<GenBankData> {
+pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
     let file = File::open(path)?;
 
     // todo: This currently only handles a single sequene. It returns the first found.
@@ -141,13 +134,33 @@ pub fn import_genbank(path: &Path) -> io::Result<GenBankData> {
             })
         }
 
+        let mut plasmid_name = String::new(); // todo
+        let mut primers = Vec::new(); // todo
+
+        let mut references = Vec::new();
+        for ref_ in &seq.references {
+            references.push(Reference {
+                description: ref_.description.clone(),
+                authors: ref_.authors.clone(),
+                consortium: ref_.consortium.clone(),
+                title: ref_.title.clone(),
+                journal: ref_.journal.clone(),
+                pubmed: ref_.pubmed.clone(),
+                remark: ref_.remark.clone(),
+            })
+        }
+
         // todo: No primers?
         // todo: What is contig location? Do we need that?
 
-        return Ok(GenBankData {
+        return Ok(GenericData {
             seq: seq_,
+            plasmid_name,
             topology,
             features,
+            primers,
+            comments: seq.comments.clone(),
+            references,
         });
     }
 
@@ -160,9 +173,12 @@ pub fn import_genbank(path: &Path) -> io::Result<GenBankData> {
 /// Export our local state into the GenBank format. This includes sequence, features, and primers.
 pub fn export_genbank(
     seq: &[Nucleotide],
+    plasmid_name: &str,
     topology: SeqTopology,
     features: &[Feature],
     primers: &[PrimerData],
+    comments: &[String],
+    references: &[Reference],
     path: &Path,
 ) -> io::Result<()> {
     let file = OpenOptions::new()
@@ -179,8 +195,22 @@ pub fn export_genbank(
         SeqTopology::Linear => gb_io::seq::Topology::Linear,
     };
 
-
+    // todo: Features
     // todo: Handle primers.
+
+    data.comments = comments.to_vec().clone();
+
+    for ref_ in references {
+        data.references.push(gb_io::seq::Reference {
+            description: ref_.description.clone(),
+            authors: ref_.authors.clone(),
+            consortium: ref_.consortium.clone(),
+            title: ref_.title.clone(),
+            journal: ref_.journal.clone(),
+            pubmed: ref_.pubmed.clone(),
+            remark: ref_.remark.clone(),
+        })
+    }
 
     let mut writer = SeqWriter::new(file);
     writer.write(&data)

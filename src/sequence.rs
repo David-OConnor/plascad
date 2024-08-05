@@ -98,7 +98,7 @@ impl Display for ReadingFrame {
             Self::Rev1 => "Rev 1",
             Self::Rev2 => "Rev 2",
         }
-            .to_owned();
+        .to_owned();
         write!(f, "{}", str)
     }
 }
@@ -147,7 +147,7 @@ impl FeatureType {
             Self::CodingRegion => "Coding region",
             Self::LongTerminalRepeat => "Long term repeat",
         }
-            .to_owned()
+        .to_owned()
     }
 
     pub fn color(&self) -> Color {
@@ -212,7 +212,7 @@ impl FeatureDirection {
             Self::Forward => "Forward",
             Self::Reverse => "Reverse",
         }
-            .to_owned()
+        .to_owned()
     }
 }
 
@@ -305,7 +305,6 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
 
     let mut frame_open = None; // Inner: Start index.
 
-
     for i_ in 0..len / 3 {
         let i = i_ * 3; // The actual sequence index.
         let nts = &seq[i..i + 3];
@@ -317,8 +316,13 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
             // This section's a bit hairy; worked by trial and error. Final indices are respective to
             // the non-complementary seq, for both forward and reverse reading frames.
             let range = match orf {
-                ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => (frame_open.unwrap() + 1 + offset, i + 3 + offset),
-                _ => (seq_len_full - (i + 2 + offset), seq_len_full - (frame_open.unwrap() + 0 + offset)),
+                ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => {
+                    (frame_open.unwrap() + 1 + offset, i + 3 + offset)
+                }
+                _ => (
+                    seq_len_full - (i + 2 + offset),
+                    seq_len_full - (frame_open.unwrap() + 0 + offset),
+                ),
             };
 
             result.push(ReadingFrameMatch { frame: orf, range });

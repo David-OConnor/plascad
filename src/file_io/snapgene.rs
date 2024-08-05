@@ -2,6 +2,10 @@
 //! primers, notes etc., and our own equivalents.
 //!
 //! (Unofficial file format description)[https://incenp.org/dvlpt/docs/binary-sequence-formats/binary-sequence-formats.pdf]
+//! DNA files are divided into packets. Packet structure:
+//! - A byte indicating the packet's type
+//! - A big endian 32-bit unsigned integer of packet len
+//! - The payload
 
 use std::{
     fs::{File, OpenOptions},
@@ -11,32 +15,25 @@ use std::{
 };
 
 use num_enum::TryFromPrimitive;
-use quick_xml::de::from_str;
-// use serde_xml_rs::{from_str, to_string};
-use quick_xml::se::to_string;
+use quick_xml::{de::from_str, se::to_string};
 
 use crate::{
+    file_io::{
+        snapgene::feature_xml::{
+            FeatureSnapGene, Features, PrimerSnapGene, Primers, Qualifier, Segment,
+        },
+        GenericData,
+    },
     primer::{Primer, PrimerData},
     sequence::{
         seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq,
         SeqTopology,
     },
-    snapgene_parse::feature_xml::{
-        FeatureSnapGene, Features, PrimerSnapGene, Primers, Qualifier, Segment,
-    },
     util::{color_from_hex, color_to_hex},
-    State,
+    Reference,
 };
 
 const COOKIE_PACKET_LEN: usize = 14;
-
-#[derive(Default)]
-pub struct SnapgeneData {
-    pub seq: Option<Seq>,
-    pub topology: Option<SeqTopology>,
-    pub features: Option<Vec<Feature>>,
-    pub primers: Option<Vec<Primer>>,
-}
 
 #[derive(Debug, TryFromPrimitive)]
 #[repr(u8)]
@@ -54,29 +51,26 @@ enum PacketType {
     Unknown = 0x99, // Placeholder for encountering one we don't recognize
 }
 
-/// DNA files are divided into packets. Packet structure:///
-/// - A byte indicating the packet's type
-/// - A BE 32-bit integer of packet len
-/// - The payload
-fn parse<R: Read + Seek>(file: &mut R) -> io::Result<SnapgeneData> {
+/// Import a file in SnapGene's DNA format into local state. This includes sequence, features, and primers.
+pub fn import_snapgene(path: &Path) -> io::Result<GenericData> {
+    let mut file = File::open(path)?;
+
     let buf = {
         let mut b = Vec::new();
         file.read_to_end(&mut b)?;
         b
     };
 
-    let mut result = SnapgeneData::default();
+    let mut result = GenericData::default();
 
     let mut i = 0;
-    // Loop through each packet.
+
     loop {
         if i + 6 >= buf.len() {
             break;
         }
-        let packet_type = match PacketType::try_from_primitive(buf[i]) {
-            Ok(t) => t,
-            Err(_) => PacketType::Unknown,
-        };
+        let packet_type =
+            PacketType::try_from_primitive(buf[i]).unwrap_or_else(|_| PacketType::Unknown);
         i += 1;
 
         let payload_len = u32::from_be_bytes(buf[i..i + 4].try_into().unwrap()) as usize;
@@ -111,22 +105,22 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<SnapgeneData> {
 
                 match parse_dna(&payload) {
                     Ok(v) => {
-                        result.seq = Some(v.0);
-                        result.topology = Some(v.1);
+                        result.seq = v.0;
+                        result.topology = v.1;
                     }
                     Err(e) => eprintln!("Error parsing DNA packet: {:?}", e),
                 }
             }
             PacketType::Primers => match parse_primers(&payload) {
-                Ok(v) => result.primers = Some(v),
+                Ok(v) => result.primers = v,
                 Err(e) => eprintln!("Error parsing Primers packet: {:?}", e),
             },
             PacketType::Notes => match parse_notes(&payload) {
-                Ok(v) => (),
+                Ok(v) => {}
                 Err(e) => eprintln!("Error parsing Notes packet: {:?}", e),
             },
             PacketType::Features => match parse_features(&payload) {
-                Ok(v) => result.features = Some(v),
+                Ok(v) => result.features = v,
                 Err(e) => eprintln!("Error parsing Features packet: {:?}", e),
             },
             PacketType::Unknown => {
@@ -147,6 +141,10 @@ fn parse<R: Read + Seek>(file: &mut R) -> io::Result<SnapgeneData> {
                 println!("Payload str: \n{:?}", payload_str);
             }
             _ => (),
+            // todo:
+            // result.plasmid_name =
+            // result.comments =
+            // result.references =
         }
     }
 
@@ -369,6 +367,8 @@ fn parse_notes(payload: &[u8]) -> io::Result<Vec<String>> {
         )
     })?;
 
+    println!("Notes string: \n\n{:?}\n\n", payload_str);
+
     let notes: feature_xml::Notes = from_str(payload_str).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
@@ -401,12 +401,6 @@ fn range_from_str(range: &str) -> Result<(usize, usize), &'static str> {
         .map_err(|_| "Invalid number in range")?;
 
     Ok((start, end))
-}
-
-/// Import data from a SnapGene .dna file into local state. This includes sequence, features, and primers.
-pub fn import_snapgene(path: &Path) -> io::Result<SnapgeneData> {
-    let mut file = File::open(path)?;
-    parse(&mut file)
 }
 
 /// Add feature data to the buffer.
@@ -487,9 +481,12 @@ fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> io::Result<()> {
 /// Export our local state into the SnapGene dna format. This includes sequence, features, and primers.
 pub fn export_snapgene(
     seq: &[Nucleotide],
+    plasmid_name: &str,
     topology: SeqTopology,
     features: &[Feature],
     primers: &[PrimerData],
+    comments: &[String],
+    references: &[Reference],
     path: &Path,
 ) -> io::Result<()> {
     let mut file = OpenOptions::new()

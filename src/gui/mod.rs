@@ -7,8 +7,8 @@ use eframe::{
 use navigation::Page;
 
 use crate::{
+    file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
     gui::primer_qc::primer_details,
-    save::{save, StateToSave, DEFAULT_SAVE_FILE},
     State,
 };
 
@@ -39,6 +39,23 @@ pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
     let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
     if response.changed() {
         *val = entry.parse().unwrap_or(0);
+    }
+}
+
+/// Get a text-representation of the cursor index; a slightly processed version of the raw index.
+/// We use this on the sequence and circle views.
+pub fn get_cursor_text(cursor_seq_i: Option<usize>, seq_len: usize) -> String {
+    match cursor_seq_i {
+        Some(p) => {
+            if p + 1 <= seq_len {
+                // + 1, as the convention is to use 1-based indexing vice 0.
+                (p + 1).to_string()
+                // This occurs if the cursor is on the last row, right of the last NT.
+            } else {
+                String::new()
+            }
+        }
+        None => String::new(),
     }
 }
 

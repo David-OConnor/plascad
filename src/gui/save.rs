@@ -1,23 +1,21 @@
 //! GUI code for saving and loading
 
-use std::{
-    env, io,
-    path::{Path, PathBuf},
-};
+use std::{env, path::Path};
 
 use eframe::egui::Ui;
 // use egui_file::FileDialog;
 use egui_file_dialog::FileDialog;
 
 use crate::{
-    genbank_parse::import_genbank,
+    file_io::{
+        genbank::{export_genbank, import_genbank},
+        save::{export_fasta, import_fasta, save, StateToSave, DEFAULT_SAVE_FILE},
+        snapgene::{export_snapgene, import_snapgene},
+    },
     primer::PrimerData,
-    save::{export_fasta, import_fasta, load, save, StateToSave, DEFAULT_SAVE_FILE},
     sequence::seq_to_str,
-    snapgene_parse::{export_snapgene, import_snapgene},
     State,
 };
-use crate::genbank_parse::export_genbank;
 
 fn save_button(
     dialog: &mut FileDialog,
@@ -125,7 +123,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     state.ui.file_dialogs.export_genbank.update(ctx);
     state.ui.file_dialogs.export_dna.update(ctx);
     state.ui.file_dialogs.import.update(ctx);
-    
+
     let mut sync = false;
 
     if let Some(path) = state.ui.file_dialogs.import.take_selected() {
@@ -135,55 +133,43 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
             match extension.to_lowercase().as_ref() {
                 // Does this work for FASTQ too?
                 "fasta" => {
-                    if let Ok((seq, id)) = import_fasta(&path) {
+                    if let Ok((seq, id, description)) = import_fasta(&path) {
                         state.seq = seq;
                         state.plasmid_name = id;
+                        state.comments = vec![description];
                         sync = true;
                     }
                 }
                 "dna" => {
                     if let Ok(data) = import_snapgene(&path) {
-                        if let Some(v) = data.seq {
-                            state.seq = v;
-                        }
-
-                        if let Some(v) = data.topology {
-                            state.topology = v;
-                        }
-
-                        if let Some(v) = data.features {
-                            state.features = v;
-                        }
-
-                        if let Some(v) = data.primers {
-                            state.primer_data = v.into_iter().map(|v| PrimerData::new(v)).collect();
-
-                            state.sync_primer_metrics();
-                        }
+                        // todo: Integrate GenericData directly into our State struct, A/R.
+                        state.seq = data.seq;
+                        state.plasmid_name = data.plasmid_name;
+                        state.topology = data.topology;
+                        state.features = data.features;
+                        state.primer_data = data
+                            .primers
+                            .into_iter()
+                            .map(|v| PrimerData::new(v))
+                            .collect();
+                        state.comments = data.comments;
+                        state.references = data.references;
                         sync = true;
                     }
                 }
                 "gb" | "gbk" => {
-                    // todo: This is repetative with the above.
                     if let Ok(data) = import_genbank(&path) {
-                        // if let Some(v) = data.seq {
                         state.seq = data.seq;
-                        // }
-
-                        // if let Some(v) = data.topology {
+                        state.plasmid_name = data.plasmid_name;
                         state.topology = data.topology;
-                        // }
-
-                        // if let Some(v) = data.features {
                         state.features = data.features;
-                        // }
-
-                        // todo: No primers?
-                        // if let Some(v) = data.primers {
-                        //     state.primer_data = v.into_iter().map(|v| PrimerData::new(v)).collect();
-                        //
-                        //     state.sync_primer_metrics();
-                        // }
+                        state.primer_data = data
+                            .primers
+                            .into_iter()
+                            .map(|v| PrimerData::new(v))
+                            .collect();
+                        state.comments = data.comments;
+                        state.references = data.references;
                         sync = true;
                     }
                 }
@@ -224,9 +210,12 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
         if let Err(e) = export_genbank(
             &state.seq,
+            &state.plasmid_name,
             state.topology,
             &state.features,
             &state.primer_data,
+            &state.comments,
+            &state.references,
             &path,
         ) {
             eprintln!("Error exporting to GenBank: {:?}", e);
@@ -236,9 +225,12 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
         if let Err(e) = export_snapgene(
             &state.seq,
+            &state.plasmid_name,
             state.topology,
             &state.features,
             &state.primer_data,
+            &state.comments,
+            &state.references,
             &path,
         ) {
             eprintln!("Error exporting to SnapGene: {:?}", e);

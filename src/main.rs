@@ -1,47 +1,37 @@
 // Disables the terminal window. Use this for releases, but disable when debugging.
 // #![windows_subsystem = "windows"]
 
-use std::{
-    io,
-    path::{PathBuf},
-    sync::Arc,
-};
+use std::{io, path::PathBuf, sync::Arc};
 
 use bincode::{Decode, Encode};
-
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::FileDialog;
+use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use primer::PrimerData;
-use save::load;
 use sequence::{seq_from_str, Seq};
 
 use crate::{
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
-    primer::{TM_TARGET},
-    restriction_enzyme::{load_re_library, NucleotideGeneral::N, ReMatch, RestrictionEnzyme},
-    save::{StateToSave, DEFAULT_SAVE_FILE},
+    primer::TM_TARGET,
+    restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide,
-        Nucleotide::{A, G, T},
-        ReadingFrame, ReadingFrameMatch, SeqTopology,
+        find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, ReadingFrame,
+        ReadingFrameMatch, SeqTopology,
     },
 };
-use crate::sequence::{find_orf_matches, seq_complement};
 
 mod features_known;
-mod genbank_parse;
+mod file_io;
 mod gui;
 mod melting_temp_calcs;
 mod pcr;
 mod primer;
 mod primer_metrics;
 mod restriction_enzyme;
-mod save;
 mod save_compat;
 mod sequence;
-mod snapgene_parse;
 mod solution_helper;
 mod toxic_proteins;
 mod util;

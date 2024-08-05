@@ -1,7 +1,7 @@
 //! A module for the circular view of a plasmid
 
 use core::f32::consts::TAU;
-use std::cmp::min;
+use std::{cmp::min, ops::Range};
 
 use eframe::{
     egui::{
@@ -15,6 +15,7 @@ use eframe::{
 use crate::{
     gui::{
         features::feature_table,
+        get_cursor_text,
         navigation::NAV_BUTTON_COLOR,
         seq_view::{display_filters, COLOR_SEQ, FONT_SIZE_SEQ, SEQ_ROW_SPACING_PX},
         COL_SPACING, ROW_SPACING,
@@ -37,6 +38,10 @@ const TICK_LABEL_OFFSET: f32 = 10.;
 
 // Of the available width or height (whichever is lower).
 const CIRCLE_SIZE_RATIO: f32 = 0.4;
+
+// The maximum distance the cursor can be from the circle for various tasks like selection, finding
+// the cursor position etc.
+const SELECTION_MAX_DIST: f32 = 120.;
 
 /// Create points for an arc. Can be used with line_segment to draw the arc.
 // Adapted from PR https://github.com/emilk/egui/pull/4836/files
@@ -65,11 +70,19 @@ fn arc_points(center: Pos2, radius: f32, start_angle: f32, end_angle: f32) -> Ve
     points
 }
 
-/// Rreturn the angle in radians of a given sequence index.
+/// Return the angle in radians of a given sequence index.
 fn seq_i_to_angle(seq_i: usize, seq_len: usize) -> f32 {
     TAU * seq_i as f32 / seq_len as f32
-
     // todo: Include mapping to pixels here, or elsewhere?
+}
+
+/// Return the sequence index, corresponding to an angle in radians.
+fn angle_to_seq_i(mut angle: f32, seq_len: usize) -> usize {
+    if angle < 0. {
+        // Our index-finding logic will fail unless the angle is positive.
+        angle += TAU;
+    }
+    (angle * seq_len as f32 / TAU) as usize
 }
 
 /// Convert an angle, in radians, to pixels. Our origin is at the top, and the direction
@@ -353,11 +366,46 @@ fn draw_primers(
     result
 }
 
+fn top_details(state: &mut State, ui: &mut Ui) {
+    // todo: A/R
+    // display_filters(&mut state.ui, ui);
+    ui.add_space(COL_SPACING);
+    ui.label("Cursor:");
+    let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, state.seq.len());
+    ui.heading(cursor_posit_text);
+}
+
+/// Find the sequence index under the cursor, if it is over the sequence.
+fn find_cursor_i(
+    cursor_pos: Option<(f32, f32)>,
+    from_screen: &RectTransform,
+    seq_len: usize,
+    mut center: Pos2,
+    radius: f32,
+) -> Option<usize> {
+    match cursor_pos {
+        Some(p) => {
+            let pos_rel = from_screen * pos2(p.0, p.1);
+
+            let diff = vec2(pos_rel.x - center.x, pos_rel.y - center.y);
+            let cursor_dist = diff.length();
+
+            if (cursor_dist - radius).abs() > SELECTION_MAX_DIST {
+                return None;
+            }
+
+            // Shifted so 0 is at the top.
+            let angle = diff.angle() + TAU / 4.;
+            Some(angle_to_seq_i(angle, seq_len))
+        }
+        None => None,
+    }
+}
+
 pub fn circle_page(state: &mut State, ui: &mut Ui) {
     let mut shapes = Vec::new();
 
     // todo: ABility to select light mode, and other tools useful for publication.
-
     if !state.ui.hide_map_feature_editor {
         feature_table(state, ui);
 
@@ -370,12 +418,8 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             {
                 state.ui.hide_map_feature_editor = true;
             }
-
-            // todo: A/R
-            // ui.add_space(COL_SPACING);
-            // display_filters(&mut state.ui, ui);
+            top_details(state, ui);
         });
-
         ui.add_space(ROW_SPACING / 2.);
     } else {
         ui.horizontal(|ui| {
@@ -385,10 +429,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             {
                 state.ui.hide_map_feature_editor = false;
             }
-
-            // todo: A/R
-            // ui.add_space(COL_SPACING);
-            // display_filters(&mut state.ui, ui);
+            top_details(state, ui);
         });
     }
 
@@ -416,10 +457,18 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             let rect_size = response.rect.size();
 
             let center = pos2(rect_size.x / 2., rect_size.y / 2.);
-
             let width_min = rect_size.x < rect_size.y;
-
             let radius = if width_min { rect_size.x } else { rect_size.y } * CIRCLE_SIZE_RATIO;
+
+            // todo: Cache to_screen * center etc?
+
+            state.ui.cursor_seq_i = find_cursor_i(
+                state.ui.cursor_pos,
+                &from_screen,
+                state.seq.len(),
+                center,
+                radius,
+            );
 
             // Draw the backbone circle
             shapes.push(Shape::Circle(CircleShape::stroke(

@@ -13,8 +13,8 @@ use eframe::{
 
 use crate::{
     gui::{
-        feature_overlay::draw_features, features::feature_add_disp, navigation::page_button,
-        primer_arrow, COL_SPACING, ROW_SPACING,
+        feature_overlay::draw_features, features::feature_add_disp, get_cursor_text,
+        navigation::page_button, primer_arrow, COL_SPACING, ROW_SPACING,
     },
     sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
@@ -159,7 +159,7 @@ fn orf_selector(state: &mut State, ui: &mut Ui) {
     ui.label("Reading frame:");
 
     let orf = &mut state.reading_frame;
-    
+
     let orig = orf.clone();
 
     page_button(orf, ReadingFrame::Fwd0, ui, false);
@@ -172,7 +172,27 @@ fn orf_selector(state: &mut State, ui: &mut Ui) {
     if *orf != orig {
         state.sync_reading_frame()
     }
-    
+}
+
+/// Find the sequence index under the cursor, if it is over the sequence.
+fn find_cursor_i(
+    cursor_pos: Option<(f32, f32)>,
+    from_screen: &RectTransform,
+    row_ranges: &[Range<usize>],
+) -> Option<usize> {
+    match cursor_pos {
+        Some(p) => {
+            // We've had issues where cursor above the seq would be treated as first row.
+            let pos_relative = from_screen * pos2(p.0, p.1);
+
+            if pos_relative.x > 0. && pos_relative.y > 0. {
+                pixel_to_seq_i(pos_relative, &row_ranges).map(|v| v)
+            } else {
+                None
+            }
+        }
+        None => None,
+    }
 }
 
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
@@ -185,19 +205,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
         / NT_WIDTH_PX) as usize;
     let row_ranges = get_row_ranges(seq_len, nt_chars_per_row);
 
-    let cursor_posit_text = match state.ui.cursor_seq_i {
-        Some(p) => {
-            if p + 1 <= state.seq.len() {
-                // + 1, as the convention is to use 1-based indexing vice 0.
-                &(p + 1).to_string()
-                // This occurs if the cursor is on the last row, right of the last NT.
-            } else {
-                ""
-            }
-        }
-        None => "",
-    };
-
+    let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, state.seq.len());
     ui.horizontal(|ui| {
         orf_selector(state, ui);
         ui.add_space(COL_SPACING);
@@ -230,24 +238,10 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
                 let from_screen = to_screen.inverse();
 
+                state.ui.cursor_seq_i =
+                    find_cursor_i(state.ui.cursor_pos, &from_screen, &row_ranges);
+
                 let seq_i_to_px_rel = |i| to_screen * seq_i_to_pixel(i, &row_ranges);
-
-                // todo: Is this an apt place to handle this?
-                {
-                    state.ui.cursor_seq_i = match state.ui.cursor_pos {
-                        Some(p) => {
-                            // We've had issues where cursor above the seq would be treated as first row.
-                            let pos_relative = from_screen * pos2(p.0, p.1);
-
-                            if pos_relative.x > 0. && pos_relative.y > 0. {
-                                pixel_to_seq_i(pos_relative, &row_ranges).map(|v| v)
-                            } else {
-                                None
-                            }
-                        }
-                        None => None,
-                    };
-                }
 
                 shapes.extend(draw_seq_indexes(&row_ranges, seq_i_to_px_rel, ui));
 

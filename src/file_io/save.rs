@@ -1,4 +1,6 @@
-//! This module includes code for saving and loading to variou file formats.
+//! This module includes code for reading and writing our PlasCAD binary fileformat.
+//!
+//! Todo: Break into packets. This may require further ejecting from bincode, at least at the top level[s].
 
 use std::{
     fs::{File, OpenOptions},
@@ -14,14 +16,17 @@ use bincode::{
 };
 use bio::io::fasta;
 
-use crate::{primer::PrimerData, sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology}, IonConcentrations, State, Reference};
+use crate::{
+    primer::PrimerData,
+    sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology},
+    IonConcentrations, Reference, State,
+};
 
 pub const DEFAULT_SAVE_FILE: &str = "plasmid_tools.pcad";
 pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
 pub const DEFAULT_DNA_FILE: &str = "export.dna";
 
 /// This is similar to `State`, but excludes the UI, and other things we don't wish to save.
-// #[derive(Encode, Decode)]
 pub struct StateToSave {
     seq: Seq,
     features: Vec<Feature>,
@@ -60,7 +65,7 @@ impl Decode for StateToSave {
     fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
         // Deserialize seq using our custom deserializer
         let seq_data = Vec::decode(decoder)?;
-        // let seq = deser_seq_bin(&seq_data).map_err(|_| io: :Error::new(ErrorKind::InvalidData, "Error deserializing seq"));
+        // let seq = deser_seq_bin(&seq_data).map_err(|_| file_io: :Error::new(ErrorKind::InvalidData, "Error deserializing seq"));
         let seq = deser_seq_bin(&seq_data).unwrap_or_default(); // todo: Better error handling/propogation.
 
         // Deserialize other fields using default deserialization
@@ -163,8 +168,8 @@ pub fn export_fasta(seq: &[Nucleotide], name: &str, path: &Path) -> io::Result<(
     Ok(())
 }
 
-/// Import from a FASTA file
-pub fn import_fasta(path: &Path) -> io::Result<(Seq, String)> {
+/// Import from a FASTA file. (Seq, plasmid name (id), description)
+pub fn import_fasta(path: &Path) -> io::Result<(Seq, String, String)> {
     let file = File::open(path)?;
 
     let mut records = fasta::Reader::new(file).records();
@@ -173,15 +178,17 @@ pub fn import_fasta(path: &Path) -> io::Result<(Seq, String)> {
 
     // todo: Do we want id, or description?
     let mut id = String::new();
+    let mut description = String::new();
 
     while let Some(Ok(record)) = records.next() {
         for r in record.seq() {
             result.push(Nucleotide::from_u8_letter(*r)?);
             id = record.id().to_owned(); // Note that this overrides previous records, if applicable.
+            description = record.desc().unwrap_or_default().to_owned();
         }
     }
 
-    Ok((result, id))
+    Ok((result, id, description))
 }
 
 /// A compact binary serialization of our sequence. Useful for file storage.
