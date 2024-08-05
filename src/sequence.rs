@@ -1,4 +1,4 @@
-use std::{fmt::Display, io};
+use std::{collections::HashMap, fmt::Display, io};
 
 use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;
@@ -111,6 +111,7 @@ pub enum FeatureType {
     /// overlay code.
     Primer,
     CodingRegion,
+    LongTerminalRepeat,
 }
 
 impl Default for FeatureType {
@@ -131,6 +132,7 @@ impl FeatureType {
             Self::AntibioticResistance => "Antibiotic resistance",
             Self::Primer => "Primer",
             Self::CodingRegion => "Coding region",
+            Self::LongTerminalRepeat => "Long term repeat",
         }
         .to_owned()
     }
@@ -146,10 +148,12 @@ impl FeatureType {
             Self::AntibioticResistance => (128, 128, 100),
             Self::Primer => (0, 0, 0),             // N/A for now at least.
             Self::CodingRegion => (100, 200, 255), // N/A for now at least.
+            Self::LongTerminalRepeat => (150, 200, 255), // N/A for now at least.
         }
     }
 
-    pub fn from_snapgene_str(v: &str) -> Self {
+    /// Parse from a string; we use this for both SnapGene and GenBank.
+    pub fn from_external_str(v: &str) -> Self {
         // todo: Update as required with more
         let v = &v.to_lowercase();
 
@@ -158,6 +162,9 @@ impl FeatureType {
             "rbs" => Self::RibosomeBindSite,
             "rep_origin" => Self::Ori,
             "promoter" => Self::Promoter,
+            "primer_bind" => Self::Primer, // todo: This is a bit awk; genbank.
+            "ltr" => Self::LongTerminalRepeat,
+            "misc_feature" => Self::Generic,
             _ => Self::Generic,
         }
     }
@@ -206,6 +213,7 @@ pub struct Feature {
     /// By default, we display features using featuretype-specific color. Allow the user
     /// to override this.
     pub color_override: Option<Color>,
+    pub notes: HashMap<String, String>,
 }
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]

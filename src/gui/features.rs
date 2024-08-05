@@ -146,6 +146,7 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
                 direction: FeatureDirection::None,
                 label: state.ui.feature_add.label.clone(),
                 color_override: None,
+                notes: Default::default(),
             });
         }
     });

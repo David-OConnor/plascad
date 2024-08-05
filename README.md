@@ -58,6 +58,7 @@ FASTA files contain sequence data, so using this format will result in the losso
 
 GenBank, SnapGene, and PlasCAD files are all generally compatible with each other; they can be switched between freely. However, PlasCAD currently does not support some features from the other formats, including Qualifiers.
 
+**Important**: Our GenBank parsing and saving currently does not handle primers well.
 
 
 ## Why another plasmid editor

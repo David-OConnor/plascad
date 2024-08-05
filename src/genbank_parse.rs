@@ -5,6 +5,7 @@
 //! (NIH article on GenBank)[https://www.ncbi.nlm.nih.gov/genbank/]
 
 use std::{
+    collections::HashMap,
     convert::TryInto,
     fs::{File, OpenOptions},
     io::{self, ErrorKind, Read, Seek, Write},
@@ -90,6 +91,8 @@ pub fn import_genbank(path: &Path) -> io::Result<(GenBankData)> {
         };
 
         let mut features = Vec::new();
+
+        // This is almost awkward enough to write a parser instead of using gb_io.
         for feature in &seq.features {
             // We parse label and direction from qualifiers.
             let mut direction = FeatureDirection::None;
@@ -97,8 +100,6 @@ pub fn import_genbank(path: &Path) -> io::Result<(GenBankData)> {
 
             let index_range = match &feature.location {
                 gb_io::seq::Location::Range(start, end) => (start.0 as usize, end.0 as usize),
-                // Complements are treated as a recursive box? What is going on? I need to ditch
-                // this lib.
                 gb_io::seq::Location::Complement(inner) => match **inner {
                     gb_io::seq::Location::Range(start, end) => (start.0 as usize, end.0 as usize),
                     _ => {
@@ -129,14 +130,19 @@ pub fn import_genbank(path: &Path) -> io::Result<(GenBankData)> {
                 }
             }
 
+            // Parse notes from qualifiers other than label and direction.
+            let mut notes = HashMap::new();
+            for qual in &feature.qualifiers {}
+
+            // todo: Handle primers from the `primer_bind` feature kind.
+
             features.push(Feature {
                 index_range,
-                feature_type: FeatureType::Generic, // todo temp
+                feature_type: FeatureType::from_external_str(&feature.king.to_string()),
                 direction,
-                // todo: COnstruct label from qualifiers?
                 label,
                 color_override: None,
-                // todo: Should we support qualifiers?
+                notes,
             })
         }
 

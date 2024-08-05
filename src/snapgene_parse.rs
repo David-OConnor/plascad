@@ -306,7 +306,7 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
         };
 
         let feature_type = match &feature_sg.feature_type {
-            Some(t) => FeatureType::from_snapgene_str(t),
+            Some(t) => FeatureType::from_external_str(t),
             None => FeatureType::default(),
         };
 
@@ -327,6 +327,7 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
                 direction,
                 label: name.clone(),
                 color_override,
+                notes: Default::default(), // todo: Add this.
             });
         }
         // todo: Handle qualifiers too?
