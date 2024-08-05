@@ -76,7 +76,7 @@ fn seq_i_to_angle(seq_i: usize, seq_len: usize) -> f32 {
 /// is clockwise.
 fn angle_to_pixel(angle: f32, radius: f32) -> Pos2 {
     // Offset and reverse the angle to reflect an origin of 0.
-    let angle = (angle - TAU / 4.);
+    let angle = angle - TAU / 4.;
 
     pos2(angle.cos() * radius, angle.sin() * radius)
 }

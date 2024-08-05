@@ -14,7 +14,6 @@ use num_enum::TryFromPrimitive;
 use quick_xml::de::from_str;
 // use serde_xml_rs::{from_str, to_string};
 use quick_xml::se::to_string;
-use serde::Serialize;
 
 use crate::{
     primer::{Primer, PrimerData},
@@ -59,7 +58,7 @@ enum PacketType {
 /// - A byte indicating the packet's type
 /// - A BE 32-bit integer of packet len
 /// - The payload
-fn parse<R: Read + Seek>(file: &mut R) -> io::Result<(SnapgeneData)> {
+fn parse<R: Read + Seek>(file: &mut R) -> io::Result<SnapgeneData> {
     let buf = {
         let mut b = Vec::new();
         file.read_to_end(&mut b)?;
@@ -336,7 +335,7 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
     Ok(result)
 }
 
-fn parse_primers(payload: &[u8]) -> io::Result<(Vec<Primer>)> {
+fn parse_primers(payload: &[u8]) -> io::Result<Vec<Primer>> {
     let payload_str = str::from_utf8(payload).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
@@ -362,7 +361,7 @@ fn parse_primers(payload: &[u8]) -> io::Result<(Vec<Primer>)> {
     Ok(result)
 }
 
-fn parse_notes(payload: &[u8]) -> io::Result<(Vec<String>)> {
+fn parse_notes(payload: &[u8]) -> io::Result<Vec<String>> {
     let payload_str = str::from_utf8(payload).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
@@ -405,7 +404,7 @@ fn range_from_str(range: &str) -> Result<(usize, usize), &'static str> {
 }
 
 /// Import data from a SnapGene .dna file into local state. This includes sequence, features, and primers.
-pub fn import_snapgene(path: &Path) -> io::Result<(SnapgeneData)> {
+pub fn import_snapgene(path: &Path) -> io::Result<SnapgeneData> {
     let mut file = File::open(path)?;
     parse(&mut file)
 }

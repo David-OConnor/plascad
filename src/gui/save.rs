@@ -83,7 +83,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
     load_button(
         &mut state.ui.file_dialogs.import,
-        "Import FASTA/GenBank/SnapGene",
+        "Imp FASTA/GenBank/SnapGene",
         "Import a sequence in the FASTA or .dna (SnapGene) formats",
         ui,
     );
@@ -92,7 +92,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         &mut state.ui.file_dialogs.export_fasta,
         &state.plasmid_name,
         "fasta",
-        "Export FASTA",
+        "Exp FASTA",
         "Export the sequence in the FASTA format. This does not include features or primers.",
         ui,
     );
@@ -101,7 +101,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         &mut state.ui.file_dialogs.export_genbank,
         &state.plasmid_name,
         "gb",
-        "Export GenBank",
+        "Exp GenBank",
         "Export the sequence in the GenBank format.",
         ui,
     );
@@ -110,7 +110,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         &mut state.ui.file_dialogs.export_dna,
         &state.plasmid_name,
         "dna",
-        "Export .dna",
+        "Exp SnapGene",
         "Export data in the .dna (SnapGene) format",
         ui,
     );

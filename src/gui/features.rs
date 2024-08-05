@@ -2,14 +2,13 @@
 
 use eframe::{
     egui::{
-        pos2, Align2, Color32, ComboBox, FontFamily, FontId, Pos2, RichText, Shape, Stroke,
+        Color32, ComboBox, RichText,
         TextEdit, Ui,
     },
-    epaint::PathShape,
 };
-
+use eframe::egui::{Painter, Sense, Vec2};
 use crate::{
-    gui::{int_field, navigation::NAV_BUTTON_COLOR, COL_SPACING, ROW_SPACING},
+    gui::{int_field, ROW_SPACING},
     sequence::{
         Feature,
         FeatureDirection::{self, Forward, Reverse},
@@ -20,32 +19,50 @@ use crate::{
 
 const LABEL_EDIT_WIDTH: f32 = 140.;
 
-// todo: The str label here is temp; ideally have the picker show the color itself.
-const COLORS: [(u8, u8, u8, &str); 4] = [
-    (255, 255, 255, "White"),
-    (255, 0, 0, "Red"),
-    (0, 255, 0, "Blue"),
-    (0, 0, 255, "Green"),
+const COLORS: [Color; 4] = [
+    (255, 255, 255),
+    (255, 0, 0),
+    (0, 255, 0),
+    (0, 0, 255),
 ];
+
+/// Add a rectangle of the color for the selector.
+fn color_rect(color: Color, ui: &Ui) {
+    let color_rgb = Color32::from_rgb(color.0, color.1, color.2);
+
+    let (rect, response) = ui.allocate_exact_size(Vec2::new(60.0, 10.0), Sense::click());
+    let painter = Painter::new(ui.ctx().clone(), ui.layer_id(), rect);
+    painter.rect_filled(rect, 0.0, color_rgb);
+}
 
 /// A color selector for use with feature addition and editing.
 fn color_picker(val: &mut Option<Color>, id: usize, ui: &mut Ui) {
     let label_none = "Use type color";
-    let text = match val {
-        Some((r, g, b)) => &format!("{}, {}, {}", r, g, b),
-        None => label_none,
-    };
+    // let text = match val {
+    //     Some((r, g, b)) => &format!("{}, {}, {}", r, g, b),
+    //     None => label_none,
+    // };
+
     ComboBox::from_id_source(id)
         .width(80.)
-        .selected_text(text) // todo temp
+        // .selected_text(text) // todo temp
+
         .show_ui(ui, |ui| {
+            color_rect(val.unwrap_or_default(), ui);
+
             ui.selectable_value(val, None, label_none);
+
             for color in COLORS {
-                ui.selectable_value(
-                    val,
-                    Some((color.0, color.1, color.2)),
-                    color.3, // todo temp. How can you show a color image?
-                );
+                ui.horizontal(|ui| {
+                    ui.selectable_value(val, Some((color.0, color.1, color.2)),  "");
+                    color_rect(color, ui);
+                });
+
+                // ui.selectable_value(
+                //     val,
+                //     Some((color.0, color.1, color.2)),
+                //     color.3, // todo temp. How can you show a color image?
+                // );
             }
         });
 }

@@ -72,6 +72,16 @@ pub enum ReadingFrame {
     Rev2,
 }
 
+impl ReadingFrame {
+    pub fn offset(&self) -> usize {
+        match self {
+            Self::Fwd0 | Self::Rev0 => 0,
+            Self::Fwd1 | Self::Rev1 => 1,
+            Self::Fwd2 | Self::Rev2 => 2,
+        }
+    }
+}
+
 impl Default for ReadingFrame {
     fn default() -> Self {
         Self::Fwd0
@@ -89,11 +99,12 @@ impl Display for ReadingFrame {
             Self::Rev1 => "Rev 1",
             Self::Rev2 => "Rev 2",
         }
-        .to_owned();
+            .to_owned();
         write!(f, "{}", str)
     }
 }
 
+#[derive(Debug)]
 pub struct ReadingFrameMatch {
     pub range: (usize, usize),
 }
@@ -134,7 +145,7 @@ impl FeatureType {
             Self::CodingRegion => "Coding region",
             Self::LongTerminalRepeat => "Long term repeat",
         }
-        .to_owned()
+            .to_owned()
     }
 
     pub fn color(&self) -> Color {
@@ -199,7 +210,7 @@ impl FeatureDirection {
             Self::Forward => "Forward",
             Self::Reverse => "Reverse",
         }
-        .to_owned()
+            .to_owned()
     }
 }
 
@@ -274,7 +285,7 @@ pub fn seq_to_str(seq: &[Nucleotide]) -> String {
 // todo: This may not be feasible without aligning reading frames. Come back to this.
 /// Automatically generate transient features for start and stop codons.
 pub fn _start_stop_codons(seq: &[Nucleotide]) -> Vec<Feature> {
-    let start_codons = vec![[T, A, A], [T, A, G], [T, G, A]];
+    let stop_codons = vec![[T, A, A], [T, A, G], [T, G, A]];
 
     const START_CODON: [Nucleotide; 3] = [A, T, G];
 

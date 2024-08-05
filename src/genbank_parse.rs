@@ -6,15 +6,12 @@
 
 use std::{
     collections::HashMap,
-    convert::TryInto,
     fs::{File, OpenOptions},
-    io::{self, ErrorKind, Read, Seek, Write},
+    io::{self, ErrorKind, Write},
     path::Path,
-    str,
 };
 
 use gb_io::{self, reader::SeqReader};
-use num_enum::TryFromPrimitive;
 
 use crate::{
     primer::{Primer, PrimerData},
@@ -39,7 +36,7 @@ pub struct GenBankData {
 
 /// Read a file in the GenBank format.
 /// [Rust docs ref of fields](https://docs.rs/gb-io/latest/gb_io/seq/struct.Seq.html)
-pub fn import_genbank(path: &Path) -> io::Result<(GenBankData)> {
+pub fn import_genbank(path: &Path) -> io::Result<GenBankData> {
     let mut result = GenBankData::default();
 
     let mut file = File::open(path)?;
@@ -138,7 +135,7 @@ pub fn import_genbank(path: &Path) -> io::Result<(GenBankData)> {
 
             features.push(Feature {
                 index_range,
-                feature_type: FeatureType::from_external_str(&feature.king.to_string()),
+                feature_type: FeatureType::from_external_str(&feature.kind.to_string()),
                 direction,
                 label,
                 color_override: None,

@@ -3,18 +3,13 @@
 
 use std::{
     io,
-    path::{Path, PathBuf},
+    path::{PathBuf},
     sync::Arc,
 };
 
-use bincode::{config, Decode, Encode};
-// use bio::{
-//     bio_types::sequence::{Sequence, SequenceRead},
-//     data_structures::fmindex::FMIndexable,
-//     io::fastq::FastqRead,
-// };
+use bincode::{Decode, Encode};
+
 use eframe::{self, egui, egui::Context};
-// use egui_file::FileDialog;
 use egui_file_dialog::FileDialog;
 use gui::navigation::{Page, PageSeq};
 use primer::PrimerData;
@@ -24,7 +19,7 @@ use sequence::{seq_from_str, Seq};
 use crate::{
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
-    primer::{PrimerDirection, TM_TARGET},
+    primer::{TM_TARGET},
     restriction_enzyme::{load_re_library, NucleotideGeneral::N, ReMatch, RestrictionEnzyme},
     save::{StateToSave, DEFAULT_SAVE_FILE},
     sequence::{
@@ -33,6 +28,7 @@ use crate::{
         ReadingFrame, ReadingFrameMatch, SeqTopology,
     },
 };
+use crate::sequence::seq_complement;
 
 mod features_known;
 mod genbank_parse;
@@ -424,14 +420,26 @@ impl State {
     }
 
     pub fn sync_reading_frame(&mut self) {
+        // todo: Delegate to sequence.rs A/R
         const START_CODON: [Nucleotide; 3] = [A, T, G];
 
         self.volatile.reading_frame_matches = Vec::new();
 
-        let seq = match self.reading_frame {
-            ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => (),
-            _ => (),
-        };
+        let seq = &match self.reading_frame {
+            ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => self.seq.clone(),
+            _ => seq_complement(&self.seq),
+        }[self.reading_frame.offset()..];
+
+        for i_ in 0..seq.len() / 3 {
+            let i = i_ * 3;
+
+            if seq[i..i + 3] == START_CODON {
+
+            }
+        }
+
+
+        println!("RF matches: {:?}", self.volatile.reading_frame_matches);
     }
 
     pub fn sync_primer_metrics(&mut self) {
