@@ -24,7 +24,7 @@ use crate::{
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
 pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
-pub const COLOR_CODING_REGION: Color32 = Color32::LIGHT_GREEN;
+pub const COLOR_CODING_REGION: Color32 = Color32::from_rgb(255, 0, 170);
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.

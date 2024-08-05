@@ -4,10 +4,9 @@ use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;
 
 use crate::{
-    gui::navigation::Page,
     primer::PrimerDirection,
     sequence::Nucleotide::{A, C, G, T},
-    Color, StateUi,
+    Color,
 };
 
 // Index 0: 5' end.
@@ -108,6 +107,7 @@ impl Display for ReadingFrame {
 pub struct ReadingFrameMatch {
     pub frame: ReadingFrame,
     /// 1-based indexing.
+    /// Indices are respective to the non-complementary seq, for both forward and reverse reading frames.
     pub range: (usize, usize),
 }
 
@@ -290,24 +290,21 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
     const START_CODON: [Nucleotide; 3] = [A, T, G];
     let stop_codons = vec![[T, A, A], [T, A, G], [T, G, A]];
 
-    let len = seq.len();
-
     let mut result = Vec::new();
 
     let mut offset = orf.offset();
+
+    let seq_len_full = seq.len();
 
     let seq = &match orf {
         ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => seq.to_vec(),
         _ => seq_complement(seq),
     }[offset..];
 
+    let len = seq.len();
+
     let mut frame_open = None; // Inner: Start index.
 
-    // Seems to be required to make
-    // match orf {
-    //     ReadingFrame::Rev0 | ReadingFrame::Rev1 | ReadingFrame::Rev2 => offset *= -1,
-    //     _ => (),
-    // }
 
     for i_ in 0..len / 3 {
         let i = i_ * 3; // The actual sequence index.
@@ -317,10 +314,11 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
             frame_open = Some(i);
         } else if frame_open.is_some() && stop_codons.contains(nts.try_into().unwrap()) {
             // + 1 for our 1-based seq name convention.
-
+            // This section's a bit hairy; worked by trial and error. Final indices are respective to
+            // the non-complementary seq, for both forward and reverse reading frames.
             let range = match orf {
                 ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => (frame_open.unwrap() + 1 + offset, i + 3 + offset),
-                _ => (len - (frame_open.unwrap() + 1 + offset), len - (i + 3 + offset)),
+                _ => (seq_len_full - (i + 2 + offset), seq_len_full - (frame_open.unwrap() + 0 + offset)),
             };
 
             result.push(ReadingFrameMatch { frame: orf, range });
