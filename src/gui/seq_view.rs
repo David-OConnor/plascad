@@ -24,6 +24,7 @@ use crate::{
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
 pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
+pub const COLOR_CODING_REGION: Color32 = Color32::LIGHT_GREEN;
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
@@ -135,7 +136,8 @@ fn draw_seq_indexes(
         let mut pos = seq_i_to_px_rel(range.start);
         pos.x -= VIEW_AREA_PAD_LEFT;
 
-        let text = range.start; // tood: 1k etc?
+        // 1-based indexing.
+        let text = range.start + 1; // tood: 1k etc?
 
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
@@ -153,8 +155,12 @@ fn draw_seq_indexes(
     result
 }
 
-fn orf_selector(orf: &mut ReadingFrame, ui: &mut Ui) {
+fn orf_selector(state: &mut State, ui: &mut Ui) {
     ui.label("Reading frame:");
+
+    let orf = &mut state.reading_frame;
+    
+    let orig = orf.clone();
 
     page_button(orf, ReadingFrame::Fwd0, ui, false);
     page_button(orf, ReadingFrame::Fwd1, ui, false);
@@ -162,6 +168,11 @@ fn orf_selector(orf: &mut ReadingFrame, ui: &mut Ui) {
     page_button(orf, ReadingFrame::Rev0, ui, false);
     page_button(orf, ReadingFrame::Rev1, ui, false);
     page_button(orf, ReadingFrame::Rev2, ui, false);
+
+    if *orf != orig {
+        state.sync_reading_frame()
+    }
+    
 }
 
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
@@ -188,7 +199,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     };
 
     ui.horizontal(|ui| {
-        orf_selector(&mut state.reading_frame, ui);
+        orf_selector(state, ui);
         ui.add_space(COL_SPACING);
 
         display_filters(&mut state.ui, ui);
@@ -211,9 +222,6 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     let desired_size = vec2(ui.available_width(), height);
                     ui.allocate_painter(desired_size, Sense::click())
                 };
-
-                // let to_screen =
-                //     RectTransform::from_to(Rect::from_x_y_ranges(0.0..=1.0, -1.0..=1.0), rect);
 
                 let to_screen = RectTransform::from_to(
                     Rect::from_min_size(Pos2::ZERO, response.rect.size()),
@@ -249,6 +257,22 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 for (i, nt) in state.seq.iter().enumerate() {
                     let pos = seq_i_to_px_rel(i);
 
+                    let letter_color = {
+                        let mut r = COLOR_SEQ;
+
+                        if state.ui.seq_visibility.show_reading_frame {
+                            for rf in &state.volatile.reading_frame_matches {
+                                let (start, end) = rf.range;
+                                let i_ = i + 1; // 1-based indexing
+                                if start <= i_ && i_ <= end {
+                                    r = COLOR_CODING_REGION;
+                                }
+                            }
+                        }
+
+                        r
+                    };
+
                     shapes.push(ctx.fonts(|fonts| {
                         Shape::text(
                             fonts,
@@ -257,7 +281,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                             nt.as_str(),
                             // Note: Monospace is important for sequences.
                             FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
-                            COLOR_SEQ,
+                            letter_color,
                         )
                     }));
                 }

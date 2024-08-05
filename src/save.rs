@@ -14,11 +14,7 @@ use bincode::{
 };
 use bio::io::fasta;
 
-use crate::{
-    primer::PrimerData,
-    sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology},
-    IonConcentrations, State,
-};
+use crate::{primer::PrimerData, sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology}, IonConcentrations, State, Reference};
 
 pub const DEFAULT_SAVE_FILE: &str = "plasmid_tools.pcad";
 pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
@@ -35,6 +31,8 @@ pub struct StateToSave {
     plasmid_name: String,
     topology: SeqTopology,
     reading_frame: ReadingFrame,
+    comments: Vec<String>,
+    references: Vec<Reference>,
 }
 
 impl Encode for StateToSave {
@@ -51,6 +49,8 @@ impl Encode for StateToSave {
         self.plasmid_name.encode(encoder)?;
         self.topology.encode(encoder)?;
         self.reading_frame.encode(encoder)?;
+        self.comments.encode(encoder)?;
+        self.references.encode(encoder)?;
 
         Ok(())
     }
@@ -71,6 +71,8 @@ impl Decode for StateToSave {
         let plasmid_name = String::decode(decoder)?;
         let topology = SeqTopology::decode(decoder)?;
         let reading_frame = ReadingFrame::decode(decoder)?;
+        let comments = Vec::<String>::decode(decoder)?;
+        let references = Vec::<Reference>::decode(decoder)?;
 
         Ok(StateToSave {
             seq,
@@ -81,6 +83,8 @@ impl Decode for StateToSave {
             plasmid_name,
             topology,
             reading_frame,
+            comments,
+            references,
         })
     }
 }
@@ -96,6 +100,8 @@ impl StateToSave {
             plasmid_name: state.plasmid_name.clone(),
             topology: state.topology.clone(),
             reading_frame: state.reading_frame.clone(),
+            comments: state.comments.clone(),
+            references: state.references.clone(),
         }
     }
 
@@ -110,6 +116,8 @@ impl StateToSave {
             plasmid_name: self.plasmid_name,
             topology: self.topology,
             reading_frame: self.reading_frame,
+            comments: self.comments,
+            references: self.references,
             ..Default::default()
         }
     }

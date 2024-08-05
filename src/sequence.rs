@@ -61,7 +61,7 @@ impl Nucleotide {
 }
 
 /// Of the 6 possible reading frames.
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
 pub enum ReadingFrame {
     /// Forward, with 0 offset (This pattern applies for all variants)
     Fwd0,
@@ -106,6 +106,8 @@ impl Display for ReadingFrame {
 
 #[derive(Debug)]
 pub struct ReadingFrameMatch {
+    pub frame: ReadingFrame,
+    /// 1-based indexing.
     pub range: (usize, usize),
 }
 
@@ -272,6 +274,7 @@ pub fn seq_from_str(str: &str) -> Seq {
     result
 }
 
+/// Convert a nucleotide sequence to string.
 pub fn seq_to_str(seq: &[Nucleotide]) -> String {
     let mut result = String::new();
 
@@ -282,14 +285,48 @@ pub fn seq_to_str(seq: &[Nucleotide]) -> String {
     result
 }
 
-// todo: This may not be feasible without aligning reading frames. Come back to this.
-/// Automatically generate transient features for start and stop codons.
-pub fn _start_stop_codons(seq: &[Nucleotide]) -> Vec<Feature> {
+/// Find coding regions in a sequence, given a reading frame.
+pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFrameMatch> {
+    const START_CODON: [Nucleotide; 3] = [A, T, G];
     let stop_codons = vec![[T, A, A], [T, A, G], [T, G, A]];
 
-    const START_CODON: [Nucleotide; 3] = [A, T, G];
+    let len = seq.len();
 
     let mut result = Vec::new();
+
+    let mut offset = orf.offset();
+
+    let seq = &match orf {
+        ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => seq.to_vec(),
+        _ => seq_complement(seq),
+    }[offset..];
+
+    let mut frame_open = None; // Inner: Start index.
+
+    // Seems to be required to make
+    // match orf {
+    //     ReadingFrame::Rev0 | ReadingFrame::Rev1 | ReadingFrame::Rev2 => offset *= -1,
+    //     _ => (),
+    // }
+
+    for i_ in 0..len / 3 {
+        let i = i_ * 3; // The actual sequence index.
+        let nts = &seq[i..i + 3];
+
+        if nts == START_CODON {
+            frame_open = Some(i);
+        } else if frame_open.is_some() && stop_codons.contains(nts.try_into().unwrap()) {
+            // + 1 for our 1-based seq name convention.
+
+            let range = match orf {
+                ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => (frame_open.unwrap() + 1 + offset, i + 3 + offset),
+                _ => (len - (frame_open.unwrap() + 1 + offset), len - (i + 3 + offset)),
+            };
+
+            result.push(ReadingFrameMatch { frame: orf, range });
+            frame_open = None;
+        }
+    }
 
     result
 }

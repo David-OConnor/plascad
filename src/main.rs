@@ -28,7 +28,7 @@ use crate::{
         ReadingFrame, ReadingFrameMatch, SeqTopology,
     },
 };
-use crate::sequence::seq_complement;
+use crate::sequence::{find_orf_matches, seq_complement};
 
 mod features_known;
 mod genbank_parse;
@@ -326,6 +326,18 @@ impl Default for Selection {
     }
 }
 
+/// Based on GenBank's reference format
+#[derive(Default, Clone, Encode, Decode)]
+pub struct Reference {
+    pub description: String,
+    pub authors: Option<String>,
+    pub consortium: Option<String>,
+    pub title: String,
+    pub journal: Option<String>,
+    pub pubmed: Option<String>,
+    pub remark: Option<String>,
+}
+
 /// This struct contains state that does not need to persist between sessesions or saves, but is not
 /// a good fit for `StateUi`. This is, generally, calculated data from persistent staet.
 #[derive(Default)]
@@ -338,22 +350,20 @@ struct StateVolatile {
 #[derive(Default)]
 struct State {
     ui: StateUi, // Does not need to be saved
-    primer_data: Vec<PrimerData>,
     // /// Insert and vector are for SLIC and FC.
-    // seq_insert: Seq,
-    // seq_vector: Seq,
     seq: Seq,
-    // /// Amplicon is for basic PCR.
-    // seq_amplicon: Seq,
+    features: Vec<Feature>,
     insert_loc: usize,
+    primer_data: Vec<PrimerData>,
     // /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
     // insert_location_5p_limit: usize,
     // insert_location_3p_limit: usize,
+    plasmid_name: String,
+    comments: Vec<String>,
+    references: Vec<Reference>,
     ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
-    features: Vec<Feature>,
-    plasmid_name: String,
     topology: SeqTopology,
     selected_item: Selection,
     reading_frame: ReadingFrame,
@@ -420,26 +430,7 @@ impl State {
     }
 
     pub fn sync_reading_frame(&mut self) {
-        // todo: Delegate to sequence.rs A/R
-        const START_CODON: [Nucleotide; 3] = [A, T, G];
-
-        self.volatile.reading_frame_matches = Vec::new();
-
-        let seq = &match self.reading_frame {
-            ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => self.seq.clone(),
-            _ => seq_complement(&self.seq),
-        }[self.reading_frame.offset()..];
-
-        for i_ in 0..seq.len() / 3 {
-            let i = i_ * 3;
-
-            if seq[i..i + 3] == START_CODON {
-
-            }
-        }
-
-
-        println!("RF matches: {:?}", self.volatile.reading_frame_matches);
+        self.volatile.reading_frame_matches = find_orf_matches(&self.seq, self.reading_frame);
     }
 
     pub fn sync_primer_metrics(&mut self) {

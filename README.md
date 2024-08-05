@@ -52,13 +52,14 @@ Can read and write FASTA, GenBank, and SnapGene .dna files. FASTA files store se
 ### When to use each file format
 If you don't have interoperability requirements, you can use PlasCAD's own file format (.pcad extension) using the *Save* and *Load* buttons. This is a binary format that results in smaller file sizes (eg 4-10x smaller) than the others, due to using 2-bits to store each nucelotide, and a compact format in general.
 
-(GenBank)[https://www.ncbi.nlm.nih.gov/genbank/] and SnapGene are popular formats, and provide the best interoperability with other software. [AddGene](https://www.addgene.org/) and other resources have files available in these formats.
+[GenBank](https://www.ncbi.nlm.nih.gov/genbank/) and SnapGene are popular formats, and provide the best interoperability with other software. [AddGene](https://www.addgene.org/) and other resources have files available in these formats.
 
 FASTA files contain sequence data, so using this format will result in the lossof feature and primer data.
 
 GenBank, SnapGene, and PlasCAD files are all generally compatible with each other; they can be switched between freely. However, PlasCAD currently does not support some features from the other formats, including Qualifiers.
 
-**Important**: Our GenBank parsing and saving currently does not handle primers well.
+**Important**: Our GenBank parsing and saving currently does not handle primers properly. Some metadata from SnapGene and GenBank
+will be discarded.
 
 
 ## Why another plasmid editor
@@ -74,12 +75,13 @@ Also of note, the native file format this program uses is more compact, includin
 - QCing plasmids for toxic proteins, and various forms of error
 - QC primers for problems in context of plasmids. (Eg multiple binding sites)
 - Identifying secondary structures, hairpins etc
-- Better sequence view and edit functionality, expanding the sequence view.
+- Better sequence view and edit functionality
 - Utility features for specific applications
+- Better support for SnapGene and GenBank metadata
 
 
 ## Calculations used 
-Our primer melting temperature method used is based on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/) It uses each pair of adjacent nucleotides in the
+The primer melting temperature method used is based on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/). It uses each pair of adjacent nucleotides in the
 primer sequence to estimate entropy and enthalpy values, used in the following calcluation, where $ΔH$ is enthalphy, $ΔS$ is entropy, and $C_T$ is 
 primer Molar concentration:
 

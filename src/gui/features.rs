@@ -27,7 +27,7 @@ const COLORS: [Color; 4] = [
 ];
 
 /// Add a rectangle of the color for the selector.
-fn color_rect(color: Color, ui: &Ui) {
+fn color_rect(color: Color, ui: &mut Ui) {
     let color_rgb = Color32::from_rgb(color.0, color.1, color.2);
 
     let (rect, response) = ui.allocate_exact_size(Vec2::new(60.0, 10.0), Sense::click());
@@ -43,18 +43,18 @@ fn color_picker(val: &mut Option<Color>, id: usize, ui: &mut Ui) {
     //     None => label_none,
     // };
 
+    color_rect(val.unwrap_or_default(), ui);
+
     ComboBox::from_id_source(id)
         .width(80.)
         // .selected_text(text) // todo temp
 
         .show_ui(ui, |ui| {
-            color_rect(val.unwrap_or_default(), ui);
-
             ui.selectable_value(val, None, label_none);
 
             for color in COLORS {
                 ui.horizontal(|ui| {
-                    ui.selectable_value(val, Some((color.0, color.1, color.2)),  "");
+                    ui.selectable_value(val, Some(color),  "");
                     color_rect(color, ui);
                 });
 

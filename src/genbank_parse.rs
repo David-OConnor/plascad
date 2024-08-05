@@ -12,7 +12,7 @@ use std::{
 };
 
 use gb_io::{self, reader::SeqReader};
-
+use gb_io::writer::SeqWriter;
 use crate::{
     primer::{Primer, PrimerData},
     sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq, SeqTopology},
@@ -37,9 +37,7 @@ pub struct GenBankData {
 /// Read a file in the GenBank format.
 /// [Rust docs ref of fields](https://docs.rs/gb-io/latest/gb_io/seq/struct.Seq.html)
 pub fn import_genbank(path: &Path) -> io::Result<GenBankData> {
-    let mut result = GenBankData::default();
-
-    let mut file = File::open(path)?;
+    let file = File::open(path)?;
 
     // todo: This currently only handles a single sequene. It returns the first found.
 
@@ -167,19 +165,23 @@ pub fn export_genbank(
     primers: &[PrimerData],
     path: &Path,
 ) -> io::Result<()> {
-    let mut file = OpenOptions::new()
+    let file = OpenOptions::new()
         .write(true)
         .create(true) // Create the file if it doesn't exist
         .open(path)?;
 
-    let mut buf = Vec::new();
+    let mut data = gb_io::seq::Seq::empty();
 
-    buf.extend(seq_to_str(seq).as_bytes());
+    data.seq = seq.iter().map(|nt| nt.to_u8_letter()).collect();
 
-    // export_features(&mut buf, features)?;
-    // export_primers(&mut buf, primers)?;
+    data.topology = match topology {
+        SeqTopology::Circular => gb_io::seq::Topology::Circular,
+        SeqTopology::Linear => gb_io::seq::Topology::Linear,
+    };
 
-    file.write_all(&buf)?;
 
-    Ok(())
+    // todo: Handle primers.
+
+    let mut writer = SeqWriter::new(file);
+    writer.write(&data)
 }
