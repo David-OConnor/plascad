@@ -4,15 +4,17 @@ use eframe::{
     egui,
     egui::{TextEdit, Ui},
 };
-
+use eframe::egui::{Label, Vec2};
 use crate::{gui::ROW_SPACING, State};
 
+const LABEL_WIDTH: f32 = 140.; // Helps align the text edits, by forcing a fixed label width.
 const WIDTH_RATIO: f32 = 0.6;
 const ROW_HEIGHT: usize = 1;
 
 /// A convenience function to create a text edit for Option<String>
 fn option_edit(val: &mut Option<String>, label: &str, ui: &mut Ui) {
     ui.horizontal(|ui| {
+        // ui.allocate_exact_size(Vec2::new(LABEL_WIDTH, 0.0), egui::Sense::hover()); // Reserve space
         ui.label(label);
 
         // todo: Way without cloning?
@@ -60,7 +62,6 @@ pub fn metadata_page(state: &mut State, ui: &mut Ui) {
                     .desired_rows(ROW_HEIGHT),
             );
         });
-
         ui.add_space(ROW_SPACING / 2.);
 
         option_edit(&mut ref_.authors, "Authors:", ui);

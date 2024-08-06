@@ -181,6 +181,22 @@ impl FeatureType {
             _ => Self::Generic,
         }
     }
+
+    /// Create a string for use with SnapGene and GenBank formats.
+    pub fn to_external_str(&self) -> String {
+        // todo: Update as required with more
+        match self {
+            Self::Generic => "misc_feature",
+            Self::Gene => "gene", // todo
+            Self::Ori => "rep_origin",
+            Self::RibosomeBindSite => "rbs",
+            Self::Promoter => "promoter",
+            Self::AntibioticResistance => "antibiotic resistance", // todo
+            Self::Primer => "primer_bind",
+            Self::CodingRegion => "cds",
+            Self::LongTerminalRepeat => "ltr",
+        }.to_string()
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]

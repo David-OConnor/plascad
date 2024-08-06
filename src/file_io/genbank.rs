@@ -12,7 +12,7 @@ use std::{
 };
 
 use gb_io::{self, reader::SeqReader, writer::SeqWriter};
-
+use gb_io::seq::{After, Before, Location};
 use crate::{
     file_io::GenericData,
     primer::{Primer, PrimerData},
@@ -195,6 +195,31 @@ pub fn export_genbank(
         SeqTopology::Linear => gb_io::seq::Topology::Linear,
     };
 
+    for feature in features {
+        let mut qualifiers = vec![
+            ("label".into()
+             , Some(feature.label.clone())),
+        ];
+
+        match feature.direction {
+            FeatureDirection::Forward => {
+                qualifiers.push(("direction".into(), Some("right".to_owned())))
+            }
+            FeatureDirection::Reverse => {
+                qualifiers.push(("direction".into(), Some("left".to_owned())))
+            }
+            _ => (),
+        }
+
+        data.features.push(
+            gb_io::seq::Feature {
+                kind: feature.feature_type.to_external_str().into(),
+                location: Location::Range((feature.index_range.0.try_into().unwrap(), Before(false)),
+                                          (feature.index_range.1.try_into().unwrap(), After(false))),
+                qualifiers,
+            }
+        )
+    }
     // todo: Features
     // todo: Handle primers.
 
