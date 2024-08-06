@@ -114,7 +114,7 @@ pub struct ReadingFrameMatch {
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum FeatureType {
     Generic,
-    Gene,
+    // Gene,
     Ori,
     // RnaPolyBindSite,
     RibosomeBindSite,
@@ -123,8 +123,14 @@ pub enum FeatureType {
     /// Note: This one behaves a bit different from the others; we use it here so we can share the feature
     /// overlay code.
     Primer,
+    /// Ie, a gene.
     CodingRegion,
     LongTerminalRepeat,
+    /// We don't draw these on the map or sequence views; found in GenBank formats (at least), these
+    /// are the range of the entire sequence.
+    Source,
+    Exon,
+    Transcript,
 }
 
 impl Default for FeatureType {
@@ -134,10 +140,11 @@ impl Default for FeatureType {
 }
 
 impl FeatureType {
+    /// For displaying in the UI
     pub fn to_string(&self) -> String {
         match self {
             Self::Generic => "Generic",
-            Self::Gene => "Gene",
+            // Self::Gene => "Gene",
             Self::Ori => "Origin of replication",
             // Self::RnaPolyBindSite => "RNA poly bind site",
             Self::RibosomeBindSite => "Ribosome bind site",
@@ -146,6 +153,9 @@ impl FeatureType {
             Self::Primer => "Primer",
             Self::CodingRegion => "Coding region",
             Self::LongTerminalRepeat => "Long term repeat",
+            Self::Source => "Source",
+            Self::Exon => "Exon",
+            Self::Transcript => "Transcript",
         }
         .to_owned()
     }
@@ -153,7 +163,7 @@ impl FeatureType {
     pub fn color(&self) -> Color {
         match self {
             Self::Generic => (255, 0, 255),
-            Self::Gene => (255, 128, 128),
+            // Self::Gene => (255, 128, 128),
             Self::Ori => (40, 128, 128),
             // Self::RnaPolyBindSite => (255, 0, 20),
             Self::RibosomeBindSite => (255, 0, 100),
@@ -162,6 +172,9 @@ impl FeatureType {
             Self::Primer => (0, 0, 0),             // N/A for now at least.
             Self::CodingRegion => (100, 200, 255), // N/A for now at least.
             Self::LongTerminalRepeat => (150, 200, 255), // N/A for now at least.
+            Self::Source => (120, 70, 120),
+            Self::Exon => (255, 255, 180),
+            Self::Transcript => (180, 255, 180),
         }
     }
 
@@ -178,6 +191,9 @@ impl FeatureType {
             "primer_bind" => Self::Primer, // todo: This is a bit awk; genbank.
             "ltr" => Self::LongTerminalRepeat,
             "misc_feature" => Self::Generic,
+            "source" => Self::Source,
+            "exon" => Self::Exon,
+            "transcript" => Self::Transcript,
             _ => Self::Generic,
         }
     }
@@ -187,7 +203,7 @@ impl FeatureType {
         // todo: Update as required with more
         match self {
             Self::Generic => "misc_feature",
-            Self::Gene => "gene", // todo
+            // Self::Gene => "gene", // todo
             Self::Ori => "rep_origin",
             Self::RibosomeBindSite => "rbs",
             Self::Promoter => "promoter",
@@ -195,6 +211,9 @@ impl FeatureType {
             Self::Primer => "primer_bind",
             Self::CodingRegion => "cds",
             Self::LongTerminalRepeat => "ltr",
+            Self::Source => "source",
+            Self::Exon => "exon",
+            Self::Transcript => "transcript",
         }
         .to_string()
     }

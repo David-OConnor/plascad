@@ -19,7 +19,7 @@ use bio::io::fasta;
 use crate::{
     primer::PrimerData,
     sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology},
-    IonConcentrations, Reference, State,
+    IonConcentrations, Metadata, Reference, State,
 };
 
 pub const DEFAULT_SAVE_FILE: &str = "plasmid_tools.pcad";
@@ -31,13 +31,12 @@ pub struct StateToSave {
     seq: Seq,
     features: Vec<Feature>,
     primer_data: Vec<PrimerData>,
+    metadata: Metadata,
     insert_loc: usize,
     ion_concentrations: IonConcentrations,
     plasmid_name: String,
     topology: SeqTopology,
     reading_frame: ReadingFrame,
-    comments: Vec<String>,
-    references: Vec<Reference>,
 }
 
 impl Encode for StateToSave {
@@ -49,13 +48,12 @@ impl Encode for StateToSave {
         // Serialize other fields using default serialization
         self.features.encode(encoder)?;
         self.primer_data.encode(encoder)?;
+        self.metadata.encode(encoder)?;
         self.insert_loc.encode(encoder)?;
         self.ion_concentrations.encode(encoder)?;
         self.plasmid_name.encode(encoder)?;
         self.topology.encode(encoder)?;
         self.reading_frame.encode(encoder)?;
-        self.comments.encode(encoder)?;
-        self.references.encode(encoder)?;
 
         Ok(())
     }
@@ -71,25 +69,23 @@ impl Decode for StateToSave {
         // Deserialize other fields using default deserialization
         let features = Vec::<Feature>::decode(decoder)?;
         let primer_data = Vec::<PrimerData>::decode(decoder)?;
+        let metadata = Metadata::decode(decoder)?;
         let insert_loc = usize::decode(decoder)?;
         let ion_concentrations = IonConcentrations::decode(decoder)?;
         let plasmid_name = String::decode(decoder)?;
         let topology = SeqTopology::decode(decoder)?;
         let reading_frame = ReadingFrame::decode(decoder)?;
-        let comments = Vec::<String>::decode(decoder)?;
-        let references = Vec::<Reference>::decode(decoder)?;
 
         Ok(StateToSave {
             seq,
             features,
             primer_data,
+            metadata,
             insert_loc,
             ion_concentrations,
             plasmid_name,
             topology,
             reading_frame,
-            comments,
-            references,
         })
     }
 }
@@ -100,29 +96,26 @@ impl StateToSave {
             seq: state.seq.clone(),
             features: state.features.clone(),
             primer_data: state.primer_data.clone(),
+            metadata: state.metadata.clone(),
             insert_loc: state.insert_loc,
             ion_concentrations: state.ion_concentrations.clone(),
-            plasmid_name: state.plasmid_name.clone(),
+            plasmid_name: state.metadata.plasmid_name.clone(),
             topology: state.topology.clone(),
             reading_frame: state.reading_frame.clone(),
-            comments: state.comments.clone(),
-            references: state.references.clone(),
         }
     }
 
     /// Used to load to state. The result is data from this struct, augmented with default values.
     pub fn to_state(self) -> State {
         State {
-            primer_data: self.primer_data,
             seq: self.seq,
+            features: self.features,
+            topology: self.topology,
+            primer_data: self.primer_data,
+            metadata: self.metadata,
             insert_loc: self.insert_loc,
             ion_concentrations: self.ion_concentrations,
-            features: self.features,
-            plasmid_name: self.plasmid_name,
-            topology: self.topology,
             reading_frame: self.reading_frame,
-            comments: self.comments,
-            references: self.references,
             ..Default::default()
         }
     }

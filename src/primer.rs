@@ -222,6 +222,7 @@ pub struct PrimerData {
     // seq_removed_3p: Seq
     pub seq_removed_5p: String,
     pub seq_removed_3p: String,
+    /// todo: Which direction is the range, if the direction is reverse?
     pub matches_seq: Vec<(PrimerDirection, Range<usize>)>,
     // pub matches_vector: Vec<(PrimerDirection, Range<usize>)>, // todo: Currently unused.
     // pub matches_insert: Vec<(PrimerDirection, Range<usize>)>, // todo: Currently unused.

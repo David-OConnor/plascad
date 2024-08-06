@@ -15,6 +15,7 @@ use crate::{
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::TM_TARGET,
+    primer_metrics::PrimerMetrics,
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
         find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, ReadingFrame,
@@ -336,21 +337,34 @@ struct StateVolatile {
     reading_frame_matches: Vec<ReadingFrameMatch>,
 }
 
+/// Contains sequence-level metadata.
+#[derive(Clone, Default, Encode, Decode)]
+pub struct Metadata {
+    pub plasmid_name: String,
+    pub comments: Vec<String>,
+    pub references: Vec<Reference>,
+    pub locus: String,
+    pub definition: Option<String>,
+    pub accession: Option<String>,
+    pub version: Option<String>,
+    // pub keywords: Vec<String>,
+    pub keywords: Option<String>, // todo vec?
+    pub source: Option<String>,
+    pub organism: Option<String>,
+}
+
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
 #[derive(Default)]
 struct State {
     ui: StateUi, // Does not need to be saved
-    // /// Insert and vector are for SLIC and FC.
     seq: Seq,
     features: Vec<Feature>,
+    metadata: Metadata,
     insert_loc: usize,
     primer_data: Vec<PrimerData>,
     // /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
     // insert_location_5p_limit: usize,
     // insert_location_3p_limit: usize,
-    plasmid_name: String,
-    comments: Vec<String>,
-    references: Vec<Reference>,
     ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
@@ -427,6 +441,9 @@ impl State {
         for primer in &mut self.primer_data {
             if let Some(metrics) = &mut primer.metrics {
                 metrics.update_scores();
+            }
+            if primer.metrics.is_none() {
+                primer.run_calcs(&self.ion_concentrations);
             }
         }
     }

@@ -1,6 +1,6 @@
 //! GUI code for saving and loading
 
-use std::{env, path::Path};
+use std::{env, ops::Range, path::Path};
 
 use eframe::egui::Ui;
 // use egui_file::FileDialog;
@@ -12,7 +12,7 @@ use crate::{
         save::{export_fasta, import_fasta, save, StateToSave, DEFAULT_SAVE_FILE},
         snapgene::{export_snapgene, import_snapgene},
     },
-    primer::PrimerData,
+    primer::{PrimerData, PrimerDirection},
     sequence::seq_to_str,
     State,
 };
@@ -65,7 +65,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
     save_button(
         &mut state.ui.file_dialogs.save,
-        &state.plasmid_name,
+        &state.metadata.plasmid_name,
         "pcad",
         "Save as",
         "Save data in the PlasCAD format, to a file.",
@@ -88,7 +88,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
     save_button(
         &mut state.ui.file_dialogs.export_fasta,
-        &state.plasmid_name,
+        &state.metadata.plasmid_name,
         "fasta",
         "Exp FASTA",
         "Export the sequence in the FASTA format. This does not include features or primers.",
@@ -97,7 +97,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
     save_button(
         &mut state.ui.file_dialogs.export_genbank,
-        &state.plasmid_name,
+        &state.metadata.plasmid_name,
         "gb",
         "Exp GenBank",
         "Export the sequence in the GenBank format.",
@@ -106,7 +106,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
     save_button(
         &mut state.ui.file_dialogs.export_dna,
-        &state.plasmid_name,
+        &state.metadata.plasmid_name,
         "dna",
         "Exp SnapGene",
         "Export data in the .dna (SnapGene) format",
@@ -135,8 +135,8 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                 "fasta" => {
                     if let Ok((seq, id, description)) = import_fasta(&path) {
                         state.seq = seq;
-                        state.plasmid_name = id;
-                        state.comments = vec![description];
+                        state.metadata.plasmid_name = id;
+                        state.metadata.comments = vec![description];
                         sync = true;
                     }
                 }
@@ -144,7 +144,6 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                     if let Ok(data) = import_snapgene(&path) {
                         // todo: Integrate GenericData directly into our State struct, A/R.
                         state.seq = data.seq;
-                        state.plasmid_name = data.plasmid_name;
                         state.topology = data.topology;
                         state.features = data.features;
                         state.primer_data = data
@@ -152,15 +151,13 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                             .into_iter()
                             .map(|v| PrimerData::new(v))
                             .collect();
-                        state.comments = data.comments;
-                        state.references = data.references;
+                        state.metadata = data.metadata;
                         sync = true;
                     }
                 }
                 "gb" | "gbk" => {
                     if let Ok(data) = import_genbank(&path) {
                         state.seq = data.seq;
-                        state.plasmid_name = data.plasmid_name;
                         state.topology = data.topology;
                         state.features = data.features;
                         state.primer_data = data
@@ -168,8 +165,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                             .into_iter()
                             .map(|v| PrimerData::new(v))
                             .collect();
-                        state.comments = data.comments;
-                        state.references = data.references;
+                        state.metadata = data.metadata;
                         sync = true;
                     }
                 }
@@ -184,10 +180,10 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         // todo: DRY with above for filename setting.
         let extension = "pcad";
         let filename = {
-            let name = if state.plasmid_name.is_empty() {
+            let name = if state.metadata.plasmid_name.is_empty() {
                 "a_plasmid".to_string()
             } else {
-                state.plasmid_name.to_lowercase().replace(" ", "_")
+                state.metadata.plasmid_name.to_lowercase().replace(" ", "_")
             };
             format!("{name}.{extension}")
         };
@@ -202,20 +198,26 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     } else if let Some(path) = state.ui.file_dialogs.export_fasta.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());
 
-        if let Err(e) = export_fasta(&state.seq, &state.plasmid_name, &path) {
+        if let Err(e) = export_fasta(&state.seq, &state.metadata.plasmid_name, &path) {
             eprintln!("Error exporting to FASTA: {:?}", e);
         };
     } else if let Some(path) = state.ui.file_dialogs.export_genbank.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());
 
+        let mut primer_matches = Vec::new();
+        for data in &state.primer_data {
+            for (dir, range) in &data.matches_seq {
+                primer_matches.push((*dir, range.clone(), data.primer.description.clone()));
+            }
+        }
+
         if let Err(e) = export_genbank(
             &state.seq,
-            &state.plasmid_name,
             state.topology,
             &state.features,
-            &state.primer_data,
-            &state.comments,
-            &state.references,
+            // &state.primer_data,
+            &primer_matches,
+            &state.metadata,
             &path,
         ) {
             eprintln!("Error exporting to GenBank: {:?}", e);
@@ -225,12 +227,10 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
         if let Err(e) = export_snapgene(
             &state.seq,
-            &state.plasmid_name,
             state.topology,
             &state.features,
             &state.primer_data,
-            &state.comments,
-            &state.references,
+            &state.metadata,
             &path,
         ) {
             eprintln!("Error exporting to SnapGene: {:?}", e);

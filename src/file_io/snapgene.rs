@@ -30,7 +30,7 @@ use crate::{
         SeqTopology,
     },
     util::{color_from_hex, color_to_hex},
-    Reference,
+    Metadata, Reference,
 };
 
 const COOKIE_PACKET_LEN: usize = 14;
@@ -481,12 +481,10 @@ fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> io::Result<()> {
 /// Export our local state into the SnapGene dna format. This includes sequence, features, and primers.
 pub fn export_snapgene(
     seq: &[Nucleotide],
-    plasmid_name: &str,
     topology: SeqTopology,
     features: &[Feature],
     primers: &[PrimerData],
-    comments: &[String],
-    references: &[Reference],
+    metadata: &Metadata,
     path: &Path,
 ) -> io::Result<()> {
     let mut file = OpenOptions::new()

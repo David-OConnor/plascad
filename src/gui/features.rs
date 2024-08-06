@@ -58,6 +58,19 @@ fn color_picker(val: &mut Option<Color>, id: usize, ui: &mut Ui) {
 
 /// A selector for use with feature addition and editing.
 /// todo: Generic selector creator?
+fn direction_picker(val: &mut FeatureDirection, id: usize, ui: &mut Ui) {
+    ComboBox::from_id_source(id)
+        .width(74.)
+        .selected_text(val.to_string())
+        .show_ui(ui, |ui| {
+            for dir in [FeatureDirection::None, Forward, Reverse] {
+                ui.selectable_value(val, dir, dir.to_string());
+            }
+        });
+}
+
+/// A selector for use with feature addition and editing.
+/// todo: Generic selector creator?
 fn feature_type_picker(val: &mut FeatureType, id: usize, ui: &mut Ui) {
     ComboBox::from_id_source(id)
         .width(140.)
@@ -65,12 +78,15 @@ fn feature_type_picker(val: &mut FeatureType, id: usize, ui: &mut Ui) {
         .show_ui(ui, |ui| {
             for feature_type in [
                 FeatureType::Generic,
-                FeatureType::Gene,
+                FeatureType::CodingRegion,
                 FeatureType::Ori,
                 // FeatureType::RnaPolyBindSite,
                 FeatureType::RibosomeBindSite,
                 FeatureType::AntibioticResistance,
-                FeatureType::CodingRegion,
+                FeatureType::LongTerminalRepeat,
+                FeatureType::Exon,
+                FeatureType::Transcript,
+                // todo: Source?
             ] {
                 ui.selectable_value(val, feature_type, feature_type.to_string());
             }
@@ -93,6 +109,9 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
 
             ui.label("Type:");
             feature_type_picker(&mut feature.feature_type, 100 + i, ui);
+
+            ui.label("Dir:");
+            direction_picker(&mut feature.direction, 300 + i, ui);
 
             ui.label("Color:");
             color_picker(&mut feature.color_override, 3 + i, ui);

@@ -89,7 +89,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
             ui.add_space(COL_SPACING);
 
             ui.label("Name: ");
-            ui.add(TextEdit::singleline(&mut state.plasmid_name).desired_width(140.));
+            ui.add(TextEdit::singleline(&mut state.metadata.plasmid_name).desired_width(140.));
 
             ui.add_space(COL_SPACING);
 
@@ -104,7 +104,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Features => features::features_page(state, ui),
             Page::Primers => primer_details(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
-            Page::Metadata => metadata::metadata_page(state, ui),
+            Page::Metadata => metadata::metadata_page(&mut state.metadata, ui),
             _ => (),
             // Page::Portions => portions::portions_page(state, ui),
         });

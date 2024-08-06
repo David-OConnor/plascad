@@ -3,7 +3,7 @@
 use crate::{
     primer::Primer,
     sequence::{Feature, Seq, SeqTopology},
-    Reference,
+    Metadata, Reference,
 };
 
 pub mod genbank;
@@ -15,10 +15,8 @@ pub mod snapgene;
 #[derive(Default)]
 pub struct GenericData {
     pub seq: Seq,
-    pub plasmid_name: String,
     pub topology: SeqTopology,
     pub features: Vec<Feature>,
     pub primers: Vec<Primer>,
-    pub comments: Vec<String>,
-    pub references: Vec<Reference>,
+    pub metadata: Metadata,
 }

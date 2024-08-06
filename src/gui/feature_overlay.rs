@@ -35,6 +35,12 @@ pub fn draw_features(
 
     // todo: Do not run these calcs each time. Cache.
     for feature in features {
+        // Source features generally take up the whole plasmid length.
+        // Alternative: Filter by features that take up the whole length.
+        if feature.feature_type == FeatureType::Source {
+            continue;
+        }
+
         let feature_ranges =
             get_feature_ranges(&(feature.index_range.0..feature.index_range.1), row_ranges);
 

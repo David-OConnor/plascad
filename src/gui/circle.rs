@@ -17,7 +17,7 @@ use crate::{
         ROW_SPACING,
     },
     primer::{PrimerData, PrimerDirection},
-    sequence::Feature,
+    sequence::{Feature, FeatureType},
     State,
 };
 
@@ -28,12 +28,16 @@ const BACKBONE_WIDTH: f32 = 10.;
 
 const TICK_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
 const TICK_WIDTH: f32 = 3.;
+const TICK_SPACING: usize = 500; // Nucleotides between ticks
 
 const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
 
-const TICK_LEN: f32 = 46.; // in pixels.
+const TICK_LEN: f32 = 120.; // in pixels.
 const TICK_LEN_DIV_2: f32 = TICK_LEN / 2.;
 const TICK_LABEL_OFFSET: f32 = 10.;
+
+const PRIMER_WIDTH: f32 = 60.;
+const PRIMER_STROKE_WIDTH: f32 = 2.;
 
 // Of the available width or height (whichever is lower).
 const CIRCLE_SIZE_RATIO: f32 = 0.4;
@@ -181,9 +185,9 @@ fn draw_ticks(
 ) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    for i_div_1k in 0..seq_len / 1_000 {
+    for i_div_1k in 0..seq_len / TICK_SPACING {
         // todo: Confirm this always rounds down.
-        let i = i_div_1k * 1_000;
+        let i = i_div_1k * TICK_SPACING;
 
         let angle = seq_i_to_angle(i, seq_len);
         // let intersection = angle_to_pixel(angle, radius) + center.to_vec2();
@@ -276,10 +280,15 @@ fn draw_features(
     let mut result = Vec::new();
 
     for feature in features {
+        // Source features generally take up the whole plasmid length.
+        // Alternative: Filter by features that take up the whole length.
+        if feature.feature_type == FeatureType::Source {
+            continue;
+        }
         // todo: Adjust feature, tick etc width (stroke width, and dimensions from cicle) based on window size.
 
         // todo: Sort out how to handle feature widths. Byy type?
-        let feature_width = 40.;
+        let feature_width = 34.;
         let feature_stroke_width = 3.;
         // todo: Sort out color, as you have a note elsewhere. Type or custom? Type with avail override?
 
@@ -368,6 +377,9 @@ fn draw_primers(
 ) -> Vec<Shape> {
     let mut result = Vec::new();
 
+    let radius_outer = radius + PRIMER_WIDTH / 2.;
+    let radius_inner = radius - PRIMER_WIDTH / 2.;
+
     for prim_data in primer_data {
         let primer_matches = &prim_data.matches_seq;
 
@@ -383,25 +395,13 @@ fn draw_primers(
             let angle_end = seq_i_to_angle(seq_range.end, seq_len);
             let angle_mid = (angle_start + angle_end) / 2.;
 
-            // todo: Adjust feature, tick etc width (stroke width, and dimensions from cicle) based on window size.
+            let point_start_inner = angle_to_pixel(angle_start, radius_inner) + center.to_vec2();
+            let point_start_outer = angle_to_pixel(angle_start, radius_outer) + center.to_vec2();
 
-            // todo: Sort out how to handle feature widths. Byy type?
-            let feature_width = 40.;
-            let feature_stroke_width = 3.;
-            // todo: Sort out color, as you have a note elsewhere. Type or custom? Type with avail override?
+            let point_end_inner = angle_to_pixel(angle_end, radius_inner) + center.to_vec2();
+            let point_end_outer = angle_to_pixel(angle_end, radius_outer) + center.to_vec2();
 
-            let point_start_inner =
-                angle_to_pixel(angle_start, radius - feature_width / 2.) + center.to_vec2();
-            let point_start_outer =
-                angle_to_pixel(angle_start, radius + feature_width / 2.) + center.to_vec2();
-
-            let point_end_inner =
-                angle_to_pixel(angle_end, radius - feature_width / 2.) + center.to_vec2();
-            let point_end_outer =
-                angle_to_pixel(angle_end, radius + feature_width / 2.) + center.to_vec2();
-
-            let point_mid_outer =
-                angle_to_pixel(angle_mid, radius + feature_width / 2.) + center.to_vec2();
+            let point_mid_outer = angle_to_pixel(angle_mid, radius_outer) + center.to_vec2();
 
             // todo: This color code is DRY from primer_arrow. Consolidate.
             let outline_color = match direction {
@@ -410,24 +410,14 @@ fn draw_primers(
                 // FeatureDirection::None => Color32::GOLD,
             };
 
-            let stroke = Stroke::new(feature_stroke_width, outline_color);
+            let stroke = Stroke::new(PRIMER_STROKE_WIDTH, outline_color);
 
             result.push(Shape::Path(PathShape::line(
-                arc_points(
-                    to_screen * center,
-                    radius + feature_width / 2.,
-                    angle_start,
-                    angle_end,
-                ),
+                arc_points(to_screen * center, radius_outer, angle_start, angle_end),
                 stroke,
             )));
             result.push(Shape::Path(PathShape::line(
-                arc_points(
-                    to_screen * center,
-                    radius - feature_width / 2.,
-                    angle_start,
-                    angle_end,
-                ),
+                arc_points(to_screen * center, radius_inner, angle_start, angle_end),
                 stroke,
             )));
 
@@ -609,7 +599,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                     fonts,
                     to_screen * center,
                     Align2::CENTER_CENTER,
-                    &state.plasmid_name,
+                    &state.metadata.plasmid_name,
                     FontId::new(16., FontFamily::Proportional),
                     TICK_COLOR,
                 )
@@ -620,7 +610,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                     fonts,
                     to_screen * pos2(center.x, center.y + 20.), // slightly below seq name
                     Align2::CENTER_CENTER,
-                    format!("{seq_len}bp"),
+                    format!("{seq_len} bp"),
                     FontId::new(13., FontFamily::Proportional),
                     TICK_COLOR,
                 )

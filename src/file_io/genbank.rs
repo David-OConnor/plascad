@@ -8,6 +8,7 @@ use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
     io::{self, ErrorKind, Write},
+    ops::Range,
     path::Path,
 };
 
@@ -20,9 +21,12 @@ use gb_io::{
 
 use crate::{
     file_io::GenericData,
-    primer::{Primer, PrimerData},
-    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq, SeqTopology},
-    Reference,
+    primer::{Primer, PrimerData, PrimerDirection},
+    sequence::{
+        seq_complement, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq,
+        SeqTopology,
+    },
+    Metadata, Reference,
 };
 // fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> file_io::Result<()> {
 //     Ok(())
@@ -84,17 +88,26 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
         };
 
         let mut features = Vec::new();
+        let mut primers = Vec::new();
 
         // This is almost awkward enough to write a parser instead of using gb_io.
         for feature in &seq.features {
-            // We parse label and direction from qualifiers.
+            let feature_type = FeatureType::from_external_str(&feature.kind.to_string());
+
+            // We parse label from qualifiers.
+            // I'm unsure how direction works in GenBank files. It appears it's some mix of the LEFT/RIGHT
+            // qualifiers, feature type, and if the location is complement, or forward.
             let mut direction = FeatureDirection::None;
             let mut label = String::new();
 
             let index_range = match &feature.location {
-                gb_io::seq::Location::Range(start, end) => (start.0 as usize, end.0 as usize),
-                gb_io::seq::Location::Complement(inner) => match **inner {
-                    gb_io::seq::Location::Range(start, end) => (start.0 as usize, end.0 as usize),
+                // gb_io seems to list the start of the range as 1 too early; compensate.
+                Location::Range(start, end) => (start.0 as usize + 1, end.0 as usize),
+                Location::Complement(inner) => match **inner {
+                    Location::Range(start, end) => {
+                        direction = FeatureDirection::Reverse;
+                        (start.0 as usize + 1, end.0 as usize)
+                    }
                     _ => {
                         eprintln!("Unexpected gb_io compl range type: {:?}", feature.location);
                         (0, 0)
@@ -106,10 +119,20 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
                 }
             };
 
-            // These Atom and sets from gb_io are tough to work with.
             for v in feature.qualifier_values("label".into()) {
                 label = v.to_owned();
                 break;
+            }
+
+            // Todo: Update or remove this A/R.
+            match feature_type {
+                FeatureType::Primer => {
+                    if direction != FeatureDirection::Reverse {
+                        direction = FeatureDirection::Forward;
+                    }
+                }
+                FeatureType::CodingRegion => direction = FeatureDirection::Forward,
+                _ => (),
             }
 
             for v in feature.qualifier_values("direction".into()) {
@@ -123,24 +146,46 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
                 }
             }
 
+            // GenBank stores primer bind sites (Which we treat as volatile), vice primer sequences.
+            // Infer the sequence using the bind indices, and the main sequence.
+            if feature_type == FeatureType::Primer {
+                let sequence = match direction {
+                    FeatureDirection::Reverse => {
+                        let compl = seq_complement(&seq_);
+                        compl[seq_.len() - (index_range.1 - 1)..seq_.len() - (index_range.0)]
+                            .to_vec()
+                    }
+                    // See other notes on start range index being odd.
+                    _ => seq_[index_range.0 - 1..index_range.1].to_vec(),
+                };
+
+                primers.push(Primer {
+                    sequence,
+                    description: label,
+                });
+                continue;
+            }
+
             // Parse notes from qualifiers other than label and direction.
             let mut notes = HashMap::new();
-            for qual in &feature.qualifiers {}
-
-            // todo: Handle primers from the `primer_bind` feature kind.
+            for (qual_key, val) in &feature.qualifiers {
+                if qual_key == "label" {
+                    continue; // We handle this separately.
+                }
+                if let Some(v) = val {
+                    notes.insert(qual_key.to_string(), v.clone());
+                }
+            }
 
             features.push(Feature {
                 index_range,
-                feature_type: FeatureType::from_external_str(&feature.kind.to_string()),
+                feature_type,
                 direction,
                 label,
                 color_override: None,
                 notes,
             })
         }
-
-        let mut plasmid_name = String::new(); // todo
-        let mut primers = Vec::new(); // todo
 
         let mut references = Vec::new();
         for ref_ in &seq.references {
@@ -158,14 +203,31 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
         // todo: No primers?
         // todo: What is contig location? Do we need that?
 
+        let (source, organism) = match seq.source {
+            Some(src) => (Some(src.source), src.organism),
+            None => (None, None),
+        };
+
+        let metadata = Metadata {
+            plasmid_name: seq.keywords.clone().unwrap_or(String::new()),
+            comments: seq.comments.clone(),
+            definition: seq.definition.clone(),
+            accession: seq.accession.clone(),
+            version: seq.version.clone(),
+            keywords: seq.keywords.clone(),
+            locus: seq.name.clone().unwrap_or_default(),
+            source,
+            organism,
+            references,
+            ..Default::default()
+        };
+
         return Ok(GenericData {
             seq: seq_,
-            plasmid_name,
             topology,
             features,
             primers,
-            comments: seq.comments.clone(),
-            references,
+            metadata,
         });
     }
 
@@ -178,12 +240,10 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
 /// Export our local state into the GenBank format. This includes sequence, features, and primers.
 pub fn export_genbank(
     seq: &[Nucleotide],
-    plasmid_name: &str,
     topology: SeqTopology,
     features: &[Feature],
-    primers: &[PrimerData],
-    comments: &[String],
-    references: &[Reference],
+    primer_matches: &[(PrimerDirection, Range<usize>, String)],
+    metadata: &Metadata,
     path: &Path,
 ) -> io::Result<()> {
     let file = OpenOptions::new()
@@ -203,6 +263,10 @@ pub fn export_genbank(
     for feature in features {
         let mut qualifiers = vec![("label".into(), Some(feature.label.clone()))];
 
+        for note in &feature.notes {
+            qualifiers.push(((&**note.0).into(), Some(note.1.clone())));
+        }
+
         match feature.direction {
             FeatureDirection::Forward => {
                 qualifiers.push(("direction".into(), Some("right".to_owned())))
@@ -213,20 +277,68 @@ pub fn export_genbank(
             _ => (),
         }
 
-        data.features.push(gb_io::seq::Feature {
-            kind: feature.feature_type.to_external_str().into(),
-            location: Location::Range(
-                (feature.index_range.0.try_into().unwrap(), Before(false)),
+        let start: i64 = feature.index_range.0.try_into().unwrap();
+        let end: i64 = feature.index_range.1.try_into().unwrap();
+
+        let location = match feature.direction {
+            FeatureDirection::Reverse => Location::Complement(Box::new(Location::Range(
+                (end + 1, Before(false)),
+                (start, After(false)), // todo: Offset on end. Whhy?
+            ))),
+            _ => Location::Range(
+                (start - 1, Before(false)),
                 (feature.index_range.1.try_into().unwrap(), After(false)),
             ),
+        };
+
+        data.features.push(gb_io::seq::Feature {
+            kind: feature.feature_type.to_external_str().into(),
+            location,
             qualifiers,
-        })
+        });
     }
-    // todo: Handle primers.
 
-    data.comments = comments.to_vec().clone();
+    for (dir, indexes, name) in primer_matches {
+        // todo: Location code is DRY with features.
+        let start: i64 = indexes.start.try_into().unwrap();
+        let end: i64 = indexes.end.try_into().unwrap();
 
-    for ref_ in references {
+        let location = match dir {
+            PrimerDirection::Forward => Location::Range(
+                (start, Before(false)),
+                (indexes.end.try_into().unwrap(), After(false)),
+            ),
+            PrimerDirection::Reverse => Location::Complement(Box::new(Location::Range(
+                (seq.len() as i64 - (end + 1), Before(false)),
+                (seq.len() as i64 - (start - 1), After(false)), // todo: Offset on end. Whhy?
+            ))),
+        };
+
+        data.features.push(gb_io::seq::Feature {
+            kind: "primer_bind".into(),
+            location,
+            qualifiers: vec![("label".into(), name.to_owned().into())],
+        });
+    }
+
+    data.comments = metadata.comments.clone();
+    data.source = Some(gb_io::seq::Source {
+        source: metadata.source.clone().unwrap_or_default(),
+        organism: metadata.organism.clone(),
+    });
+
+    if metadata.source.is_none() && metadata.organism.is_none() {
+        data.source = None;
+    }
+
+    // data.keywords = metadata.keywords.clone();
+    data.keywords = Some(metadata.plasmid_name.clone());
+    data.version = metadata.version.clone();
+    data.accession = metadata.accession.clone();
+    data.definition = metadata.definition.clone();
+    data.name = Some(metadata.locus.clone());
+
+    for ref_ in &metadata.references {
         data.references.push(gb_io::seq::Reference {
             description: ref_.description.clone(),
             authors: ref_.authors.clone(),
