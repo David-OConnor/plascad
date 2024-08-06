@@ -11,8 +11,13 @@ use std::{
     path::Path,
 };
 
-use gb_io::{self, reader::SeqReader, writer::SeqWriter};
-use gb_io::seq::{After, Before, Location};
+use gb_io::{
+    self,
+    reader::SeqReader,
+    seq::{After, Before, Location},
+    writer::SeqWriter,
+};
+
 use crate::{
     file_io::GenericData,
     primer::{Primer, PrimerData},
@@ -196,10 +201,7 @@ pub fn export_genbank(
     };
 
     for feature in features {
-        let mut qualifiers = vec![
-            ("label".into()
-             , Some(feature.label.clone())),
-        ];
+        let mut qualifiers = vec![("label".into(), Some(feature.label.clone()))];
 
         match feature.direction {
             FeatureDirection::Forward => {
@@ -211,16 +213,15 @@ pub fn export_genbank(
             _ => (),
         }
 
-        data.features.push(
-            gb_io::seq::Feature {
-                kind: feature.feature_type.to_external_str().into(),
-                location: Location::Range((feature.index_range.0.try_into().unwrap(), Before(false)),
-                                          (feature.index_range.1.try_into().unwrap(), After(false))),
-                qualifiers,
-            }
-        )
+        data.features.push(gb_io::seq::Feature {
+            kind: feature.feature_type.to_external_str().into(),
+            location: Location::Range(
+                (feature.index_range.0.try_into().unwrap(), Before(false)),
+                (feature.index_range.1.try_into().unwrap(), After(false)),
+            ),
+            qualifiers,
+        })
     }
-    // todo: Features
     // todo: Handle primers.
 
     data.comments = comments.to_vec().clone();

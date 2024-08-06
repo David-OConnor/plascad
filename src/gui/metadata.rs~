@@ -2,9 +2,9 @@
 
 use eframe::{
     egui,
-    egui::{Label, TextEdit, Ui, Vec2},
+    egui::{TextEdit, Ui},
 };
-
+use eframe::egui::{Label, Vec2};
 use crate::{gui::ROW_SPACING, State};
 
 const LABEL_WIDTH: f32 = 140.; // Helps align the text edits, by forcing a fixed label width.
@@ -16,6 +16,10 @@ fn option_edit(val: &mut Option<String>, label: &str, ui: &mut Ui) {
     ui.horizontal(|ui| {
         // ui.allocate_exact_size(Vec2::new(LABEL_WIDTH, 0.0), egui::Sense::hover()); // Reserve space
         ui.label(label);
+
+        let l = Label::new(label);
+        l.
+        ui.add(l)
 
         // todo: Way without cloning?
         let mut v = val.clone().unwrap_or_default();

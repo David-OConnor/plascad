@@ -195,7 +195,8 @@ impl FeatureType {
             Self::Primer => "primer_bind",
             Self::CodingRegion => "cds",
             Self::LongTerminalRepeat => "ltr",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 

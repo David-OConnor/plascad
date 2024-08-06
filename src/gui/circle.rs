@@ -1,36 +1,35 @@
 //! A module for the circular view of a plasmid
 
 use core::f32::consts::TAU;
-use std::{cmp::min, ops::Range};
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
-        Stroke, Ui,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Mesh, Pos2, Rect, RichText, Sense,
+        Shape, Stroke, Ui,
     },
     emath::RectTransform,
-    epaint::{CircleShape, PathShape},
+    epaint::{CircleShape, ColorMode, PathShape},
 };
 
 use crate::{
     gui::{
-        features::feature_table,
-        get_cursor_text,
-        navigation::NAV_BUTTON_COLOR,
-        seq_view::{display_filters, COLOR_SEQ, FONT_SIZE_SEQ, SEQ_ROW_SPACING_PX},
-        COL_SPACING, ROW_SPACING,
+        features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR, COL_SPACING,
+        ROW_SPACING,
     },
     primer::{PrimerData, PrimerDirection},
-    sequence::{Feature, Nucleotide},
-    util::{pixel_to_seq_i, seq_i_to_pixel},
+    sequence::Feature,
     State,
 };
+
+const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 
 const BACKBONE_COLOR: Color32 = Color32::from_rgb(180, 180, 180);
 const BACKBONE_WIDTH: f32 = 10.;
 
 const TICK_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
 const TICK_WIDTH: f32 = 3.;
+
+const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
 
 const TICK_LEN: f32 = 46.; // in pixels.
 const TICK_LEN_DIV_2: f32 = TICK_LEN / 2.;
@@ -43,7 +42,77 @@ const CIRCLE_SIZE_RATIO: f32 = 0.4;
 // the cursor position etc.
 const SELECTION_MAX_DIST: f32 = 100.;
 
+// // todo: Experimenting with making a `Mesh`, so we can fill it.
+// /// Tessellate a single [`ArcPieShape`] into a [`Mesh`].
+// ///
+// /// * `arc_pie_shape`: the arc or pie to tessellate.
+// /// * `out`: triangles are appended to this.
+// pub fn tessellate_arc_pie(shape: &mut Shape, out: &mut Mesh) {
+//     // let ArcPieShape {
+//     //     center,
+//     //     radius,
+//     //     start_angle,
+//     //     end_angle,
+//     //     closed,
+//     //     fill,
+//     //     stroke,
+//     // } = arc_pie_shape;
+//
+//     if radius <= 0.0
+//         || start_angle == end_angle
+//         || stroke.width <= 0.0 && (!closed || fill == Color32::TRANSPARENT)
+//     {
+//         return;
+//     }
+//
+//     if shape.options.coarse_tessellation_culling
+//         && !self
+//         .clip_rect
+//         .expand(radius + stroke.width)
+//         .contains(center)
+//     {
+//         return;
+//     }
+//
+//     // If the arc is a full circle, we can just use the circle function.
+//     if (end_angle - start_angle).abs() >= std::f32::consts::TAU {
+//         let stroke_color = match stroke.color {
+//             ColorMode::Solid(color) => color,
+//             ColorMode::UV(callback) => {
+//                 // TODO(emilk): Currently, CircleShape does not support PathStroke.
+//                 // As a workaround, the stroke color is set to the center color.
+//                 // This needs to be revisited once CircleShape gains PathStroke support.
+//                 callback(Rect::from_center_size(center, Vec2::splat(radius)), center)
+//             }
+//         };
+//         let stroke = Stroke::new(stroke.width, stroke_color);
+//         let circle = CircleShape {
+//             center,
+//             radius,
+//             fill,
+//             stroke,
+//         };
+//         return shape.tessellate_circle(circle, out);
+//     }
+//
+//     shape.scratchpad_path.clear();
+//
+//     if closed {
+//         shape.scratchpad_path
+//             .add_pie(center, radius, start_angle, end_angle);
+//         shape.scratchpad_path.fill(shape.feathering, fill, out);
+//         shape.scratchpad_path
+//             .stroke_closed(shape.feathering, &stroke, out);
+//     } else {
+//         shape.scratchpad_path
+//             .add_arc(center, radius, start_angle, end_angle);
+//         shape.scratchpad_path
+//             .stroke_open(shape.feathering, &stroke, out);
+//     }
+// }
+
 /// Create points for an arc. Can be used with line_segment to draw the arc.
+/// Two of these can be used with convex_polygon to make a filled  arc segment.
 // Adapted from PR https://github.com/emilk/egui/pull/4836/files
 fn arc_points(center: Pos2, radius: f32, start_angle: f32, end_angle: f32) -> Vec<Pos2> {
     let num_segs = if radius <= 2.0 {
@@ -153,6 +222,49 @@ fn draw_ticks(
     result
 }
 
+/// Created a filled-in arc.
+fn draw_filled_arc(
+    center: Pos2,
+    radius: f32,
+    angle: (f32, f32),
+    width: f32,
+    to_screen: &RectTransform,
+    fill_color: Color32,
+    stroke: Stroke,
+) -> Vec<Shape> {
+    let center_screen = to_screen * center;
+    let mut points_outer = arc_points(center_screen, radius + width / 2., angle.0, angle.1);
+    let mut points_inner = arc_points(center_screen, radius - width / 2., angle.0, angle.1);
+
+    points_inner.reverse();
+
+    // todo: Confirm this is going clockwise, for nominal performance reasons.
+    points_outer.append(&mut points_inner);
+
+    let mut result = Vec::new();
+    result.push(Shape::convex_polygon(points_outer, fill_color, stroke));
+
+    // Egui doesn't support concave fills; convex_polygon will spill into the interior concave part.
+    // Patch this by filling over this with a circle. This is roughly the inner points plus the center point,
+    // but slightly inwards as not to override the feature edge.
+
+    let mut points_patch = arc_points(
+        center_screen,
+        radius - width / 2. - stroke.width / 2.,
+        angle.0,
+        angle.1,
+    );
+    points_patch.push(center);
+
+    result.push(Shape::convex_polygon(
+        points_patch,
+        BACKGROUND_COLOR,
+        Stroke::NONE,
+    ));
+
+    result
+}
+
 fn draw_features(
     features: &[Feature],
     seq_len: usize,
@@ -164,10 +276,6 @@ fn draw_features(
     let mut result = Vec::new();
 
     for feature in features {
-        let angle_start = seq_i_to_angle(feature.index_range.0, seq_len);
-        let angle_end = seq_i_to_angle(feature.index_range.1, seq_len);
-        let angle_mid = (angle_start + angle_end) / 2.;
-
         // todo: Adjust feature, tick etc width (stroke width, and dimensions from cicle) based on window size.
 
         // todo: Sort out how to handle feature widths. Byy type?
@@ -175,55 +283,52 @@ fn draw_features(
         let feature_stroke_width = 3.;
         // todo: Sort out color, as you have a note elsewhere. Type or custom? Type with avail override?
 
-        let point_start_inner =
-            angle_to_pixel(angle_start, radius - feature_width / 2.) + center.to_vec2();
-        let point_start_outer =
-            angle_to_pixel(angle_start, radius + feature_width / 2.) + center.to_vec2();
-
-        let point_end_inner =
-            angle_to_pixel(angle_end, radius - feature_width / 2.) + center.to_vec2();
-        let point_end_outer =
-            angle_to_pixel(angle_end, radius + feature_width / 2.) + center.to_vec2();
-
-        let point_mid_outer =
-            angle_to_pixel(angle_mid, radius + feature_width / 2.) + center.to_vec2();
-
         let (r, g, b) = match feature.color_override {
             Some(c) => c,
             None => feature.feature_type.color(),
         };
-        let stroke = Stroke::new(feature_stroke_width, Color32::from_rgb(r, g, b));
+        let stroke = Stroke::new(feature_stroke_width, FEATURE_OUTLINE_COLOR);
 
-        result.push(Shape::Path(PathShape::line(
-            arc_points(
-                to_screen * center,
-                radius + feature_width / 2.,
-                angle_start,
-                angle_end,
-            ),
+        let angle_start = seq_i_to_angle(feature.index_range.0, seq_len);
+        let angle_end = seq_i_to_angle(feature.index_range.1, seq_len);
+        let angle = (angle_start, angle_end);
+
+        result.append(&mut draw_filled_arc(
+            center,
+            radius,
+            angle,
+            feature_width,
+            &to_screen,
+            Color32::from_rgb(r, g, b),
             stroke,
-        )));
-        result.push(Shape::Path(PathShape::line(
-            arc_points(
-                to_screen * center,
-                radius - feature_width / 2.,
-                angle_start,
-                angle_end,
-            ),
-            stroke,
-        )));
+        ));
 
         // Lines connected the inner and outer arcs.
-        result.push(Shape::line_segment(
-            [to_screen * point_start_inner, to_screen * point_start_outer],
-            stroke,
-        ));
-        result.push(Shape::line_segment(
-            [to_screen * point_end_inner, to_screen * point_end_outer],
-            stroke,
-        ));
+        // result.push(Shape::line_segment(
+        //     [to_screen * point_start_inner, to_screen * point_start_outer],
+        //     stroke,
+        // ));
+        // result.push(Shape::line_segment(
+        //     [to_screen * point_end_inner, to_screen * point_end_outer],
+        //     stroke,
+        // ));
 
         // todo: A/R
+
+        let angle_mid = (angle.0 + angle.1) / 2.;
+
+        let point_start_inner =
+            angle_to_pixel(angle.0, radius - feature_width / 2.) + center.to_vec2();
+        let point_start_outer =
+            angle_to_pixel(angle.0, radius + feature_width / 2.) + center.to_vec2();
+
+        let point_end_inner =
+            angle_to_pixel(angle.1, radius - feature_width / 2.) + center.to_vec2();
+        let point_end_outer =
+            angle_to_pixel(angle.1, radius + feature_width / 2.) + center.to_vec2();
+
+        let point_mid_outer =
+            angle_to_pixel(angle_mid, radius + feature_width / 2.) + center.to_vec2();
 
         let (label_pt, label_align) = if angle_mid > TAU / 2. {
             (
@@ -434,7 +539,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
     }
 
     Frame::canvas(ui.style())
-        .fill(Color32::from_rgb(10, 20, 10))
+        .fill(BACKGROUND_COLOR)
         .show(ui, |ui| {
             let (response, _painter) = {
                 // todo: Sort this out to make effective use of the space. Check the examples
