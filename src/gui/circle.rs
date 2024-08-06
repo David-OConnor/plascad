@@ -41,7 +41,7 @@ const CIRCLE_SIZE_RATIO: f32 = 0.4;
 
 // The maximum distance the cursor can be from the circle for various tasks like selection, finding
 // the cursor position etc.
-const SELECTION_MAX_DIST: f32 = 120.;
+const SELECTION_MAX_DIST: f32 = 100.;
 
 /// Create points for an arc. Can be used with line_segment to draw the arc.
 // Adapted from PR https://github.com/emilk/egui/pull/4836/files

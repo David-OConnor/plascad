@@ -20,6 +20,7 @@ pub enum Page {
     /// Determine optimal PCR parameters
     Pcr,
     Portions,
+    Metadata,
     // Enzymes,
 }
 
@@ -38,6 +39,7 @@ impl Display for Page {
             Self::Features => "Features",
             Self::Primers => "Primers",
             Self::Portions => "Mixing portions",
+            Self::Metadata => "Data",
         }
         .to_owned();
         write!(f, "{}", str)
@@ -51,6 +53,7 @@ pub fn page_selector(state: &mut State, ui: &mut Ui) {
         page_button(&mut state.ui.page, Page::Features, ui, true);
         page_button(&mut state.ui.page, Page::Primers, ui, true);
         page_button(&mut state.ui.page, Page::Pcr, ui, true);
+        page_button(&mut state.ui.page, Page::Metadata, ui, true);
         // page_button(&mut state.ui.page, Page::Portions, ui);
     });
 }

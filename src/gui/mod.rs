@@ -15,6 +15,7 @@ use crate::{
 mod circle;
 mod feature_overlay;
 mod features;
+mod metadata;
 pub mod navigation;
 mod pcr;
 mod portions;
@@ -103,7 +104,9 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Features => features::features_page(state, ui),
             Page::Primers => primer_details(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
-            Page::Portions => portions::portions_page(state, ui),
+            Page::Metadata => metadata::metadata_page(state, ui),
+            _ => (),
+            // Page::Portions => portions::portions_page(state, ui),
         });
     });
 }
