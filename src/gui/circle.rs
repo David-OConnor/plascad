@@ -5,7 +5,7 @@ use core::f32::consts::TAU;
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Mesh, Pos2, Rect, RichText, Sense,
-        Shape, Stroke, Ui,
+        Shape, Stroke, Ui, Vec2,
     },
     emath::RectTransform,
     epaint::{CircleShape, ColorMode, PathShape},
@@ -13,11 +13,11 @@ use eframe::{
 
 use crate::{
     gui::{
-        features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR, COL_SPACING,
-        ROW_SPACING,
+        features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
+        primer_arrow::STROKE_WIDTH, COL_SPACING, ROW_SPACING,
     },
     primer::{PrimerData, PrimerDirection},
-    sequence::{Feature, FeatureType},
+    sequence::{Feature, FeatureDirection, FeatureType},
     State,
 };
 
@@ -38,6 +38,8 @@ const TICK_LABEL_OFFSET: f32 = 10.;
 
 const PRIMER_WIDTH: f32 = 60.;
 const PRIMER_STROKE_WIDTH: f32 = 2.;
+
+const TIP_LEN: f32 = 0.1; // Len of arrow tips, in radians
 
 // Of the available width or height (whichever is lower).
 const CIRCLE_SIZE_RATIO: f32 = 0.4;
@@ -269,6 +271,31 @@ fn draw_filled_arc(
     result
 }
 
+/// This is a fancy way of saying triangle.
+fn draw_arrowhead(
+    center: Vec2,
+    radius: f32,
+    width: f32,
+    angle: (f32, f32),
+    color: Color32,
+    to_screen: &RectTransform,
+) -> Shape {
+    let base_outer = to_screen * angle_to_pixel(angle.0, radius + width / 2.) + center;
+    let base_inner = to_screen * angle_to_pixel(angle.0, radius - width / 2.) + center;
+    let tip = to_screen * angle_to_pixel(angle.1, radius) + center;
+
+    // Points arranged clockwise for performance reasons.
+    let points = if angle.1 > angle.0 {
+        vec![base_outer, tip, base_inner]
+    } else {
+        vec![base_inner, tip, base_outer]
+    };
+
+    let stroke = Stroke::new(STROKE_WIDTH, FEATURE_OUTLINE_COLOR);
+
+    Shape::convex_polygon(points, color, stroke)
+}
+
 fn draw_features(
     features: &[Feature],
     seq_len: usize,
@@ -280,6 +307,8 @@ fn draw_features(
     let mut result = Vec::new();
 
     for feature in features {
+        // Draw the arc segment.
+
         // Source features generally take up the whole plasmid length.
         // Alternative: Filter by features that take up the whole length.
         if feature.feature_type == FeatureType::Source {
@@ -296,11 +325,18 @@ fn draw_features(
             Some(c) => c,
             None => feature.feature_type.color(),
         };
+        let feature_color = Color32::from_rgb(r, g, b);
         let stroke = Stroke::new(feature_stroke_width, FEATURE_OUTLINE_COLOR);
 
         let angle_start = seq_i_to_angle(feature.index_range.0, seq_len);
         let angle_end = seq_i_to_angle(feature.index_range.1, seq_len);
-        let angle = (angle_start, angle_end);
+
+        // We subtract parts from the start or end angle for the arrow tip, if present.
+        let angle = match feature.direction {
+            FeatureDirection::None => (angle_start, angle_end),
+            FeatureDirection::Forward => (angle_start, angle_end - TIP_LEN),
+            FeatureDirection::Reverse => (angle_start + TIP_LEN, angle_end),
+        };
 
         result.append(&mut draw_filled_arc(
             center,
@@ -308,33 +344,13 @@ fn draw_features(
             angle,
             feature_width,
             &to_screen,
-            Color32::from_rgb(r, g, b),
+            feature_color,
             stroke,
         ));
 
-        // Lines connected the inner and outer arcs.
-        // result.push(Shape::line_segment(
-        //     [to_screen * point_start_inner, to_screen * point_start_outer],
-        //     stroke,
-        // ));
-        // result.push(Shape::line_segment(
-        //     [to_screen * point_end_inner, to_screen * point_end_outer],
-        //     stroke,
-        // ));
-
-        // todo: A/R
+        // Draw the label.
 
         let angle_mid = (angle.0 + angle.1) / 2.;
-
-        let point_start_inner =
-            angle_to_pixel(angle.0, radius - feature_width / 2.) + center.to_vec2();
-        let point_start_outer =
-            angle_to_pixel(angle.0, radius + feature_width / 2.) + center.to_vec2();
-
-        let point_end_inner =
-            angle_to_pixel(angle.1, radius - feature_width / 2.) + center.to_vec2();
-        let point_end_outer =
-            angle_to_pixel(angle.1, radius + feature_width / 2.) + center.to_vec2();
 
         let point_mid_outer =
             angle_to_pixel(angle_mid, radius + feature_width / 2.) + center.to_vec2();
@@ -361,6 +377,24 @@ fn draw_features(
                 stroke.color,
             )
         }));
+
+        // Draw the tip
+        if feature.direction != FeatureDirection::None {
+            let tip_angle = match feature.direction {
+                FeatureDirection::Forward => (angle_end - TIP_LEN, angle_end),
+                FeatureDirection::Reverse => (angle_start + TIP_LEN, angle_start),
+                _ => unreachable!(),
+            };
+
+            result.push(draw_arrowhead(
+                center.to_vec2(),
+                radius,
+                feature_width * 1.6,
+                tip_angle,
+                feature_color,
+                to_screen,
+            ));
+        }
     }
 
     result
