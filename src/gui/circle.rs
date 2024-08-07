@@ -16,7 +16,7 @@ use crate::{
         features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
         primer_arrow::STROKE_WIDTH, COL_SPACING, ROW_SPACING,
     },
-    primer::{PrimerData, PrimerDirection},
+    primer::{Primer, PrimerData, PrimerDirection},
     sequence::{Feature, FeatureDirection, FeatureType},
     State,
 };
@@ -27,7 +27,7 @@ const BACKBONE_COLOR: Color32 = Color32::from_rgb(180, 180, 180);
 const BACKBONE_WIDTH: f32 = 10.;
 
 const TICK_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
-const TICK_WIDTH: f32 = 3.;
+const TICK_WIDTH: f32 = 2.;
 const TICK_SPACING: usize = 500; // Nucleotides between ticks
 
 const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
@@ -36,10 +36,13 @@ const TICK_LEN: f32 = 120.; // in pixels.
 const TICK_LEN_DIV_2: f32 = TICK_LEN / 2.;
 const TICK_LABEL_OFFSET: f32 = 10.;
 
-const PRIMER_WIDTH: f32 = 60.;
+// We may use per-feature-type widths, but have this for now.
+const FEATURE_WIDTH_DEFAULT: f32 = 30.;
+const PRIMER_WIDTH: f32 = 54.;
 const PRIMER_STROKE_WIDTH: f32 = 2.;
 
-const TIP_LEN: f32 = 0.1; // Len of arrow tips, in radians
+const TIP_LEN: f32 = 0.05; // Len of arrow tips, in radians
+const TIP_WIDTH_RATIO: f32 = 1.5; // Compared to its feature width.
 
 // Of the available width or height (whichever is lower).
 const CIRCLE_SIZE_RATIO: f32 = 0.4;
@@ -188,11 +191,9 @@ fn draw_ticks(
     let mut result = Vec::new();
 
     for i_div_1k in 0..seq_len / TICK_SPACING {
-        // todo: Confirm this always rounds down.
         let i = i_div_1k * TICK_SPACING;
 
         let angle = seq_i_to_angle(i, seq_len);
-        // let intersection = angle_to_pixel(angle, radius) + center.to_vec2();
 
         let point_inner = angle_to_pixel(angle, radius - TICK_LEN_DIV_2) + center.to_vec2();
         let point_outer = angle_to_pixel(angle, radius + TICK_LEN_DIV_2) + center.to_vec2();
@@ -317,7 +318,7 @@ fn draw_features(
         // todo: Adjust feature, tick etc width (stroke width, and dimensions from cicle) based on window size.
 
         // todo: Sort out how to handle feature widths. Byy type?
-        let feature_width = 34.;
+        let feature_width = FEATURE_WIDTH_DEFAULT;
         let feature_stroke_width = 3.;
         // todo: Sort out color, as you have a note elsewhere. Type or custom? Type with avail override?
 
@@ -389,7 +390,7 @@ fn draw_features(
             result.push(draw_arrowhead(
                 center.to_vec2(),
                 radius,
-                feature_width * 1.6,
+                feature_width * TIP_WIDTH_RATIO,
                 tip_angle,
                 feature_color,
                 to_screen,
@@ -402,7 +403,7 @@ fn draw_features(
 
 /// todo: C+P from draw_features! Build this into the feature one like you did in seq view.
 fn draw_primers(
-    primer_data: &[PrimerData],
+    primers: &[Primer],
     seq_len: usize,
     center: Pos2,
     radius: f32,
@@ -414,8 +415,8 @@ fn draw_primers(
     let radius_outer = radius + PRIMER_WIDTH / 2.;
     let radius_inner = radius - PRIMER_WIDTH / 2.;
 
-    for prim_data in primer_data {
-        let primer_matches = &prim_data.matches_seq;
+    for primer in primers {
+        let primer_matches = &primer.volatile.matches_seq;
 
         // todo: Do not run these calcs each time. Cache.
         for (direction, seq_range) in primer_matches {
@@ -484,7 +485,7 @@ fn draw_primers(
                     fonts,
                     to_screen * label_pt,
                     label_align,
-                    &prim_data.primer.description,
+                    &primer.description,
                     FontId::new(16., FontFamily::Proportional),
                     stroke.color,
                 )
@@ -500,7 +501,7 @@ fn top_details(state: &mut State, ui: &mut Ui) {
     // display_filters(&mut state.ui, ui);
     ui.add_space(COL_SPACING);
     ui.label("Cursor:");
-    let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, state.seq.len());
+    let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, state.generic.seq.len());
     ui.heading(cursor_posit_text);
 }
 
@@ -594,7 +595,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             state.ui.cursor_seq_i = find_cursor_i(
                 state.ui.cursor_pos,
                 &from_screen,
-                state.seq.len(),
+                state.generic.seq.len(),
                 center,
                 radius,
             );
@@ -606,11 +607,11 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 Stroke::new(BACKBONE_WIDTH, BACKBONE_COLOR),
             )));
 
-            let seq_len = state.seq.len();
+            let seq_len = state.generic.seq.len();
 
             shapes.append(&mut draw_ticks(seq_len, center, radius, &to_screen, ui));
             shapes.append(&mut draw_features(
-                &state.features,
+                &state.generic.features,
                 seq_len,
                 center,
                 radius,
@@ -619,7 +620,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             ));
 
             shapes.append(&mut draw_primers(
-                &state.primer_data,
+                &state.generic.primers,
                 seq_len,
                 center,
                 radius,
@@ -633,7 +634,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                     fonts,
                     to_screen * center,
                     Align2::CENTER_CENTER,
-                    &state.metadata.plasmid_name,
+                    &state.generic.metadata.plasmid_name,
                     FontId::new(16., FontFamily::Proportional),
                     TICK_COLOR,
                 )

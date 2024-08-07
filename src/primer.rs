@@ -45,6 +45,8 @@ pub enum PrimerDirection {
 pub struct Primer {
     pub sequence: Seq,
     pub description: String,
+    /// Data that is dynamically regenerated, and generally not important for saving and loading to files.
+    pub volatile: PrimerData,
 }
 
 impl Primer {
@@ -87,6 +89,142 @@ impl Primer {
         }
 
         result
+    }
+
+    /// Automatically select primer length based on quality score.
+    pub fn tune(&mut self, ion: &IonConcentrations) {
+        if self.volatile.tunable_3p != TuneSetting::Disabled
+            && self.volatile.tunable_5p == TuneSetting::Disabled
+        {
+            self.tune_single_end(ion);
+        }
+        if self.volatile.tunable_3p == TuneSetting::Disabled
+            && self.volatile.tunable_5p != TuneSetting::Disabled
+        {
+            self.tune_single_end(ion);
+        }
+        if self.volatile.tunable_3p != TuneSetting::Disabled
+            && self.volatile.tunable_5p != TuneSetting::Disabled
+        {
+            self.tune_both_ends(ion);
+        }
+    }
+
+    fn tune_single_end(&mut self, ion: &IonConcentrations) {
+        if self.sequence.len() <= MIN_PRIMER_LEN {
+            return;
+        }
+
+        let mut best_val = 0;
+        let mut best_score = 0.;
+
+        let num_vals = self.sequence.len() - MIN_PRIMER_LEN;
+
+        for val in 0..num_vals {
+            // When this function is called, exactly one of these ends should be enabled.
+            if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
+                *tune_val = val;
+            }
+            if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_5p {
+                *tune_val = val;
+            }
+            self.run_calcs(ion);
+
+            if let Some(metrics) = &self.volatile.metrics {
+                if metrics.quality_score > best_score {
+                    best_val = val;
+                    best_score = metrics.quality_score;
+                }
+            }
+        }
+
+        if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
+            // This is getting a bit verbose.
+            *tune_val = best_val;
+        }
+
+        self.run_calcs(ion);
+    }
+
+    fn tune_both_ends(&mut self, ion: &IonConcentrations) {
+        let primer_len = self.sequence.len();
+        if primer_len <= MIN_PRIMER_LEN {
+            return;
+        }
+
+        let mut best_val_5p = 0;
+        let mut best_val_3p = 0;
+        let mut best_score = 0.;
+
+        // We will iterate over all possible tunings within the bounds of the limits of both ends,
+        // and minimum primer length. We do so by varying the start point (We set this, starting at
+        // the 5' end and expanding towards 3', but either direction will do), and length, up
+        // to the other end.
+
+        for val_5p in 0..primer_len - MIN_PRIMER_LEN {
+            for len in MIN_PRIMER_LEN..primer_len - val_5p {
+                let val_3p = primer_len - (val_5p + len);
+
+                if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
+                    *tune_val = val_3p;
+                }
+                if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_5p {
+                    *tune_val = val_5p;
+                }
+                self.run_calcs(ion);
+
+                if let Some(metrics) = &self.volatile.metrics {
+                    if metrics.quality_score > best_score {
+                        best_val_5p = val_5p;
+                        best_val_3p = val_3p;
+                        best_score = metrics.quality_score;
+                    }
+                }
+            }
+        }
+
+        if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_5p {
+            // This is getting a bit verbose.
+            *tune_val = best_val_5p;
+        }
+
+        if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
+            // This is getting a bit verbose.
+            *tune_val = best_val_3p;
+        }
+        self.run_calcs(ion);
+    }
+
+    /// Perform calculations on primer quality and related data. Run this when the sequence changes,
+    /// the tuning values change etc.
+    pub fn run_calcs(&mut self, ion_concentrations: &IonConcentrations) {
+        let full_len = self.volatile.sequence_input.len();
+        let mut start = 0;
+        let mut end = full_len;
+
+        if let TuneSetting::Enabled(i) = self.volatile.tunable_5p {
+            start = i;
+        }
+
+        if let TuneSetting::Enabled(i) = self.volatile.tunable_3p {
+            end = if i > full_len {
+                // Prevents an overrun.
+                0
+            } else {
+                full_len - i
+            };
+        }
+
+        if start > end || start + 1 > self.volatile.sequence_input.len() {
+            start = 0;
+            end = full_len
+        }
+
+        self.sequence = seq_from_str(&self.volatile.sequence_input[start..end]);
+        self.volatile.metrics = self.calc_metrics(ion_concentrations);
+
+        self.volatile.sequence_input[..start].clone_into(&mut self.volatile.seq_removed_5p);
+        self.volatile.sequence_input[end..].clone_into(&mut self.volatile.seq_removed_3p);
     }
 }
 
@@ -155,18 +293,22 @@ pub fn design_slic_fc_primers(
         vector_fwd: Primer {
             sequence: seq_vector_fwd,
             description: "Vector fwd".to_owned(),
+            volatile: Default::default(),
         },
         vector_rev: Primer {
             sequence: seq_vector_rev,
             description: "Vector rev".to_owned(),
+            volatile: Default::default(),
         },
         insert_fwd: Primer {
             sequence: seq_insert_fwd,
             description: "Insert fwd".to_owned(),
+            volatile: Default::default(),
         },
         insert_rev: Primer {
             sequence: seq_insert_rev,
             description: "Insert rev".to_owned(),
+            volatile: Default::default(),
         },
     })
 }
@@ -195,18 +337,18 @@ pub fn design_amplification_primers(seq: &[Nucleotide]) -> Option<AmplificationP
         fwd: Primer {
             sequence: seq_fwd,
             description: "Amplification fwd".to_owned(),
+            volatile: Default::default(),
         },
         rev: Primer {
             sequence: seq_rev,
             description: "Amplification rev".to_owned(),
+            volatile: Default::default(),
         },
     })
 }
 
 #[derive(Default, Clone, Encode, Decode)]
 pub struct PrimerData {
-    /// This primer excludes nts past the tuning offsets.
-    pub primer: Primer,
     /// Editing is handled using this string; we convert the string to our nucleotide sequence as needed.
     /// This includes nts past the tuning offsets.
     pub sequence_input: String,
@@ -230,143 +372,10 @@ pub struct PrimerData {
 }
 
 impl PrimerData {
-    pub fn new(primer: Primer) -> Self {
+    pub fn new(seq: &[Nucleotide]) -> Self {
         let mut result = Self::default();
-        result.primer = primer;
-        result.sequence_input = seq_to_str(&result.primer.sequence);
-
+        result.sequence_input = seq_to_str(seq);
         result
-    }
-
-    /// Perform calculations on primer quality and related data. Run this when the sequence changes,
-    /// the tuning values change etc.
-    pub fn run_calcs(&mut self, ion_concentrations: &IonConcentrations) {
-        let full_len = self.sequence_input.len();
-        let mut start = 0;
-        let mut end = full_len;
-
-        if let TuneSetting::Enabled(i) = self.tunable_5p {
-            start = i;
-        }
-
-        if let TuneSetting::Enabled(i) = self.tunable_3p {
-            end = if i > full_len {
-                // Prevents an overrun.
-                0
-            } else {
-                full_len - i
-            };
-        }
-
-        if start > end || start + 1 > self.sequence_input.len() {
-            start = 0;
-            end = full_len
-        }
-
-        self.primer.sequence = seq_from_str(&self.sequence_input[start..end]);
-        self.metrics = self.primer.calc_metrics(ion_concentrations);
-
-        self.sequence_input[..start].clone_into(&mut self.seq_removed_5p);
-        self.sequence_input[end..].clone_into(&mut self.seq_removed_3p);
-    }
-
-    /// Automatically select primer length based on quality score.
-    pub fn tune(&mut self, ion: &IonConcentrations) {
-        if self.tunable_3p != TuneSetting::Disabled && self.tunable_5p == TuneSetting::Disabled {
-            self.tune_single_end(ion);
-        }
-        if self.tunable_3p == TuneSetting::Disabled && self.tunable_5p != TuneSetting::Disabled {
-            self.tune_single_end(ion);
-        }
-        if self.tunable_3p != TuneSetting::Disabled && self.tunable_5p != TuneSetting::Disabled {
-            self.tune_both_ends(ion);
-        }
-    }
-
-    fn tune_single_end(&mut self, ion: &IonConcentrations) {
-        let primer_len = self.primer.sequence.len();
-        if primer_len <= MIN_PRIMER_LEN {
-            return;
-        }
-
-        let mut best_val = 0;
-        let mut best_score = 0.;
-
-        let num_vals = primer_len - MIN_PRIMER_LEN;
-
-        for val in 0..num_vals {
-            // When this function is called, exactly one of these ends should be enabled.
-            if let TuneSetting::Enabled(tune_val) = &mut self.tunable_3p {
-                *tune_val = val;
-            }
-            if let TuneSetting::Enabled(tune_val) = &mut self.tunable_5p {
-                *tune_val = val;
-            }
-            self.run_calcs(ion);
-
-            if let Some(metrics) = &self.metrics {
-                if metrics.quality_score > best_score {
-                    best_val = val;
-                    best_score = metrics.quality_score;
-                }
-            }
-        }
-
-        if let TuneSetting::Enabled(tune_val) = &mut self.tunable_3p {
-            // This is getting a bit verbose.
-            *tune_val = best_val;
-        }
-
-        self.run_calcs(ion);
-    }
-
-    fn tune_both_ends(&mut self, ion: &IonConcentrations) {
-        let primer_len = self.primer.sequence.len();
-        if primer_len <= MIN_PRIMER_LEN {
-            return;
-        }
-
-        let mut best_val_5p = 0;
-        let mut best_val_3p = 0;
-        let mut best_score = 0.;
-
-        // We will iterate over all possible tunings within the bounds of the limits of both ends,
-        // and minimum primer length. We do so by varying the start point (We set this, starting at
-        // the 5' end and expanding towards 3', but either direction will do), and length, up
-        // to the other end.
-
-        for val_5p in 0..primer_len - MIN_PRIMER_LEN {
-            for len in MIN_PRIMER_LEN..primer_len - val_5p {
-                let val_3p = primer_len - (val_5p + len);
-
-                if let TuneSetting::Enabled(tune_val) = &mut self.tunable_3p {
-                    *tune_val = val_3p;
-                }
-                if let TuneSetting::Enabled(tune_val) = &mut self.tunable_5p {
-                    *tune_val = val_5p;
-                }
-                self.run_calcs(ion);
-
-                if let Some(metrics) = &self.metrics {
-                    if metrics.quality_score > best_score {
-                        best_val_5p = val_5p;
-                        best_val_3p = val_3p;
-                        best_score = metrics.quality_score;
-                    }
-                }
-            }
-        }
-
-        if let TuneSetting::Enabled(tune_val) = &mut self.tunable_5p {
-            // This is getting a bit verbose.
-            *tune_val = best_val_5p;
-        }
-
-        if let TuneSetting::Enabled(tune_val) = &mut self.tunable_3p {
-            // This is getting a bit verbose.
-            *tune_val = best_val_3p;
-        }
-        self.run_calcs(ion);
     }
 }
 
@@ -410,11 +419,10 @@ pub fn make_cloning_primers(state: &mut State) {
     let seq_vector = seq_from_str(&state.ui.seq_vector_input);
     let seq_insert = seq_from_str(&state.ui.seq_insert_input);
 
-    if let Some(primers) = design_slic_fc_primers(&seq_vector, &seq_insert, state.insert_loc) {
+    if let Some(mut primers) = design_slic_fc_primers(&seq_vector, &seq_insert, state.insert_loc) {
         let sequence_input = seq_to_str(&primers.insert_fwd.sequence);
 
-        let mut insert_fwd = PrimerData {
-            primer: primers.insert_fwd,
+        let insert_fwd_data = PrimerData {
             sequence_input,
             // Both ends are  tunable, since this glues the insert to the vector
             tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
@@ -423,8 +431,7 @@ pub fn make_cloning_primers(state: &mut State) {
         };
 
         let sequence_input = seq_to_str(&primers.insert_rev.sequence);
-        let mut insert_rev = PrimerData {
-            primer: primers.insert_rev,
+        let insert_rev_data = PrimerData {
             sequence_input,
             // Both ends are tunable, since this glues the insert to the vector
             tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
@@ -433,8 +440,7 @@ pub fn make_cloning_primers(state: &mut State) {
         };
 
         let sequence_input = seq_to_str(&primers.vector_fwd.sequence);
-        let mut vector_fwd = PrimerData {
-            primer: primers.vector_fwd,
+        let vector_fwd_data = PrimerData {
             sequence_input,
             // 5' is non-tunable: This is the insert location.
             tunable_5p: TuneSetting::Disabled,
@@ -443,8 +449,7 @@ pub fn make_cloning_primers(state: &mut State) {
         };
 
         let sequence_input = seq_to_str(&primers.vector_rev.sequence);
-        let mut vector_rev = PrimerData {
-            primer: primers.vector_rev,
+        let vector_rev_data = PrimerData {
             sequence_input,
             tunable_5p: TuneSetting::Disabled,
             // 3' is non-tunable: This is the insert location.
@@ -452,25 +457,32 @@ pub fn make_cloning_primers(state: &mut State) {
             ..Default::default()
         };
 
-        insert_fwd.tune(&state.ion_concentrations);
-        insert_rev.tune(&state.ion_concentrations);
-        vector_fwd.tune(&state.ion_concentrations);
-        vector_rev.tune(&state.ion_concentrations);
+        primers.insert_fwd.volatile = insert_fwd_data;
+        primers.insert_rev.volatile = insert_rev_data;
+        primers.vector_fwd.volatile = vector_fwd_data;
+        primers.vector_rev.volatile = vector_rev_data;
 
-        state
-            .primer_data
-            .extend([insert_fwd, insert_rev, vector_fwd, vector_rev]);
+        primers.insert_fwd.tune(&state.ion_concentrations);
+        primers.insert_rev.tune(&state.ion_concentrations);
+        primers.vector_fwd.tune(&state.ion_concentrations);
+        primers.vector_rev.tune(&state.ion_concentrations);
+
+        state.generic.primers.extend([
+            primers.insert_fwd,
+            primers.insert_rev,
+            primers.vector_fwd,
+            primers.vector_rev,
+        ]);
 
         state.sync_primer_matches(None); // note: Not requried to run on all primers.
     }
 }
 
 pub fn make_amplification_primers(state: &mut State) {
-    if let Some(primers) = design_amplification_primers(&state.seq) {
+    if let Some(mut primers) = design_amplification_primers(&state.generic.seq) {
         let sequence_input = seq_to_str(&primers.fwd.sequence);
 
-        let mut primer_fwd = PrimerData {
-            primer: primers.fwd,
+        let primer_fwd_data = PrimerData {
             sequence_input,
             tunable_5p: TuneSetting::Disabled,
             tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
@@ -478,18 +490,20 @@ pub fn make_amplification_primers(state: &mut State) {
         };
 
         let sequence_input = seq_to_str(&primers.rev.sequence);
-        let mut primer_rev = PrimerData {
-            primer: primers.rev,
+        let primer_rev_data = PrimerData {
             sequence_input,
             tunable_5p: TuneSetting::Disabled,
             tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
         };
 
-        primer_fwd.tune(&state.ion_concentrations);
-        primer_rev.tune(&state.ion_concentrations);
+        primers.fwd.volatile = primer_fwd_data;
+        primers.rev.volatile = primer_rev_data;
 
-        state.primer_data.extend([primer_fwd, primer_rev]);
+        primers.fwd.tune(&state.ion_concentrations);
+        primers.rev.tune(&state.ion_concentrations);
+
+        state.generic.primers.extend([primers.fwd, primers.rev]);
 
         state.sync_primer_matches(None); // note: Not requried to run on all primers.
     }

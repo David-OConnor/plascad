@@ -98,7 +98,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     let mut removed = None;
-    for (i, feature) in state.features.iter_mut().enumerate() {
+    for (i, feature) in state.generic.features.iter_mut().enumerate() {
         ui.horizontal(|ui| {
             // todo: This may be confoudning your 0 vs 1.
             int_field(&mut feature.index_range.0, "Start:", ui);
@@ -125,7 +125,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
         });
     }
     if let Some(rem_i) = removed {
-        state.features.remove(rem_i);
+        state.generic.features.remove(rem_i);
     }
 }
 
@@ -162,7 +162,7 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
                 );
             }
 
-            state.features.push(Feature {
+            state.generic.features.push(Feature {
                 index_range: (
                     state.ui.feature_add.start_posit,
                     state.ui.feature_add.end_posit,

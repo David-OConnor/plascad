@@ -12,9 +12,10 @@ use primer::PrimerData;
 use sequence::{seq_from_str, Seq};
 
 use crate::{
+    file_io::GenericData,
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
-    primer::TM_TARGET,
+    primer::{Primer, TM_TARGET},
     primer_metrics::PrimerMetrics,
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
@@ -261,7 +262,6 @@ struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
     // todo to save computation.
     page: Page,
-    // page_primer: PagePrimer,
     page_seq: PageSeq,
     page_seq_top: PageSeqTop,
     seq_insert_input: String,
@@ -269,12 +269,7 @@ struct StateUi {
     seq_input: String,
     pcr: PcrUi,
     feature_add: StateFeatureAdd,
-    // pcr_primer: Option<usize>, // primer index, if primer count > 0.
-    // pcr_primer: usize, // primer index
     primer_selected: Option<usize>,
-    // todo: suitstruct for show/hide A/R
-    // /// Hide the primer addition/creation/QC panel.
-    // hide_primer_table: bool,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
     cursor_pos: Option<(f32, f32)>,
@@ -293,9 +288,7 @@ impl Default for StateUi {
             seq_input: Default::default(),
             pcr: Default::default(),
             feature_add: Default::default(),
-            // pcr_primer: 0,
             primer_selected: None,
-            // hide_primer_table: false,
             seq_visibility: Default::default(),
             hide_map_feature_editor: true,
             cursor_pos: None,
@@ -357,18 +350,19 @@ pub struct Metadata {
 #[derive(Default)]
 struct State {
     ui: StateUi, // Does not need to be saved
-    seq: Seq,
-    features: Vec<Feature>,
-    metadata: Metadata,
+    /// Data that is the most fundamental to persistent state, and shared between save formats.
+    generic: GenericData,
+    // seq: Seq,
+    // topology: SeqTopology,
+    // features: Vec<Feature>,
+    // primers: Vec<Primer>,
+    // metadata: Metadata,
     insert_loc: usize,
-    primer_data: Vec<PrimerData>,
-    // /// These limits for choosing the insert location may be defined by the vector's promoter, RBS etc.
-    // insert_location_5p_limit: usize,
-    // insert_location_3p_limit: usize,
+    // generic: GenericData,// todo: Once your primers are set up.
     ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
-    topology: SeqTopology,
+
     selected_item: Selection,
     reading_frame: ReadingFrame,
     volatile: StateVolatile,
@@ -377,17 +371,13 @@ struct State {
 impl State {
     /// Runs the match serach between primers and sequences. Run this when primers and sequences change.
     pub fn sync_primer_matches(&mut self, primer_i: Option<usize>) {
-        let p_list = match primer_i {
-            Some(i) => &mut self.primer_data[i..i + 1],
-            None => &mut self.primer_data,
+        let primers = match primer_i {
+            Some(i) => &mut self.generic.primers[i..i + 1],
+            None => &mut self.generic.primers,
         };
 
-        for p_data in p_list {
-            p_data.matches_seq = p_data.primer.match_to_seq(&self.seq);
-            // p_data.matches_insert = p_data.primer.match_to_seq(&self.seq_insert);
-            // p_data.matches_vector = p_data.primer.match_to_seq(&self.seq_vector);
-            // p_data.matches_vector_with_insert =
-            //     p_data.primer.match_to_seq(&self.seq);
+        for primer in primers {
+            primer.volatile.matches_seq = primer.match_to_seq(&self.generic.seq);
         }
     }
 
@@ -403,12 +393,13 @@ impl State {
 
         for (lib_index, re) in self.restriction_enzyme_lib.iter().enumerate() {
             // todo: Use bio lib?
-            for i in 0..self.seq.len() {
-                if i + re.seq.len() + 1 >= self.seq.len() {
+            let seq_len = self.generic.seq.len();
+            for i in 0..seq_len {
+                if i + re.seq.len() + 1 >= seq_len {
                     continue;
                 }
 
-                if re.seq == self.seq[i..i + re.seq.len()] {
+                if re.seq == self.generic.seq[i..i + re.seq.len()] {
                     self.volatile.restriction_enzyme_sites.push(ReMatch {
                         lib_index,
                         seq_index: i,
@@ -434,15 +425,16 @@ impl State {
     }
 
     pub fn sync_reading_frame(&mut self) {
-        self.volatile.reading_frame_matches = find_orf_matches(&self.seq, self.reading_frame);
+        self.volatile.reading_frame_matches =
+            find_orf_matches(&self.generic.seq, self.reading_frame);
     }
 
     pub fn sync_primer_metrics(&mut self) {
-        for primer in &mut self.primer_data {
-            if let Some(metrics) = &mut primer.metrics {
+        for primer in &mut self.generic.primers {
+            if let Some(metrics) = &mut primer.volatile.metrics {
                 metrics.update_scores();
             }
-            if primer.metrics.is_none() {
+            if primer.volatile.metrics.is_none() {
                 primer.run_calcs(&self.ion_concentrations);
             }
         }
@@ -462,8 +454,9 @@ impl State {
             return;
         }
 
-        self.seq = seq_vector.clone(); // Clone the original vector
-        self.seq
+        self.generic.seq = seq_vector.clone(); // Clone the original vector
+        self.generic
+            .seq
             .splice(self.insert_loc..self.insert_loc, seq_insert.iter().cloned());
 
         self.sync_primer_matches(None);
@@ -489,7 +482,7 @@ impl State {
         result.sync_pcr();
         result.sync_primer_metrics();
         result.sync_seq_related(None);
-        result.ui.seq_input = seq_to_str(&result.seq);
+        result.ui.seq_input = seq_to_str(&result.generic.seq);
 
         result
     }

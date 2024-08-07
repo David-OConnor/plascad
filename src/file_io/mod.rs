@@ -12,7 +12,7 @@ pub mod snapgene;
 
 /// The most important data to store, used by our format, GenBank, and SnapGene.
 /// todo: Integrate this directly into our State struct, A/R.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct GenericData {
     pub seq: Seq,
     pub topology: SeqTopology,

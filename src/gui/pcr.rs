@@ -38,16 +38,16 @@ where
 pub fn pcr_page(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.heading("PCR parameters");
-        if !state.primer_data.is_empty() {
+        if !state.generic.primers.is_empty() {
             ui.add_space(COL_SPACING);
 
             if ui.button("Load from primer: ").clicked() {
-                let primer = &state.primer_data[state.ui.pcr.primer_selected]; // todo: Overflow check?
+                let primer = &state.generic.primers[state.ui.pcr.primer_selected]; // todo: Overflow check?
 
-                if let Some(metrics) = &primer.metrics {
+                if let Some(metrics) = &primer.volatile.metrics {
                     state.ui.pcr = PcrUi {
                         primer_tm: metrics.melting_temp,
-                        product_len: primer.primer.sequence.len(),
+                        product_len: primer.sequence.len(),
                         primer_selected: state.ui.pcr.primer_selected,
                         ..Default::default()
                     };
@@ -56,21 +56,21 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
             }
 
             // Reset primer selected if an invalid one is set.
-            if state.ui.pcr.primer_selected > state.primer_data.len() {
+            if state.ui.pcr.primer_selected > state.generic.primers.len() {
                 state.ui.pcr.primer_selected = 0;
             }
 
-            let primer_data = &state.primer_data[state.ui.pcr.primer_selected];
+            let primer = &state.generic.primers[state.ui.pcr.primer_selected];
 
             ComboBox::from_id_source(0)
                 .width(80.)
-                .selected_text(&primer_data.primer.description)
+                .selected_text(&primer.description)
                 .show_ui(ui, |ui| {
-                    for (i, primer) in state.primer_data.iter().enumerate() {
+                    for (i, primer) in state.generic.primers.iter().enumerate() {
                         ui.selectable_value(
                             &mut state.ui.pcr.primer_selected,
                             i,
-                            &primer.primer.description,
+                            &primer.description,
                         );
                     }
                 });

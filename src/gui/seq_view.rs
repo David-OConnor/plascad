@@ -27,6 +27,8 @@ pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
 pub const COLOR_CODING_REGION: Color32 = Color32::from_rgb(255, 0, 170);
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 
+const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
+
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
 pub const VIEW_AREA_PAD_LEFT: f32 = 60.; // Bigger to accomodate the index display.
 pub const VIEW_AREA_PAD_RIGHT: f32 = 20.;
@@ -199,13 +201,13 @@ fn find_cursor_i(
 pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     let mut shapes = vec![];
 
-    let seq_len = state.seq.len();
+    let seq_len = state.generic.seq.len();
 
     let nt_chars_per_row = ((ui.available_width() - (VIEW_AREA_PAD_LEFT + VIEW_AREA_PAD_RIGHT))
         / NT_WIDTH_PX) as usize;
     let row_ranges = get_row_ranges(seq_len, nt_chars_per_row);
 
-    let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, state.seq.len());
+    let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, seq_len);
     ui.horizontal(|ui| {
         orf_selector(state, ui);
         ui.add_space(COL_SPACING);
@@ -218,7 +220,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     });
     ScrollArea::vertical().id_source(0).show(ui, |ui| {
         Frame::canvas(ui.style())
-            .fill(Color32::from_rgb(10, 20, 10))
+            .fill(BACKGROUND_COLOR)
             .show(ui, |ui| {
                 let (response, _painter) = {
                     // Estimate required height, based on seq len.
@@ -248,7 +250,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 let ctx = ui.ctx();
 
                 // Draw the sequence NT by NT. This allows fine control over color, and other things.
-                for (i, nt) in state.seq.iter().enumerate() {
+                for (i, nt) in state.generic.seq.iter().enumerate() {
                     let pos = seq_i_to_px_rel(i);
 
                     let letter_color = {
@@ -282,9 +284,9 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
                 if state.ui.seq_visibility.show_primers {
                     shapes.append(&mut primer_arrow::draw_primers(
-                        &state.primer_data,
+                        &state.generic.primers,
                         &row_ranges,
-                        state.seq.len(),
+                        seq_len,
                         ui,
                         seq_i_to_px_rel,
                     ));
@@ -296,7 +298,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
                 if state.ui.seq_visibility.show_features {
                     shapes.append(&mut draw_features(
-                        &state.features,
+                        &state.generic.features,
                         &row_ranges,
                         ui,
                         seq_i_to_px_rel,

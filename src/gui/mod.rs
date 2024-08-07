@@ -63,7 +63,7 @@ pub fn get_cursor_text(cursor_seq_i: Option<usize>, seq_len: usize) -> String {
 pub fn draw(state: &mut State, ctx: &Context) {
     ctx.input(|ip| {
         if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
-            state.primer_data.push(Default::default());
+            state.generic.primers.push(Default::default());
         }
 
         if ip.key_pressed(Key::S) && ip.modifiers.ctrl {
@@ -89,7 +89,9 @@ pub fn draw(state: &mut State, ctx: &Context) {
             ui.add_space(COL_SPACING);
 
             ui.label("Name: ");
-            ui.add(TextEdit::singleline(&mut state.metadata.plasmid_name).desired_width(140.));
+            ui.add(
+                TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(140.),
+            );
 
             ui.add_space(COL_SPACING);
 
@@ -104,7 +106,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Features => features::features_page(state, ui),
             Page::Primers => primer_details(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
-            Page::Metadata => metadata::metadata_page(&mut state.metadata, ui),
+            Page::Metadata => metadata::metadata_page(&mut state.generic.metadata, ui),
             _ => (),
             // Page::Portions => portions::portions_page(state, ui),
         });

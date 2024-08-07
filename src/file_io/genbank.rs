@@ -159,9 +159,11 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
                     _ => seq_[index_range.0 - 1..index_range.1].to_vec(),
                 };
 
+                let volatile = PrimerData::new(&sequence);
                 primers.push(Primer {
                     sequence,
                     description: label,
+                    volatile,
                 });
                 continue;
             }
@@ -239,11 +241,8 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
 
 /// Export our local state into the GenBank format. This includes sequence, features, and primers.
 pub fn export_genbank(
-    seq: &[Nucleotide],
-    topology: SeqTopology,
-    features: &[Feature],
+    data: &GenericData,
     primer_matches: &[(PrimerDirection, Range<usize>, String)],
-    metadata: &Metadata,
     path: &Path,
 ) -> io::Result<()> {
     let file = OpenOptions::new()
@@ -251,16 +250,16 @@ pub fn export_genbank(
         .create(true) // Create the file if it doesn't exist
         .open(path)?;
 
-    let mut data = gb_io::seq::Seq::empty();
+    let mut gb_data = gb_io::seq::Seq::empty();
 
-    data.seq = seq.iter().map(|nt| nt.to_u8_letter()).collect();
+    gb_data.seq = data.seq.iter().map(|nt| nt.to_u8_letter()).collect();
 
-    data.topology = match topology {
+    gb_data.topology = match data.topology {
         SeqTopology::Circular => gb_io::seq::Topology::Circular,
         SeqTopology::Linear => gb_io::seq::Topology::Linear,
     };
 
-    for feature in features {
+    for feature in &data.features {
         let mut qualifiers = vec![("label".into(), Some(feature.label.clone()))];
 
         for note in &feature.notes {
@@ -291,7 +290,7 @@ pub fn export_genbank(
             ),
         };
 
-        data.features.push(gb_io::seq::Feature {
+        gb_data.features.push(gb_io::seq::Feature {
             kind: feature.feature_type.to_external_str().into(),
             location,
             qualifiers,
@@ -309,37 +308,39 @@ pub fn export_genbank(
                 (indexes.end.try_into().unwrap(), After(false)),
             ),
             PrimerDirection::Reverse => Location::Complement(Box::new(Location::Range(
-                (seq.len() as i64 - (end + 1), Before(false)),
-                (seq.len() as i64 - (start - 1), After(false)), // todo: Offset on end. Whhy?
+                (data.seq.len() as i64 - (end + 1), Before(false)),
+                (data.seq.len() as i64 - (start - 1), After(false)), // todo: Offset on end. Whhy?
             ))),
         };
 
-        data.features.push(gb_io::seq::Feature {
+        gb_data.features.push(gb_io::seq::Feature {
             kind: "primer_bind".into(),
             location,
             qualifiers: vec![("label".into(), name.to_owned().into())],
         });
     }
 
-    data.comments = metadata.comments.clone();
-    data.source = Some(gb_io::seq::Source {
-        source: metadata.source.clone().unwrap_or_default(),
-        organism: metadata.organism.clone(),
+    let md = &data.metadata;
+
+    gb_data.comments = md.comments.clone();
+    gb_data.source = Some(gb_io::seq::Source {
+        source: md.source.clone().unwrap_or_default(),
+        organism: md.organism.clone(),
     });
 
-    if metadata.source.is_none() && metadata.organism.is_none() {
-        data.source = None;
+    if md.source.is_none() && md.organism.is_none() {
+        gb_data.source = None;
     }
 
-    // data.keywords = metadata.keywords.clone();
-    data.keywords = Some(metadata.plasmid_name.clone());
-    data.version = metadata.version.clone();
-    data.accession = metadata.accession.clone();
-    data.definition = metadata.definition.clone();
-    data.name = Some(metadata.locus.clone());
+    // data.keywords = md.keywords.clone();
+    gb_data.keywords = Some(md.plasmid_name.clone());
+    gb_data.version = md.version.clone();
+    gb_data.accession = md.accession.clone();
+    gb_data.definition = md.definition.clone();
+    gb_data.name = Some(md.locus.clone());
 
-    for ref_ in &metadata.references {
-        data.references.push(gb_io::seq::Reference {
+    for ref_ in &md.references {
+        gb_data.references.push(gb_io::seq::Reference {
             description: ref_.description.clone(),
             authors: ref_.authors.clone(),
             consortium: ref_.consortium.clone(),
@@ -351,5 +352,5 @@ pub fn export_genbank(
     }
 
     let mut writer = SeqWriter::new(file);
-    writer.write(&data)
+    writer.write(&gb_data)
 }

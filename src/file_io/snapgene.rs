@@ -353,6 +353,7 @@ fn parse_primers(payload: &[u8]) -> io::Result<Vec<Primer>> {
         result.push(Primer {
             sequence: seq_from_str(&primer_sg.sequence),
             description: primer_sg.name.clone(),
+            volatile: Default::default(),
         });
     }
 
@@ -452,12 +453,12 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
 }
 
 /// Add primer data to the buffer.
-fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> io::Result<()> {
+fn export_primers(buf: &mut Vec<u8>, primers: &[Primer]) -> io::Result<()> {
     let mut primers_sg = Primers { inner: Vec::new() };
     for primer in primers {
         primers_sg.inner.push(PrimerSnapGene {
-            sequence: seq_to_str(&primer.primer.sequence),
-            name: primer.primer.description.clone(),
+            sequence: seq_to_str(&primer.sequence),
+            name: primer.description.clone(),
             description: "".to_owned(),
         });
     }
@@ -479,14 +480,7 @@ fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> io::Result<()> {
 }
 
 /// Export our local state into the SnapGene dna format. This includes sequence, features, and primers.
-pub fn export_snapgene(
-    seq: &[Nucleotide],
-    topology: SeqTopology,
-    features: &[Feature],
-    primers: &[PrimerData],
-    metadata: &Metadata,
-    path: &Path,
-) -> io::Result<()> {
+pub fn export_snapgene(data: &GenericData, path: &Path) -> io::Result<()> {
     let mut file = OpenOptions::new()
         .write(true)
         .create(true) // Create the file if it doesn't exist
@@ -503,17 +497,17 @@ pub fn export_snapgene(
     buf.extend(&cookie_packet);
 
     buf.push(PacketType::Dna as u8);
-    buf.extend(((seq.len() + 1) as u32).to_be_bytes());
+    buf.extend(((data.seq.len() + 1) as u32).to_be_bytes());
 
-    let flag = match topology {
+    let flag = match data.topology {
         SeqTopology::Circular => 1,
         SeqTopology::Linear => 0,
     };
     buf.push(flag);
-    buf.extend(seq_to_str(seq).as_bytes());
+    buf.extend(seq_to_str(&data.seq).as_bytes());
 
-    export_features(&mut buf, features)?;
-    export_primers(&mut buf, primers)?;
+    export_features(&mut buf, &data.features)?;
+    export_primers(&mut buf, &data.primers)?;
     file.write_all(&buf)?;
 
     Ok(())

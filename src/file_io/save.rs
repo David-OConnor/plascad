@@ -17,7 +17,8 @@ use bincode::{
 use bio::io::fasta;
 
 use crate::{
-    primer::PrimerData,
+    file_io::GenericData,
+    primer::{Primer, PrimerData},
     sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology},
     IonConcentrations, Metadata, Reference, State,
 };
@@ -28,31 +29,18 @@ pub const DEFAULT_DNA_FILE: &str = "export.dna";
 
 /// This is similar to `State`, but excludes the UI, and other things we don't wish to save.
 pub struct StateToSave {
-    seq: Seq,
-    features: Vec<Feature>,
-    primer_data: Vec<PrimerData>,
-    metadata: Metadata,
+    generic: GenericData,
     insert_loc: usize,
     ion_concentrations: IonConcentrations,
-    plasmid_name: String,
-    topology: SeqTopology,
     reading_frame: ReadingFrame,
 }
 
 impl Encode for StateToSave {
     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
-        // Serialize seq using our custom serializer
-        let seq_data = serialize_seq_bin(&self.seq);
-        seq_data.encode(encoder)?;
-
-        // Serialize other fields using default serialization
-        self.features.encode(encoder)?;
-        self.primer_data.encode(encoder)?;
-        self.metadata.encode(encoder)?;
+        // todo: We currently use default encoding for all this, but may change later.
+        self.generic.encode(encoder)?;
         self.insert_loc.encode(encoder)?;
         self.ion_concentrations.encode(encoder)?;
-        self.plasmid_name.encode(encoder)?;
-        self.topology.encode(encoder)?;
         self.reading_frame.encode(encoder)?;
 
         Ok(())
@@ -61,31 +49,56 @@ impl Encode for StateToSave {
 
 impl Decode for StateToSave {
     fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
+        // todo: We currently use default encoding for all this, but may change later.
+        let generic = GenericData::decode(decoder)?;
+        let insert_loc = usize::decode(decoder)?;
+        let ion_concentrations = IonConcentrations::decode(decoder)?;
+        let reading_frame = ReadingFrame::decode(decoder)?;
+
+        Ok(Self {
+            generic,
+            insert_loc,
+            ion_concentrations,
+            reading_frame,
+        })
+    }
+}
+
+impl Encode for GenericData {
+    fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
+        // Serialize seq using our custom serializer
+        let seq_data = serialize_seq_bin(&self.seq);
+        seq_data.encode(encoder)?;
+
+        // Serialize other fields using default serialization
+        self.topology.encode(encoder)?;
+        self.features.encode(encoder)?;
+        self.primers.encode(encoder)?;
+        self.metadata.encode(encoder)?;
+
+        Ok(())
+    }
+}
+
+impl Decode for GenericData {
+    fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
         // Deserialize seq using our custom deserializer
         let seq_data = Vec::decode(decoder)?;
         // let seq = deser_seq_bin(&seq_data).map_err(|_| file_io: :Error::new(ErrorKind::InvalidData, "Error deserializing seq"));
         let seq = deser_seq_bin(&seq_data).unwrap_or_default(); // todo: Better error handling/propogation.
 
         // Deserialize other fields using default deserialization
-        let features = Vec::<Feature>::decode(decoder)?;
-        let primer_data = Vec::<PrimerData>::decode(decoder)?;
-        let metadata = Metadata::decode(decoder)?;
-        let insert_loc = usize::decode(decoder)?;
-        let ion_concentrations = IonConcentrations::decode(decoder)?;
-        let plasmid_name = String::decode(decoder)?;
         let topology = SeqTopology::decode(decoder)?;
-        let reading_frame = ReadingFrame::decode(decoder)?;
+        let features = Vec::<Feature>::decode(decoder)?;
+        let primers = Vec::<Primer>::decode(decoder)?;
+        let metadata = Metadata::decode(decoder)?;
 
-        Ok(StateToSave {
+        Ok(Self {
             seq,
-            features,
-            primer_data,
-            metadata,
-            insert_loc,
-            ion_concentrations,
-            plasmid_name,
             topology,
-            reading_frame,
+            features,
+            primers,
+            metadata,
         })
     }
 }
@@ -93,14 +106,9 @@ impl Decode for StateToSave {
 impl StateToSave {
     pub fn from_state(state: &State) -> Self {
         Self {
-            seq: state.seq.clone(),
-            features: state.features.clone(),
-            primer_data: state.primer_data.clone(),
-            metadata: state.metadata.clone(),
+            generic: state.generic.clone(),
             insert_loc: state.insert_loc,
             ion_concentrations: state.ion_concentrations.clone(),
-            plasmid_name: state.metadata.plasmid_name.clone(),
-            topology: state.topology.clone(),
             reading_frame: state.reading_frame.clone(),
         }
     }
@@ -108,11 +116,7 @@ impl StateToSave {
     /// Used to load to state. The result is data from this struct, augmented with default values.
     pub fn to_state(self) -> State {
         State {
-            seq: self.seq,
-            features: self.features,
-            topology: self.topology,
-            primer_data: self.primer_data,
-            metadata: self.metadata,
+            generic: self.generic,
             insert_loc: self.insert_loc,
             ion_concentrations: self.ion_concentrations,
             reading_frame: self.reading_frame,

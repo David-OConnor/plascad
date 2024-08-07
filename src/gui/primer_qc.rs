@@ -5,7 +5,7 @@ use egui_extras::{Column, TableBuilder};
 
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
-    primer::{make_amplification_primers, PrimerData, TuneSetting},
+    primer::{make_amplification_primers, Primer, PrimerData, TuneSetting},
     sequence::{seq_from_str, seq_to_str},
     IonConcentrations, State,
 };
@@ -59,7 +59,7 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
             .button("➕ Add primer")
             .on_hover_text("Adds a primer to the list below. Ctrl + A");
         if add_btn.clicked() {
-            state.primer_data.push(Default::default())
+            state.generic.primers.push(Default::default())
         }
 
         if ui
@@ -72,8 +72,8 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
 
         let mut sync_primer_matches = false; // Prevents a double-borrow error.
         if ui.button("Tune all").clicked() {
-            for data in &mut state.primer_data {
-                data.tune(&state.ion_concentrations);
+            for primer in &mut state.generic.primers {
+                primer.tune(&state.ion_concentrations);
                 sync_primer_matches = true;
             }
         }
@@ -93,8 +93,8 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
             || ion_edit(&mut state.ion_concentrations.dntp, "dNTP", ui)
             || ion_edit(&mut state.ion_concentrations.primer, "primer (nM)", ui)
         {
-            for p_data in &mut state.primer_data {
-                p_data.run_calcs(&state.ion_concentrations); // Note: We only need to run the TM calc.
+            for primer in &mut state.generic.primers {
+                primer.run_calcs(&state.ion_concentrations); // Note: We only need to run the TM calc.
             }
         }
 
@@ -118,11 +118,11 @@ To learn about a table column, mouse over it.");
 
     if let Some(sel_i) = state.ui.primer_selected {
         ui.horizontal(|ui| {
-            if sel_i + 1 > state.primer_data.len() {
+            if sel_i + 1 > state.generic.primers.len() {
                 // This currently happens if deleting the bottom-most primer.
                 // If so, select the primer above it.
-                state.ui.primer_selected = if !state.primer_data.is_empty() {
-                    Some(state.primer_data.len() - 1)
+                state.ui.primer_selected = if !state.generic.primers.is_empty() {
+                    Some(state.generic.primers.len() - 1)
                 } else {
                     None
                 };
@@ -131,7 +131,7 @@ To learn about a table column, mouse over it.");
 
             ui.heading(&format!(
                 "Selected: {}",
-                &state.primer_data[sel_i].primer.description
+                &state.generic.primers[sel_i].description
             ));
 
             ui.add_space(COL_SPACING);
@@ -139,12 +139,13 @@ To learn about a table column, mouse over it.");
             if ui.button(RichText::new("Up")).clicked() {
                 // todo: Arrow icons
                 if sel_i != 0 {
-                    state.primer_data.swap(sel_i, sel_i - 1);
+                    state.generic.primers.swap(sel_i, sel_i - 1);
                     state.ui.primer_selected = Some(sel_i - 1);
                 }
             }
-            if ui.button(RichText::new("Dn")).clicked() && sel_i != state.primer_data.len() - 1 {
-                state.primer_data.swap(sel_i, sel_i + 1);
+            if ui.button(RichText::new("Dn")).clicked() && sel_i != state.generic.primers.len() - 1
+            {
+                state.generic.primers.swap(sel_i, sel_i + 1);
                 state.ui.primer_selected = Some(sel_i + 1);
             }
 
@@ -152,7 +153,7 @@ To learn about a table column, mouse over it.");
                 .button(RichText::new("Delete 🗑").color(Color32::RED))
                 .clicked()
             {
-                state.primer_data.remove(sel_i);
+                state.generic.primers.remove(sel_i);
             }
 
             if ui
@@ -222,86 +223,86 @@ To learn about a table column, mouse over it.");
             header.col(|_ui| {});
         })
         .body(|mut body| {
-            for (i, data) in state.primer_data.iter_mut().enumerate() {
+            for (i, primer) in state.generic.primers.iter_mut().enumerate() {
                 body.row(TABLE_ROW_HEIGHT, |mut row| {
                     row.col(|ui| {
                         ui.horizontal(|ui| {
                             if ui
-                                .button(RichText::new("T").color(if let TuneSetting::Enabled(_) = data.tunable_5p {
+                                .button(RichText::new("T").color(if let TuneSetting::Enabled(_) = primer.volatile.tunable_5p {
                                     Color32::GREEN
                                 } else {
                                     Color32::LIGHT_GRAY
                                 }))
                                 .clicked()
                             {
-                                data.tunable_5p.toggle();
-                                if data.tunable_5p == TuneSetting::Disabled {
-                                    data.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
+                                primer.volatile.tunable_5p.toggle();
+                                if primer.volatile.tunable_5p == TuneSetting::Disabled {
+                                    primer.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
                                 }
                                 run_match_sync = Some(i);
                             }
 
                             let response = ui.add(
-                                TextEdit::singleline(&mut data.sequence_input).desired_width(400.),
+                                TextEdit::singleline(&mut primer.volatile.sequence_input).desired_width(400.),
                             );
 
                             if response.changed() {
-                                data.sequence_input =
-                                    seq_to_str(&seq_from_str(&data.sequence_input));
-                                data.run_calcs(&state.ion_concentrations);
+                                primer.volatile.sequence_input =
+                                    seq_to_str(&seq_from_str(&primer.volatile.sequence_input));
+                                primer.run_calcs(&state.ion_concentrations);
                                 run_match_sync = Some(i);
                             }
 
                             if ui
-                                .button(RichText::new("T").color(if let TuneSetting::Enabled(_) = data.tunable_3p {
+                                .button(RichText::new("T").color(if let TuneSetting::Enabled(_) = primer.volatile.tunable_3p {
                                     Color32::GREEN
                                 } else {
                                     Color32::LIGHT_GRAY
                                 }))
                                 .clicked()
                             {
-                                data.tunable_3p.toggle();
-                                if data.tunable_3p == TuneSetting::Disabled {
-                                    data.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
+                                primer.volatile.tunable_3p.toggle();
+                                if primer.volatile.tunable_3p == TuneSetting::Disabled {
+                                    primer.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
                                 }
                                 run_match_sync = Some(i);
                             }
 
                             ui.add_space(COL_SPACING);
 
-                            if data.tunable_3p != TuneSetting::Disabled || data.tunable_5p != TuneSetting::Disabled {
+                            if primer.volatile.tunable_3p != TuneSetting::Disabled || primer.volatile.tunable_5p != TuneSetting::Disabled {
                                 if ui
                                     .button(RichText::new("Tune")).on_hover_text("Tune selected ends for this primer").clicked()
                                 {
-                                    data.tune(&state.ion_concentrations);
+                                    primer.tune(&state.ion_concentrations);
                                     run_match_sync = Some(i);
                                 }
                             }
                         });
 
-                        let updated_seq = primer_tune_display(data, &state.ion_concentrations, ui);
+                        let updated_seq = primer_tune_display(primer, &state.ion_concentrations, ui);
                         if updated_seq {
                             run_match_sync = Some(i);
                         }
                     });
 
                     row.col(|ui| {
-                        ui.add(TextEdit::singleline(&mut data.primer.description));
+                        ui.add(TextEdit::singleline(&mut primer.description));
                     });
 
                     row.col(|ui| {
-                        ui.label(data.primer.sequence.len().to_string());
+                        ui.label(primer.sequence.len().to_string());
                     });
 
                     row.col(|ui| {
                         // todo: Cache this?
                         // let num_matches = data.matches_seq.len() + data.matches_vector_with_insert.len();
-                        let num_matches = data.matches_seq.len() + data.matches_seq.len();
+                        let num_matches = primer.volatile.matches_seq.len() +  primer.volatile.matches_seq.len();
                         ui.label(num_matches.to_string());
                     });
 
                     row.col(|ui| {
-                        let text = match &data.metrics {
+                        let text = match & primer.volatile.metrics {
                             // todo: PRe-compute the * 100?
                             Some(m) => RichText::new(format!("{:.0}", m.quality_score * 100.))
                                 .color(color_from_score(m.quality_score)),
@@ -312,7 +313,7 @@ To learn about a table column, mouse over it.");
                     });
 
                     row.col(|ui| {
-                        let text = match &data.metrics {
+                        let text = match & primer.volatile.metrics {
                             Some(m) => RichText::new(format!("{:.1}°C", m.melting_temp))
                                 .color(color_from_score(m.tm_score)),
 
@@ -322,7 +323,7 @@ To learn about a table column, mouse over it.");
                     });
 
                     row.col(|ui| {
-                        let text = match &data.metrics {
+                        let text = match & primer.volatile.metrics {
                             // todo: Cache this calc?
                             Some(m) => RichText::new(format!("{:.0}%", m.gc_portion * 100.))
                                 .color(color_from_score(m.gc_score)),
@@ -332,7 +333,7 @@ To learn about a table column, mouse over it.");
                     });
 
                     row.col(|ui| {
-                        let text = match &data.metrics {
+                        let text = match & primer.volatile.metrics {
                             Some(m) => RichText::new(format!("{}", m.gc_3p_count))
                                 .color(color_from_score(m.gc_3p_score)),
                             None => RichText::new("-"),
@@ -341,7 +342,7 @@ To learn about a table column, mouse over it.");
                     });
 
                     row.col(|ui| {
-                        let text = match &data.metrics {
+                        let text = match & primer.volatile.metrics {
                             Some(m) => RichText::new(format!("{}", m.self_end_dimer))
                                 .color(color_from_score(m.dimer_score)),
                             None => RichText::new("-"),
@@ -350,7 +351,7 @@ To learn about a table column, mouse over it.");
                     });
 
                     row.col(|ui| {
-                        let text = match &data.metrics {
+                        let text = match & primer.volatile.metrics {
                             Some(m) => RichText::new(format!("{}", m.repeats))
                                 .color(color_from_score(m.repeats_score)),
                             None => RichText::new("-"),
@@ -387,7 +388,7 @@ To learn about a table column, mouse over it.");
 /// Shows below each primer sequence. Data and controls on trimming primer size for optimization.
 /// Returns wheather a button was clicked.
 fn primer_tune_display(
-    data: &mut PrimerData,
+    primer: &mut Primer,
     ion_concentrations: &IonConcentrations,
     ui: &mut Ui,
 ) -> bool {
@@ -400,7 +401,7 @@ fn primer_tune_display(
         // ui.allocate_ui(egui::Vec2::new(ui.available_width(), 0.0), |ui| {
         //     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
 
-        if let TuneSetting::Enabled(i) = &mut data.tunable_5p {
+        if let TuneSetting::Enabled(i) = &mut primer.volatile.tunable_5p {
             ui.label("5'");
             if ui.button("⏴").clicked() {
                 if *i > 0 {
@@ -409,11 +410,11 @@ fn primer_tune_display(
                 tuned = true;
             };
             if ui.button("⏵").clicked() {
-                let t3p_len = match data.tunable_3p {
+                let t3p_len = match primer.volatile.tunable_3p {
                     TuneSetting::Enabled(t) => t,
                     _ => 0,
                 };
-                if *i + 1 < data.sequence_input.len() - t3p_len {
+                if *i + 1 < primer.volatile.sequence_input.len() - t3p_len {
                     *i += 1;
                 }
                 tuned = true;
@@ -424,24 +425,23 @@ fn primer_tune_display(
 
         // This section shows the trimmed sequence, with the removed parts visible to the left and right.
         ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-            ui.label(RichText::new(&data.seq_removed_5p).color(Color32::GRAY));
+            ui.label(RichText::new(&primer.volatile.seq_removed_5p).color(Color32::GRAY));
             ui.add_space(COL_SPACING / 2.);
 
-            if data.tunable_5p != TuneSetting::Disabled || data.tunable_3p != TuneSetting::Disabled
+            if primer.volatile.tunable_5p != TuneSetting::Disabled
+                || primer.volatile.tunable_3p != TuneSetting::Disabled
             {
-                ui.label(
-                    RichText::new(seq_to_str(&data.primer.sequence)).color(Color32::LIGHT_BLUE),
-                );
+                ui.label(RichText::new(seq_to_str(&primer.sequence)).color(Color32::LIGHT_BLUE));
             }
 
             ui.add_space(COL_SPACING / 2.);
-            ui.label(RichText::new(&data.seq_removed_3p).color(Color32::GRAY));
+            ui.label(RichText::new(&primer.volatile.seq_removed_3p).color(Color32::GRAY));
         });
 
         // Note: We need to reverse the item order for this method of right-justifying to work.
         // This is kind of OK with the intent here though.
         ui.with_layout(Layout::right_to_left(Align::Max), |ui| {
-            if let TuneSetting::Enabled(i) = &mut data.tunable_3p {
+            if let TuneSetting::Enabled(i) = &mut primer.volatile.tunable_3p {
                 ui.label("3'");
 
                 if ui.button("⏵").clicked() {
@@ -451,13 +451,13 @@ fn primer_tune_display(
                     tuned = true;
                 };
                 if ui.button("⏴").clicked() {
-                    let t5p_len = match data.tunable_5p {
+                    let t5p_len = match primer.volatile.tunable_5p {
                         TuneSetting::Enabled(t) => t,
                         _ => 0,
                     };
 
                     // todo: We still have a crash her.e
-                    if *i + 1 < data.sequence_input.len() - t5p_len {
+                    if *i + 1 < primer.volatile.sequence_input.len() - t5p_len {
                         *i += 1;
                     }
                     tuned = true;
@@ -467,7 +467,7 @@ fn primer_tune_display(
         });
 
         if tuned {
-            data.run_calcs(ion_concentrations);
+            primer.run_calcs(ion_concentrations);
         }
     });
     tuned

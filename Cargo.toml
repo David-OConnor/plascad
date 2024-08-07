@@ -3,7 +3,7 @@ name = "plascad"
 version = "0.6.9"
 edition = "2021"
 authors = ["David O'Connor <the_alchemist@fastmail.com>"]
-description = "Tools plasmidm and primer design, PCR, and related."
+description = "Tools for plasmid and primer design, PCR, and related."
 keywords = ["plasmid", "primer", "biology", "pcr"]
 categories = [
     "science", "science::bioinformatics",

@@ -6,7 +6,7 @@ use eframe::egui::{Pos2, Shape, Ui};
 
 use crate::{
     gui::feature_overlay,
-    primer::{PrimerData, PrimerDirection},
+    primer::{Primer, PrimerData, PrimerDirection},
     sequence::FeatureType,
     util,
 };
@@ -16,11 +16,11 @@ pub const STROKE_WIDTH: f32 = 2.;
 pub const VERTICAL_OFFSET_PRIMER: f32 = 14.; // Number of pixels above the sequence text.
 pub const LABEL_OFFSET: f32 = 7.;
 pub const HEIGHT: f32 = 16.;
-pub const SLANT: f32 = 20.; // slant different, in pixels, for the arrow.
+pub const SLANT: f32 = 12.; // slant different, in pixels, for the arrow.
 
 /// Add primer arrows to the display.
 pub fn draw_primers(
-    primer_data: &[PrimerData],
+    primers: &[Primer],
     row_ranges: &[Range<usize>],
     seq_len: usize,
     ui: &mut Ui,
@@ -28,8 +28,8 @@ pub fn draw_primers(
 ) -> Vec<Shape> {
     let mut shapes = Vec::new();
 
-    for prim_data in primer_data {
-        let primer_matches = &prim_data.matches_seq;
+    for primer in primers {
+        let primer_matches = &primer.volatile.matches_seq;
 
         // todo: Do not run these calcs each time. Cache.
         for (direction, seq_range) in primer_matches {
@@ -58,7 +58,7 @@ pub fn draw_primers(
                 Some(color),
                 VERTICAL_OFFSET_PRIMER,
                 (*direction).into(),
-                &prim_data.primer.description,
+                &primer.description,
                 ui,
             ));
         }
