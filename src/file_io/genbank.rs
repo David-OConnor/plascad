@@ -21,20 +21,14 @@ use gb_io::{
 
 use crate::{
     file_io::GenericData,
-    primer::{Primer, PrimerData, PrimerDirection},
+    primer::{Primer, PrimerDirection},
     sequence::{
-        seq_complement, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq,
+        seq_complement, Feature, FeatureDirection, FeatureType, Nucleotide,
         SeqTopology,
     },
     Metadata, Reference,
 };
-// fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> file_io::Result<()> {
-//     Ok(())
-// }
-//
-// fn export_primers(buf: &mut Vec<u8>, primers: &[PrimerData]) -> file_io::Result<()> {
-//     Ok(())
-// }
+use crate::primer::PrimerData;
 
 /// Read a file in the GenBank format.
 /// [Rust docs ref of fields](https://docs.rs/gb-io/latest/gb_io/seq/struct.Seq.html)
@@ -162,7 +156,8 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
                 let volatile = PrimerData::new(&sequence);
                 primers.push(Primer {
                     sequence,
-                    description: label,
+                    name: label,
+                    description: None, // todo: Can we populate this?
                     volatile,
                 });
                 continue;

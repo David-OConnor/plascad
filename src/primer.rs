@@ -44,7 +44,8 @@ pub enum PrimerDirection {
 #[derive(Default, Clone, Encode, Decode)]
 pub struct Primer {
     pub sequence: Seq,
-    pub description: String,
+    pub name: String,
+    pub description: Option<String>, // todo: Display this.
     /// Data that is dynamically regenerated, and generally not important for saving and loading to files.
     pub volatile: PrimerData,
 }
@@ -220,6 +221,7 @@ impl Primer {
             end = full_len
         }
 
+        // todo: Is loading from the input here appropriate? In our current setup, it seems to be required.
         self.sequence = seq_from_str(&self.volatile.sequence_input[start..end]);
         self.volatile.metrics = self.calc_metrics(ion_concentrations);
 
@@ -292,22 +294,26 @@ pub fn design_slic_fc_primers(
     Some(SlicPrimers {
         vector_fwd: Primer {
             sequence: seq_vector_fwd,
-            description: "Vector fwd".to_owned(),
+            name: "Vector fwd".to_owned(),
+            description: Some("SLIC cloning primer, Vector forward. Amplifies the entire vector.".to_owned()),
             volatile: Default::default(),
         },
         vector_rev: Primer {
             sequence: seq_vector_rev,
-            description: "Vector rev".to_owned(),
+            name: "Vector rev".to_owned(),
+            description: Some("SLIC cloning primer, Vector reverse. Amplifies the entire vector.".to_owned()),
             volatile: Default::default(),
         },
         insert_fwd: Primer {
             sequence: seq_insert_fwd,
-            description: "Insert fwd".to_owned(),
+            name: "Insert fwd".to_owned(),
+            description: Some("SLIC cloning primer, Insert forward. Overlaps with the vector.".to_owned()),
             volatile: Default::default(),
         },
         insert_rev: Primer {
             sequence: seq_insert_rev,
-            description: "Insert rev".to_owned(),
+            name: "Insert rev".to_owned(),
+            description: Some("SLIC cloning primer, Insert forward. Overlaps with the vector.".to_owned()),
             volatile: Default::default(),
         },
     })
@@ -336,12 +342,14 @@ pub fn design_amplification_primers(seq: &[Nucleotide]) -> Option<AmplificationP
     Some(AmplificationPrimers {
         fwd: Primer {
             sequence: seq_fwd,
-            description: "Amplification fwd".to_owned(),
+            name: "Amplification fwd".to_owned(),
+            description: Some("Amplification primer, forward.".to_owned()),
             volatile: Default::default(),
         },
         rev: Primer {
             sequence: seq_rev,
-            description: "Amplification rev".to_owned(),
+            name: "Amplification rev".to_owned(),
+            description: Some("Amplification primer, reverse.".to_owned()),
             volatile: Default::default(),
         },
     })

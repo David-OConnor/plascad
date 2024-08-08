@@ -13,25 +13,25 @@ use std::{
     path::Path,
     str,
 };
-
+use std::collections::HashMap;
 use num_enum::TryFromPrimitive;
 use quick_xml::{de::from_str, se::to_string};
 
 use crate::{
     file_io::{
         snapgene::feature_xml::{
-            FeatureSnapGene, Features, PrimerSnapGene, Primers, Qualifier, Segment,
+            FeatureSnapGene, Features, PrimerSnapGene, Primers,  Segment,
         },
         GenericData,
     },
-    primer::{Primer, PrimerData},
+    primer::{Primer},
     sequence::{
         seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq,
         SeqTopology,
     },
     util::{color_from_hex, color_to_hex},
-    Metadata, Reference,
 };
+use crate::file_io::snapgene::feature_xml::Notes;
 
 const COOKIE_PACKET_LEN: usize = 14;
 
@@ -116,7 +116,14 @@ pub fn import_snapgene(path: &Path) -> io::Result<GenericData> {
                 Err(e) => eprintln!("Error parsing Primers packet: {:?}", e),
             },
             PacketType::Notes => match parse_notes(&payload) {
-                Ok(v) => {}
+                Ok(v) => {
+                    if !v.inner.is_empty() {
+                        // todo: Are there ever multiple notes?
+                        result.metadata.plasmid_name = v.inner[0].title.clone();
+                    }
+                    // todo: Other fields, references etc. Compare in SnapGene itself, and how snapgene
+                    // todo parses and exports a GenBank file.
+                }
                 Err(e) => eprintln!("Error parsing Notes packet: {:?}", e),
             },
             PacketType::Features => match parse_features(&payload) {
@@ -141,10 +148,6 @@ pub fn import_snapgene(path: &Path) -> io::Result<GenericData> {
                 println!("Payload str: \n{:?}", payload_str);
             }
             _ => (),
-            // todo:
-            // result.plasmid_name =
-            // result.comments =
-            // result.references =
         }
     }
 
@@ -193,35 +196,36 @@ mod feature_xml {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct FeatureSnapGene {
-        #[serde(rename = "type", default)]
+        #[serde(rename = "@type")]
         pub feature_type: Option<String>,
+        #[serde(rename = "@directionality", default)]
+        pub directionality: Option<u8>,
+        #[serde(default)]
+        pub name: Option<String>,
+        // Other Feature attributes: allowSegmentOverlaps (0/1), consecutiveTranslationNumbering (0/1)
         #[serde(rename = "Segment", default)]
         pub segments: Vec<Segment>,
         #[serde(rename = "Q", default)]
         pub qualifiers: Vec<Qualifier>,
         // pub qualifiers: Option<Vec<Qualifier>>,
-        #[serde(default)]
-        pub name: Option<String>,
-        #[serde(default)]
-        // pub directionality: Option<u8>,
-        pub directionality: u8,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Segment {
-        #[serde(rename = "type", default)]
+        #[serde(rename = "@type", default)]
         pub segment_type: Option<String>,
-        #[serde(default)]
+        #[serde(rename = "@range", default)]
         pub range: Option<String>,
-        #[serde(default)]
+        #[serde(rename = "@name", default)]
         pub name: Option<String>,
-        #[serde(default)]
+        #[serde(rename = "@color", default)]
         pub color: Option<String>, // Hex.
+        // Other fields: "translated": 0/1
     }
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Qualifier {
-        #[serde(default)]
+        #[serde(rename = "@name")]
         pub name: String,
         #[serde(rename = "V", default)]
         pub values: Vec<QualifierValue>,
@@ -229,11 +233,11 @@ mod feature_xml {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct QualifierValue {
-        #[serde(default)]
+        #[serde(rename = "@text", default)]
         pub text: Option<String>,
-        #[serde(default)]
+        #[serde(rename = "@predef",default)]
         pub predef: Option<String>,
-        #[serde(default)]
+        #[serde(rename = "@int",default)]
         pub int: Option<i32>,
     }
 
@@ -243,12 +247,16 @@ mod feature_xml {
         pub inner: Vec<PrimerSnapGene>,
     }
 
-    // Note; We have left out the binding site and other fields, as they are not relevant for us at this time.
+    // Note; We have left out the binding site and a number of other fields, as they are not relevant
+    // for us at this time. This also includes melting temperature, which we calculate.
     #[derive(Debug, Serialize, Deserialize)]
     pub struct PrimerSnapGene {
+        #[serde(rename = "@sequence")]
         pub sequence: String,
+        #[serde(rename = "@name")]
         pub name: String,
-        pub description: String, // Currently unused
+        #[serde(rename = "@description")]
+        pub description: String,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -259,7 +267,33 @@ mod feature_xml {
 
     // Note; We have left out the binding site and other fields, as they are not relevant for us at this time.
     #[derive(Debug, Serialize, Deserialize)]
-    pub struct Notes_ {}
+    pub struct Notes_ {
+        #[serde(rename = "UUID")]
+        pub uuid: String,
+        #[serde(rename = "Type")]
+        pub type_: String,
+        #[serde(rename = "ConfirmedExperimentally")]
+        pub confirmed_experimentally: u8, // todo? `0` in example
+        #[serde(rename = "CreatedBy")]
+        pub created_by: String,
+        #[serde(rename = "SequenceClass")]
+        pub sequence_class: String,
+        #[serde(rename = "TransformedInto")]
+        pub transformed_into: String,
+        // todo: How do we handle LastModified and Created, given they have timestamps in the field name?
+        #[serde(rename = "Reference journal")]
+        pub reference_journal: String,
+        pub doi: String,
+        pub pages: String,
+        #[serde(rename = "pubMedID")]
+        pub pub_med_id: String,
+        pub title: String,
+        pub date: String,
+        pub authors: String,
+        #[serde(rename = "journalName")]
+        pub nournal_name: String,
+        pub volume: String,
+    }
 
     // <Notes>
     //     <UUID>0962493c-08f0-4964-91b9-24840fea051e</UUID>
@@ -281,6 +315,8 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
         )
     })?;
 
+    // println!("\n\n\nPayload str: {:?}\n\n\n", payload_str);
+
     let features: Features = from_str(payload_str).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
@@ -295,10 +331,8 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
         let name = feature_sg.name.clone().unwrap_or(String::new());
 
         let direction = match feature_sg.directionality {
-            1 => FeatureDirection::Forward,
-            2 => FeatureDirection::Reverse,
-            // Some(1) => FeatureDirection::Forward,
-            // Some(2) => FeatureDirection::Reverse,
+            Some(1) => FeatureDirection::Forward,
+            Some(2) => FeatureDirection::Reverse,
             _ => FeatureDirection::None,
         };
 
@@ -307,6 +341,29 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
             None => FeatureType::default(),
         };
 
+        let mut notes = HashMap::new();
+        for qual in &feature_sg.qualifiers {
+            // It seems there is generally one value per qualifier. In the case there are multiple,
+            // we will parse them as separate notes.
+            for val in &qual.values {
+                // Generally, each val only has one of text, int, predef
+                let mut v = String::new();
+                if let Some(t) = &val.int {
+                    v = t.to_string();
+                }
+                if let Some(t) = &val.predef {
+                    v = t.clone();
+                }
+                if let Some(t) = &val.text {
+                    v = t.clone();
+                }
+                notes.insert(qual.name.clone(), v);
+            }
+        }
+
+        // Note: We currently parse multiple segments as separate features, but SnapGene has the concept
+        // of multiple segments per feature. These share all data except the <Segment tag attributes.
+        // (name, range, color, type, translated etc)
         for segment in &feature_sg.segments {
             let color_override = match &segment.color {
                 Some(c) => color_from_hex(&c).ok(),
@@ -324,10 +381,9 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
                 direction,
                 label: name.clone(),
                 color_override,
-                notes: Default::default(), // todo: Add this.
+                notes: notes.clone(),
             });
         }
-        // todo: Handle qualifiers too?
     }
 
     Ok(result)
@@ -352,7 +408,8 @@ fn parse_primers(payload: &[u8]) -> io::Result<Vec<Primer>> {
     for primer_sg in &primers.inner {
         result.push(Primer {
             sequence: seq_from_str(&primer_sg.sequence),
-            description: primer_sg.name.clone(),
+            name: primer_sg.name.clone(),
+            description: Some(primer_sg.description.clone()),
             volatile: Default::default(),
         });
     }
@@ -360,7 +417,8 @@ fn parse_primers(payload: &[u8]) -> io::Result<Vec<Primer>> {
     Ok(result)
 }
 
-fn parse_notes(payload: &[u8]) -> io::Result<Vec<String>> {
+// fn parse_notes(payload: &[u8]) -> io::Result<Vec<String>> {
+fn parse_notes(payload: &[u8]) -> io::Result<Notes> {
     let payload_str = str::from_utf8(payload).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
@@ -370,14 +428,17 @@ fn parse_notes(payload: &[u8]) -> io::Result<Vec<String>> {
 
     println!("Notes string: \n\n{:?}\n\n", payload_str);
 
+    // todo: Is this a strict format, or arbitary notes?
+
     let notes: feature_xml::Notes = from_str(payload_str).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
             format!("Unable to parse notes: {e}"),
         )
     })?;
+    let result = notes;
 
-    let mut result = Vec::new();
+    // let mut result = Vec::new();
     // for note in &notes.inner {
     // result.push(Primer {
     //     sequence: seq_from_str(&primer_sg.sequence),
@@ -409,12 +470,9 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
     let mut features_sg = Features { inner: Vec::new() };
     for feature in features {
         let directionality = match feature.direction {
-            // FeatureDirection::Forward => Some(1),
-            // FeatureDirection::Reverse => Some(2),
-            // FeatureDirection::None => None,
-            FeatureDirection::None => 0,
-            FeatureDirection::Forward => 1,
-            FeatureDirection::Reverse => 2,
+            FeatureDirection::Forward => Some(1),
+            FeatureDirection::Reverse => Some(2),
+            FeatureDirection::None => None,
         };
 
         let segments = vec![Segment {
@@ -432,7 +490,7 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
             segments,
             qualifiers: Vec::new(),
             name: Some(feature.label.clone()),
-            directionality,
+            directionality
         });
     }
 
@@ -458,8 +516,8 @@ fn export_primers(buf: &mut Vec<u8>, primers: &[Primer]) -> io::Result<()> {
     for primer in primers {
         primers_sg.inner.push(PrimerSnapGene {
             sequence: seq_to_str(&primer.sequence),
-            name: primer.description.clone(),
-            description: "".to_owned(),
+            name: primer.name.clone(),
+            description: primer.description.clone().unwrap_or_default(),
         });
     }
 

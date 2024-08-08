@@ -485,7 +485,7 @@ fn draw_primers(
                     fonts,
                     to_screen * label_pt,
                     label_align,
-                    &primer.description,
+                    &primer.name,
                     FontId::new(16., FontFamily::Proportional),
                     stroke.color,
                 )

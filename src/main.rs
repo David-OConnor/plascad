@@ -431,6 +431,8 @@ impl State {
 
     pub fn sync_primer_metrics(&mut self) {
         for primer in &mut self.generic.primers {
+            primer.volatile.sequence_input = seq_to_str(&primer.sequence);
+
             if let Some(metrics) = &mut primer.volatile.metrics {
                 metrics.update_scores();
             }

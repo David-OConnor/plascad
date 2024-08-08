@@ -23,7 +23,7 @@ use crate::{
     IonConcentrations, Metadata, Reference, State,
 };
 
-pub const DEFAULT_SAVE_FILE: &str = "plasmid_tools.pcad";
+pub const DEFAULT_SAVE_FILE: &str = "plasmid.pcad";
 pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
 pub const DEFAULT_DNA_FILE: &str = "export.dna";
 

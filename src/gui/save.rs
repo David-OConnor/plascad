@@ -199,7 +199,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         let mut primer_matches = Vec::new();
         for primer in &state.generic.primers {
             for (dir, range) in &primer.volatile.matches_seq {
-                primer_matches.push((*dir, range.clone(), primer.description.clone()));
+                primer_matches.push((*dir, range.clone(), primer.name.clone()));
             }
         }
 
@@ -215,6 +215,8 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     }
 
     if sync {
+        println!("SYNCING");
+
         state.sync_pcr();
         state.sync_primer_metrics();
         state.sync_seq_related(None);

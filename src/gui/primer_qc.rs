@@ -131,7 +131,7 @@ To learn about a table column, mouse over it.");
 
             ui.heading(&format!(
                 "Selected: {}",
-                &state.generic.primers[sel_i].description
+                &state.generic.primers[sel_i].name
             ));
 
             ui.add_space(COL_SPACING);
@@ -247,8 +247,9 @@ To learn about a table column, mouse over it.");
                             );
 
                             if response.changed() {
+                                primer.sequence = seq_from_str(&primer.volatile.sequence_input);
                                 primer.volatile.sequence_input =
-                                    seq_to_str(&seq_from_str(&primer.volatile.sequence_input));
+                                    seq_to_str(&primer.sequence);
                                 primer.run_calcs(&state.ion_concentrations);
                                 run_match_sync = Some(i);
                             }
@@ -287,7 +288,7 @@ To learn about a table column, mouse over it.");
                     });
 
                     row.col(|ui| {
-                        ui.add(TextEdit::singleline(&mut primer.description));
+                        ui.add(TextEdit::singleline(&mut primer.name));
                     });
 
                     row.col(|ui| {
@@ -467,6 +468,7 @@ fn primer_tune_display(
         });
 
         if tuned {
+
             primer.run_calcs(ion_concentrations);
         }
     });
