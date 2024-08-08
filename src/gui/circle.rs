@@ -344,7 +344,7 @@ fn draw_features(
             radius,
             angle,
             feature_width,
-            &to_screen,
+            to_screen,
             feature_color,
             stroke,
         ));
@@ -510,7 +510,7 @@ fn find_cursor_i(
     cursor_pos: Option<(f32, f32)>,
     from_screen: &RectTransform,
     seq_len: usize,
-    mut center: Pos2,
+    center: Pos2,
     radius: f32,
 ) -> Option<usize> {
     match cursor_pos {

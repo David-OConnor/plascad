@@ -2594,6 +2594,8 @@ dependencies = [
  "num_enum",
  "quick-xml 0.36.1",
  "serde",
+ "url",
+ "webbrowser",
 ]
 
 [[package]]

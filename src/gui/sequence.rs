@@ -45,8 +45,10 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.label("Insert location: ");
         let mut entry = state.insert_loc.to_string();
-        let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
-        if response.changed() {
+        if ui
+            .add(TextEdit::singleline(&mut entry).desired_width(40.))
+            .changed()
+        {
             state.insert_loc = entry.parse().unwrap_or(0);
             state.sync_cloning_product();
         }

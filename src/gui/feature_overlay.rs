@@ -41,8 +41,15 @@ pub fn draw_features(
             continue;
         }
 
-        let feature_ranges =
-            get_feature_ranges(&(feature.index_range.0..feature.index_range.1), row_ranges);
+        if feature.index_range.0 < 1 {
+            continue; // 0 is invalid, in 1-based indexing, and will underflow.
+        }
+
+        // The -1 assymetry is because these ranges are inclusive.
+        let feature_ranges = get_feature_ranges(
+            &(feature.index_range.0 - 1..feature.index_range.1),
+            row_ranges,
+        );
 
         let feature_ranges_px: Vec<(Pos2, Pos2)> = feature_ranges
             .iter()

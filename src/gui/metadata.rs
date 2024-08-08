@@ -1,11 +1,8 @@
 //! Contains references, comments, etc about the plasmid.
 
-use eframe::{
-    egui,
-    egui::{Color32, Label, RichText, Stroke, TextEdit, Ui, Vec2},
-};
+use eframe::egui::{Color32, RichText, TextEdit, Ui};
 
-use crate::{gui::ROW_SPACING, Metadata, State};
+use crate::{gui::ROW_SPACING, Metadata};
 
 const LABEL_WIDTH: f32 = 140.; // Helps align the text edits, by forcing a fixed label width.
 const WIDTH_RATIO: f32 = 0.6;

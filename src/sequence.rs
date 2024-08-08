@@ -254,7 +254,7 @@ impl FeatureDirection {
 
 #[derive(Clone, Encode, Decode)]
 pub struct Feature {
-    /// 1-based indexing.
+    /// 1-based indexing, inclusive. (Note: Could also use the builtin RangeInclusive.)
     pub index_range: (usize, usize),
     pub feature_type: FeatureType,
     pub direction: FeatureDirection,
@@ -324,7 +324,7 @@ pub fn seq_to_str(seq: &[Nucleotide]) -> String {
 /// Find coding regions in a sequence, given a reading frame.
 pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFrameMatch> {
     const START_CODON: [Nucleotide; 3] = [A, T, G];
-    let stop_codons = vec![[T, A, A], [T, A, G], [T, G, A]];
+    let stop_codons = [[T, A, A], [T, A, G], [T, G, A]];
 
     let mut result = Vec::new();
 
@@ -341,13 +341,26 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
 
     let mut frame_open = None; // Inner: Start index.
 
+    println!("\n New");
     for i_ in 0..len / 3 {
         let i = i_ * 3; // The actual sequence index.
+
         let nts = &seq[i..i + 3];
 
-        if nts == START_CODON {
+        // if i < 2000 {
+        //     println!("I: {i}, Nts: {:?}", nts);
+        // }
+
+        // if nts == [T, G, A] {
+        //     println!("TGA @ {i} Codons: {:?}, qc: {:?}", nts, stop_codons.contains(nts.try_into().unwrap()));
+        // }
+        if frame_open.is_none() && nts == START_CODON {
             frame_open = Some(i);
+
+            println!("Frame open: {:?}", i);
         } else if frame_open.is_some() && stop_codons.contains(nts.try_into().unwrap()) {
+            println!("Frame cl: {:?}", i);
+
             // + 1 for our 1-based seq name convention.
             // This section's a bit hairy; worked by trial and error. Final indices are respective to
             // the non-complementary seq, for both forward and reverse reading frames.
@@ -357,7 +370,7 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
                 }
                 _ => (
                     seq_len_full - (i + 2 + offset),
-                    seq_len_full - (frame_open.unwrap() + 0 + offset),
+                    seq_len_full - (frame_open.unwrap() + offset),
                 ),
             };
 

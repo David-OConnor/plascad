@@ -8,19 +8,17 @@ use eframe::{self, egui, egui::Context};
 use egui_file_dialog::FileDialog;
 use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
 use gui::navigation::{Page, PageSeq};
-use primer::PrimerData;
 use sequence::{seq_from_str, Seq};
 
 use crate::{
     file_io::GenericData,
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
-    primer::{Primer, TM_TARGET},
-    primer_metrics::PrimerMetrics,
+    primer::TM_TARGET,
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, ReadingFrame,
-        ReadingFrameMatch, SeqTopology,
+        find_orf_matches, seq_to_str, FeatureDirection, FeatureType, ReadingFrame,
+        ReadingFrameMatch,
     },
 };
 
@@ -275,6 +273,9 @@ struct StateUi {
     cursor_pos: Option<(f32, f32)>,
     cursor_seq_i: Option<usize>,
     file_dialogs: FileDialogs,
+    /// Show or hide the field to change origin
+    show_origin_change: bool,
+    new_origin: usize,
 }
 
 impl Default for StateUi {
@@ -294,6 +295,8 @@ impl Default for StateUi {
             cursor_pos: None,
             cursor_seq_i: None,
             file_dialogs: Default::default(),
+            show_origin_change: false,
+            new_origin: 0,
         }
     }
 }
@@ -362,7 +365,6 @@ struct State {
     ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
-
     selected_item: Selection,
     reading_frame: ReadingFrame,
     volatile: StateVolatile,
@@ -456,7 +458,7 @@ impl State {
             return;
         }
 
-        self.generic.seq = seq_vector.clone(); // Clone the original vector
+        self.generic.seq.clone_from(&seq_vector);
         self.generic
             .seq
             .splice(self.insert_loc..self.insert_loc, seq_insert.iter().cloned());
@@ -469,6 +471,8 @@ impl State {
         self.sync_primer_matches(primer_i);
         self.sync_re_sites();
         self.sync_reading_frame();
+
+        self.ui.seq_input = seq_to_str(&self.generic.seq);
     }
 
     /// Load state from a (our format) file.

@@ -13,8 +13,8 @@ use eframe::{
 
 use crate::{
     gui::{
-        feature_overlay::draw_features, features::feature_add_disp, get_cursor_text,
-        navigation::page_button, primer_arrow, COL_SPACING, ROW_SPACING,
+        feature_overlay::draw_features, get_cursor_text, navigation::page_button, primer_arrow,
+        COL_SPACING, ROW_SPACING,
     },
     sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
@@ -162,7 +162,7 @@ fn orf_selector(state: &mut State, ui: &mut Ui) {
 
     let orf = &mut state.reading_frame;
 
-    let orig = orf.clone();
+    let orig = *orf;
 
     page_button(orf, ReadingFrame::Fwd0, ui, false);
     page_button(orf, ReadingFrame::Fwd1, ui, false);
@@ -188,7 +188,7 @@ fn find_cursor_i(
             let pos_relative = from_screen * pos2(p.0, p.1);
 
             if pos_relative.x > 0. && pos_relative.y > 0. {
-                pixel_to_seq_i(pos_relative, &row_ranges).map(|v| v)
+                pixel_to_seq_i(pos_relative, row_ranges)
             } else {
                 None
             }

@@ -4,7 +4,7 @@ use eframe::egui::{pos2, Pos2};
 
 use crate::{
     gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
-    Color,
+    Color, State,
 };
 /// Utility function to linearly map an input value to an output
 pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 {
@@ -134,4 +134,27 @@ pub fn color_from_hex(hex: &str) -> Result<Color, ParseIntError> {
 
 pub fn color_to_hex(color: Color) -> String {
     format!("#{:x}{:x}{:x}", color.0, color.1, color.2)
+}
+
+/// Change the origin. This involves updating the sequence, and all features.
+pub fn change_origin(state: &mut State) {
+    let origin = &state.ui.new_origin;
+    // Note the 1-based indexing logic we use.
+    if *origin < 1 || *origin > state.generic.seq.len() {
+        return;
+    }
+
+    state.generic.seq.rotate_left(origin - 1);
+
+    let seq_len = state.generic.seq.len();
+    for feature in &mut state.generic.features {
+        // Convert to isize to prevent an underflow on crash if we wrap.
+        feature.index_range.0 =
+            ((feature.index_range.0 as isize - *origin as isize) % seq_len as isize) as usize;
+        feature.index_range.1 =
+            ((feature.index_range.1 as isize - *origin as isize) % seq_len as isize) as usize;
+    }
+
+    // todo: What else to update?
+    state.sync_seq_related(None);
 }

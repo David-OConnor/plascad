@@ -6,7 +6,7 @@ use eframe::egui::{Pos2, Shape, Ui};
 
 use crate::{
     gui::feature_overlay,
-    primer::{Primer, PrimerData, PrimerDirection},
+    primer::{Primer, PrimerDirection},
     sequence::FeatureType,
     util,
 };

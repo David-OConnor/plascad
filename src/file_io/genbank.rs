@@ -6,7 +6,7 @@
 
 use std::{
     collections::HashMap,
-    fs::{File, OpenOptions},
+    fs::File,
     io::{self, ErrorKind, Write},
     ops::Range,
     path::Path,
@@ -20,7 +20,7 @@ use gb_io::{
 };
 
 use crate::{
-    file_io::GenericData,
+    file_io::{get_filename, GenericData},
     primer::{Primer, PrimerData, PrimerDirection},
     sequence::{seq_complement, Feature, FeatureDirection, FeatureType, Nucleotide, SeqTopology},
     Metadata, Reference,
@@ -82,7 +82,7 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
 
         // This is almost awkward enough to write a parser instead of using gb_io.
         for feature in &seq.features {
-            let feature_type = FeatureType::from_external_str(&feature.kind.to_string());
+            let feature_type = FeatureType::from_external_str(&feature.kind.as_ref());
 
             // We parse label from qualifiers.
             // I'm unsure how direction works in GenBank files. It appears it's some mix of the LEFT/RIGHT
@@ -110,7 +110,7 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
             };
 
             for v in feature.qualifier_values("label".into()) {
-                label = v.to_owned();
+                v.clone_into(&mut label);
                 break;
             }
 
@@ -193,7 +193,6 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
             })
         }
 
-        // todo: No primers?
         // todo: What is contig location? Do we need that?
 
         let (source, organism) = match seq.source {
@@ -202,7 +201,7 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
         };
 
         let metadata = Metadata {
-            plasmid_name: seq.keywords.clone().unwrap_or(String::new()),
+            plasmid_name: get_filename(path),
             comments: seq.comments.clone(),
             definition: seq.definition.clone(),
             accession: seq.accession.clone(),
@@ -226,7 +225,7 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
 
     Err(io::Error::new(
         ErrorKind::InvalidData,
-        format!("No GenBank sequences found"),
+        "No GenBank sequences found",
     ))
 }
 
@@ -236,7 +235,7 @@ pub fn export_genbank(
     primer_matches: &[(PrimerDirection, Range<usize>, String)],
     path: &Path,
 ) -> io::Result<()> {
-    let file = File::create(&path)?;
+    let file = File::create(path)?;
 
     let mut gb_data = gb_io::seq::Seq::empty();
 
@@ -310,7 +309,7 @@ pub fn export_genbank(
 
     let md = &data.metadata;
 
-    gb_data.comments = md.comments.clone();
+    gb_data.comments.clone_from(&md.comments);
     gb_data.source = Some(gb_io::seq::Source {
         source: md.source.clone().unwrap_or_default(),
         organism: md.organism.clone(),
@@ -322,9 +321,9 @@ pub fn export_genbank(
 
     // data.keywords = md.keywords.clone();
     gb_data.keywords = Some(md.plasmid_name.clone());
-    gb_data.version = md.version.clone();
-    gb_data.accession = md.accession.clone();
-    gb_data.definition = md.definition.clone();
+    gb_data.version.clone_from(&md.version);
+    gb_data.accession.clone_from(&md.definition);
+    gb_data.definition.clone_from(&md.definition);
     gb_data.name = Some(md.locus.clone());
 
     for ref_ in &md.references {

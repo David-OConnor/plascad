@@ -9,8 +9,8 @@
 
 use std::{
     collections::HashMap,
-    fs::{File, OpenOptions},
-    io::{self, ErrorKind, Read, Seek, Write},
+    fs::File,
+    io::{self, ErrorKind, Read, Write},
     path::Path,
     str,
 };
@@ -20,6 +20,7 @@ use quick_xml::{de::from_str, se::to_string};
 
 use crate::{
     file_io::{
+        get_filename,
         snapgene::feature_xml::{
             FeatureSnapGene, Features, Notes, PrimerSnapGene, Primers, Segment,
         },
@@ -63,14 +64,15 @@ pub fn import_snapgene(path: &Path) -> io::Result<GenericData> {
 
     let mut result = GenericData::default();
 
+    result.metadata.plasmid_name = get_filename(path);
+
     let mut i = 0;
 
     loop {
         if i + 6 >= buf.len() {
             break;
         }
-        let packet_type =
-            PacketType::try_from_primitive(buf[i]).unwrap_or_else(|_| PacketType::Unknown);
+        let packet_type = PacketType::try_from_primitive(buf[i]).unwrap_or(PacketType::Unknown);
         i += 1;
 
         let payload_len = u32::from_be_bytes(buf[i..i + 4].try_into().unwrap()) as usize;
@@ -111,22 +113,22 @@ pub fn import_snapgene(path: &Path) -> io::Result<GenericData> {
                     Err(e) => eprintln!("Error parsing DNA packet: {:?}", e),
                 }
             }
-            PacketType::Primers => match parse_primers(&payload) {
+            PacketType::Primers => match parse_primers(payload) {
                 Ok(v) => result.primers = v,
                 Err(e) => eprintln!("Error parsing Primers packet: {:?}", e),
             },
-            PacketType::Notes => match parse_notes(&payload) {
+            PacketType::Notes => match parse_notes(payload) {
                 Ok(v) => {
-                    if !v.inner.is_empty() {
-                        // todo: Are there ever multiple notes?
-                        result.metadata.plasmid_name = v.inner[0].title.clone();
-                    }
+                    // if !v.inner.is_empty() {
+                    //     // todo: Are there ever multiple notes?
+                    //     result.metadata.plasmid_name = v.inner[0].title.clone();
+                    // }
                     // todo: Other fields, references etc. Compare in SnapGene itself, and how snapgene
                     // todo parses and exports a GenBank file.
                 }
                 Err(e) => eprintln!("Error parsing Notes packet: {:?}", e),
             },
-            PacketType::Features => match parse_features(&payload) {
+            PacketType::Features => match parse_features(payload) {
                 Ok(v) => result.features = v,
                 Err(e) => eprintln!("Error parsing Features packet: {:?}", e),
             },
@@ -352,10 +354,10 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
                     v = t.to_string();
                 }
                 if let Some(t) = &val.predef {
-                    v = t.clone();
+                    v.clone_from(t);
                 }
                 if let Some(t) = &val.text {
-                    v = t.clone();
+                    v.clone_from(t);
                 }
                 notes.insert(qual.name.clone(), v);
             }
@@ -366,12 +368,12 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
         // (name, range, color, type, translated etc)
         for segment in &feature_sg.segments {
             let color_override = match &segment.color {
-                Some(c) => color_from_hex(&c).ok(),
+                Some(c) => color_from_hex(c).ok(),
                 None => None,
             };
 
             let index_range = match &segment.range {
-                Some(r) => range_from_str(&r).unwrap_or((1, 1)),
+                Some(r) => range_from_str(r).unwrap_or((1, 1)),
                 None => (1, 1),
             };
 
@@ -539,7 +541,7 @@ fn export_primers(buf: &mut Vec<u8>, primers: &[Primer]) -> io::Result<()> {
 
 /// Export our local state into the SnapGene dna format. This includes sequence, features, and primers.
 pub fn export_snapgene(data: &GenericData, path: &Path) -> io::Result<()> {
-    let mut file = File::create(&path)?;
+    let mut file = File::create(path)?;
 
     let mut buf = Vec::new();
 

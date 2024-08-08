@@ -2,12 +2,10 @@
 
 use std::{
     env,
-    ops::Range,
     path::{Path, PathBuf},
 };
 
 use eframe::egui::Ui;
-// use egui_file::FileDialog;
 use egui_file_dialog::FileDialog;
 
 use crate::{
@@ -16,7 +14,6 @@ use crate::{
         save::{export_fasta, import_fasta, save, StateToSave, DEFAULT_SAVE_FILE},
         snapgene::{export_snapgene, import_snapgene},
     },
-    primer::{PrimerData, PrimerDirection},
     sequence::seq_to_str,
     State,
 };
@@ -36,7 +33,7 @@ fn save_button(
             let name = if plasmid_name.is_empty() {
                 "a_plasmid".to_string()
             } else {
-                plasmid_name.to_lowercase().replace(" ", "_")
+                plasmid_name.to_lowercase().replace(' ', "_")
             };
             format!("{name}.{extension}")
         };
@@ -168,7 +165,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         };
     } else if let Some(path) = state.ui.file_dialogs.load.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());
-        *state = State::load(&path.to_str().unwrap());
+        *state = State::load(path.to_str().unwrap());
         sync = true;
     } else if let Some(path) = state.ui.file_dialogs.export_fasta.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());

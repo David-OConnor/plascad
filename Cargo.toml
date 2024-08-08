@@ -15,9 +15,6 @@ license = "MIT"
 exclude = [".gitignore"]
 
 [dependencies]
-# For BLAST integration
-#reqwest = { version = "^0.12.5", features = ["blocking", "json"], default-features = false }
-
 eframe = "^0.28.1"
 egui_extras = "^0.28.1"  # For tables.
 egui-file-dialog = "0.6.0" #  For file dialogs.
@@ -32,3 +29,7 @@ quick-xml = {version = "0.36.1", features = ["serialize"]}   # For Snapgene feat
 bincode = "^2.0.0-rc.3"
 # todo: This seems to have a lot of sub-deps, and a messy API. Increases binary size a bit.
 gb-io = "^0.7.1"
+
+# For opening BLAST. Hopefully this doesn't increase binary size too much.
+webbrowser = "^1.0.1"
+url = "^2.5.2"

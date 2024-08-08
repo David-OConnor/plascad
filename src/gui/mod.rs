@@ -5,11 +5,13 @@ use eframe::{
     egui::{Color32, Context, Key, ScrollArea, TextEdit, Ui},
 };
 use navigation::Page;
+use url::Url;
 
 use crate::{
     file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
     gui::primer_qc::primer_details,
-    State,
+    sequence::Nucleotide,
+    util, State,
 };
 
 mod circle;
@@ -34,11 +36,16 @@ pub const WINDOW_TITLE: &str = "PlasCAD";
 pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
 
+// todo: Move this BLAST stuff A/R.
+const NCBI_BLAST_URL: &str = "https://blast.ncbi.nlm.nih.gov/Blast.cgi";
+
 pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
     ui.label(label);
     let mut entry = val.to_string();
-    let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
-    if response.changed() {
+    if ui
+        .add(TextEdit::singleline(&mut entry).desired_width(40.))
+        .changed()
+    {
         *val = entry.parse().unwrap_or(0);
     }
 }
@@ -48,7 +55,7 @@ pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
 pub fn get_cursor_text(cursor_seq_i: Option<usize>, seq_len: usize) -> String {
     match cursor_seq_i {
         Some(p) => {
-            if p + 1 <= seq_len {
+            if p < seq_len {
                 // + 1, as the convention is to use 1-based indexing vice 0.
                 (p + 1).to_string()
                 // This occurs if the cursor is on the last row, right of the last NT.
@@ -57,6 +64,75 @@ pub fn get_cursor_text(cursor_seq_i: Option<usize>, seq_len: usize) -> String {
             }
         }
         None => String::new(),
+    }
+}
+
+/// Open the web browser to a NCBI-BLAST page, of the sequence of interest.
+///
+///Example BLAST
+/// note: There appears to be a NT limit that will fail most full plastmids when using the GET api.
+/// ?PAGE_TYPE=BlastSearch&CMD=Web&LAYOUT=OneWindow&PROGRAM=blastn&MEGABLAST=on&PAGE=Nucleotides&DATABASE=nr
+/// &FORMAT_TYPE=HTML&NCBI_GI=on&SHOW_OVERVIEW=on&QUERY=%3Ettt%20%20(43%20..%20905%20%3D%20863%20bp)
+/// %0AACTCACTATAGGGAAATAATTTTGTTTAACTTTAAGAAGGAGATATACCGGTATGACTAGTATGGAAGACGCCAAAAACATAAAGAAAGGCCCG
+/// GCGCCATTCTATCCGCTGGAAGATGGAACCGCTGGAGAGCAACTGCATAAGGCTATGAAGAGATACGCCCTGGTTCCTGGAACAATTGCTTTTACAGA
+/// TGCACATATCGAGGTGGACATCACTTACGCTGAGTACTTCGAAATGTCCGTTCGGTTGGCAGAAGCTATGAAACGATATGGGCTGAATACAAATCACAGA
+/// ATCGTCGTATGCAGTGAAAACTCTCTTCAATTCTTTATGCCGGTGTTGGGCGCGTTATTTATCGGAGTTGCAGTTGCGCCCGCGAACGACATTTATAATGA
+/// ACGTGAATTGCTCAACAGTATGGGCATTTCGCAGCCTACCGTGGTGTTCGTTTCCAAAAAGGGGTTGCAAAAAATTTTGAACGTGCAAAAAAAGCTCCCAAT
+/// CATCCAAAAAATTATTATCATGGATTCTAAAACGGATTACCAGGGATTTCAGTCGATGTACACGTTCGTCACATCTCATCTACCTCCCGGTTTTAATGAATAC
+/// GATTTTGTGCCAGAGTCCTTCGATAGGGACAAGACAATTGCACTGATCATGAACTCCTCTGGATCTACTGGTCTGCCTAAAGGTGTCGCTCTGCCTCATAGAACT
+/// GCCTGCGTGAGATTCTCGCATGCCAGAGATCCTATTTTTGGCAATCAAATCATTCCGGATACTGCGATTTTAAGTGTTGTTCCATTCCATCACGGTTTTGGAA
+/// TGTTTACTACACTCGGATATTTGATATGTGGATTTCGAGTCGTCTTAATGTATAGAT
+/// todo: Copy to clipboard  for longer seqs?
+fn open_blast(seq: &[Nucleotide]) {
+    let params = vec![
+        ("PAGE_TYPE", "BlastSearch"),
+        ("CMD", "Web"),
+        ("LAYOUT", "OneWindow"),
+        ("PROGRAM", "blastn"),
+        ("MEGABLAST", "on"),
+        ("PAGE", "Nucleotides"),
+        ("DATABASE", "nr"),
+        ("FORMAT_TYPE", "HTML"),
+        ("NCBI_GI", "on"),
+        ("SHOW_OVERVIEW", "on"),
+        ("QUERY", ">ttt  (43 .. 905 = 863 bp)\nACTCACTATAGGGAAATAATTTTGTTTAACTTTAAGAAGGAGATATACCGGTATGACTAGTATGGAAGACGCCAAAAACATAAAGAAAGGCCCGGCGCCATTCTATCCGCTGGAAGATGGAACCGCTGGAGAGCAACTGCATAAGGCTATGAAGAGATACGCCCTGGTTCCTGGAACAATTGCTTTTACAGATGCACATATCGAGGTGGACATCACTTACGCTGAGTACTTCGAAATGTCCGTTCGGTTGGCAGAAGCTATGAAACGATATGGGCTGAATACAAATCACAGAATCGTCGTATGCAGTGAAAACTCTCTTCAATTCTTTATGCCGGTGTTGGGCGCGTTATTTATCGGAGTTGCAGTTGCGCCCGCGAACGACATTTATAATGAACGTGAATTGCTCAACAGTATGGGCATTTCGCAGCCTACCGTGGTGTTCGTTTCCAAAAAGGGGTTGCAAAAAATTTTGAACGTGCAAAAAAAGCTCCCAATCATCCAAAAAATTATTATCATGGATTCTAAAACGGATTACCAGGGATTTCAGTCGATGTACACGTTCGTCACATCTCATCTACCTCCCGGTTTTAATGAATACGATTTTGTGCCAGAGTCCTTCGATAGGGACAAGACAATTGCACTGATCATGAACTCCTCTGGATCTACTGGTCTGCCTAAAGGTGTCGCTCTGCCTCATAGAACTGCCTGCGTGAGATTCTCGCATGCCAGAGATCCTATTTTTGGCAATCAAATCATTCCGGATACTGCGATTTTAAGTGTTGTTCCATTCCATCACGGTTTTGGAATGTTTACTACACTCGGATATTTGATATGTGGATTTCGAGTCGTCTTAATGTATAGAT"),
+    ];
+
+    let mut url = Url::parse(NCBI_BLAST_URL).unwrap();
+    {
+        let mut query_pairs = url.query_pairs_mut();
+        for (key, value) in params {
+            query_pairs.append_pair(key, value);
+        }
+    }
+
+    // Open the URL in the default web browser
+    if let Err(e) = webbrowser::open(url.as_str()) {
+        eprintln!("Failed to open the web browser: {:?}", e);
+    }
+}
+
+/// Handle an origin change.
+fn origin_change(state: &mut State, ui: &mut Ui) {
+    if ui.button("Set origin").clicked() {
+        state.ui.show_origin_change = !state.ui.show_origin_change;
+    }
+    if state.ui.show_origin_change {
+        ui.horizontal(|ui| {
+            ui.label("New origin:");
+
+            let mut entry = state.ui.new_origin.to_string();
+            if ui
+                .add(TextEdit::singleline(&mut entry).desired_width(40.))
+                .changed()
+            {
+                state.ui.new_origin = entry.parse().unwrap_or(0);
+            }
+
+            if ui.button("Set").clicked() {
+                util::change_origin(state);
+            }
+        });
     }
 }
 
@@ -93,12 +169,19 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             ui.label("Name: ");
             ui.add(
-                TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(140.),
+                TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(160.),
             );
 
             ui.add_space(COL_SPACING);
 
             save::save_section(state, ui);
+
+            // todo: YOu will need a better organization method.
+            if ui.button("BLAST").clicked() {
+                open_blast(&state.generic.seq); // todo: Seq A/R
+            }
+
+            origin_change(state, ui);
         });
 
         ui.add_space(ROW_SPACING);

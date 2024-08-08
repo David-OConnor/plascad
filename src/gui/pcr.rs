@@ -132,7 +132,7 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
         temp_time_disp(&state.pcr.extension, "Extension", ui);
         temp_time_disp(&state.pcr.final_extension, "Final extension", ui);
 
-        ui.label(format!("Number of cycles:"));
+        ui.label("Number of cycles:".to_string());
         ui.label(format!("{}", state.pcr.num_cycles));
 
         ui.end_row();

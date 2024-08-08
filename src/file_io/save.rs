@@ -153,10 +153,7 @@ pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
 
 /// Export a sequence in FASTA format.
 pub fn export_fasta(seq: &[Nucleotide], name: &str, path: &Path) -> io::Result<()> {
-    let file = OpenOptions::new()
-        .write(true)
-        .create(true) // Create the file if it doesn't exist
-        .open(path)?;
+    let file = File::create(path)?;
 
     let seq_u8: Vec<u8> = seq.iter().map(|nt| nt.to_u8_letter()).collect();
     let mut writer = fasta::Writer::new(file);
@@ -181,8 +178,11 @@ pub fn import_fasta(path: &Path) -> io::Result<(Seq, String, String)> {
     while let Some(Ok(record)) = records.next() {
         for r in record.seq() {
             result.push(Nucleotide::from_u8_letter(*r)?);
-            id = record.id().to_owned(); // Note that this overrides previous records, if applicable.
-            description = record.desc().unwrap_or_default().to_owned();
+            record.id().clone_into(&mut id); // Note that this overrides previous records, if applicable.
+            record
+                .desc()
+                .unwrap_or_default()
+                .clone_into(&mut description)
         }
     }
 
