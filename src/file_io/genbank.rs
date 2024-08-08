@@ -77,108 +77,7 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
             gb_io::seq::Topology::Circular => SeqTopology::Circular,
         };
 
-        let mut features = Vec::new();
-        let mut primers = Vec::new();
-
-        // This is almost awkward enough to write a parser instead of using gb_io.
-        for feature in &seq.features {
-            let feature_type = FeatureType::from_external_str(&feature.kind.as_ref());
-
-            // We parse label from qualifiers.
-            // I'm unsure how direction works in GenBank files. It appears it's some mix of the LEFT/RIGHT
-            // qualifiers, feature type, and if the location is complement, or forward.
-            let mut direction = FeatureDirection::None;
-            let mut label = String::new();
-
-            let index_range = match &feature.location {
-                // gb_io seems to list the start of the range as 1 too early; compensate.
-                Location::Range(start, end) => (start.0 as usize + 1, end.0 as usize),
-                Location::Complement(inner) => match **inner {
-                    Location::Range(start, end) => {
-                        direction = FeatureDirection::Reverse;
-                        (start.0 as usize + 1, end.0 as usize)
-                    }
-                    _ => {
-                        eprintln!("Unexpected gb_io compl range type: {:?}", feature.location);
-                        (0, 0)
-                    }
-                },
-                _ => {
-                    eprintln!("Unexpected gb_io range type: {:?}", feature.location);
-                    (0, 0)
-                }
-            };
-
-            for v in feature.qualifier_values("label".into()) {
-                v.clone_into(&mut label);
-                break;
-            }
-
-            // Todo: Update or remove this A/R.
-            match feature_type {
-                FeatureType::Primer => {
-                    if direction != FeatureDirection::Reverse {
-                        direction = FeatureDirection::Forward;
-                    }
-                }
-                FeatureType::CodingRegion => direction = FeatureDirection::Forward,
-                _ => (),
-            }
-
-            for v in feature.qualifier_values("direction".into()) {
-                let v = v.to_lowercase();
-                if v == "right" {
-                    direction = FeatureDirection::Forward;
-                    break;
-                } else if v == "left" {
-                    direction = FeatureDirection::Reverse;
-                    break;
-                }
-            }
-
-            // GenBank stores primer bind sites (Which we treat as volatile), vice primer sequences.
-            // Infer the sequence using the bind indices, and the main sequence.
-            if feature_type == FeatureType::Primer {
-                let sequence = match direction {
-                    FeatureDirection::Reverse => {
-                        let compl = seq_complement(&seq_);
-                        compl[seq_.len() - (index_range.1 - 1)..seq_.len() - (index_range.0)]
-                            .to_vec()
-                    }
-                    // See other notes on start range index being odd.
-                    _ => seq_[index_range.0 - 1..index_range.1].to_vec(),
-                };
-
-                let volatile = PrimerData::new(&sequence);
-                primers.push(Primer {
-                    sequence,
-                    name: label,
-                    description: None, // todo: Can we populate this?
-                    volatile,
-                });
-                continue;
-            }
-
-            // Parse notes from qualifiers other than label and direction.
-            let mut notes = HashMap::new();
-            for (qual_key, val) in &feature.qualifiers {
-                if qual_key == "label" {
-                    continue; // We handle this separately.
-                }
-                if let Some(v) = val {
-                    notes.insert(qual_key.to_string(), v.clone());
-                }
-            }
-
-            features.push(Feature {
-                index_range,
-                feature_type,
-                direction,
-                label,
-                color_override: None,
-                notes,
-            })
-        }
+        let (features, primers) = parse_features_primers(&seq.features, &seq_);
 
         let mut references = Vec::new();
         for ref_ in &seq.references {
@@ -227,6 +126,118 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
         ErrorKind::InvalidData,
         "No GenBank sequences found",
     ))
+}
+
+/// Parse features and primers, from GenBank's feature list.
+fn parse_features_primers(features: &[gb_io::seq::Feature], seq: &[Nucleotide]) -> (Vec<Feature>, Vec<Primer>) {
+    let mut result_ft = Vec::new();
+    let mut primers = Vec::new();
+
+    for feature in features {
+        let feature_type = FeatureType::from_external_str(&feature.kind.as_ref());
+
+        // We parse label from qualifiers.
+        // I'm unsure how direction works in GenBank files. It appears it's some mix of the LEFT/RIGHT
+        // qualifiers, feature type, and if the location is complement, or forward.
+        let mut direction = FeatureDirection::None;
+        let mut label = String::new();
+
+        let index_range = match &feature.location {
+            // gb_io seems to list the start of the range as 1 too early; compensate.
+            Location::Range(start, end) => (start.0 as usize + 1, end.0 as usize),
+            Location::Complement(inner) => match **inner {
+                Location::Range(start, end) => {
+                    direction = FeatureDirection::Reverse;
+                    (start.0 as usize + 1, end.0 as usize)
+                }
+                _ => {
+                    eprintln!("Unexpected gb_io compl range type: {:?}", feature.location);
+                    (0, 0)
+                }
+            },
+            _ => {
+                eprintln!("Unexpected gb_io range type: {:?}", feature.location);
+                (0, 0)
+            }
+        };
+
+        for v in feature.qualifier_values("label".into()) {
+            v.clone_into(&mut label);
+            break;
+        }
+
+        match feature_type {
+            FeatureType::Primer => {
+                if direction != FeatureDirection::Reverse {
+                    direction = FeatureDirection::Forward;
+                }
+            }
+            FeatureType::CodingRegion => {
+                // As CDS regions are always directional, if not identified as reverse due to the range
+                // being in complement format, set it to forward.
+                if direction == FeatureDirection::None {
+                    direction = FeatureDirection::Forward
+                }
+            },
+            _ => (),
+        }
+
+        for v in feature.qualifier_values("direction".into()) {
+            let v = v.to_lowercase();
+            if v == "right" {
+                direction = FeatureDirection::Forward;
+                break;
+            } else if v == "left" {
+                direction = FeatureDirection::Reverse;
+                break;
+            }
+        }
+
+        // GenBank stores primer bind sites (Which we treat as volatile), vice primer sequences.
+        // Infer the sequence using the bind indices, and the main sequence.
+        if feature_type == FeatureType::Primer {
+            let sequence = match direction {
+                FeatureDirection::Reverse => {
+                    let compl = seq_complement(&seq);
+                    compl[seq.len() - (index_range.1 - 1)..seq.len() - (index_range.0)]
+                        .to_vec()
+                }
+                // See other notes on start range index being odd.
+                _ => seq[index_range.0 - 1..index_range.1].to_vec(),
+            };
+
+            let volatile = PrimerData::new(&sequence);
+            primers.push(Primer {
+                sequence,
+                name: label,
+                description: None, // todo: Can we populate this?
+                volatile,
+            });
+            continue;
+        }
+
+        // Parse notes from qualifiers other than label and direction.
+        let mut notes = HashMap::new();
+        for (qual_key, val) in &feature.qualifiers {
+            if qual_key == "label" {
+                continue; // We handle this separately.
+            }
+            if let Some(v) = val {
+                notes.insert(qual_key.to_string(), v.clone());
+            }
+        }
+
+        result_ft.push(Feature {
+            index_range,
+            feature_type,
+            direction,
+            label,
+            color_override: None,
+            notes,
+        })
+    }
+
+    (result_ft, primers)
 }
 
 /// Export our local state into the GenBank format. This includes sequence, features, and primers.

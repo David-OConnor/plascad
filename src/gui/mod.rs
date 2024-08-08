@@ -171,9 +171,11 @@ pub fn draw(state: &mut State, ctx: &Context) {
             ui.add(
                 TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(160.),
             );
+        });
 
-            ui.add_space(COL_SPACING);
+        ui.add_space(ROW_SPACING / 2.);
 
+        ui.horizontal(|ui| {
             save::save_section(state, ui);
 
             // todo: YOu will need a better organization method.
