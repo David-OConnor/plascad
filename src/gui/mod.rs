@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use eframe::{
     egui,
@@ -67,7 +67,10 @@ pub fn draw(state: &mut State, ctx: &Context) {
         }
 
         if ip.key_pressed(Key::S) && ip.modifiers.ctrl {
-            if let Err(e) = save(DEFAULT_SAVE_FILE, &StateToSave::from_state(state)) {
+            if let Err(e) = save(
+                &PathBuf::from(DEFAULT_SAVE_FILE),
+                &StateToSave::from_state(state),
+            ) {
                 println!("Error saving: {e}");
             }
         }

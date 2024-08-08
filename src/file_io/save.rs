@@ -125,11 +125,12 @@ impl StateToSave {
     }
 }
 
-pub fn save<T: Encode>(filename: &str, data: &T) -> io::Result<()> {
+pub fn save<T: Encode>(path: &Path, data: &T) -> io::Result<()> {
     let config = config::standard();
 
     let encoded: Vec<u8> = bincode::encode_to_vec(data, config).unwrap();
-    let mut file = File::create(filename)?;
+
+    let mut file = File::create(path)?;
     file.write_all(&encoded)?;
     Ok(())
 }

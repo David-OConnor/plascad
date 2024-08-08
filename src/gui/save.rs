@@ -1,6 +1,10 @@
 //! GUI code for saving and loading
 
-use std::{env, ops::Range, path::Path};
+use std::{
+    env,
+    ops::Range,
+    path::{Path, PathBuf},
+};
 
 use eframe::egui::Ui;
 // use egui_file::FileDialog;
@@ -38,8 +42,6 @@ fn save_button(
         };
         save_path.push(Path::new(&filename));
 
-        println!("Save path: {:?}", save_path);
-
         dialog.save_file();
     }
 }
@@ -58,7 +60,10 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         .on_hover_text("Save data. (Ctrl + s)")
         .clicked()
     {
-        if let Err(e) = save(DEFAULT_SAVE_FILE, &StateToSave::from_state(state)) {
+        if let Err(e) = save(
+            &PathBuf::from(DEFAULT_SAVE_FILE),
+            &StateToSave::from_state(state),
+        ) {
             println!("Error saving: {e}");
         }
     }
@@ -115,7 +120,6 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
     // todo: DRY.
     let ctx = ui.ctx();
-    state.ui.file_dialogs.save.update(ctx);
 
     state.ui.file_dialogs.save.update(ctx);
     state.ui.file_dialogs.load.update(ctx);
@@ -159,24 +163,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         }
     } else if let Some(path) = state.ui.file_dialogs.save.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());
-
-        // todo: DRY with above for filename setting.
-        let extension = "pcad";
-        let filename = {
-            let name = if state.generic.metadata.plasmid_name.is_empty() {
-                "a_plasmid".to_string()
-            } else {
-                state
-                    .generic
-                    .metadata
-                    .plasmid_name
-                    .to_lowercase()
-                    .replace(" ", "_")
-            };
-            format!("{name}.{extension}")
-        };
-
-        if let Err(e) = save(&filename, &StateToSave::from_state(state)) {
+        if let Err(e) = save(&path, &StateToSave::from_state(state)) {
             eprintln!("Error saving in PlasCAD format: {:?}", e);
         };
     } else if let Some(path) = state.ui.file_dialogs.load.take_selected() {
@@ -215,8 +202,6 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     }
 
     if sync {
-        println!("SYNCING");
-
         state.sync_pcr();
         state.sync_primer_metrics();
         state.sync_seq_related(None);

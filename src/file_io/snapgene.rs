@@ -8,30 +8,30 @@
 //! - The payload
 
 use std::{
+    collections::HashMap,
     fs::{File, OpenOptions},
     io::{self, ErrorKind, Read, Seek, Write},
     path::Path,
     str,
 };
-use std::collections::HashMap;
+
 use num_enum::TryFromPrimitive;
 use quick_xml::{de::from_str, se::to_string};
 
 use crate::{
     file_io::{
         snapgene::feature_xml::{
-            FeatureSnapGene, Features, PrimerSnapGene, Primers,  Segment,
+            FeatureSnapGene, Features, Notes, PrimerSnapGene, Primers, Segment,
         },
         GenericData,
     },
-    primer::{Primer},
+    primer::Primer,
     sequence::{
         seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq,
         SeqTopology,
     },
     util::{color_from_hex, color_to_hex},
 };
-use crate::file_io::snapgene::feature_xml::Notes;
 
 const COOKIE_PACKET_LEN: usize = 14;
 
@@ -220,7 +220,7 @@ mod feature_xml {
         pub name: Option<String>,
         #[serde(rename = "@color", default)]
         pub color: Option<String>, // Hex.
-        // Other fields: "translated": 0/1
+                                   // Other fields: "translated": 0/1
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -235,9 +235,9 @@ mod feature_xml {
     pub struct QualifierValue {
         #[serde(rename = "@text", default)]
         pub text: Option<String>,
-        #[serde(rename = "@predef",default)]
+        #[serde(rename = "@predef", default)]
         pub predef: Option<String>,
-        #[serde(rename = "@int",default)]
+        #[serde(rename = "@int", default)]
         pub int: Option<i32>,
     }
 
@@ -490,7 +490,7 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
             segments,
             qualifiers: Vec::new(),
             name: Some(feature.label.clone()),
-            directionality
+            directionality,
         });
     }
 
@@ -539,10 +539,7 @@ fn export_primers(buf: &mut Vec<u8>, primers: &[Primer]) -> io::Result<()> {
 
 /// Export our local state into the SnapGene dna format. This includes sequence, features, and primers.
 pub fn export_snapgene(data: &GenericData, path: &Path) -> io::Result<()> {
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create(true) // Create the file if it doesn't exist
-        .open(path)?;
+    let mut file = File::create(&path)?;
 
     let mut buf = Vec::new();
 

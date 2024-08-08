@@ -295,25 +295,33 @@ pub fn design_slic_fc_primers(
         vector_fwd: Primer {
             sequence: seq_vector_fwd,
             name: "Vector fwd".to_owned(),
-            description: Some("SLIC cloning primer, Vector forward. Amplifies the entire vector.".to_owned()),
+            description: Some(
+                "SLIC cloning primer, Vector forward. Amplifies the entire vector.".to_owned(),
+            ),
             volatile: Default::default(),
         },
         vector_rev: Primer {
             sequence: seq_vector_rev,
             name: "Vector rev".to_owned(),
-            description: Some("SLIC cloning primer, Vector reverse. Amplifies the entire vector.".to_owned()),
+            description: Some(
+                "SLIC cloning primer, Vector reverse. Amplifies the entire vector.".to_owned(),
+            ),
             volatile: Default::default(),
         },
         insert_fwd: Primer {
             sequence: seq_insert_fwd,
             name: "Insert fwd".to_owned(),
-            description: Some("SLIC cloning primer, Insert forward. Overlaps with the vector.".to_owned()),
+            description: Some(
+                "SLIC cloning primer, Insert forward. Overlaps with the vector.".to_owned(),
+            ),
             volatile: Default::default(),
         },
         insert_rev: Primer {
             sequence: seq_insert_rev,
             name: "Insert rev".to_owned(),
-            description: Some("SLIC cloning primer, Insert forward. Overlaps with the vector.".to_owned()),
+            description: Some(
+                "SLIC cloning primer, Insert forward. Overlaps with the vector.".to_owned(),
+            ),
             volatile: Default::default(),
         },
     })

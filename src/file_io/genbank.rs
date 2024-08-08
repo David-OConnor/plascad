@@ -21,14 +21,10 @@ use gb_io::{
 
 use crate::{
     file_io::GenericData,
-    primer::{Primer, PrimerDirection},
-    sequence::{
-        seq_complement, Feature, FeatureDirection, FeatureType, Nucleotide,
-        SeqTopology,
-    },
+    primer::{Primer, PrimerData, PrimerDirection},
+    sequence::{seq_complement, Feature, FeatureDirection, FeatureType, Nucleotide, SeqTopology},
     Metadata, Reference,
 };
-use crate::primer::PrimerData;
 
 /// Read a file in the GenBank format.
 /// [Rust docs ref of fields](https://docs.rs/gb-io/latest/gb_io/seq/struct.Seq.html)
@@ -240,10 +236,7 @@ pub fn export_genbank(
     primer_matches: &[(PrimerDirection, Range<usize>, String)],
     path: &Path,
 ) -> io::Result<()> {
-    let file = OpenOptions::new()
-        .write(true)
-        .create(true) // Create the file if it doesn't exist
-        .open(path)?;
+    let file = File::create(&path)?;
 
     let mut gb_data = gb_io::seq::Seq::empty();
 

@@ -129,10 +129,7 @@ To learn about a table column, mouse over it.");
                 return;
             }
 
-            ui.heading(&format!(
-                "Selected: {}",
-                &state.generic.primers[sel_i].name
-            ));
+            ui.heading(&format!("Selected: {}", &state.generic.primers[sel_i].name));
 
             ui.add_space(COL_SPACING);
 
@@ -468,7 +465,6 @@ fn primer_tune_display(
         });
 
         if tuned {
-
             primer.run_calcs(ion_concentrations);
         }
     });
