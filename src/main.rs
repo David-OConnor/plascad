@@ -21,6 +21,7 @@ use crate::{
         ReadingFrameMatch,
     },
 };
+use crate::sequence::Feature;
 
 mod features_known;
 mod file_io;
@@ -268,6 +269,8 @@ struct StateUi {
     pcr: PcrUi,
     feature_add: StateFeatureAdd,
     primer_selected: Option<usize>,
+    feature_selected: Option<usize>,
+    feature_hover: Option<usize>,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
     cursor_pos: Option<(f32, f32)>,
@@ -290,6 +293,8 @@ impl Default for StateUi {
             pcr: Default::default(),
             feature_add: Default::default(),
             primer_selected: None,
+            feature_selected: Default::default(),
+            feature_hover: Default::default(),
             seq_visibility: Default::default(),
             hide_map_feature_editor: true,
             cursor_pos: None,

@@ -70,21 +70,21 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         &state.generic.metadata.plasmid_name,
         "pcad",
         "Save as",
-        "Save data in the PlasCAD format, to a file.",
+        "Save data in the PlasCAD format.",
         ui,
     );
 
     load_button(
         &mut state.ui.file_dialogs.load,
         "Load",
-        "Load data in the PlasCAD format, from a file.",
+        "Load data in the PlasCAD format.",
         ui,
     );
 
     load_button(
         &mut state.ui.file_dialogs.import,
-        "Imp FASTA/GenBank/SnapGene",
-        "Import a sequence in the FASTA or .dna (SnapGene) formats",
+        "Import",
+        "Import data in the FASTA, GenBank, or .dna (SnapGene) formats",
         ui,
     );
 
@@ -102,7 +102,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         &state.generic.metadata.plasmid_name,
         "gb",
         "Exp GenBank",
-        "Export the sequence in the GenBank format.",
+        "Export data in the GenBank format.",
         ui,
     );
 

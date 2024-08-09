@@ -532,6 +532,72 @@ fn find_cursor_i(
     }
 }
 
+/// Draw text in the center of the circle; eg general plasmid information, or information
+/// about a feature.
+fn draw_center_text(center: Pos2, to_screen: &RectTransform, seq_len: usize, state: &mut State, ui: &mut Ui) -> Vec<Shape> {
+let mut result = Vec::new();
+    // todo: Separate function for center label too if it becomes too complicatged.
+
+
+    match &state.ui.feature_hover {
+        Some(i) => {
+            if state.generic.features.len() + 1 < *i {
+                eprintln!("Invalid hover feature");
+            }
+            let feature = &state.generic.features[*i];
+
+            let mut labels = vec![
+                feature.label.clone(),
+                format!("{}..{}", feature.index_range.0, feature.index_range.1),
+                feature.feature_type.to_string(),
+            ];
+            for note in &feature.notes {
+                labels.push(format!("{}: {}", note.0, note.1));
+            }
+
+// todo: COlor-code etc?
+            for (i, label) in labels.iter().enumerate() {
+                result.push(ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        to_screen * pos2(center.x, center.y + i as f32 * 20.), // slightly below seq name
+                        Align2::CENTER_CENTER,
+                        label,
+                            FontId::new(16., FontFamily::Proportional),
+                        TICK_COLOR,
+                    )
+                }));
+            }
+        }
+        None => {
+            // Display a summary of the plasmid
+            result.push(ui.ctx().fonts(|fonts| {
+                Shape::text(
+                    fonts,
+                    to_screen * center,
+                    Align2::CENTER_CENTER,
+                    &state.generic.metadata.plasmid_name,
+                    FontId::new(16., FontFamily::Proportional),
+                    TICK_COLOR,
+                )
+            }));
+
+            result.push(ui.ctx().fonts(|fonts| {
+                Shape::text(
+                    fonts,
+                    to_screen * pos2(center.x, center.y + 20.), // slightly below seq name
+                    Align2::CENTER_CENTER,
+                    format!("{seq_len} bp"),
+                    FontId::new(13., FontFamily::Proportional),
+                    TICK_COLOR,
+                )
+            }));
+        }
+    }
+
+    result
+}
+
 pub fn circle_page(state: &mut State, ui: &mut Ui) {
     let mut shapes = Vec::new();
 
@@ -592,6 +658,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
             // todo: Cache to_screen * center etc?
 
+            let prev_cursor_i = state.ui.cursor_seq_i;
             state.ui.cursor_seq_i = find_cursor_i(
                 state.ui.cursor_pos,
                 &from_screen,
@@ -599,6 +666,19 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 center,
                 radius,
             );
+
+            // todo: Consider cacheing this, instead of running each renderx.
+            // todo: You may not need the state.ui hover_feature i: You can probably use a local ref here.
+            if prev_cursor_i != state.ui.cursor_seq_i {
+                if let Some(seq_i) = state.ui.cursor_seq_i {
+                for (i, feature) in state.generic.features.iter().enumerate() {
+                    if seq_i > feature.index_range.0 && seq_it  < feature.index_range.1 {
+                        state.ui.feature_hover = Some(i);
+                        break; // arbitrarily choosing the first feature.
+                    }
+                }
+                }
+            }
 
             // Draw the backbone circle
             shapes.push(Shape::Circle(CircleShape::stroke(
@@ -628,28 +708,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 ui,
             ));
 
-            // todo: Separate function for center label too if it becomes too complicatged.
-            shapes.push(ui.ctx().fonts(|fonts| {
-                Shape::text(
-                    fonts,
-                    to_screen * center,
-                    Align2::CENTER_CENTER,
-                    &state.generic.metadata.plasmid_name,
-                    FontId::new(16., FontFamily::Proportional),
-                    TICK_COLOR,
-                )
-            }));
-
-            shapes.push(ui.ctx().fonts(|fonts| {
-                Shape::text(
-                    fonts,
-                    to_screen * pos2(center.x, center.y + 20.), // slightly below seq name
-                    Align2::CENTER_CENTER,
-                    format!("{seq_len} bp"),
-                    FontId::new(13., FontFamily::Proportional),
-                    TICK_COLOR,
-                )
-            }));
+            shapes.append(&mut draw_center_text(center, &to_screen, seq_len, state, ui));
 
             ui.painter().extend(shapes);
         });

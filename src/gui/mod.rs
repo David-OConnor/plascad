@@ -178,6 +178,8 @@ pub fn draw(state: &mut State, ctx: &Context) {
         ui.horizontal(|ui| {
             save::save_section(state, ui);
 
+            ui.add_space(COL_SPACING);
+
             // todo: YOu will need a better organization method.
             if ui.button("BLAST").clicked() {
                 open_blast(&state.generic.seq); // todo: Seq A/R
