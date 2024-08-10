@@ -114,7 +114,7 @@ pub struct ReadingFrameMatch {
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum FeatureType {
     Generic,
-    // Gene,
+    Gene,
     Ori,
     // RnaPolyBindSite,
     RibosomeBindSite,
@@ -144,9 +144,8 @@ impl FeatureType {
     pub fn to_string(&self) -> String {
         match self {
             Self::Generic => "Generic",
-            // Self::Gene => "Gene",
+            Self::Gene => "Gene",
             Self::Ori => "Origin of replication",
-            // Self::RnaPolyBindSite => "RNA poly bind site",
             Self::RibosomeBindSite => "Ribosome bind site",
             Self::Promoter => "Promoter",
             Self::AntibioticResistance => "Antibiotic resistance",
@@ -163,7 +162,7 @@ impl FeatureType {
     pub fn color(&self) -> Color {
         match self {
             Self::Generic => (255, 0, 255),
-            // Self::Gene => (255, 128, 128),
+            Self::Gene => (255, 128, 128),
             Self::Ori => (40, 128, 128),
             // Self::RnaPolyBindSite => (255, 0, 20),
             Self::RibosomeBindSite => (255, 0, 100),
@@ -185,6 +184,7 @@ impl FeatureType {
 
         match v.as_ref() {
             "cds" => Self::CodingRegion,
+            "gene" => Self::Gene,
             "rbs" => Self::RibosomeBindSite,
             "rep_origin" => Self::Ori,
             "promoter" => Self::Promoter,
@@ -203,7 +203,7 @@ impl FeatureType {
         // todo: Update as required with more
         match self {
             Self::Generic => "misc_feature",
-            // Self::Gene => "gene", // todo
+            Self::Gene => "gene",
             Self::Ori => "rep_origin",
             Self::RibosomeBindSite => "rbs",
             Self::Promoter => "promoter",

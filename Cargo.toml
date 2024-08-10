@@ -23,6 +23,7 @@ serde = { version = "1.0.204", features = ["derive"] }
 num_enum = "0.7.3"  # reversing a u8-repr.
 
 # For FASTA read and write. Note: We can ditch this for a custom parser; FASTA is easy.
+# Note, 2024-08-09: Removing this appears to have minimal impact on binary size.
 bio = "^2.0.0"
 quick-xml = {version = "0.36.1", features = ["serialize"]}   # For Snapgene feature parsing and writing.
 # We use bincode for saving and loading to files using our custom format.

@@ -13,6 +13,7 @@ use crate::{
     sequence::Nucleotide,
     util, State,
 };
+use crate::sequence::{Feature, FeatureType};
 
 mod circle;
 mod feature_overlay;
@@ -134,6 +135,32 @@ fn origin_change(state: &mut State, ui: &mut Ui) {
             }
         });
     }
+}
+
+/// Find the index of the smallest feature that contains an index. Index is in our 1-based system.
+fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usize> {
+    if let Some(seq_i) = index {
+        // If multiple features are in the cursor's region, choose the smallest.
+        let mut smallest_feature = 0;
+        let mut smallest_feature_size = 99999;
+
+        for (i, feature) in features.iter().enumerate() {
+            if feature.feature_type == FeatureType::Source {
+                continue // From GenBank; generally the whole seq.
+            }
+
+            if *seq_i > feature.index_range.0 && *seq_i < feature.index_range.1 {
+                let feature_size = feature.index_range.1 - feature.index_range.0;
+                if feature_size < smallest_feature_size {
+                    smallest_feature = i;
+                    smallest_feature_size = feature_size;
+
+                    return Some(i);
+                }
+            }
+        }
+    }
+    None
 }
 
 pub fn draw(state: &mut State, ctx: &Context) {

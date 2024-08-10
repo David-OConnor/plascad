@@ -35,10 +35,12 @@ It generates primers to amplify the entire vector, and insert primers that conta
 ### Sequence viewer
 This shows the sequence of interest (as generated from cloning, or manually input) with primers overlayed based on their
 match location. It also displays cut sites for common restriction enzymes, and features loaded from a file, or set by the user.
+It includes basic reading frame (ORF) viewing for coding regions.
 
 
 ### Circular map
-A circular sequence map of the plasmid being edited, with features and other data displayed
+A circular sequence map of the plasmid being edited, with features, primers, restriction enzyme sites, and other data 
+displayed.
 
 
 ### PCR parameter generation

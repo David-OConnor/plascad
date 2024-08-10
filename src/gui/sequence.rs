@@ -3,7 +3,7 @@
 use eframe::egui::{TextEdit, Ui};
 
 // todo: monospace font for all seqs.
-use crate::sequence::{seq_from_str, seq_to_str};
+use crate::sequence::{Feature, seq_from_str, seq_to_str};
 use crate::{
     gui::{
         features::feature_table,
@@ -94,11 +94,32 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     }
 }
 
+/// Displays text of the feature under the cursor
+fn feature_text(feature_hover: &Option<usize>, features: &[Feature], ui: &mut Ui) {
+    match feature_hover {
+        Some(i) => {
+            if features.len() + 1 < *i {
+                eprintln!("Invalid hover feature");
+            }
+            let feature = &features[*i];
+
+            ui.label(&feature.label); // todo: IDeally heading here, but it is currnetly causing display jumping.
+            ui.label( format!("{}..{}", feature.index_range.0, feature.index_range.1));
+            ui.label( feature.feature_type.to_string());
+
+                // todo?
+            for note in &feature.notes {
+                // ui.label(&format!("{}: {}", note.0, note.1));
+            }
+        }
+        None => (),
+    }
+}
+
 /// Component for the sequence page.
 pub fn seq_page(state: &mut State, ui: &mut Ui) {
     page_seq_top_selector(state, ui);
 
-    // ui.add_space(ROW_SPACING / 2.);
 
     match state.ui.page_seq_top {
         PageSeqTop::Primers => primer_details(state, ui),
@@ -108,7 +129,13 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(ROW_SPACING);
 
-    page_seq_selector(state, ui);
+    ui.horizontal(|ui| {
+        page_seq_selector(state, ui);
+        ui.add_space(COL_SPACING);
+
+        feature_text(&state.ui.feature_hover, &state.generic.features, ui);
+    });
+
 
     ui.add_space(ROW_SPACING / 2.);
 

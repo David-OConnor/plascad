@@ -129,7 +129,10 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
 }
 
 /// Parse features and primers, from GenBank's feature list.
-fn parse_features_primers(features: &[gb_io::seq::Feature], seq: &[Nucleotide]) -> (Vec<Feature>, Vec<Primer>) {
+fn parse_features_primers(
+    features: &[gb_io::seq::Feature],
+    seq: &[Nucleotide],
+) -> (Vec<Feature>, Vec<Primer>) {
     let mut result_ft = Vec::new();
     let mut primers = Vec::new();
 
@@ -178,7 +181,7 @@ fn parse_features_primers(features: &[gb_io::seq::Feature], seq: &[Nucleotide]) 
                 if direction == FeatureDirection::None {
                     direction = FeatureDirection::Forward
                 }
-            },
+            }
             _ => (),
         }
 
@@ -199,8 +202,7 @@ fn parse_features_primers(features: &[gb_io::seq::Feature], seq: &[Nucleotide]) 
             let sequence = match direction {
                 FeatureDirection::Reverse => {
                     let compl = seq_complement(&seq);
-                    compl[seq.len() - (index_range.1 - 1)..seq.len() - (index_range.0)]
-                        .to_vec()
+                    compl[seq.len() - (index_range.1 - 1)..seq.len() - (index_range.0)].to_vec()
                 }
                 // See other notes on start range index being odd.
                 _ => seq[index_range.0 - 1..index_range.1].to_vec(),

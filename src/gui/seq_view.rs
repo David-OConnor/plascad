@@ -20,6 +20,7 @@ use crate::{
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
     State, StateUi,
 };
+use crate::gui::feature_from_index;
 
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
@@ -239,6 +240,20 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 );
 
                 let from_screen = to_screen.inverse();
+
+                let prev_cursor_i = state.ui.cursor_seq_i;
+                state.ui.cursor_seq_i = find_cursor_i(
+                    state.ui.cursor_pos,
+                    &from_screen,
+                    &row_ranges,
+                );
+
+                if prev_cursor_i != state.ui.cursor_seq_i {
+                    state.ui.feature_hover = None;
+                    // todo: Consider cacheing this, instead of running each renderx.
+                    // todo: You may not need the state.ui hover_feature i: You can probably use a local ref here.
+                    state.ui.feature_hover = feature_from_index(&state.ui.cursor_seq_i,  &state.generic.features);
+                }
 
                 state.ui.cursor_seq_i =
                     find_cursor_i(state.ui.cursor_pos, &from_screen, &row_ranges);

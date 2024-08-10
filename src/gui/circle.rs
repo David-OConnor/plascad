@@ -20,6 +20,7 @@ use crate::{
     sequence::{Feature, FeatureDirection, FeatureType},
     State,
 };
+use crate::gui::feature_from_index;
 
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 
@@ -532,12 +533,31 @@ fn find_cursor_i(
     }
 }
 
+/// Helper fn.
+fn draw_text(text: &str, pos: Pos2, font_size: f32, color: Color32, ui: &mut Ui) -> Shape {
+    ui.ctx().fonts(|fonts| {
+        Shape::text(
+            fonts,
+            pos,
+            Align2::CENTER_CENTER,
+            text,
+            FontId::new(font_size, FontFamily::Proportional),
+            color,
+        )
+    })
+}
+
 /// Draw text in the center of the circle; eg general plasmid information, or information
 /// about a feature.
-fn draw_center_text(center: Pos2, to_screen: &RectTransform, seq_len: usize, state: &mut State, ui: &mut Ui) -> Vec<Shape> {
-let mut result = Vec::new();
+fn draw_center_text(
+    center: Pos2,
+    to_screen: &RectTransform,
+    seq_len: usize,
+    state: &mut State,
+    ui: &mut Ui,
+) -> Vec<Shape> {
+    let mut result = Vec::new();
     // todo: Separate function for center label too if it becomes too complicatged.
-
 
     match &state.ui.feature_hover {
         Some(i) => {
@@ -546,52 +566,56 @@ let mut result = Vec::new();
             }
             let feature = &state.generic.features[*i];
 
-            let mut labels = vec![
+            let labels = vec![
                 feature.label.clone(),
                 format!("{}..{}", feature.index_range.0, feature.index_range.1),
                 feature.feature_type.to_string(),
             ];
-            for note in &feature.notes {
-                labels.push(format!("{}: {}", note.0, note.1));
+
+            let row_spacing = 20.;
+            let mut i = 0; // Rows
+            for label in &labels {
+                result.push(draw_text(
+                    label,
+                    to_screen * pos2(center.x, center.y + i as f32 * row_spacing - 60.),
+                    16.,
+                    Color32::WHITE,
+                    ui,
+                )); // slightly below seq name, ui));
+                i += 1;
             }
 
-// todo: COlor-code etc?
-            for (i, label) in labels.iter().enumerate() {
-                result.push(ui.ctx().fonts(|fonts| {
-                    Shape::text(
-                        fonts,
-                        to_screen * pos2(center.x, center.y + i as f32 * 20.), // slightly below seq name
-                        Align2::CENTER_CENTER,
-                        label,
-                            FontId::new(16., FontFamily::Proportional),
-                        TICK_COLOR,
-                    )
-                }));
+            i += 1;
+
+            for note in &feature.notes {
+                result.push(draw_text(
+                    &format!("{}: {}", note.0, note.1),
+                    to_screen * pos2(center.x, center.y + i as f32 * row_spacing - 60.),
+                    13.,
+                    TICK_COLOR,
+                    ui,
+                ));
+                i += 1;
             }
+
+            // todo: COlor-code etc?
         }
         None => {
             // Display a summary of the plasmid
-            result.push(ui.ctx().fonts(|fonts| {
-                Shape::text(
-                    fonts,
-                    to_screen * center,
-                    Align2::CENTER_CENTER,
-                    &state.generic.metadata.plasmid_name,
-                    FontId::new(16., FontFamily::Proportional),
-                    TICK_COLOR,
-                )
-            }));
-
-            result.push(ui.ctx().fonts(|fonts| {
-                Shape::text(
-                    fonts,
-                    to_screen * pos2(center.x, center.y + 20.), // slightly below seq name
-                    Align2::CENTER_CENTER,
-                    format!("{seq_len} bp"),
-                    FontId::new(13., FontFamily::Proportional),
-                    TICK_COLOR,
-                )
-            }));
+            result.push(draw_text(
+                &state.generic.metadata.plasmid_name,
+                to_screen * center,
+                16.,
+                TICK_COLOR,
+                ui,
+            ));
+            result.push(draw_text(
+                &format!("{seq_len} bp"),
+                to_screen * pos2(center.x, center.y + 20.),
+                13.,
+                TICK_COLOR,
+                ui,
+            ));
         }
     }
 
@@ -667,17 +691,11 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 radius,
             );
 
-            // todo: Consider cacheing this, instead of running each renderx.
-            // todo: You may not need the state.ui hover_feature i: You can probably use a local ref here.
             if prev_cursor_i != state.ui.cursor_seq_i {
-                if let Some(seq_i) = state.ui.cursor_seq_i {
-                for (i, feature) in state.generic.features.iter().enumerate() {
-                    if seq_i > feature.index_range.0 && seq_it  < feature.index_range.1 {
-                        state.ui.feature_hover = Some(i);
-                        break; // arbitrarily choosing the first feature.
-                    }
-                }
-                }
+                state.ui.feature_hover = None;
+                // todo: Consider cacheing this, instead of running each renderx.
+                // todo: You may not need the state.ui hover_feature i: You can probably use a local ref here.
+                state.ui.feature_hover = feature_from_index(&state.ui.cursor_seq_i,  &state.generic.features);
             }
 
             // Draw the backbone circle
@@ -708,7 +726,9 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 ui,
             ));
 
-            shapes.append(&mut draw_center_text(center, &to_screen, seq_len, state, ui));
+            shapes.append(&mut draw_center_text(
+                center, &to_screen, seq_len, state, ui,
+            ));
 
             ui.painter().extend(shapes);
         });

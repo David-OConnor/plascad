@@ -17,11 +17,10 @@ use crate::{
     primer::TM_TARGET,
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        find_orf_matches, seq_to_str, FeatureDirection, FeatureType, ReadingFrame,
+        find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, ReadingFrame,
         ReadingFrameMatch,
     },
 };
-use crate::sequence::Feature;
 
 mod features_known;
 mod file_io;
