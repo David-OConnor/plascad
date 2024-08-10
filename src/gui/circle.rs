@@ -4,8 +4,8 @@ use core::f32::consts::TAU;
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense,
-        Shape, Stroke, Ui, Vec2,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
+        Stroke, Ui, Vec2,
     },
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
@@ -56,6 +56,17 @@ const CIRCLE_SIZE_RATIO: f32 = 0.42;
 // The maximum distance the cursor can be from the circle for various tasks like selection, finding
 // the cursor position etc.
 const SELECTION_MAX_DIST: f32 = 100.;
+
+const CENTER_TEXT_ROW_SPACING: f32 = 20.;
+
+/// These aguments define the circle, and are used in many places in this module.
+struct CircleData {
+    pub seq_len: usize,
+    pub center: Pos2,
+    pub radius: f32,
+    pub to_screen: RectTransform,
+    pub from_screen: RectTransform,
+}
 
 // // todo: Experimenting with making a `Mesh`, so we can fill it.
 // /// Tessellate a single [`ArcPieShape`] into a [`Mesh`].
@@ -187,25 +198,21 @@ fn angle_to_pixel(angle: f32, radius: f32) -> Pos2 {
 // }
 
 /// Draw a tick every 1kbp.
-fn draw_ticks(
-    seq_len: usize,
-    center: Pos2,
-    radius: f32,
-    to_screen: &RectTransform,
-    ui: &mut Ui,
-) -> Vec<Shape> {
+fn draw_ticks(data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    for i_div_1k in 0..seq_len / TICK_SPACING {
+    for i_div_1k in 0..data.seq_len / TICK_SPACING {
         let i = i_div_1k * TICK_SPACING;
 
-        let angle = seq_i_to_angle(i, seq_len);
+        let angle = seq_i_to_angle(i, data.seq_len);
 
-        let point_inner = angle_to_pixel(angle, radius - TICK_LEN_DIV_2) + center.to_vec2();
-        let point_outer = angle_to_pixel(angle, radius + TICK_LEN_DIV_2) + center.to_vec2();
+        let point_inner =
+            angle_to_pixel(angle, data.radius - TICK_LEN_DIV_2) + data.center.to_vec2();
+        let point_outer =
+            angle_to_pixel(angle, data.radius + TICK_LEN_DIV_2) + data.center.to_vec2();
 
         result.push(Shape::line_segment(
-            [to_screen * point_inner, to_screen * point_outer],
+            [data.to_screen * point_inner, data.to_screen * point_outer],
             Stroke::new(TICK_WIDTH, TICK_COLOR),
         ));
 
@@ -224,7 +231,7 @@ fn draw_ticks(
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
                 fonts,
-                to_screen * label_pt,
+                data.to_screen * label_pt,
                 label_align,
                 i.to_string(),
                 FontId::new(16., FontFamily::Proportional),
@@ -237,17 +244,15 @@ fn draw_ticks(
 
 /// Created a filled-in arc.
 fn draw_filled_arc(
-    center: Pos2,
-    radius: f32,
+    data: &CircleData,
     angle: (f32, f32),
     width: f32,
-    to_screen: &RectTransform,
     fill_color: Color32,
     stroke: Stroke,
 ) -> Vec<Shape> {
-    let center_screen = to_screen * center;
-    let mut points_outer = arc_points(center_screen, radius + width / 2., angle.0, angle.1);
-    let mut points_inner = arc_points(center_screen, radius - width / 2., angle.0, angle.1);
+    let center_screen = data.to_screen * data.center;
+    let mut points_outer = arc_points(center_screen, data.radius + width / 2., angle.0, angle.1);
+    let mut points_inner = arc_points(center_screen, data.radius - width / 2., angle.0, angle.1);
 
     points_inner.reverse();
 
@@ -263,11 +268,11 @@ fn draw_filled_arc(
 
     let mut points_patch = arc_points(
         center_screen,
-        radius - width / 2. - stroke.width / 2.,
+        data.radius - width / 2. - stroke.width / 2.,
         angle.0,
         angle.1,
     );
-    points_patch.push(center);
+    points_patch.push(data.center);
 
     result.push(Shape::convex_polygon(
         points_patch,
@@ -279,17 +284,11 @@ fn draw_filled_arc(
 }
 
 /// This is a fancy way of saying triangle.
-fn draw_arrowhead(
-    center: Vec2,
-    radius: f32,
-    width: f32,
-    angle: (f32, f32),
-    color: Color32,
-    to_screen: &RectTransform,
-) -> Shape {
-    let base_outer = to_screen * angle_to_pixel(angle.0, radius + width / 2.) + center;
-    let base_inner = to_screen * angle_to_pixel(angle.0, radius - width / 2.) + center;
-    let tip = to_screen * angle_to_pixel(angle.1, radius) + center;
+fn draw_arrowhead(data: &CircleData, width: f32, angle: (f32, f32), color: Color32) -> Shape {
+    let center = data.center.to_vec2();
+    let base_outer = data.to_screen * angle_to_pixel(angle.0, data.radius + width / 2.) + center;
+    let base_inner = data.to_screen * angle_to_pixel(angle.0, data.radius - width / 2.) + center;
+    let tip = data.to_screen * angle_to_pixel(angle.1, data.radius) + center;
 
     // Points arranged clockwise for performance reasons.
     let points = if angle.1 > angle.0 {
@@ -303,14 +302,7 @@ fn draw_arrowhead(
     Shape::convex_polygon(points, color, stroke)
 }
 
-fn draw_features(
-    features: &[Feature],
-    seq_len: usize,
-    center: Pos2,
-    radius: f32,
-    to_screen: &RectTransform,
-    ui: &mut Ui,
-) -> Vec<Shape> {
+fn draw_features(features: &[Feature], data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
     for feature in features {
@@ -333,8 +325,8 @@ fn draw_features(
         let feature_color = Color32::from_rgb(r, g, b);
         let stroke = Stroke::new(feature_stroke_width, FEATURE_OUTLINE_COLOR);
 
-        let angle_start = seq_i_to_angle(feature.index_range.0, seq_len);
-        let angle_end = seq_i_to_angle(feature.index_range.1, seq_len);
+        let angle_start = seq_i_to_angle(feature.index_range.0, data.seq_len);
+        let angle_end = seq_i_to_angle(feature.index_range.1, data.seq_len);
 
         // We subtract parts from the start or end angle for the arrow tip, if present.
         let angle = match feature.direction {
@@ -344,11 +336,9 @@ fn draw_features(
         };
 
         result.append(&mut draw_filled_arc(
-            center,
-            radius,
+            data,
             angle,
             feature_width,
-            to_screen,
             feature_color,
             stroke,
         ));
@@ -358,7 +348,7 @@ fn draw_features(
         let angle_mid = (angle.0 + angle.1) / 2.;
 
         let point_mid_outer =
-            angle_to_pixel(angle_mid, radius + feature_width / 2.) + center.to_vec2();
+            angle_to_pixel(angle_mid, data.radius + feature_width / 2.) + data.center.to_vec2();
 
         let (label_pt, label_align) = if angle_mid > TAU / 2. {
             (
@@ -375,7 +365,7 @@ fn draw_features(
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
                 fonts,
-                to_screen * label_pt,
+                data.to_screen * label_pt,
                 label_align,
                 &feature.label,
                 FontId::new(16., FontFamily::Proportional),
@@ -392,12 +382,10 @@ fn draw_features(
             };
 
             result.push(draw_arrowhead(
-                center.to_vec2(),
-                radius,
+                data,
                 feature_width * TIP_WIDTH_RATIO,
                 tip_angle,
                 feature_color,
-                to_screen,
             ));
         }
     }
@@ -406,18 +394,11 @@ fn draw_features(
 }
 
 /// todo: C+P from draw_features! Build this into the feature one like you did in seq view.
-fn draw_primers(
-    primers: &[Primer],
-    seq_len: usize,
-    center: Pos2,
-    radius: f32,
-    to_screen: &RectTransform,
-    ui: &mut Ui,
-) -> Vec<Shape> {
+fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    let radius_outer = radius + PRIMER_WIDTH / 2.;
-    let radius_inner = radius - PRIMER_WIDTH / 2.;
+    let radius_outer = data.radius + PRIMER_WIDTH / 2.;
+    let radius_inner = data.radius - PRIMER_WIDTH / 2.;
 
     for primer in primers {
         let primer_matches = &primer.volatile.matches_seq;
@@ -427,20 +408,24 @@ fn draw_primers(
             // We currently index primers relative to the end they started.
             let seq_range = match direction {
                 PrimerDirection::Forward => seq_range.clone(),
-                PrimerDirection::Reverse => (seq_len - seq_range.end)..(seq_len - seq_range.start),
+                PrimerDirection::Reverse => {
+                    (data.seq_len - seq_range.end)..(data.seq_len - seq_range.start)
+                }
             };
 
-            let angle_start = seq_i_to_angle(seq_range.start, seq_len);
-            let angle_end = seq_i_to_angle(seq_range.end, seq_len);
+            let angle_start = seq_i_to_angle(seq_range.start, data.seq_len);
+            let angle_end = seq_i_to_angle(seq_range.end, data.seq_len);
             let angle_mid = (angle_start + angle_end) / 2.;
 
-            let point_start_inner = angle_to_pixel(angle_start, radius_inner) + center.to_vec2();
-            let point_start_outer = angle_to_pixel(angle_start, radius_outer) + center.to_vec2();
+            let point_start_inner =
+                angle_to_pixel(angle_start, radius_inner) + data.center.to_vec2();
+            let point_start_outer =
+                angle_to_pixel(angle_start, radius_outer) + data.center.to_vec2();
 
-            let point_end_inner = angle_to_pixel(angle_end, radius_inner) + center.to_vec2();
-            let point_end_outer = angle_to_pixel(angle_end, radius_outer) + center.to_vec2();
+            let point_end_inner = angle_to_pixel(angle_end, radius_inner) + data.center.to_vec2();
+            let point_end_outer = angle_to_pixel(angle_end, radius_outer) + data.center.to_vec2();
 
-            let point_mid_outer = angle_to_pixel(angle_mid, radius_outer) + center.to_vec2();
+            let point_mid_outer = angle_to_pixel(angle_mid, radius_outer) + data.center.to_vec2();
 
             // todo: This color code is DRY from primer_arrow. Consolidate.
             let outline_color = match direction {
@@ -452,21 +437,37 @@ fn draw_primers(
             let stroke = Stroke::new(PRIMER_STROKE_WIDTH, outline_color);
 
             result.push(Shape::Path(PathShape::line(
-                arc_points(to_screen * center, radius_outer, angle_start, angle_end),
+                arc_points(
+                    data.to_screen * data.center,
+                    radius_outer,
+                    angle_start,
+                    angle_end,
+                ),
                 stroke,
             )));
             result.push(Shape::Path(PathShape::line(
-                arc_points(to_screen * center, radius_inner, angle_start, angle_end),
+                arc_points(
+                    data.to_screen * data.center,
+                    radius_inner,
+                    angle_start,
+                    angle_end,
+                ),
                 stroke,
             )));
 
             // Lines connected the inner and outer arcs.
             result.push(Shape::line_segment(
-                [to_screen * point_start_inner, to_screen * point_start_outer],
+                [
+                    data.to_screen * point_start_inner,
+                    data.to_screen * point_start_outer,
+                ],
                 stroke,
             ));
             result.push(Shape::line_segment(
-                [to_screen * point_end_inner, to_screen * point_end_outer],
+                [
+                    data.to_screen * point_end_inner,
+                    data.to_screen * point_end_outer,
+                ],
                 stroke,
             ));
 
@@ -487,7 +488,7 @@ fn draw_primers(
             result.push(ui.ctx().fonts(|fonts| {
                 Shape::text(
                     fonts,
-                    to_screen * label_pt,
+                    data.to_screen * label_pt,
                     label_align,
                     &primer.name,
                     FontId::new(16., FontFamily::Proportional),
@@ -569,26 +570,22 @@ fn draw_text(text: &str, pos: Pos2, font_size: f32, color: Color32, ui: &mut Ui)
 fn draw_re_sites(
     re_matches: &[ReMatch],
     res: &[RestrictionEnzyme],
-    seq_len: usize,
-    center: Pos2,
-    radius: f32,
-    to_screen: &RectTransform,
+    data: &CircleData,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
     for (i, re_match) in re_matches.iter().enumerate() {
         let cut_i = re_match.seq_index + 1; // to display in the right place.
         let re = &res[re_match.lib_index];
-        let angle = seq_i_to_angle(cut_i + re.cut_after as usize, seq_len);
+        let angle = seq_i_to_angle(cut_i + re.cut_after as usize, data.seq_len);
 
-        let point_inner = angle_to_pixel(angle, radius - RE_LEN_DIV_2) + center.to_vec2();
-        let point_outer = angle_to_pixel(angle, radius + RE_LEN_DIV_2) + center.to_vec2();
+        let point_inner = angle_to_pixel(angle, data.radius - RE_LEN_DIV_2) + data.center.to_vec2();
+        let point_outer = angle_to_pixel(angle, data.radius + RE_LEN_DIV_2) + data.center.to_vec2();
 
         result.push(Shape::line_segment(
-            [to_screen * point_inner, to_screen * point_outer],
+            [data.to_screen * point_inner, data.to_screen * point_outer],
             Stroke::new(RE_WIDTH, COLOR_RE),
         ));
-
 
         let (mut label_pt, label_align) = if angle > TAU / 2. {
             (
@@ -596,10 +593,7 @@ fn draw_re_sites(
                 Align2::RIGHT_CENTER,
             )
         } else {
-            (
-                point_outer + vec2(RE_LABEL_OFFSET, 0.),
-                Align2::LEFT_CENTER,
-            )
+            (point_outer + vec2(RE_LABEL_OFFSET, 0.), Align2::LEFT_CENTER)
         };
 
         // Alternate label vertical position, to reduce changes of overlaps.
@@ -610,9 +604,9 @@ fn draw_re_sites(
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
                 fonts,
-                to_screen * label_pt,
+                data.to_screen * label_pt,
                 label_align,
-               &re.name,
+                &re.name,
                 FontId::new(16., FontFamily::Proportional),
                 COLOR_RE,
             )
@@ -621,97 +615,117 @@ fn draw_re_sites(
     result
 }
 
-/// Draw text in the center of the circle; eg general plasmid information, or information
-/// about a feature.
-fn draw_center_text(
-    seq_len: usize,
-    center: Pos2,
-    radius: f32,
-    to_screen: &RectTransform,
-    state: &mut State,
-    ui: &mut Ui,
-) -> Vec<Shape> {
+/// For drawing feature data in the center of the circle. This may be used for the feature hovered over,
+/// or selected.
+fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
-    // todo: Separate function for center label too if it becomes too complicatged.
 
-    match &state.ui.feature_hover {
-        Some(i) => {
-            if state.generic.features.len() + 1 < *i {
-                eprintln!("Invalid hover feature");
+    let labels = vec![
+        feature.label.clone(),
+        format!("{}..{}", feature.index_range.0, feature.index_range.1),
+        feature.feature_type.to_string(),
+    ];
+
+    let (r, g, b) = feature.color();
+    let color = Color32::from_rgb(r, g, b);
+
+    let mut i = 0; // Rows
+
+    for label in &labels {
+        result.push(draw_text(
+            label,
+            data.to_screen
+                * pos2(
+                    data.center.x,
+                    data.center.y + i as f32 * CENTER_TEXT_ROW_SPACING - 60.,
+                ),
+            16.,
+            color,
+            ui,
+        )); // slightly below seq name, ui));
+        i += 1;
+    }
+
+    for note in &feature.notes {
+        // We draw these left aligned, offset to the left
+        const NOTES_LEFT_OFFSET: f32 = 200.;
+
+        // Don't let a note overflow. Note: Wrapping would be preferred to this cutoff.
+        let max_len = (0.2 * data.radius) as usize; // Note: This depends on font size.
+        let text: String = format!("{}: {}", note.0, note.1)
+            .chars()
+            .take(max_len)
+            .collect();
+
+        result.push(ui.ctx().fonts(|fonts| {
+            Shape::text(
+                fonts,
+                data.to_screen
+                    * pos2(
+                        data.center.x - data.radius * 0.8,
+                        data.center.y + i as f32 * CENTER_TEXT_ROW_SPACING - 60.,
+                    ),
+                Align2::LEFT_CENTER,
+                &text,
+                FontId::new(13., FontFamily::Proportional),
+                TICK_COLOR,
+            )
+        }));
+
+        // result.push(draw_text(
+        //     &format!("{}: {}", note.0, note.1),
+        //
+        //     13.,
+        //     TICK_COLOR,
+        //     ui,
+        // ));
+        i += 1;
+    }
+
+    result
+}
+
+/// Draw text in the center of the circle; eg general plasmid information, or information
+/// about a feature. This is the selected feature if available; then hovered-over if available;
+/// then general plasmid information.
+fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Shape> {
+    let mut result = Vec::new();
+    // todo: This nesting is a bit complicated.
+    match &state.ui.feature_selected {
+        Some(feat_i) => {
+            if state.generic.features.len() + 1 < *feat_i {
+                eprintln!("Invalid selected feature");
             }
-            let feature = &state.generic.features[*i];
-
-            let labels = vec![
-                feature.label.clone(),
-                format!("{}..{}", feature.index_range.0, feature.index_range.1),
-                feature.feature_type.to_string(),
-            ];
-
-            let row_spacing = 20.;
-            let mut i = 0; // Rows
-            let (r, g,b) = feature.color();
-            let color = Color32::from_rgb(r, g, b);
-
-            for label in &labels {
-                result.push(draw_text(
-                    label,
-                    to_screen * pos2(center.x, center.y + i as f32 * row_spacing - 60.),
-                    16.,
-                    color,
-                    ui,
-                )); // slightly below seq name, ui));
-                i += 1;
-            }
-
-            i += 1;
-
-            for note in &feature.notes {
-                // We draw these left aligned, offset to the left
-                const NOTES_LEFT_OFFSET: f32 = 200.;
-
-                // Don't let a note overflow. Note: Wrapping would be preferred to this cutoff.
-                let max_len = (0.2 * radius) as usize; // Note: This depends on font size.
-                let text: String = format!("{}: {}", note.0, note.1).chars().take(max_len).collect();;
-
-                result.push(ui.ctx().fonts(|fonts| {
-                    Shape::text(
-                        fonts,
-                        to_screen * pos2(center.x - radius * 0.8, center.y + i as f32 * row_spacing - 60.),
-                        Align2::LEFT_CENTER,
-                        &text,
-                        FontId::new(13., FontFamily::Proportional),
-                        TICK_COLOR,
-                    )
-                }));
-
-                // result.push(draw_text(
-                //     &format!("{}: {}", note.0, note.1),
-                //
-                //     13.,
-                //     TICK_COLOR,
-                //     ui,
-                // ));
-                i += 1;
-            }
-
-            // todo: COlor-code etc?
+            let feature = &state.generic.features[*feat_i];
+            result.append(&mut draw_feature_text(&feature, data, ui));
         }
         None => {
-            // Display a summary of the plasmid
-            result.push(draw_text(
-                &state.generic.metadata.plasmid_name,
-                to_screen * center,
-                16.,
-                TICK_COLOR,
-                ui,
-            ));
-            result.push(draw_text(
-                &format!("{seq_len} bp"),
-                to_screen * pos2(center.x, center.y + 20.),
-                13.,
-                TICK_COLOR,
-                ui,
-            ));
+            match &state.ui.feature_hover {
+                Some(feat_i) => {
+                    if state.generic.features.len() + 1 < *feat_i {
+                        eprintln!("Invalid hover feature");
+                    }
+                    let feature = &state.generic.features[*feat_i];
+                    result.append(&mut draw_feature_text(&feature, data, ui));
+                }
+                None => {
+                    // Display a summary of the plasmid
+                    result.push(draw_text(
+                        &state.generic.metadata.plasmid_name,
+                        data.to_screen * data.center,
+                        16.,
+                        TICK_COLOR,
+                        ui,
+                    ));
+                    result.push(draw_text(
+                        &format!("{} bp", data.seq_len),
+                        data.to_screen * pos2(data.center.x, data.center.y + 20.),
+                        13.,
+                        TICK_COLOR,
+                        ui,
+                    ));
+                }
+            }
         }
     }
 
@@ -783,14 +797,17 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
             let seq_len = state.generic.seq.len();
 
-            let prev_cursor_i = state.ui.cursor_seq_i;
-            state.ui.cursor_seq_i = find_cursor_i(
-                state.ui.cursor_pos,
+            let data = CircleData {
                 seq_len,
                 center,
                 radius,
-                &from_screen,
-            );
+                to_screen,
+                from_screen,
+            };
+
+            let prev_cursor_i = state.ui.cursor_seq_i;
+            state.ui.cursor_seq_i =
+                find_cursor_i(state.ui.cursor_pos, seq_len, center, radius, &from_screen);
 
             if prev_cursor_i != state.ui.cursor_seq_i {
                 state.ui.feature_hover = None;
@@ -800,6 +817,12 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                     feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
             }
 
+            if state.ui.click_pending_handle {
+                state.ui.feature_selected =
+                    feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
+                state.ui.click_pending_handle = false;
+            }
+
             // Draw the backbone circle
             shapes.push(Shape::Circle(CircleShape::stroke(
                 to_screen * center,
@@ -807,28 +830,14 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 Stroke::new(BACKBONE_WIDTH, BACKBONE_COLOR),
             )));
 
-            shapes.append(&mut draw_ticks(seq_len, center, radius, &to_screen, ui));
+            shapes.append(&mut draw_ticks(&data, ui));
 
             if state.ui.seq_visibility.show_features {
-                shapes.append(&mut draw_features(
-                    &state.generic.features,
-                    seq_len,
-                    center,
-                    radius,
-                    &to_screen,
-                    ui,
-                ));
+                shapes.append(&mut draw_features(&state.generic.features, &data, ui));
             }
 
             if state.ui.seq_visibility.show_primers {
-                shapes.append(&mut draw_primers(
-                    &state.generic.primers,
-                    seq_len,
-                    center,
-                    radius,
-                    &to_screen,
-                    ui,
-                ));
+                shapes.append(&mut draw_primers(&state.generic.primers, &data, ui));
             }
 
             // tood: Check mark to edit this visibility on the page
@@ -836,17 +845,12 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 shapes.append(&mut draw_re_sites(
                     &state.volatile.restriction_enzyme_sites,
                     &state.restriction_enzyme_lib,
-                    seq_len,
-                    center,
-                    radius,
-                    &to_screen,
+                    &data,
                     ui,
                 ));
             }
 
-            shapes.append(&mut draw_center_text(
-                seq_len, center, radius, &to_screen, state, ui,
-            ));
+            shapes.append(&mut draw_center_text(&data, state, ui));
 
             ui.painter().extend(shapes);
         });

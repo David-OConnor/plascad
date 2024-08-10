@@ -245,6 +245,12 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                         feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
                 }
 
+                if state.ui.click_pending_handle {
+                    state.ui.feature_selected =
+                        feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
+                    state.ui.click_pending_handle = false;
+                }
+
                 state.ui.cursor_seq_i =
                     find_cursor_i(state.ui.cursor_pos, &from_screen, &row_ranges);
 

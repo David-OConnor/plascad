@@ -109,7 +109,9 @@ fn feature_text(feature_hover: &Option<usize>, features: &[Feature], ui: &mut Ui
                 feature.index_range.0, feature.index_range.1
             ));
             let (r, g, b) = feature.color();
-            ui.label(RichText::new(feature.feature_type.to_string()).color(Color32::from_rgb(r, g, b)));
+            ui.label(
+                RichText::new(feature.feature_type.to_string()).color(Color32::from_rgb(r, g, b)),
+            );
 
             // todo?
             for note in &feature.notes {

@@ -9,18 +9,27 @@ use std::{
     path::Path,
 };
 
-use bincode::{config, error::{DecodeError, EncodeError}, Decode, Encode, BorrowDecode};
+use bincode::{
+    config,
+    error::{DecodeError, EncodeError},
+    BorrowDecode, Decode, Encode,
+};
 use bio::io::fasta;
 
-use crate::{file_io::GenericData, primer::{Primer}, sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology}, IonConcentrations, Metadata, State, FileDialogs, SeqVisibility, PcrUi, StateUi};
-use crate::gui::navigation::{Page, PageSeq, PageSeqTop};
+use crate::{
+    file_io::GenericData,
+    gui::navigation::{Page, PageSeq, PageSeqTop},
+    primer::Primer,
+    sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology},
+    IonConcentrations, Metadata, PcrUi, SeqVisibility, State, StateUi,
+};
 
 pub const DEFAULT_SAVE_FILE: &str = "plasmid.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";
 
 pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
+pub const DEFAULT_GENBANK_FILE: &str = "export.gbk";
 pub const DEFAULT_DNA_FILE: &str = "export.dna";
-
 
 /// This is similar to `State`, but excludes the UI, and other things we don't wish to save.
 pub struct StateToSave {

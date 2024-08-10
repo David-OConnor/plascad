@@ -3,21 +3,24 @@
 use std::{
     env,
     path::{Path, PathBuf},
+    str::FromStr,
 };
-use std::str::FromStr;
+
 use eframe::egui::Ui;
 use egui_file_dialog::FileDialog;
 
 use crate::{
     file_io::{
         genbank::{export_genbank, import_genbank},
-        save::{export_fasta, import_fasta, save, StateToSave, DEFAULT_SAVE_FILE},
+        save::{
+            export_fasta, import_fasta, save, StateToSave, StateUiToSave, DEFAULT_PREFS_FILE,
+            DEFAULT_SAVE_FILE,
+        },
         snapgene::{export_snapgene, import_snapgene},
     },
     sequence::seq_to_str,
     State,
 };
-use crate::file_io::save::{DEFAULT_PREFS_FILE, StateUiToSave};
 
 fn save_button(
     dialog: &mut FileDialog,
@@ -40,6 +43,7 @@ fn save_button(
         };
         save_path.push(Path::new(&filename));
 
+        dialog.config_mut().default_file_name = filename.to_string();
         dialog.save_file();
     }
 }
@@ -109,7 +113,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     save_button(
         &mut state.ui.file_dialogs.export_genbank,
         &state.generic.metadata.plasmid_name,
-        "gb",
+        "gbk",
         "Exp GenBank",
         "Export data in the GenBank format.",
         ui,

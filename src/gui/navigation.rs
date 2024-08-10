@@ -1,6 +1,7 @@
 //! This module contains code related to navigation buttons.
 
 use std::fmt::Display;
+
 use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
 

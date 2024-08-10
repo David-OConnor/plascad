@@ -270,7 +270,7 @@ impl Feature {
     pub fn color(&self) -> Color {
         match self.color_override {
             Some(c) => c,
-            None => self.feature_type.color()
+            None => self.feature_type.color(),
         }
     }
 }

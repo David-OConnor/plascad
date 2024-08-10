@@ -1,9 +1,16 @@
-// Disables the terminal window. Use this for releases, but disable when debugging.
-// #![windows_subsystem = "windows"]
+// Disables the terminal window on Windows, in release mode.
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
 
-use std::{io, path::PathBuf, sync::Arc};
-use std::path::Path;
-use std::str::FromStr;
+use std::{
+    io,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+};
+
 use bincode::{Decode, Encode};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::FileDialog;
@@ -12,7 +19,13 @@ use gui::navigation::{Page, PageSeq};
 use sequence::{seq_from_str, Seq};
 
 use crate::{
-    file_io::GenericData,
+    file_io::{
+        save::{
+            StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
+            DEFAULT_PREFS_FILE,
+        },
+        GenericData,
+    },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::TM_TARGET,
@@ -22,7 +35,6 @@ use crate::{
         ReadingFrameMatch,
     },
 };
-use crate::file_io::save::{DEFAULT_PREFS_FILE, StateUiToSave};
 
 mod features_known;
 mod file_io;
@@ -183,6 +195,7 @@ impl Default for FileDialogs {
                 Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
             )
             .default_file_filter("PlasCAD files")
+            .default_file_name(DEFAULT_SAVE_FILE)
             .id("0");
         // .id("egui_file_dialog");
 
@@ -226,6 +239,7 @@ impl Default for FileDialogs {
                 Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
             )
             .default_file_filter("FASTA files")
+            .default_file_name(DEFAULT_FASTA_FILE)
             .id("3");
 
         let export_genbank = FileDialog::new()
@@ -237,6 +251,7 @@ impl Default for FileDialogs {
                 }),
             )
             .default_file_filter("GenBank files")
+            .default_file_name(DEFAULT_GENBANK_FILE)
             .id("4");
 
         let export_dna = FileDialog::new()
@@ -245,6 +260,7 @@ impl Default for FileDialogs {
                 Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
             )
             .default_file_filter("SnapGene DNA files")
+            .default_file_name(DEFAULT_DNA_FILE)
             .id("5");
 
         Self {
@@ -286,7 +302,10 @@ struct StateUi {
     new_origin: usize,
     /// Text-editing cursor. Used for editing on the sequence view. Chars typed
     /// will be inserted after this index. This index is 0-based.
-    text_cursor_i: Option<usize>
+    text_cursor_i: Option<usize>,
+    /// We store if we've clicked somewhere separately from the action, as getting a sequence index
+    /// from cursor positions may be decoupled, and depends on the view.
+    click_pending_handle: bool
 }
 
 impl Default for StateUi {
@@ -311,6 +330,7 @@ impl Default for StateUi {
             show_origin_change: false,
             new_origin: 0,
             text_cursor_i: None,
+            click_pending_handle: false,
         }
     }
 }
@@ -516,8 +536,10 @@ impl State {
 }
 
 fn main() {
-    let state = State::load(&PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap(), &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
-
+    let state = State::load(
+        &PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap(),
+        &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap(),
+    );
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

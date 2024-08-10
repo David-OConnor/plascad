@@ -4,6 +4,7 @@ use eframe::{
     egui,
     egui::{Color32, Context, Key, ScrollArea, TextEdit, Ui},
 };
+use eframe::egui::PointerButton;
 use navigation::Page;
 use url::Url;
 
@@ -132,6 +133,18 @@ fn origin_change(state: &mut State, ui: &mut Ui) {
             if ui.button("Set").clicked() {
                 util::change_origin(state);
             }
+
+            // ui.add(
+            //     // egui::Slider::from_get_set(0.0..=state.generic.seq.len() as f32, |v| {
+            //     egui::Slider::new(&mut 0, 0..=state.generic.seq.len(), |v| {
+            //         if let Some(v_) = v {
+            //
+            //             bases_modified.push(basis_i);
+            //         }
+            //
+            //         v
+            //         .text("Wt"),
+            // );
         });
     }
 }
@@ -162,7 +175,9 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
     None
 }
 
-pub fn draw(state: &mut State, ctx: &Context) {
+/// Handles keyboard and mouse input not associated with a widget.
+/// todo: MOve to a separate module if this becomes complex.
+fn handle_input(state: &mut State, ctx: &Context) {
     ctx.input(|ip| {
         if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
             state.generic.primers.push(Default::default());
@@ -178,7 +193,15 @@ pub fn draw(state: &mut State, ctx: &Context) {
         }
 
         state.ui.cursor_pos = ip.pointer.hover_pos().map(|pos| (pos.x, pos.y));
+
+        if ip.pointer.button_clicked(PointerButton::Primary) {
+            state.ui.click_pending_handle = true;
+        }
     });
+}
+
+pub fn draw(state: &mut State, ctx: &Context) {
+    handle_input(state, ctx);
 
     egui::CentralPanel::default().show(ctx, |ui| {
         // todo: This section DRY with seq viewx.

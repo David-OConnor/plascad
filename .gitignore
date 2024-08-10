@@ -12,3 +12,4 @@ workspace.xml
 *.fasta
 *.dna
 *.xml
+*.pp

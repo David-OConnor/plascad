@@ -17,9 +17,9 @@ exclude = [".gitignore"]
 [dependencies]
 eframe = "^0.28.1"
 egui_extras = "^0.28.1"  # For tables.
-egui-file-dialog = "0.6.0" #  For file dialogs.
+egui-file-dialog = "^0.6.0" #  For file dialogs.
 
-serde = { version = "1.0.204", features = ["derive"] }
+serde = { version = "^1.0.204", features = ["derive"] }
 num_enum = "0.7.3"  # reversing a u8-repr.
 
 # For FASTA read and write. Note: We can ditch this for a custom parser; FASTA is easy.
@@ -34,3 +34,7 @@ gb-io = "^0.7.1"
 # For opening BLAST. Hopefully this doesn't increase binary size too much.
 webbrowser = "^1.0.1"
 url = "^2.5.2"
+
+[build-dependencies]
+# These are for embedding an application icon, on Windows.
+winresource = "^0.1.17"
