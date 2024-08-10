@@ -13,6 +13,15 @@ documentation = "https://docs.rs/plascad"
 readme = "README.md"
 license = "MIT"
 exclude = [".gitignore"]
+default-run = "plascad"
+
+[[bin]]
+name = "plascad"
+path = "src/main.rs"
+
+[[bin]]
+name = "feature_db_builder"
+path = "src/feature_db_builder.rs"
 
 [dependencies]
 eframe = "^0.28.1"

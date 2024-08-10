@@ -9,8 +9,8 @@
 use crate::{
     primer::{calc_gc, MIN_PRIMER_LEN},
     sequence::Nucleotide::{self, A, C, G, T},
-    IonConcentrations,
 };
+use crate::primer::IonConcentrations;
 
 /// Enthalpy (dH) and entropy (dS) tables based on terminal missmatch
 fn _dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {

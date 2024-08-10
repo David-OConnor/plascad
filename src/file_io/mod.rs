@@ -5,8 +5,8 @@ use std::path::Path;
 use crate::{
     primer::Primer,
     sequence::{Feature, Seq, SeqTopology},
-    Metadata, Reference,
 };
+use crate::sequence::Metadata;
 
 pub mod genbank;
 pub mod save;

@@ -3,11 +3,7 @@ use std::{collections::HashMap, fmt::Display, io};
 use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;
 
-use crate::{
-    primer::PrimerDirection,
-    sequence::Nucleotide::{A, C, G, T},
-    Color,
-};
+use crate::{Color, primer::PrimerDirection, sequence::Nucleotide::{A, C, G, T}};
 
 // Index 0: 5' end.
 pub type Seq = Vec<Nucleotide>;
@@ -382,4 +378,32 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
     }
 
     result
+}
+
+/// Contains sequence-level metadata.
+#[derive(Clone, Default, Encode, Decode)]
+pub struct Metadata {
+    pub plasmid_name: String,
+    pub comments: Vec<String>,
+    pub references: Vec<Reference>,
+    pub locus: String,
+    pub definition: Option<String>,
+    pub accession: Option<String>,
+    pub version: Option<String>,
+    // pub keywords: Vec<String>,
+    pub keywords: Option<String>, // todo vec?
+    pub source: Option<String>,
+    pub organism: Option<String>,
+}
+
+/// Based on GenBank's reference format
+#[derive(Default, Clone, Encode, Decode)]
+pub struct Reference {
+    pub description: String,
+    pub authors: Option<String>,
+    pub consortium: Option<String>,
+    pub title: String,
+    pub journal: Option<String>,
+    pub pubmed: Option<String>,
+    pub remark: Option<String>,
 }

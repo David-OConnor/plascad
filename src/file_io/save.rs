@@ -3,26 +3,27 @@
 //! Todo: Break into packets. This may require further ejecting from bincode, at least at the top level[s].
 
 use std::{
-    fs::{File, OpenOptions},
+    fs::File,
     io,
     io::{ErrorKind, Read, Write},
     path::Path,
 };
 
 use bincode::{
+    BorrowDecode,
     config,
-    error::{DecodeError, EncodeError},
-    BorrowDecode, Decode, Encode,
+    Decode, Encode, error::{DecodeError, EncodeError},
 };
 use bio::io::fasta;
 
 use crate::{
     file_io::GenericData,
     gui::navigation::{Page, PageSeq, PageSeqTop},
-    primer::Primer,
-    sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology},
-    IonConcentrations, Metadata, PcrUi, SeqVisibility, State, StateUi,
+    PcrUi,
+    primer::Primer, sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology}, SeqVisibility, State, StateUi,
 };
+use crate::primer::IonConcentrations;
+use crate::sequence::Metadata;
 
 pub const DEFAULT_SAVE_FILE: &str = "plasmid.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";

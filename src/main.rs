@@ -4,6 +4,11 @@
     windows_subsystem = "windows"
 )]
 
+// todo: Build a database of feature sequences. You can find GenBank etc files online (addGene, and other sources)
+// todo: and parse common features.
+
+// todo: Break out Generic into its own mod?
+
 use std::{
     io,
     path::{Path, PathBuf},
@@ -14,29 +19,30 @@ use std::{
 use bincode::{Decode, Encode};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::FileDialog;
-use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
+use file_io::save::{DEFAULT_SAVE_FILE, load, StateToSave};
 use gui::navigation::{Page, PageSeq};
-use sequence::{seq_from_str, Seq};
+use primer::IonConcentrations;
+use sequence::{Seq, seq_from_str};
 
 use crate::{
     file_io::{
-        save::{
-            StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
-            DEFAULT_PREFS_FILE,
-        },
         GenericData,
+        save::{
+            DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE, DEFAULT_PREFS_FILE,
+            StateUiToSave,
+        },
     },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::TM_TARGET,
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, ReadingFrame,
-        ReadingFrameMatch,
+        FeatureDirection, FeatureType, find_orf_matches, ReadingFrame, ReadingFrameMatch,
+        seq_to_str,
     },
 };
 
-mod features_known;
+mod feature_db_load;
 mod file_io;
 mod gui;
 mod melting_temp_calcs;
@@ -109,31 +115,6 @@ impl Default for PcrUi {
             polymerase_type: Default::default(),
             num_cycles: 30,
             primer_selected: 0,
-        }
-    }
-}
-
-#[derive(Clone, Encode, Decode)]
-/// Concentrations of common ions in the oglio solution. Affects melting temperature (TM).
-/// All values are in milliMolar.
-struct IonConcentrations {
-    /// Na+ or K+
-    pub monovalent: f32,
-    /// Mg2+
-    pub divalent: f32,
-    pub dntp: f32,
-    /// Primer concentration, in nM.
-    pub primer: f32,
-}
-
-impl Default for IonConcentrations {
-    fn default() -> Self {
-        // todo: Adjust A/R
-        Self {
-            monovalent: 50.,
-            divalent: 1.5,
-            dntp: 0.2,
-            primer: 25.,
         }
     }
 }
@@ -290,6 +271,8 @@ struct StateUi {
     primer_selected: Option<usize>,
     feature_selected: Option<usize>,
     feature_hover: Option<usize>,
+    // todo: Use this?
+    selected_item: Selection,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
     /// Mouse cursor
@@ -322,6 +305,7 @@ impl Default for StateUi {
             primer_selected: None,
             feature_selected: Default::default(),
             feature_hover: Default::default(),
+            selected_item: Selection::None,
             seq_visibility: Default::default(),
             hide_map_feature_editor: true,
             cursor_pos: None,
@@ -347,40 +331,12 @@ impl Default for Selection {
     }
 }
 
-/// Based on GenBank's reference format
-#[derive(Default, Clone, Encode, Decode)]
-pub struct Reference {
-    pub description: String,
-    pub authors: Option<String>,
-    pub consortium: Option<String>,
-    pub title: String,
-    pub journal: Option<String>,
-    pub pubmed: Option<String>,
-    pub remark: Option<String>,
-}
-
 /// This struct contains state that does not need to persist between sessesions or saves, but is not
 /// a good fit for `StateUi`. This is, generally, calculated data from persistent staet.
 #[derive(Default)]
 struct StateVolatile {
     restriction_enzyme_sites: Vec<ReMatch>,
     reading_frame_matches: Vec<ReadingFrameMatch>,
-}
-
-/// Contains sequence-level metadata.
-#[derive(Clone, Default, Encode, Decode)]
-pub struct Metadata {
-    pub plasmid_name: String,
-    pub comments: Vec<String>,
-    pub references: Vec<Reference>,
-    pub locus: String,
-    pub definition: Option<String>,
-    pub accession: Option<String>,
-    pub version: Option<String>,
-    // pub keywords: Vec<String>,
-    pub keywords: Option<String>, // todo vec?
-    pub source: Option<String>,
-    pub organism: Option<String>,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
@@ -399,7 +355,6 @@ struct State {
     ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
-    selected_item: Selection,
     reading_frame: ReadingFrame,
     volatile: StateVolatile,
 }

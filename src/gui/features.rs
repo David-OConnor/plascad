@@ -1,6 +1,6 @@
 //! GUI code for the features editor and related.
 
-use eframe::egui::{Color32, ComboBox, Painter, RichText, Sense, TextEdit, Ui, Vec2};
+use eframe::egui::{Color32, ComboBox, Frame, Painter, RichText, Sense, TextEdit, Ui, Vec2, Stroke};
 
 use crate::{
     gui::{int_field, ROW_SPACING},
@@ -99,30 +99,61 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
 
     let mut removed = None;
     for (i, feature) in state.generic.features.iter_mut().enumerate() {
-        ui.horizontal(|ui| {
-            // todo: This may be confoudning your 0 vs 1.
-            int_field(&mut feature.index_range.0, "Start:", ui);
-            int_field(&mut feature.index_range.1, "End:", ui);
-
-            ui.label("Label:");
-            ui.add(TextEdit::singleline(&mut feature.label).desired_width(LABEL_EDIT_WIDTH));
-
-            ui.label("Type:");
-            feature_type_picker(&mut feature.feature_type, 100 + i, ui);
-
-            ui.label("Dir:");
-            direction_picker(&mut feature.direction, 300 + i, ui);
-
-            ui.label("Color:");
-            color_picker(&mut feature.color_override, 3 + i, ui);
-
-            if ui
-                .button(RichText::new("Delete 🗑").color(Color32::RED))
-                .clicked()
-            {
-                removed = Some(i);
+        let border_color = Color32::WHITE;
+        let mut border_width = 0.;
+        if let Some(j) = state.ui.feature_selected {
+            if i == j {
+                border_width = 1.;
             }
-        });
+        }
+
+
+        Frame::none()
+            .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
+            .inner_margin(border_width)
+            .show(ui, |ui| {
+
+                ui.horizontal(|ui| {
+
+                    // todo: This may be confoudning your 0 vs 1.
+                    int_field(&mut feature.index_range.0, "Start:", ui);
+                    int_field(&mut feature.index_range.1, "End:", ui);
+
+                    ui.label("Label:");
+                    ui.add(TextEdit::singleline(&mut feature.label).desired_width(LABEL_EDIT_WIDTH));
+
+                    ui.label("Type:");
+                    feature_type_picker(&mut feature.feature_type, 100 + i, ui);
+
+                    ui.label("Dir:");
+                    direction_picker(&mut feature.direction, 300 + i, ui);
+
+                    ui.label("Color:");
+                    color_picker(&mut feature.color_override, 3 + i, ui);
+
+                    if ui
+                        .button(RichText::new("Delete 🗑").color(Color32::RED))
+                        .clicked()
+                    {
+                        removed = Some(i);
+                    }
+                });
+
+                for (key, value) in &mut feature.notes {
+                    ui.horizontal(|ui| {
+                        ui.label("Note:");
+                        ui.label(key); // todo!
+                        // ui.add(
+                        //     TextEdit::singleline(&mut note.0).desired_width(200.),
+                        // );
+
+                        ui.label("Value:");
+                        ui.add(
+                            TextEdit::singleline(value).desired_width(200.),
+                        );
+                    });
+                }
+            });
     }
     if let Some(rem_i) = removed {
         state.generic.features.remove(rem_i);

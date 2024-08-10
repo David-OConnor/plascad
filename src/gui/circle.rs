@@ -32,11 +32,12 @@ const TICK_WIDTH: f32 = 2.;
 const RE_WIDTH: f32 = 2.;
 const TICK_SPACING: usize = 500; // Nucleotides between ticks
 
-const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
-
-const TICK_LEN: f32 = 120.; // in pixels.
+const TICK_LEN: f32 = 90.; // in pixels.
 const TICK_LEN_DIV_2: f32 = TICK_LEN / 2.;
 const TICK_LABEL_OFFSET: f32 = 10.;
+
+
+const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
 
 const RE_LEN: f32 = 50.; // in pixels.
 const RE_LEN_DIV_2: f32 = RE_LEN / 2.;
@@ -60,6 +61,10 @@ const SELECTION_MAX_DIST: f32 = 100.;
 const CENTER_TEXT_ROW_SPACING: f32 = 20.;
 
 const FEATURE_SLIDER_WIDTH: f32 = 180.;
+
+// We limit each filled concave shape to a circumfrence segment this long, as part of a workaround to EGUI not having a great
+// way to draw concave shapes.
+const MAX_ARC_FILL: f32 = 230.;
 
 /// These aguments define the circle, and are used in many places in this module.
 struct CircleData {
@@ -272,22 +277,48 @@ fn draw_filled_arc(
 
     let mut result = Vec::new();
     result.push(Shape::convex_polygon(points_outer, fill_color, stroke));
+    // We divide our result into a single line segment, and multiple filled areas. This is to work around
+    // EGUI's limitation regarding filling concave shapes.
+    // result.push(Shape::closed_line(points_outer, stroke));
 
-    // Egui doesn't support concave fills; convex_polygon will spill into the interior concave part.
-    // Patch this by filling over this with a circle. This is roughly the inner points plus the center point,
-    // but slightly inwards as not to override the feature edge.
+    // Draw filled segments. It appears the limitation is based on segment absolute size, vice angular size.
+    // No segment will be larger than our threshold.
+    let circum_segment = data.radius * (angle.1 - angle.0);
+    let num_segments = (MAX_ARC_FILL /  circum_segment) as usize + 1;
+    let segment_ang_dist = (angle.1 - angle.0) / num_segments as f32;
 
+    for i in 0..num_segments {
+        continue;
+        let ang_seg = (angle.0 + i as f32 * segment_ang_dist,  angle.0 + (i + 1) as f32 * segment_ang_dist);
+
+        println!("ANG SEG: {:.4?}. Orig: {:.4?}", ang_seg, angle);
+        // todo: DRY
+        let mut points_outer = arc_points(data.center_rel, data.radius + width / 2., ang_seg.0, ang_seg.1);
+        let mut points_inner = arc_points(data.center_rel, data.radius - width / 2., ang_seg.0, ang_seg.1);
+
+        points_inner.reverse();
+
+        points_outer.append(&mut points_inner);
+
+        // result.push(Shape::convex_polygon(points_outer, fill_color, Stroke::NONE));
+        result.push(Shape::convex_polygon(points_outer, Color32::YELLOW, Stroke::NONE));
+    }
+
+    // Note: We may need to put something like this back, if we use multiple feature widths, feature layers etc.\
+    // todo: Perhaps instead of drawing a pie, we draw slimmer slices.
     let mut points_patch = arc_points(
         data.center_rel,
         data.radius - width / 2. - stroke.width / 2.,
         angle.0,
         angle.1,
     );
-    points_patch.push(data.center);
+    // points_patch.push(data.center);
 
     result.push(Shape::convex_polygon(
         points_patch,
         BACKGROUND_COLOR,
+        // Color32::YELLOW, // todo: Troubleshooting an artifact
+        // Stroke::new(2., Color32::GREEN),
         Stroke::NONE,
     ));
 
@@ -316,7 +347,7 @@ fn draw_arrowhead(data: &CircleData, width: f32, angle: (f32, f32), color: Color
 fn draw_features(features: &[Feature], data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    for feature in features {
+    for (i, feature) in features.iter().enumerate() {
         // Draw the arc segment.
 
         // Source features generally take up the whole plasmid length.
@@ -354,8 +385,27 @@ fn draw_features(features: &[Feature], data: &CircleData, ui: &mut Ui) -> Vec<Sh
             stroke,
         ));
 
-        // Draw the label.
 
+        // if i == features.len()  - 1 {
+        //     // Egui doesn't support concave fills; convex_polygon will spill into the interior concave part.
+        //     // Patch this by filling over this with a circle. This is roughly the inner points plus the center point,
+        //     // but slightly inwards as not to override the feature edge.
+        //
+        //     // Draw this after feature bodies, and before arrows, and all other things.
+        //
+        //     // Note: This single-circle approach will only work for constant  size feature widths.
+        //
+        //     // This insert location, or something similar, is required.
+        //
+        //     // todo: WHy is this overriding the arrow heads?
+        //     result.push(Shape::Circle(CircleShape::filled(data.center_rel,
+        //                                                   data.radius - FEATURE_WIDTH_DEFAULT / 2. - 3. / 2., BACKGROUND_COLOR)
+        //
+        //     ));
+        // }
+
+
+        // Draw the label.
         let angle_mid = (angle.0 + angle.1) / 2.;
 
         let point_mid_outer =
@@ -848,11 +898,12 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 Stroke::new(BACKBONE_WIDTH, BACKBONE_COLOR),
             )));
 
-            shapes.append(&mut draw_ticks(&data, ui));
-
+            // Draw features first, so other items like ticks will be displayed in front of the concave fill circlex.
             if state.ui.seq_visibility.show_features {
                 shapes.append(&mut draw_features(&state.generic.features, &data, ui));
             }
+
+            shapes.append(&mut draw_ticks(&data, ui));
 
             if state.ui.seq_visibility.show_primers {
                 shapes.append(&mut draw_primers(&state.generic.primers, &data, ui));

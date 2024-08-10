@@ -4,14 +4,15 @@ use bincode::{Decode, Encode};
 
 use crate::{
     melting_temp_calcs,
-    primer::{calc_gc, Primer, MIN_PRIMER_LEN},
+    primer::{calc_gc, MIN_PRIMER_LEN, Primer},
     sequence::{
         Nucleotide,
         Nucleotide::{C, G},
     },
+    TM_TARGET,
     util::{map_linear, remove_duplicates},
-    IonConcentrations, TM_TARGET,
 };
+use crate::primer::IonConcentrations;
 
 /// Metrics related to primer quality.
 #[derive(Clone, Debug, Default, Encode, Decode)]

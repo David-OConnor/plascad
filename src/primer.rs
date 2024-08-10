@@ -8,11 +8,11 @@ use crate::{
     gui::primer_qc::DEFAULT_TRIM_AMT,
     primer_metrics::PrimerMetrics,
     sequence::{
-        seq_complement, seq_from_str, seq_to_str, Nucleotide,
-        Nucleotide::{C, G},
-        Seq,
+        Nucleotide, Nucleotide::{C, G}, Seq, seq_complement,
+        seq_from_str,
+        seq_to_str,
     },
-    IonConcentrations, State,
+    State,
 };
 
 // If a primer length is below this, many calculations will be disabled for it.
@@ -522,5 +522,30 @@ pub fn make_amplification_primers(state: &mut State) {
         state.generic.primers.extend([primers.fwd, primers.rev]);
 
         state.sync_primer_matches(None); // note: Not requried to run on all primers.
+    }
+}
+
+#[derive(Clone, Encode, Decode)]
+/// Concentrations of common ions in the oglio solution. Affects melting temperature (TM).
+/// All values are in milliMolar.
+pub struct IonConcentrations {
+    /// Na+ or K+
+    pub monovalent: f32,
+    /// Mg2+
+    pub divalent: f32,
+    pub dntp: f32,
+    /// Primer concentration, in nM.
+    pub primer: f32,
+}
+
+impl Default for IonConcentrations {
+    fn default() -> Self {
+        // todo: Adjust A/R
+        Self {
+            monovalent: 50.,
+            divalent: 1.5,
+            dntp: 0.2,
+            primer: 25.,
+        }
     }
 }
