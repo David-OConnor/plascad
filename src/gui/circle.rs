@@ -4,23 +4,23 @@ use core::f32::consts::TAU;
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Mesh, Pos2, Rect, RichText, Sense,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense,
         Shape, Stroke, Ui, Vec2,
     },
     emath::RectTransform,
-    epaint::{CircleShape, ColorMode, PathShape},
+    epaint::{CircleShape, PathShape},
 };
 
 use crate::{
     gui::{
-        features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
-        primer_arrow::STROKE_WIDTH, COL_SPACING, ROW_SPACING,
+        feature_from_index, features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
+        primer_arrow::STROKE_WIDTH, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
     },
     primer::{Primer, PrimerData, PrimerDirection},
+    restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::{Feature, FeatureDirection, FeatureType},
     State,
 };
-use crate::gui::feature_from_index;
 
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 
@@ -29,6 +29,7 @@ const BACKBONE_WIDTH: f32 = 10.;
 
 const TICK_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
 const TICK_WIDTH: f32 = 2.;
+const RE_WIDTH: f32 = 2.;
 const TICK_SPACING: usize = 500; // Nucleotides between ticks
 
 const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
@@ -36,6 +37,10 @@ const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
 const TICK_LEN: f32 = 120.; // in pixels.
 const TICK_LEN_DIV_2: f32 = TICK_LEN / 2.;
 const TICK_LABEL_OFFSET: f32 = 10.;
+
+const RE_LEN: f32 = 40.; // in pixels.
+const RE_LEN_DIV_2: f32 = RE_LEN / 2.;
+const RE_LABEL_OFFSET: f32 = 10.;
 
 // We may use per-feature-type widths, but have this for now.
 const FEATURE_WIDTH_DEFAULT: f32 = 30.;
@@ -547,6 +552,57 @@ fn draw_text(text: &str, pos: Pos2, font_size: f32, color: Color32, ui: &mut Ui)
     })
 }
 
+/// Draw RE cut sites through the circle.
+/// todo: DRY with tick drawing code.
+fn draw_re_sites(
+    re_matches: &[ReMatch],
+    res: &[RestrictionEnzyme],
+    seq_len: usize,
+    center: Pos2,
+    radius: f32,
+    to_screen: &RectTransform,
+    ui: &mut Ui,
+) -> Vec<Shape> {
+    let mut result = Vec::new();
+    for re_match in re_matches {
+        let cut_i = re_match.seq_index + 1; // to display in the right place.
+        let re = &res[re_match.lib_index];
+        let angle = seq_i_to_angle(cut_i + re.cut_after as usize, seq_len);
+
+        let point_inner = angle_to_pixel(angle, radius - RE_LEN_DIV_2) + center.to_vec2();
+        let point_outer = angle_to_pixel(angle, radius + RE_LEN_DIV_2) + center.to_vec2();
+
+        result.push(Shape::line_segment(
+            [to_screen * point_inner, to_screen * point_outer],
+            Stroke::new(RE_WIDTH, COLOR_RE),
+        ));
+
+        let (label_pt, label_align) = if angle > TAU / 2. {
+            (
+                point_outer + vec2(-RE_LABEL_OFFSET, 0.),
+                Align2::RIGHT_CENTER,
+            )
+        } else {
+            (
+                point_outer + vec2(RE_LABEL_OFFSET, 0.),
+                Align2::LEFT_CENTER,
+            )
+        };
+
+        result.push(ui.ctx().fonts(|fonts| {
+            Shape::text(
+                fonts,
+                to_screen * label_pt,
+                label_align,
+               &re.name,
+                FontId::new(16., FontFamily::Proportional),
+                COLOR_RE,
+            )
+        }));
+    }
+    result
+}
+
 /// Draw text in the center of the circle; eg general plasmid information, or information
 /// about a feature.
 fn draw_center_text(
@@ -695,7 +751,8 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 state.ui.feature_hover = None;
                 // todo: Consider cacheing this, instead of running each renderx.
                 // todo: You may not need the state.ui hover_feature i: You can probably use a local ref here.
-                state.ui.feature_hover = feature_from_index(&state.ui.cursor_seq_i,  &state.generic.features);
+                state.ui.feature_hover =
+                    feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
             }
 
             // Draw the backbone circle
@@ -719,6 +776,16 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
             shapes.append(&mut draw_primers(
                 &state.generic.primers,
+                seq_len,
+                center,
+                radius,
+                &to_screen,
+                ui,
+            ));
+
+            shapes.append(&mut draw_re_sites(
+                &state.volatile.restriction_enzyme_sites,
+                &state.restriction_enzyme_lib,
                 seq_len,
                 center,
                 radius,

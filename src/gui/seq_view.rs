@@ -13,14 +13,13 @@ use eframe::{
 
 use crate::{
     gui::{
-        feature_overlay::draw_features, get_cursor_text, navigation::page_button, primer_arrow,
-        COL_SPACING, ROW_SPACING,
+        feature_from_index, feature_overlay::draw_features, get_cursor_text,
+        navigation::page_button, primer_arrow, COL_SPACING, ROW_SPACING,
     },
     sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
     State, StateUi,
 };
-use crate::gui::feature_from_index;
 
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
@@ -47,14 +46,7 @@ fn re_sites(state: &State, ui: &mut Ui, seq_i_to_px_rel: impl Fn(usize) -> Pos2)
             continue;
         }
         let re = &state.restriction_enzyme_lib[re_match.lib_index];
-
         let cut_i = re_match.seq_index + 1; // to display in the right place.
-
-        // let cut_i = match re_match.direction {
-        //     Forward => re_match.seq_index + 1,
-        //     // todo: Rev may be deprecated.
-        //     Reverse => seq_len - re_match.seq_index,
-        // };
         let cut_pos = seq_i_to_px_rel(cut_i + re.cut_after as usize);
 
         let bottom = pos2(cut_pos.x, cut_pos.y + 20.);
@@ -242,17 +234,15 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 let from_screen = to_screen.inverse();
 
                 let prev_cursor_i = state.ui.cursor_seq_i;
-                state.ui.cursor_seq_i = find_cursor_i(
-                    state.ui.cursor_pos,
-                    &from_screen,
-                    &row_ranges,
-                );
+                state.ui.cursor_seq_i =
+                    find_cursor_i(state.ui.cursor_pos, &from_screen, &row_ranges);
 
                 if prev_cursor_i != state.ui.cursor_seq_i {
                     state.ui.feature_hover = None;
                     // todo: Consider cacheing this, instead of running each renderx.
                     // todo: You may not need the state.ui hover_feature i: You can probably use a local ref here.
-                    state.ui.feature_hover = feature_from_index(&state.ui.cursor_seq_i,  &state.generic.features);
+                    state.ui.feature_hover =
+                        feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
                 }
 
                 state.ui.cursor_seq_i =

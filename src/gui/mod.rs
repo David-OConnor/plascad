@@ -10,10 +10,9 @@ use url::Url;
 use crate::{
     file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
     gui::primer_qc::primer_details,
-    sequence::Nucleotide,
+    sequence::{Feature, FeatureType, Nucleotide},
     util, State,
 };
-use crate::sequence::{Feature, FeatureType};
 
 mod circle;
 mod feature_overlay;
@@ -146,7 +145,7 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
 
         for (i, feature) in features.iter().enumerate() {
             if feature.feature_type == FeatureType::Source {
-                continue // From GenBank; generally the whole seq.
+                continue; // From GenBank; generally the whole seq.
             }
 
             if *seq_i > feature.index_range.0 && *seq_i < feature.index_range.1 {

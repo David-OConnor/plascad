@@ -3,7 +3,7 @@
 use eframe::egui::{TextEdit, Ui};
 
 // todo: monospace font for all seqs.
-use crate::sequence::{Feature, seq_from_str, seq_to_str};
+use crate::sequence::{seq_from_str, seq_to_str, Feature};
 use crate::{
     gui::{
         features::feature_table,
@@ -104,10 +104,13 @@ fn feature_text(feature_hover: &Option<usize>, features: &[Feature], ui: &mut Ui
             let feature = &features[*i];
 
             ui.label(&feature.label); // todo: IDeally heading here, but it is currnetly causing display jumping.
-            ui.label( format!("{}..{}", feature.index_range.0, feature.index_range.1));
-            ui.label( feature.feature_type.to_string());
+            ui.label(format!(
+                "{}..{}",
+                feature.index_range.0, feature.index_range.1
+            ));
+            ui.label(feature.feature_type.to_string());
 
-                // todo?
+            // todo?
             for note in &feature.notes {
                 // ui.label(&format!("{}: {}", note.0, note.1));
             }
@@ -119,7 +122,6 @@ fn feature_text(feature_hover: &Option<usize>, features: &[Feature], ui: &mut Ui
 /// Component for the sequence page.
 pub fn seq_page(state: &mut State, ui: &mut Ui) {
     page_seq_top_selector(state, ui);
-
 
     match state.ui.page_seq_top {
         PageSeqTop::Primers => primer_details(state, ui),
@@ -135,7 +137,6 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
 
         feature_text(&state.ui.feature_hover, &state.generic.features, ui);
     });
-
 
     ui.add_space(ROW_SPACING / 2.);
 
