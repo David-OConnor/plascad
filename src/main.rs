@@ -305,7 +305,7 @@ struct StateUi {
     text_cursor_i: Option<usize>,
     /// We store if we've clicked somewhere separately from the action, as getting a sequence index
     /// from cursor positions may be decoupled, and depends on the view.
-    click_pending_handle: bool
+    click_pending_handle: bool,
 }
 
 impl Default for StateUi {

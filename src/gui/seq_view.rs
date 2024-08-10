@@ -14,7 +14,7 @@ use eframe::{
 use crate::{
     gui::{
         feature_from_index, feature_overlay::draw_features, get_cursor_text,
-        navigation::page_button, primer_arrow, COL_SPACING, ROW_SPACING,
+        navigation::page_button, primer_arrow, select_feature, COL_SPACING, ROW_SPACING,
     },
     sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
@@ -245,11 +245,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                         feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
                 }
 
-                if state.ui.click_pending_handle {
-                    state.ui.feature_selected =
-                        feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
-                    state.ui.click_pending_handle = false;
-                }
+                select_feature(state, &from_screen);
 
                 state.ui.cursor_seq_i =
                     find_cursor_i(state.ui.cursor_pos, &from_screen, &row_ranges);

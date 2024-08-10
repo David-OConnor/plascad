@@ -94,9 +94,9 @@ fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     }
 }
 
-/// Displays text of the feature under the cursor
-fn feature_text(feature_hover: &Option<usize>, features: &[Feature], ui: &mut Ui) {
-    match feature_hover {
+/// Displays text of the feature under the cursor, or selected, as required.
+fn feature_text(feature: &Option<usize>, features: &[Feature], ui: &mut Ui) {
+    match feature {
         Some(i) => {
             if features.len() + 1 < *i {
                 eprintln!("Invalid hover feature");
@@ -138,7 +138,14 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         page_seq_selector(state, ui);
         ui.add_space(COL_SPACING);
 
-        feature_text(&state.ui.feature_hover, &state.generic.features, ui);
+        let mut feature_to_disp = None;
+        if state.ui.feature_selected.is_some() {
+            feature_to_disp = Some(state.ui.feature_selected.unwrap());
+        } else if state.ui.feature_hover.is_some() {
+            feature_to_disp = Some(state.ui.feature_hover.unwrap());
+        }
+
+        feature_text(&feature_to_disp, &state.generic.features, ui);
     });
 
     ui.add_space(ROW_SPACING / 2.);

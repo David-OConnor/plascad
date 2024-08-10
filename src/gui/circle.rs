@@ -5,7 +5,7 @@ use core::f32::consts::TAU;
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
-        Stroke, Ui, Vec2,
+        Slider, Stroke, Ui, Vec2,
     },
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
@@ -14,7 +14,7 @@ use eframe::{
 use crate::{
     gui::{
         feature_from_index, features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
-        primer_arrow::STROKE_WIDTH, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
+        primer_arrow::STROKE_WIDTH, select_feature, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
     },
     primer::{Primer, PrimerData, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
@@ -59,6 +59,8 @@ const SELECTION_MAX_DIST: f32 = 100.;
 
 const CENTER_TEXT_ROW_SPACING: f32 = 20.;
 
+const FEATURE_SLIDER_WIDTH: f32 = 180.;
+
 /// These aguments define the circle, and are used in many places in this module.
 struct CircleData {
     pub seq_len: usize,
@@ -66,6 +68,24 @@ struct CircleData {
     pub radius: f32,
     pub to_screen: RectTransform,
     pub from_screen: RectTransform,
+    /// This is `from_screen * center`. We store it here to cache.
+    pub center_rel: Pos2,
+}
+
+impl CircleData {
+    /// Automatically populates `center_rel` and `from_screen`.
+    fn new(seq_len: usize, center: Pos2, radius: f32, to_screen: RectTransform) -> Self {
+        let center_rel = to_screen * center;
+        let from_screen = to_screen.inverse();
+        Self {
+            seq_len,
+            center,
+            radius,
+            to_screen,
+            from_screen,
+            center_rel,
+        }
+    }
 }
 
 // // todo: Experimenting with making a `Mesh`, so we can fill it.
@@ -189,14 +209,6 @@ fn angle_to_pixel(angle: f32, radius: f32) -> Pos2 {
     pos2(angle.cos() * radius, angle.sin() * radius)
 }
 
-// /// Convenience struct that groups related parameters required for drawing most circle items.
-// struct CircleConfig {
-//     seq_len: usize,
-//     center: Pos2,
-//     radius: f32,
-//     to_screen: RectTransform,
-// }
-
 /// Draw a tick every 1kbp.
 fn draw_ticks(data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
@@ -250,9 +262,8 @@ fn draw_filled_arc(
     fill_color: Color32,
     stroke: Stroke,
 ) -> Vec<Shape> {
-    let center_screen = data.to_screen * data.center;
-    let mut points_outer = arc_points(center_screen, data.radius + width / 2., angle.0, angle.1);
-    let mut points_inner = arc_points(center_screen, data.radius - width / 2., angle.0, angle.1);
+    let mut points_outer = arc_points(data.center_rel, data.radius + width / 2., angle.0, angle.1);
+    let mut points_inner = arc_points(data.center_rel, data.radius - width / 2., angle.0, angle.1);
 
     points_inner.reverse();
 
@@ -267,7 +278,7 @@ fn draw_filled_arc(
     // but slightly inwards as not to override the feature edge.
 
     let mut points_patch = arc_points(
-        center_screen,
+        data.center_rel,
         data.radius - width / 2. - stroke.width / 2.,
         angle.0,
         angle.1,
@@ -437,21 +448,11 @@ fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape
             let stroke = Stroke::new(PRIMER_STROKE_WIDTH, outline_color);
 
             result.push(Shape::Path(PathShape::line(
-                arc_points(
-                    data.to_screen * data.center,
-                    radius_outer,
-                    angle_start,
-                    angle_end,
-                ),
+                arc_points(data.center_rel, radius_outer, angle_start, angle_end),
                 stroke,
             )));
             result.push(Shape::Path(PathShape::line(
-                arc_points(
-                    data.to_screen * data.center,
-                    radius_inner,
-                    angle_start,
-                    angle_end,
-                ),
+                arc_points(data.center_rel, radius_inner, angle_start, angle_end),
                 stroke,
             )));
 
@@ -518,6 +519,44 @@ fn top_details(state: &mut State, ui: &mut Ui) {
     ui.checkbox(&mut state.ui.seq_visibility.show_primers, "");
     ui.add_space(COL_SPACING / 2.);
 
+    // Sliders to edit the feature.
+    if let Some(feat_i) = &state.ui.feature_selected {
+        ui.spacing_mut().slider_width = FEATURE_SLIDER_WIDTH;
+
+        if state.generic.features.len() + 1 < *feat_i {
+            eprintln!("Invalid selected feature");
+        }
+
+        let feature = &mut state.generic.features[*feat_i];
+        // todo: Handle wraps.
+        ui.label("Start:");
+        let start = feature.index_range.0; // Avoids a borrow error.
+        ui.add(Slider::new(
+            &mut feature.index_range.0,
+            0..=state.generic.seq.len(),
+        ));
+        // ui.add(
+        //     Slider::from_get_set(0.0..=state.generic.seq.len() as f32, |v| {
+        //     // Slider::new(&mut 0, 0..=state.generic.seq.len(), |v| {
+        //         if let Some(v_) = v {
+        //             v
+        //         }
+        //     }).text("Start")
+        // );
+
+        ui.add_space(COL_SPACING);
+        ui.label("End:");
+        ui.add(Slider::new(
+            &mut feature.index_range.1,
+            0..=state.generic.seq.len(),
+        ));
+
+        // todo: Don't let end be before start.
+        if feature.index_range.0 > feature.index_range.1 {
+            feature.index_range.1 = feature.index_range.0 + 1;
+        }
+    }
+
     ui.add_space(COL_SPACING);
     ui.label("Cursor:");
     let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, state.generic.seq.len());
@@ -525,27 +564,21 @@ fn top_details(state: &mut State, ui: &mut Ui) {
 }
 
 /// Find the sequence index under the cursor, if it is over the sequence.
-fn find_cursor_i(
-    cursor_pos: Option<(f32, f32)>,
-    seq_len: usize,
-    center: Pos2,
-    radius: f32,
-    from_screen: &RectTransform,
-) -> Option<usize> {
+fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &CircleData) -> Option<usize> {
     match cursor_pos {
         Some(p) => {
-            let pos_rel = from_screen * pos2(p.0, p.1);
+            let pos_rel = data.from_screen * pos2(p.0, p.1);
 
-            let diff = vec2(pos_rel.x - center.x, pos_rel.y - center.y);
+            let diff = vec2(pos_rel.x - data.center.x, pos_rel.y - data.center.y);
             let cursor_dist = diff.length();
 
-            if (cursor_dist - radius).abs() > SELECTION_MAX_DIST {
+            if (cursor_dist - data.radius).abs() > SELECTION_MAX_DIST {
                 return None;
             }
 
             // Shifted so 0 is at the top.
             let angle = diff.angle() + TAU / 4.;
-            Some(angle_to_seq_i(angle, seq_len))
+            Some(angle_to_seq_i(angle, data.seq_len))
         }
         None => None,
     }
@@ -712,14 +745,14 @@ fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Sh
                     // Display a summary of the plasmid
                     result.push(draw_text(
                         &state.generic.metadata.plasmid_name,
-                        data.to_screen * data.center,
+                        data.center_rel,
                         16.,
                         TICK_COLOR,
                         ui,
                     ));
                     result.push(draw_text(
                         &format!("{} bp", data.seq_len),
-                        data.to_screen * pos2(data.center.x, data.center.y + 20.),
+                        pos2(data.center_rel.x, data.center_rel.y + 20.),
                         13.,
                         TICK_COLOR,
                         ui,
@@ -785,29 +818,18 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 response.rect,
             );
 
-            let from_screen = to_screen.inverse();
-
             let rect_size = response.rect.size();
 
             let center = pos2(rect_size.x / 2., rect_size.y / 2.);
             let width_min = rect_size.x < rect_size.y;
             let radius = if width_min { rect_size.x } else { rect_size.y } * CIRCLE_SIZE_RATIO;
 
-            // todo: Cache to_screen * center etc?
-
             let seq_len = state.generic.seq.len();
 
-            let data = CircleData {
-                seq_len,
-                center,
-                radius,
-                to_screen,
-                from_screen,
-            };
+            let data = CircleData::new(seq_len, center, radius, to_screen);
 
             let prev_cursor_i = state.ui.cursor_seq_i;
-            state.ui.cursor_seq_i =
-                find_cursor_i(state.ui.cursor_pos, seq_len, center, radius, &from_screen);
+            state.ui.cursor_seq_i = find_cursor_i(state.ui.cursor_pos, &data);
 
             if prev_cursor_i != state.ui.cursor_seq_i {
                 state.ui.feature_hover = None;
@@ -817,15 +839,11 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                     feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
             }
 
-            if state.ui.click_pending_handle {
-                state.ui.feature_selected =
-                    feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
-                state.ui.click_pending_handle = false;
-            }
+            select_feature(state, &data.from_screen);
 
             // Draw the backbone circle
             shapes.push(Shape::Circle(CircleShape::stroke(
-                to_screen * center,
+                data.center_rel,
                 radius,
                 Stroke::new(BACKBONE_WIDTH, BACKBONE_COLOR),
             )));

@@ -2,9 +2,9 @@ use std::{path::PathBuf, str::FromStr};
 
 use eframe::{
     egui,
-    egui::{Color32, Context, Key, ScrollArea, TextEdit, Ui},
+    egui::{pos2, Color32, Context, Key, PointerButton, ScrollArea, TextEdit, Ui},
+    emath::RectTransform,
 };
-use eframe::egui::PointerButton;
 use navigation::Page;
 use url::Url;
 
@@ -173,6 +173,24 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
         }
     }
     None
+}
+
+/// Selects a feature, if there is a click in the appropriate canvas; used in both the sequence,
+/// and map views.
+pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
+    if state.ui.click_pending_handle {
+        // Don't let clicks out of this canvas remove the selected item.
+        if let Some(pos) = state.ui.cursor_pos {
+            let pos_rel = from_screen * pos2(pos.0, pos.1);
+
+            if pos_rel.x > 0. && pos_rel.y > 0. {
+                state.ui.feature_selected =
+                    feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
+            }
+        }
+
+        state.ui.click_pending_handle = false;
+    }
 }
 
 /// Handles keyboard and mouse input not associated with a widget.
