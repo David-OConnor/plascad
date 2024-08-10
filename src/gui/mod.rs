@@ -195,7 +195,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             ui.label("Name: ");
             ui.add(
-                TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(160.),
+                TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(200.),
             );
         });
 

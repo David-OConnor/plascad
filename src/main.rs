@@ -2,7 +2,8 @@
 // #![windows_subsystem = "windows"]
 
 use std::{io, path::PathBuf, sync::Arc};
-
+use std::path::Path;
+use std::str::FromStr;
 use bincode::{Decode, Encode};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::FileDialog;
@@ -21,6 +22,7 @@ use crate::{
         ReadingFrameMatch,
     },
 };
+use crate::file_io::save::{DEFAULT_PREFS_FILE, StateUiToSave};
 
 mod features_known;
 mod file_io;
@@ -76,6 +78,7 @@ impl eframe::App for State {
     }
 }
 
+#[derive(Clone, Encode, Decode)]
 /// Variables for UI fields, for determining PCR parameters.
 struct PcrUi {
     pub primer_tm: f32,
@@ -123,7 +126,7 @@ impl Default for IonConcentrations {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Encode, Decode)]
 struct StateFeatureAdd {
     // This is in 1-based indexing.
     start_posit: usize,
@@ -134,6 +137,7 @@ struct StateFeatureAdd {
     color: Option<Color>,
 }
 
+#[derive(Clone, Encode, Decode)]
 /// This Ui struct is used to determine which items on the sequence and map views to show and hide.
 struct SeqVisibility {
     /// Show or hide restriction enzymes from the sequence view.
@@ -486,9 +490,16 @@ impl State {
     }
 
     /// Load state from a (our format) file.
-    pub fn load(path: &str) -> Self {
+    pub fn load(path: &Path, prefs_path: &Path) -> Self {
         let state_loaded: io::Result<StateToSave> = load(path);
         let mut result = match state_loaded {
+            Ok(s) => s.to_state(),
+            Err(_) => Default::default(),
+        };
+
+        let ui_loaded: io::Result<StateUiToSave> = load(prefs_path);
+
+        result.ui = match ui_loaded {
             Ok(s) => s.to_state(),
             Err(_) => Default::default(),
         };
@@ -505,7 +516,8 @@ impl State {
 }
 
 fn main() {
-    let state = State::load(DEFAULT_SAVE_FILE);
+    let state = State::load(&PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap(), &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

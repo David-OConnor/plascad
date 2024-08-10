@@ -503,6 +503,20 @@ fn draw_primers(
 fn top_details(state: &mut State, ui: &mut Ui) {
     // todo: A/R
     // display_filters(&mut state.ui, ui);
+    // We re-impl display_filters to, to avoid having reading frames. Change A/R.
+
+    ui.label("RE sites:");
+    ui.checkbox(&mut state.ui.seq_visibility.show_res, "");
+    ui.add_space(COL_SPACING / 2.);
+
+    ui.label("Features:");
+    ui.checkbox(&mut state.ui.seq_visibility.show_features, "");
+    ui.add_space(COL_SPACING / 2.);
+
+    ui.label("Primers:");
+    ui.checkbox(&mut state.ui.seq_visibility.show_primers, "");
+    ui.add_space(COL_SPACING / 2.);
+
     ui.add_space(COL_SPACING);
     ui.label("Cursor:");
     let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, state.generic.seq.len());
@@ -731,6 +745,9 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             {
                 state.ui.hide_map_feature_editor = false;
             }
+
+            ui.add_space(COL_SPACING);
+
             top_details(state, ui);
         });
     }
@@ -791,23 +808,28 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             )));
 
             shapes.append(&mut draw_ticks(seq_len, center, radius, &to_screen, ui));
-            shapes.append(&mut draw_features(
-                &state.generic.features,
-                seq_len,
-                center,
-                radius,
-                &to_screen,
-                ui,
-            ));
 
-            shapes.append(&mut draw_primers(
-                &state.generic.primers,
-                seq_len,
-                center,
-                radius,
-                &to_screen,
-                ui,
-            ));
+            if state.ui.seq_visibility.show_features {
+                shapes.append(&mut draw_features(
+                    &state.generic.features,
+                    seq_len,
+                    center,
+                    radius,
+                    &to_screen,
+                    ui,
+                ));
+            }
+
+            if state.ui.seq_visibility.show_primers {
+                shapes.append(&mut draw_primers(
+                    &state.generic.primers,
+                    seq_len,
+                    center,
+                    radius,
+                    &to_screen,
+                    ui,
+                ));
+            }
 
             // tood: Check mark to edit this visibility on the page
             if state.ui.seq_visibility.show_res {

@@ -9,23 +9,18 @@ use std::{
     path::Path,
 };
 
-use bincode::{
-    config,
-    error::{DecodeError, EncodeError},
-    Decode, Encode,
-};
+use bincode::{config, error::{DecodeError, EncodeError}, Decode, Encode, BorrowDecode};
 use bio::io::fasta;
 
-use crate::{
-    file_io::GenericData,
-    primer::{Primer, PrimerData},
-    sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology},
-    IonConcentrations, Metadata, Reference, State,
-};
+use crate::{file_io::GenericData, primer::{Primer}, sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology}, IonConcentrations, Metadata, State, FileDialogs, SeqVisibility, PcrUi, StateUi};
+use crate::gui::navigation::{Page, PageSeq, PageSeqTop};
 
 pub const DEFAULT_SAVE_FILE: &str = "plasmid.pcad";
+pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";
+
 pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
 pub const DEFAULT_DNA_FILE: &str = "export.dna";
+
 
 /// This is similar to `State`, but excludes the UI, and other things we don't wish to save.
 pub struct StateToSave {
@@ -125,6 +120,48 @@ impl StateToSave {
     }
 }
 
+#[derive(Encode, Decode)]
+pub struct StateUiToSave {
+    page: Page,
+    page_seq: PageSeq,
+    page_seq_top: PageSeqTop,
+    pcr: PcrUi,
+    primer_selected: Option<usize>,
+    feature_selected: Option<usize>,
+    seq_visibility: SeqVisibility,
+    hide_map_feature_editor: bool,
+}
+
+impl StateUiToSave {
+    pub fn from_state(state: &StateUi) -> Self {
+        Self {
+            page: state.page.clone(),
+            page_seq: state.page_seq.clone(),
+            page_seq_top: state.page_seq_top.clone(),
+            pcr: state.pcr.clone(),
+            primer_selected: state.primer_selected.clone(),
+            feature_selected: state.feature_selected.clone(),
+            seq_visibility: state.seq_visibility.clone(),
+            hide_map_feature_editor: state.hide_map_feature_editor.clone(),
+        }
+    }
+
+    /// Used to load to state. The result is data from this struct, augmented with default values.
+    pub fn to_state(self) -> StateUi {
+        StateUi {
+            page: self.page,
+            page_seq: self.page_seq,
+            page_seq_top: self.page_seq_top,
+            pcr: self.pcr,
+            primer_selected: self.primer_selected,
+            feature_selected: self.feature_selected,
+            seq_visibility: self.seq_visibility,
+            hide_map_feature_editor: self.hide_map_feature_editor,
+            ..Default::default()
+        }
+    }
+}
+
 pub fn save<T: Encode>(path: &Path, data: &T) -> io::Result<()> {
     let config = config::standard();
 
@@ -135,10 +172,10 @@ pub fn save<T: Encode>(path: &Path, data: &T) -> io::Result<()> {
     Ok(())
 }
 
-pub fn load<T: Decode>(filename: &str) -> io::Result<T> {
+pub fn load<T: Decode>(path: &Path) -> io::Result<T> {
     let config = config::standard();
 
-    let mut file = File::open(filename)?;
+    let mut file = File::open(path)?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
     let (decoded, _len) = match bincode::decode_from_slice(&buffer, config) {

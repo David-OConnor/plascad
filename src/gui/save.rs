@@ -4,7 +4,7 @@ use std::{
     env,
     path::{Path, PathBuf},
 };
-
+use std::str::FromStr;
 use eframe::egui::Ui;
 use egui_file_dialog::FileDialog;
 
@@ -17,6 +17,7 @@ use crate::{
     sequence::seq_to_str,
     State,
 };
+use crate::file_io::save::{DEFAULT_PREFS_FILE, StateUiToSave};
 
 fn save_button(
     dialog: &mut FileDialog,
@@ -61,7 +62,15 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
             &PathBuf::from(DEFAULT_SAVE_FILE),
             &StateToSave::from_state(state),
         ) {
-            println!("Error saving: {e}");
+            eprintln!("Error saving: {e}");
+        }
+
+        // todo: You will likely more this to an automatic one.
+        if let Err(e) = save(
+            &PathBuf::from(DEFAULT_PREFS_FILE),
+            &StateUiToSave::from_state(&state.ui),
+        ) {
+            eprintln!("Error saving prefs: {e}");
         }
     }
 
@@ -165,7 +174,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         };
     } else if let Some(path) = state.ui.file_dialogs.load.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());
-        *state = State::load(path.to_str().unwrap());
+        *state = State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
         sync = true;
     } else if let Some(path) = state.ui.file_dialogs.export_fasta.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());

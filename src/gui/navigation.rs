@@ -1,14 +1,14 @@
 //! This module contains code related to navigation buttons.
 
 use std::fmt::Display;
-
+use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
 
 use crate::{gui::COL_SPACING, State};
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 00, 110);
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum Page {
     /// Primer design and QC, including for cloning
     /// (Replacement name: Sequence?
@@ -82,7 +82,7 @@ pub fn page_button<T: PartialEq + ToString>(page_state: &mut T, page: T, ui: &mu
 }
 
 /// This is used for selecting what is displayed in the sequence view, ie view or edit.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum PageSeq {
     EditSeq,
     EditSlic,
@@ -116,7 +116,7 @@ pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
 }
 
 /// This is used for selecting what is displayed above the sequence view, ie various tabular editors.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum PageSeqTop {
     Primers,
     Features,
