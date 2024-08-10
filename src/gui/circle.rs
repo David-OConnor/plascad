@@ -5,18 +5,18 @@ use core::f32::consts::TAU;
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
-        Slider, Stroke, Ui, Vec2,
+        Slider, Stroke, Ui,
     },
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
 };
-
 use crate::{
+    Selection,
     gui::{
         feature_from_index, features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
-        primer_arrow::STROKE_WIDTH, select_feature, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
+         select_feature, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
     },
-    primer::{Primer, PrimerData, PrimerDirection},
+    primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::{Feature, FeatureDirection, FeatureType},
     State,
@@ -38,6 +38,8 @@ const TICK_LABEL_OFFSET: f32 = 10.;
 
 
 const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
+// const FEATURE_OUTLINE_HIGHLIGHTED: Color32 = Color32::from_rgb(200, 200, 255);
+const FEATURE_OUTLINE_SELECTED: Color32 = Color32::RED;
 
 const RE_LEN: f32 = 50.; // in pixels.
 const RE_LEN_DIV_2: f32 = RE_LEN / 2.;
@@ -326,7 +328,7 @@ fn draw_filled_arc(
 }
 
 /// This is a fancy way of saying triangle.
-fn draw_arrowhead(data: &CircleData, width: f32, angle: (f32, f32), color: Color32) -> Shape {
+fn draw_arrowhead(data: &CircleData, width: f32, angle: (f32, f32), color: Color32, stroke: Stroke) -> Shape {
     let center = data.center.to_vec2();
     let base_outer = data.to_screen * angle_to_pixel(angle.0, data.radius + width / 2.) + center;
     let base_inner = data.to_screen * angle_to_pixel(angle.0, data.radius - width / 2.) + center;
@@ -339,12 +341,10 @@ fn draw_arrowhead(data: &CircleData, width: f32, angle: (f32, f32), color: Color
         vec![base_inner, tip, base_outer]
     };
 
-    let stroke = Stroke::new(STROKE_WIDTH, FEATURE_OUTLINE_COLOR);
-
     Shape::convex_polygon(points, color, stroke)
 }
 
-fn draw_features(features: &[Feature], data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
+fn draw_features(features: &[Feature], data: &CircleData, selected: Selection, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
     for (i, feature) in features.iter().enumerate() {
@@ -365,7 +365,13 @@ fn draw_features(features: &[Feature], data: &CircleData, ui: &mut Ui) -> Vec<Sh
         let (r, g, b) = feature.color();
 
         let feature_color = Color32::from_rgb(r, g, b);
-        let stroke = Stroke::new(feature_stroke_width, FEATURE_OUTLINE_COLOR);
+
+        let stroke_color = match selected {
+           Selection::Feature(j) => if j == i {FEATURE_OUTLINE_SELECTED} else {FEATURE_OUTLINE_COLOR},
+           _ => FEATURE_OUTLINE_COLOR
+        };
+
+        let stroke = Stroke::new(feature_stroke_width, stroke_color);
 
         let angle_start = seq_i_to_angle(feature.index_range.0, data.seq_len);
         let angle_end = seq_i_to_angle(feature.index_range.1, data.seq_len);
@@ -447,6 +453,7 @@ fn draw_features(features: &[Feature], data: &CircleData, ui: &mut Ui) -> Vec<Sh
                 feature_width * TIP_WIDTH_RATIO,
                 tip_angle,
                 feature_color,
+                stroke,
             ));
         }
     }
@@ -570,7 +577,7 @@ fn top_details(state: &mut State, ui: &mut Ui) {
     ui.add_space(COL_SPACING / 2.);
 
     // Sliders to edit the feature.
-    if let Some(feat_i) = &state.ui.feature_selected {
+    if let Selection::Feature(feat_i) = &state.ui.selected_item {
         ui.spacing_mut().slider_width = FEATURE_SLIDER_WIDTH;
 
         if state.generic.features.len() + 1 < *feat_i {
@@ -774,15 +781,19 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
 fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
     // todo: This nesting is a bit complicated.
-    match &state.ui.feature_selected {
-        Some(feat_i) => {
+    match &state.ui.selected_item {
+        Selection::Feature(feat_i) => {
             if state.generic.features.len() + 1 < *feat_i {
                 eprintln!("Invalid selected feature");
             }
             let feature = &state.generic.features[*feat_i];
             result.append(&mut draw_feature_text(&feature, data, ui));
         }
-        None => {
+        Selection::Primer(prim_i) => {
+            let primer = &state.generic.primers[*prim_i];
+            // todo
+        }
+        Selection::None => {
             match &state.ui.feature_hover {
                 Some(feat_i) => {
                     if state.generic.features.len() + 1 < *feat_i {
@@ -900,7 +911,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
             // Draw features first, so other items like ticks will be displayed in front of the concave fill circlex.
             if state.ui.seq_visibility.show_features {
-                shapes.append(&mut draw_features(&state.generic.features, &data, ui));
+                shapes.append(&mut draw_features(&state.generic.features, &data, state.ui.selected_item, ui));
             }
 
             shapes.append(&mut draw_ticks(&data, ui));

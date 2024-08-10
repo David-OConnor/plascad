@@ -2,15 +2,11 @@
 
 use eframe::egui::{Color32, ComboBox, Frame, Painter, RichText, Sense, TextEdit, Ui, Vec2, Stroke};
 
-use crate::{
-    gui::{int_field, ROW_SPACING},
-    sequence::{
-        Feature,
-        FeatureDirection::{self, Forward, Reverse},
-        FeatureType,
-    },
-    Color, State,
-};
+use crate::{gui::{int_field, ROW_SPACING}, sequence::{
+    Feature,
+    FeatureDirection::{self, Forward, Reverse},
+    FeatureType,
+}, Color, State, Selection};
 
 const LABEL_EDIT_WIDTH: f32 = 140.;
 
@@ -101,7 +97,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
     for (i, feature) in state.generic.features.iter_mut().enumerate() {
         let border_color = Color32::WHITE;
         let mut border_width = 0.;
-        if let Some(j) = state.ui.feature_selected {
+        if let Selection::Feature(j) = state.ui.selected_item {
             if i == j {
                 border_width = 1.;
             }

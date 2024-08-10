@@ -268,10 +268,9 @@ struct StateUi {
     seq_input: String,
     pcr: PcrUi,
     feature_add: StateFeatureAdd,
-    primer_selected: Option<usize>,
-    feature_selected: Option<usize>,
+    primer_selected: Option<usize>, // primer page only.
+    // feature_selected: Option<usize>,
     feature_hover: Option<usize>,
-    // todo: Use this?
     selected_item: Selection,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
@@ -303,7 +302,6 @@ impl Default for StateUi {
             pcr: Default::default(),
             feature_add: Default::default(),
             primer_selected: None,
-            feature_selected: Default::default(),
             feature_hover: Default::default(),
             selected_item: Selection::None,
             seq_visibility: Default::default(),
@@ -319,6 +317,7 @@ impl Default for StateUi {
     }
 }
 
+#[derive(Clone, Copy, Encode, Decode)]
 pub enum Selection {
     Feature(usize), // index
     Primer(usize),

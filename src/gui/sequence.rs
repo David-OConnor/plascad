@@ -4,15 +4,12 @@ use eframe::egui::{Color32, RichText, TextEdit, Ui};
 
 // todo: monospace font for all seqs.
 use crate::sequence::{seq_from_str, seq_to_str, Feature};
-use crate::{
-    gui::{
-        features::feature_table,
-        navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
-        primer_qc::primer_details,
-        seq_view::sequence_vis,
-    },
-    primer::make_cloning_primers,
-};
+use crate::{gui::{
+    features::feature_table,
+    navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
+    primer_qc::primer_details,
+    seq_view::sequence_vis,
+}, primer::make_cloning_primers, Selection};
 // todo: monospace font for all seqs.
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
@@ -139,8 +136,8 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         ui.add_space(COL_SPACING);
 
         let mut feature_to_disp = None;
-        if state.ui.feature_selected.is_some() {
-            feature_to_disp = Some(state.ui.feature_selected.unwrap());
+        if let Selection::Feature(i) = state.ui.selected_item {
+            feature_to_disp = Some(i);
         } else if state.ui.feature_hover.is_some() {
             feature_to_disp = Some(state.ui.feature_hover.unwrap());
         }

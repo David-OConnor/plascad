@@ -16,12 +16,7 @@ use bincode::{
 };
 use bio::io::fasta;
 
-use crate::{
-    file_io::GenericData,
-    gui::navigation::{Page, PageSeq, PageSeqTop},
-    PcrUi,
-    primer::Primer, sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology}, SeqVisibility, State, StateUi,
-};
+use crate::{file_io::GenericData, gui::navigation::{Page, PageSeq, PageSeqTop}, PcrUi, primer::Primer, Selection, sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology}, SeqVisibility, State, StateUi};
 use crate::primer::IonConcentrations;
 use crate::sequence::Metadata;
 
@@ -136,8 +131,7 @@ pub struct StateUiToSave {
     page_seq: PageSeq,
     page_seq_top: PageSeqTop,
     pcr: PcrUi,
-    primer_selected: Option<usize>,
-    feature_selected: Option<usize>,
+    selected_item: Selection,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
 }
@@ -149,8 +143,7 @@ impl StateUiToSave {
             page_seq: state.page_seq.clone(),
             page_seq_top: state.page_seq_top.clone(),
             pcr: state.pcr.clone(),
-            primer_selected: state.primer_selected.clone(),
-            feature_selected: state.feature_selected.clone(),
+            selected_item: state.selected_item,
             seq_visibility: state.seq_visibility.clone(),
             hide_map_feature_editor: state.hide_map_feature_editor.clone(),
         }
@@ -163,8 +156,7 @@ impl StateUiToSave {
             page_seq: self.page_seq,
             page_seq_top: self.page_seq_top,
             pcr: self.pcr,
-            primer_selected: self.primer_selected,
-            feature_selected: self.feature_selected,
+            selected_item: self.selected_item,
             seq_visibility: self.seq_visibility,
             hide_map_feature_editor: self.hide_map_feature_editor,
             ..Default::default()

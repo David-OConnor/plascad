@@ -8,12 +8,7 @@ use eframe::{
 use navigation::Page;
 use url::Url;
 
-use crate::{
-    file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
-    gui::primer_qc::primer_details,
-    sequence::{Feature, FeatureType, Nucleotide},
-    util, State,
-};
+use crate::{file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE}, gui::primer_qc::primer_details, sequence::{Feature, FeatureType, Nucleotide}, util, State, Selection};
 
 mod circle;
 mod feature_overlay;
@@ -184,8 +179,10 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
             let pos_rel = from_screen * pos2(pos.0, pos.1);
 
             if pos_rel.x > 0. && pos_rel.y > 0. {
-                state.ui.feature_selected =
-                    feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
+                state.ui.selected_item = match feature_from_index(&state.ui.cursor_seq_i, &state.generic.features) {
+                    Some(i) => Selection::Feature(i),
+                    None => Selection::None,
+                }
             }
         }
 
