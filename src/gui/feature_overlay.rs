@@ -60,7 +60,7 @@ pub fn draw_features(
         shapes.append(&mut feature_seq_overlay(
             &feature_ranges_px,
             feature.feature_type,
-            feature.color_override,
+            feature.color(),
             VERTICAL_OFFSET_FEATURE,
             feature.direction,
             &feature.label,
@@ -74,7 +74,7 @@ pub fn draw_features(
 pub fn feature_seq_overlay(
     feature_ranges_px: &[(Pos2, Pos2)],
     feature_type: FeatureType,
-    color_override: Option<Color>,
+    color: Color,
     vertical_offset: f32,
     direction: FeatureDirection,
     label: &str,
@@ -83,10 +83,7 @@ pub fn feature_seq_overlay(
     if feature_ranges_px.is_empty() {
         return Vec::new();
     }
-    let (r, g, b) = match color_override {
-        Some(c) => c,
-        None => feature_type.color(),
-    };
+    let (r, g, b) = color;
     let stroke = Stroke::new(STROKE_WIDTH, Color32::from_rgb(r, g, b));
 
     let color_label = Color32::LIGHT_GREEN;

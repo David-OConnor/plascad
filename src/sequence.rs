@@ -265,6 +265,16 @@ pub struct Feature {
     pub notes: HashMap<String, String>,
 }
 
+impl Feature {
+    /// Get the color to draw; type color, unless overridden.
+    pub fn color(&self) -> Color {
+        match self.color_override {
+            Some(c) => c,
+            None => self.feature_type.color()
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum SeqTopology {
     Linear,

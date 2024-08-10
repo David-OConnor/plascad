@@ -38,20 +38,20 @@ const TICK_LEN: f32 = 120.; // in pixels.
 const TICK_LEN_DIV_2: f32 = TICK_LEN / 2.;
 const TICK_LABEL_OFFSET: f32 = 10.;
 
-const RE_LEN: f32 = 40.; // in pixels.
+const RE_LEN: f32 = 50.; // in pixels.
 const RE_LEN_DIV_2: f32 = RE_LEN / 2.;
 const RE_LABEL_OFFSET: f32 = 10.;
 
 // We may use per-feature-type widths, but have this for now.
-const FEATURE_WIDTH_DEFAULT: f32 = 30.;
+const FEATURE_WIDTH_DEFAULT: f32 = 26.;
 const PRIMER_WIDTH: f32 = 54.;
 const PRIMER_STROKE_WIDTH: f32 = 2.;
 
 const TIP_LEN: f32 = 0.05; // Len of arrow tips, in radians
 const TIP_WIDTH_RATIO: f32 = 1.5; // Compared to its feature width.
 
-// Of the available width or height (whichever is lower).
-const CIRCLE_SIZE_RATIO: f32 = 0.4;
+// Radius, comparedd to the available width or height (whichever is lower).
+const CIRCLE_SIZE_RATIO: f32 = 0.42;
 
 // The maximum distance the cursor can be from the circle for various tasks like selection, finding
 // the cursor position etc.
@@ -328,10 +328,8 @@ fn draw_features(
         let feature_stroke_width = 3.;
         // todo: Sort out color, as you have a note elsewhere. Type or custom? Type with avail override?
 
-        let (r, g, b) = match feature.color_override {
-            Some(c) => c,
-            None => feature.feature_type.color(),
-        };
+        let (r, g, b) = feature.color();
+
         let feature_color = Color32::from_rgb(r, g, b);
         let stroke = Stroke::new(feature_stroke_width, FEATURE_OUTLINE_COLOR);
 
@@ -514,10 +512,10 @@ fn top_details(state: &mut State, ui: &mut Ui) {
 /// Find the sequence index under the cursor, if it is over the sequence.
 fn find_cursor_i(
     cursor_pos: Option<(f32, f32)>,
-    from_screen: &RectTransform,
     seq_len: usize,
     center: Pos2,
     radius: f32,
+    from_screen: &RectTransform,
 ) -> Option<usize> {
     match cursor_pos {
         Some(p) => {
@@ -564,7 +562,7 @@ fn draw_re_sites(
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
-    for re_match in re_matches {
+    for (i, re_match) in re_matches.iter().enumerate() {
         let cut_i = re_match.seq_index + 1; // to display in the right place.
         let re = &res[re_match.lib_index];
         let angle = seq_i_to_angle(cut_i + re.cut_after as usize, seq_len);
@@ -577,7 +575,8 @@ fn draw_re_sites(
             Stroke::new(RE_WIDTH, COLOR_RE),
         ));
 
-        let (label_pt, label_align) = if angle > TAU / 2. {
+
+        let (mut label_pt, label_align) = if angle > TAU / 2. {
             (
                 point_outer + vec2(-RE_LABEL_OFFSET, 0.),
                 Align2::RIGHT_CENTER,
@@ -588,6 +587,11 @@ fn draw_re_sites(
                 Align2::LEFT_CENTER,
             )
         };
+
+        // Alternate label vertical position, to reduce changes of overlaps.
+        if i % 2 == 0 {
+            label_pt.y += 22.;
+        }
 
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
@@ -606,9 +610,10 @@ fn draw_re_sites(
 /// Draw text in the center of the circle; eg general plasmid information, or information
 /// about a feature.
 fn draw_center_text(
-    center: Pos2,
-    to_screen: &RectTransform,
     seq_len: usize,
+    center: Pos2,
+    radius: f32,
+    to_screen: &RectTransform,
     state: &mut State,
     ui: &mut Ui,
 ) -> Vec<Shape> {
@@ -630,12 +635,15 @@ fn draw_center_text(
 
             let row_spacing = 20.;
             let mut i = 0; // Rows
+            let (r, g,b) = feature.color();
+            let color = Color32::from_rgb(r, g, b);
+
             for label in &labels {
                 result.push(draw_text(
                     label,
                     to_screen * pos2(center.x, center.y + i as f32 * row_spacing - 60.),
                     16.,
-                    Color32::WHITE,
+                    color,
                     ui,
                 )); // slightly below seq name, ui));
                 i += 1;
@@ -644,13 +652,31 @@ fn draw_center_text(
             i += 1;
 
             for note in &feature.notes {
-                result.push(draw_text(
-                    &format!("{}: {}", note.0, note.1),
-                    to_screen * pos2(center.x, center.y + i as f32 * row_spacing - 60.),
-                    13.,
-                    TICK_COLOR,
-                    ui,
-                ));
+                // We draw these left aligned, offset to the left
+                const NOTES_LEFT_OFFSET: f32 = 200.;
+
+                // Don't let a note overflow. Note: Wrapping would be preferred to this cutoff.
+                let max_len = (0.2 * radius) as usize; // Note: This depends on font size.
+                let text: String = format!("{}: {}", note.0, note.1).chars().take(max_len).collect();;
+
+                result.push(ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        to_screen * pos2(center.x - radius * 0.8, center.y + i as f32 * row_spacing - 60.),
+                        Align2::LEFT_CENTER,
+                        &text,
+                        FontId::new(13., FontFamily::Proportional),
+                        TICK_COLOR,
+                    )
+                }));
+
+                // result.push(draw_text(
+                //     &format!("{}: {}", note.0, note.1),
+                //
+                //     13.,
+                //     TICK_COLOR,
+                //     ui,
+                // ));
                 i += 1;
             }
 
@@ -738,13 +764,15 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
             // todo: Cache to_screen * center etc?
 
+            let seq_len = state.generic.seq.len();
+
             let prev_cursor_i = state.ui.cursor_seq_i;
             state.ui.cursor_seq_i = find_cursor_i(
                 state.ui.cursor_pos,
-                &from_screen,
-                state.generic.seq.len(),
+                seq_len,
                 center,
                 radius,
+                &from_screen,
             );
 
             if prev_cursor_i != state.ui.cursor_seq_i {
@@ -761,8 +789,6 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 radius,
                 Stroke::new(BACKBONE_WIDTH, BACKBONE_COLOR),
             )));
-
-            let seq_len = state.generic.seq.len();
 
             shapes.append(&mut draw_ticks(seq_len, center, radius, &to_screen, ui));
             shapes.append(&mut draw_features(
@@ -783,18 +809,21 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 ui,
             ));
 
-            shapes.append(&mut draw_re_sites(
-                &state.volatile.restriction_enzyme_sites,
-                &state.restriction_enzyme_lib,
-                seq_len,
-                center,
-                radius,
-                &to_screen,
-                ui,
-            ));
+            // tood: Check mark to edit this visibility on the page
+            if state.ui.seq_visibility.show_res {
+                shapes.append(&mut draw_re_sites(
+                    &state.volatile.restriction_enzyme_sites,
+                    &state.restriction_enzyme_lib,
+                    seq_len,
+                    center,
+                    radius,
+                    &to_screen,
+                    ui,
+                ));
+            }
 
             shapes.append(&mut draw_center_text(
-                center, &to_screen, seq_len, state, ui,
+                seq_len, center, radius, &to_screen, state, ui,
             ));
 
             ui.painter().extend(shapes);

@@ -55,7 +55,7 @@ pub fn draw_primers(
             shapes.append(&mut feature_overlay::feature_seq_overlay(
                 &feature_ranges_px,
                 FeatureType::Primer,
-                Some(color),
+                color,
                 VERTICAL_OFFSET_PRIMER,
                 (*direction).into(),
                 &primer.name,

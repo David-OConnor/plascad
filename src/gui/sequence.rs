@@ -1,6 +1,6 @@
 //! This module contains GUI code related to the sequence view.
 
-use eframe::egui::{TextEdit, Ui};
+use eframe::egui::{Color32, RichText, TextEdit, Ui};
 
 // todo: monospace font for all seqs.
 use crate::sequence::{seq_from_str, seq_to_str, Feature};
@@ -108,7 +108,8 @@ fn feature_text(feature_hover: &Option<usize>, features: &[Feature], ui: &mut Ui
                 "{}..{}",
                 feature.index_range.0, feature.index_range.1
             ));
-            ui.label(feature.feature_type.to_string());
+            let (r, g, b) = feature.color();
+            ui.label(RichText::new(feature.feature_type.to_string()).color(Color32::from_rgb(r, g, b)));
 
             // todo?
             for note in &feature.notes {

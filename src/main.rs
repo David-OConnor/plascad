@@ -272,12 +272,17 @@ struct StateUi {
     feature_hover: Option<usize>,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
+    /// Mouse cursor
     cursor_pos: Option<(f32, f32)>,
+    /// Mouse cursor
     cursor_seq_i: Option<usize>,
     file_dialogs: FileDialogs,
     /// Show or hide the field to change origin
     show_origin_change: bool,
     new_origin: usize,
+    /// Text-editing cursor. Used for editing on the sequence view. Chars typed
+    /// will be inserted after this index. This index is 0-based.
+    text_cursor_i: Option<usize>
 }
 
 impl Default for StateUi {
@@ -301,6 +306,7 @@ impl Default for StateUi {
             file_dialogs: Default::default(),
             show_origin_change: false,
             new_origin: 0,
+            text_cursor_i: None,
         }
     }
 }
