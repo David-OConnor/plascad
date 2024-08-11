@@ -1,12 +1,18 @@
 //! GUI code for the features editor and related.
 
-use eframe::egui::{Color32, ComboBox, Frame, Painter, RichText, Sense, TextEdit, Ui, Vec2, Stroke};
+use eframe::egui::{
+    Color32, ComboBox, Frame, Painter, RichText, Sense, Stroke, TextEdit, Ui, Vec2,
+};
 
-use crate::{gui::{int_field, ROW_SPACING}, sequence::{
-    Feature,
-    FeatureDirection::{self, Forward, Reverse},
-    FeatureType,
-}, Color, State, Selection};
+use crate::{
+    gui::{int_field, ROW_SPACING},
+    sequence::{
+        Feature,
+        FeatureDirection::{self, Forward, Reverse},
+        FeatureType,
+    },
+    Color, Selection, State,
+};
 
 const LABEL_EDIT_WIDTH: f32 = 140.;
 
@@ -103,20 +109,19 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
             }
         }
 
-
         Frame::none()
             .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
             .inner_margin(border_width)
             .show(ui, |ui| {
-
                 ui.horizontal(|ui| {
-
                     // todo: This may be confoudning your 0 vs 1.
                     int_field(&mut feature.index_range.0, "Start:", ui);
                     int_field(&mut feature.index_range.1, "End:", ui);
 
                     ui.label("Label:");
-                    ui.add(TextEdit::singleline(&mut feature.label).desired_width(LABEL_EDIT_WIDTH));
+                    ui.add(
+                        TextEdit::singleline(&mut feature.label).desired_width(LABEL_EDIT_WIDTH),
+                    );
 
                     ui.label("Type:");
                     feature_type_picker(&mut feature.feature_type, 100 + i, ui);
@@ -139,14 +144,12 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
                     ui.horizontal(|ui| {
                         ui.label("Note:");
                         ui.label(key); // todo!
-                        // ui.add(
-                        //     TextEdit::singleline(&mut note.0).desired_width(200.),
-                        // );
+                                       // ui.add(
+                                       //     TextEdit::singleline(&mut note.0).desired_width(200.),
+                                       // );
 
                         ui.label("Value:");
-                        ui.add(
-                            TextEdit::singleline(value).desired_width(200.),
-                        );
+                        ui.add(TextEdit::singleline(value).desired_width(200.));
                     });
                 }
             });

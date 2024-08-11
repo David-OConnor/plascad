@@ -10,15 +10,19 @@ use std::{
 };
 
 use bincode::{
-    BorrowDecode,
     config,
-    Decode, Encode, error::{DecodeError, EncodeError},
+    error::{DecodeError, EncodeError},
+    BorrowDecode, Decode, Encode,
 };
 use bio::io::fasta;
 
-use crate::{file_io::GenericData, gui::navigation::{Page, PageSeq, PageSeqTop}, PcrUi, primer::Primer, Selection, sequence::{Feature, Nucleotide, ReadingFrame, Seq, SeqTopology}, SeqVisibility, State, StateUi};
-use crate::primer::IonConcentrations;
-use crate::sequence::Metadata;
+use crate::{
+    file_io::GenericData,
+    gui::navigation::{Page, PageSeq, PageSeqTop},
+    primer::{IonConcentrations, Primer},
+    sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Seq, SeqTopology},
+    PcrUi, Selection, SeqVisibility, State, StateUi,
+};
 
 pub const DEFAULT_SAVE_FILE: &str = "plasmid.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";

@@ -89,17 +89,17 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
     load_button(
         &mut state.ui.file_dialogs.load,
-        "Load",
-        "Load data in the PlasCAD format.",
+        "Load/Import",
+        "Load data in the PlasCAD, FASTA, GenBank, or .dna (SnapGene) formats",
         ui,
     );
 
-    load_button(
-        &mut state.ui.file_dialogs.import,
-        "Import",
-        "Import data in the FASTA, GenBank, or .dna (SnapGene) formats",
-        ui,
-    );
+    // load_button(
+    //     &mut state.ui.file_dialogs.import,
+    //     "Import",
+    //     "Import data in the FASTA, GenBank, or .dna (SnapGene) formats",
+    //     ui,
+    // );
 
     save_button(
         &mut state.ui.file_dialogs.export_fasta,
@@ -136,15 +136,18 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     state.ui.file_dialogs.export_fasta.update(ctx);
     state.ui.file_dialogs.export_genbank.update(ctx);
     state.ui.file_dialogs.export_dna.update(ctx);
-    state.ui.file_dialogs.import.update(ctx);
 
     let mut sync = false;
 
-    if let Some(path) = state.ui.file_dialogs.import.take_selected() {
+    if let Some(path) = state.ui.file_dialogs.load.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());
 
         if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
             match extension.to_lowercase().as_ref() {
+                "pcad" => {
+                    *state = State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+                    sync = true;
+                }
                 // Does this work for FASTQ too?
                 "fasta" => {
                     if let Ok((seq, id, description)) = import_fasta(&path) {
@@ -167,7 +170,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                     }
                 }
                 _ => {
-                    eprintln!("The file to import must be in FASTA, GenBank, or SnapGene format.")
+                    eprintln!("The file to import must be in PlasCAD, FASTA, GenBank, or SnapGene format.")
                 }
             }
         }
@@ -176,10 +179,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         if let Err(e) = save(&path, &StateToSave::from_state(state)) {
             eprintln!("Error saving in PlasCAD format: {:?}", e);
         };
-    } else if let Some(path) = state.ui.file_dialogs.load.take_selected() {
-        state.ui.file_dialogs.selected = Some(path.to_owned());
-        *state = State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
-        sync = true;
+    // } else if let Some(path) = state.ui.file_dialogs.load.take_selected() {
     } else if let Some(path) = state.ui.file_dialogs.export_fasta.take_selected() {
         state.ui.file_dialogs.selected = Some(path.to_owned());
 

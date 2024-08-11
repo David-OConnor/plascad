@@ -1,21 +1,21 @@
 //! This is the entrypoint for a standalone program that parse features from GenBank and SnapGene files.
 //! It assigns each sequence a label and feature type.
 
-use std::fs;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 mod file_io;
+mod gui;
 mod primer;
-mod sequence;
-mod gui; // Required due to naviation::Page being in file_io::save
+mod sequence; // Required due to naviation::Page being in file_io::save
 
 // mod main; // todo temp
 mod feature_db_load; // todo temp
 
-use sequence::FeatureType;
-
-use sequence::Seq;
+use sequence::{FeatureType, Seq};
 
 use crate::file_io::genbank;
 

@@ -8,9 +8,9 @@ use crate::{
     gui::primer_qc::DEFAULT_TRIM_AMT,
     primer_metrics::PrimerMetrics,
     sequence::{
-        Nucleotide, Nucleotide::{C, G}, Seq, seq_complement,
-        seq_from_str,
-        seq_to_str,
+        seq_complement, seq_from_str, seq_to_str, Nucleotide,
+        Nucleotide::{C, G},
+        Seq,
     },
     State,
 };
@@ -432,8 +432,8 @@ pub fn calc_gc(seq: &[Nucleotide]) -> f32 {
 
 /// We run this to generate cloning primers when clicking the button
 pub fn make_cloning_primers(state: &mut State) {
-    let seq_vector = seq_from_str(&state.ui.seq_vector_input);
-    let seq_insert = seq_from_str(&state.ui.seq_insert_input);
+    let seq_vector = &state.generic.seq;
+    let seq_insert = seq_from_str(&state.ui.cloning_seq_insert_input);
 
     if let Some(mut primers) = design_slic_fc_primers(&seq_vector, &seq_insert, state.insert_loc) {
         let sequence_input = seq_to_str(&primers.insert_fwd.sequence);

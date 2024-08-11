@@ -3,7 +3,11 @@ use std::{collections::HashMap, fmt::Display, io};
 use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;
 
-use crate::{Color, primer::PrimerDirection, sequence::Nucleotide::{A, C, G, T}};
+use crate::{
+    primer::PrimerDirection,
+    sequence::Nucleotide::{A, C, G, T},
+    Color,
+};
 
 // Index 0: 5' end.
 pub type Seq = Vec<Nucleotide>;
@@ -248,7 +252,7 @@ impl FeatureDirection {
     }
 }
 
-#[derive(Clone, Encode, Decode)]
+#[derive(Clone, Default, Encode, Decode)]
 pub struct Feature {
     /// 1-based indexing, inclusive. (Note: Could also use the builtin RangeInclusive.)
     pub index_range: (usize, usize),

@@ -19,26 +19,26 @@ use std::{
 use bincode::{Decode, Encode};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::FileDialog;
-use file_io::save::{DEFAULT_SAVE_FILE, load, StateToSave};
+use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
-use sequence::{Seq, seq_from_str};
+use sequence::{seq_from_str, Seq};
 
 use crate::{
     file_io::{
-        GenericData,
         save::{
-            DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE, DEFAULT_PREFS_FILE,
-            StateUiToSave,
+            StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
+            DEFAULT_PREFS_FILE,
         },
+        GenericData,
     },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::TM_TARGET,
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        FeatureDirection, FeatureType, find_orf_matches, ReadingFrame, ReadingFrameMatch,
-        seq_to_str,
+        find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, ReadingFrame,
+        ReadingFrameMatch,
     },
 };
 
@@ -157,11 +157,12 @@ impl Default for SeqVisibility {
 
 struct FileDialogs {
     save: FileDialog,
+    // load: FileDialog,
     load: FileDialog,
-    import: FileDialog,
     export_fasta: FileDialog,
     export_genbank: FileDialog,
     export_dna: FileDialog,
+    cloning_load: FileDialog,
     selected: Option<PathBuf>,
 }
 
@@ -180,14 +181,11 @@ impl Default for FileDialogs {
             .id("0");
         // .id("egui_file_dialog");
 
-        let load_ = FileDialog::new()
+        let import = FileDialog::new()
             .add_file_filter(
                 "PlasCAD files",
                 Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
             )
-            .id("1");
-
-        let import = FileDialog::new()
             .add_file_filter(
                 "FASTA files",
                 Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
@@ -205,13 +203,13 @@ impl Default for FileDialogs {
             )
             .add_file_filter(
                 // Note: We experience glitches if this name is too long. (Window extends horizontally)
-                "FASTA/GB/SnapGene",
+                "PCAD/FASTA/GB/SG",
                 Arc::new(|p| {
                     let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                    ext == "fasta" || ext == "gb" || ext == "gbk" || ext == "dna"
+                    ext == "pcad" || ext == "fasta" || ext == "gb" || ext == "gbk" || ext == "dna"
                 }),
             )
-            .default_file_filter("FASTA/GB/SnapGene")
+            .default_file_filter("PCAD/FASTA/GB/SG")
             .id("2");
 
         let export_fasta = FileDialog::new()
@@ -244,16 +242,59 @@ impl Default for FileDialogs {
             .default_file_name(DEFAULT_DNA_FILE)
             .id("5");
 
+        // todo: CLoning Import is DRY, but Clone is not impleme
+        // nted for FileDialog.; Github issue sent.
+        let cloning_import = FileDialog::new()
+            .add_file_filter(
+                "PlasCAD files",
+                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
+            )
+            .add_file_filter(
+                "FASTA files",
+                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
+            )
+            .add_file_filter(
+                "GenBank files",
+                Arc::new(|p| {
+                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
+                    ext == "gb" || ext == "gbk"
+                }),
+            )
+            .add_file_filter(
+                "SnapGene DNA files",
+                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
+            )
+            .add_file_filter(
+                // Note: We experience glitches if this name is too long. (Window extends horizontally)
+                "PCAD/FASTA/GB/SG",
+                Arc::new(|p| {
+                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
+                    ext == "pcad" || ext == "fasta" || ext == "gb" || ext == "gbk" || ext == "dna"
+                }),
+            )
+            .default_file_filter("PCAD/FASTA/GB/SG")
+            .id("6");
+
         Self {
             save,
-            load: load_,
-            import,
+            // load: load_,
+            load: import,
             export_fasta,
             export_genbank,
             export_dna,
+            cloning_load: cloning_import,
             selected: None,
         }
     }
+}
+
+#[derive(Default)]
+struct CloningInsertData {
+    /// We use this list to store a list of features to clone an insert from, loaded from a file.
+    pub features_loaded: Vec<Feature>,
+    /// `cloning_ins_features_loaded` indexes reference this sequence.
+    pub seq_loaded: Seq,
+    pub feature_selected: Option<usize>,
 }
 
 /// Values defined here generally aren't worth saving to file etc.
@@ -263,13 +304,11 @@ struct StateUi {
     page: Page,
     page_seq: PageSeq,
     page_seq_top: PageSeqTop,
-    seq_insert_input: String,
-    seq_vector_input: String,
+    cloning_seq_insert_input: String,
     seq_input: String,
     pcr: PcrUi,
     feature_add: StateFeatureAdd,
     primer_selected: Option<usize>, // primer page only.
-    // feature_selected: Option<usize>,
     feature_hover: Option<usize>,
     selected_item: Selection,
     seq_visibility: SeqVisibility,
@@ -288,6 +327,7 @@ struct StateUi {
     /// We store if we've clicked somewhere separately from the action, as getting a sequence index
     /// from cursor positions may be decoupled, and depends on the view.
     click_pending_handle: bool,
+    cloning_insert: CloningInsertData,
 }
 
 impl Default for StateUi {
@@ -296,8 +336,8 @@ impl Default for StateUi {
             page: Default::default(),
             page_seq: Default::default(),
             page_seq_top: Default::default(),
-            seq_insert_input: Default::default(),
-            seq_vector_input: Default::default(),
+            cloning_seq_insert_input: Default::default(),
+            // seq_vector_input: Default::default(),
             seq_input: Default::default(),
             pcr: Default::default(),
             feature_add: Default::default(),
@@ -313,6 +353,7 @@ impl Default for StateUi {
             new_origin: 0,
             text_cursor_i: None,
             click_pending_handle: false,
+            cloning_insert: Default::default(),
         }
     }
 }
@@ -434,8 +475,8 @@ impl State {
 
     /// Update the combined SLIC vector + insert sequence.
     pub fn sync_cloning_product(&mut self) {
-        let seq_vector = seq_from_str(&self.ui.seq_vector_input);
-        let seq_insert = seq_from_str(&self.ui.seq_insert_input);
+        let seq_vector = &mut self.generic.seq;
+        let seq_insert = seq_from_str(&self.ui.cloning_seq_insert_input);
 
         if self.insert_loc + 1 > seq_vector.len() {
             eprintln!(
@@ -446,10 +487,8 @@ impl State {
             return;
         }
 
-        self.generic.seq.clone_from(&seq_vector);
-        self.generic
-            .seq
-            .splice(self.insert_loc..self.insert_loc, seq_insert.iter().cloned());
+        // self.generic.seq.clone_from(&seq_vector);
+        seq_vector.splice(self.insert_loc..self.insert_loc, seq_insert.iter().cloned());
 
         self.sync_primer_matches(None);
     }

@@ -4,18 +4,21 @@ use eframe::egui::{Color32, RichText, TextEdit, Ui};
 
 // todo: monospace font for all seqs.
 use crate::sequence::{seq_from_str, seq_to_str, Feature};
-use crate::{gui::{
-    features::feature_table,
-    navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
-    primer_qc::primer_details,
-    seq_view::sequence_vis,
-}, primer::make_cloning_primers, Selection};
+use crate::{
+    gui::{
+        cloning,
+        features::feature_table,
+        navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
+        primer_qc::primer_details,
+        seq_view::sequence_vis,
+    },
+    Selection,
+};
 // todo: monospace font for all seqs.
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
     State,
 };
-
 fn seq_editor(state: &mut State, ui: &mut Ui) {
     // ui.heading("Amplification");
 
@@ -31,63 +34,6 @@ fn seq_editor(state: &mut State, ui: &mut Ui) {
         state.generic.seq = seq_from_str(&state.ui.seq_input);
         state.ui.seq_input = seq_to_str(&state.generic.seq);
         state.sync_seq_related(None);
-    }
-}
-
-fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
-    ui.heading("SLIC and FastCloning");
-
-    ui.add_space(ROW_SPACING);
-
-    ui.horizontal(|ui| {
-        ui.label("Insert location: ");
-        let mut entry = state.insert_loc.to_string();
-        if ui
-            .add(TextEdit::singleline(&mut entry).desired_width(40.))
-            .changed()
-        {
-            state.insert_loc = entry.parse().unwrap_or(0);
-            state.sync_cloning_product();
-        }
-
-        ui.add_space(COL_SPACING);
-
-        if ui.button("➕ Make cloning primers").clicked() {
-            make_cloning_primers(state);
-        }
-
-        if ui.button("Update seq with insert and vec").clicked() {
-            state.sync_cloning_product();
-            state.sync_seq_related(None);
-        }
-    });
-
-    ui.horizontal(|ui| {
-        ui.heading("Insert:");
-        ui.label(&format!("len: {}", state.ui.seq_insert_input.len()));
-    });
-
-    let response = ui.add(
-        TextEdit::multiline(&mut state.ui.seq_insert_input).desired_width(ui.available_width()),
-    );
-    if response.changed() {
-        let seq = seq_from_str(&state.ui.seq_insert_input);
-        state.ui.seq_insert_input = seq_to_str(&seq);
-    }
-
-    ui.add_space(ROW_SPACING);
-
-    ui.horizontal(|ui| {
-        ui.heading("Vector:");
-        ui.label(&format!("len: {}", state.ui.seq_vector_input.len()));
-    });
-
-    let response = ui.add(
-        TextEdit::multiline(&mut state.ui.seq_vector_input).desired_width(ui.available_width()),
-    );
-    if response.changed() {
-        let seq = seq_from_str(&state.ui.seq_vector_input);
-        state.ui.seq_vector_input = seq_to_str(&seq);
     }
 }
 
@@ -152,7 +98,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             seq_editor(state, ui);
         }
         PageSeq::EditSlic => {
-            seq_editor_slic(state, ui);
+            cloning::seq_editor_slic(state, ui);
         }
         PageSeq::View => {
             ui.horizontal(|ui| {

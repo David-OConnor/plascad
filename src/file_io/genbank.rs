@@ -20,11 +20,13 @@ use gb_io::{
 };
 
 use crate::{
-    file_io::{GenericData, get_filename},
+    file_io::{get_filename, GenericData},
     primer::{Primer, PrimerData, PrimerDirection},
-    sequence::{Feature, FeatureDirection, FeatureType, Nucleotide, seq_complement, SeqTopology},
+    sequence::{
+        seq_complement, Feature, FeatureDirection, FeatureType, Metadata, Nucleotide, Reference,
+        SeqTopology,
+    },
 };
-use crate::sequence::{Metadata, Reference};
 
 /// Read a file in the GenBank format.
 /// [Rust docs ref of fields](https://docs.rs/gb-io/latest/gb_io/seq/struct.Seq.html)

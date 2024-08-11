@@ -7,10 +7,9 @@
 //! The calculations are based primarily on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/)
 
 use crate::{
-    primer::{calc_gc, MIN_PRIMER_LEN},
+    primer::{calc_gc, IonConcentrations, MIN_PRIMER_LEN},
     sequence::Nucleotide::{self, A, C, G, T},
 };
-use crate::primer::IonConcentrations;
 
 /// Enthalpy (dH) and entropy (dS) tables based on terminal missmatch
 fn _dH_dS_tmm(nts: (Nucleotide, Nucleotide)) -> Option<(f32, f32)> {

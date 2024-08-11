@@ -5,11 +5,10 @@ use egui_extras::{Column, TableBuilder};
 
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
-    primer::{make_amplification_primers, Primer, TuneSetting},
+    primer::{make_amplification_primers, IonConcentrations, Primer, TuneSetting},
     sequence::{seq_from_str, seq_to_str},
     State,
 };
-use crate::primer::IonConcentrations;
 
 const TABLE_ROW_HEIGHT: f32 = 60.;
 

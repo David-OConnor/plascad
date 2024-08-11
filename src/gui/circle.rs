@@ -10,16 +10,16 @@ use eframe::{
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
 };
+
 use crate::{
-    Selection,
     gui::{
         feature_from_index, features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
-         select_feature, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
+        select_feature, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
     },
     primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::{Feature, FeatureDirection, FeatureType},
-    State,
+    Selection, State,
 };
 
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
@@ -35,7 +35,6 @@ const TICK_SPACING: usize = 500; // Nucleotides between ticks
 const TICK_LEN: f32 = 90.; // in pixels.
 const TICK_LEN_DIV_2: f32 = TICK_LEN / 2.;
 const TICK_LABEL_OFFSET: f32 = 10.;
-
 
 const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
 // const FEATURE_OUTLINE_HIGHLIGHTED: Color32 = Color32::from_rgb(200, 200, 255);
@@ -286,24 +285,41 @@ fn draw_filled_arc(
     // Draw filled segments. It appears the limitation is based on segment absolute size, vice angular size.
     // No segment will be larger than our threshold.
     let circum_segment = data.radius * (angle.1 - angle.0);
-    let num_segments = (MAX_ARC_FILL /  circum_segment) as usize + 1;
+    let num_segments = (MAX_ARC_FILL / circum_segment) as usize + 1;
     let segment_ang_dist = (angle.1 - angle.0) / num_segments as f32;
 
     for i in 0..num_segments {
         continue;
-        let ang_seg = (angle.0 + i as f32 * segment_ang_dist,  angle.0 + (i + 1) as f32 * segment_ang_dist);
+        let ang_seg = (
+            angle.0 + i as f32 * segment_ang_dist,
+            angle.0 + (i + 1) as f32 * segment_ang_dist,
+        );
 
         println!("ANG SEG: {:.4?}. Orig: {:.4?}", ang_seg, angle);
         // todo: DRY
-        let mut points_outer = arc_points(data.center_rel, data.radius + width / 2., ang_seg.0, ang_seg.1);
-        let mut points_inner = arc_points(data.center_rel, data.radius - width / 2., ang_seg.0, ang_seg.1);
+        let mut points_outer = arc_points(
+            data.center_rel,
+            data.radius + width / 2.,
+            ang_seg.0,
+            ang_seg.1,
+        );
+        let mut points_inner = arc_points(
+            data.center_rel,
+            data.radius - width / 2.,
+            ang_seg.0,
+            ang_seg.1,
+        );
 
         points_inner.reverse();
 
         points_outer.append(&mut points_inner);
 
         // result.push(Shape::convex_polygon(points_outer, fill_color, Stroke::NONE));
-        result.push(Shape::convex_polygon(points_outer, Color32::YELLOW, Stroke::NONE));
+        result.push(Shape::convex_polygon(
+            points_outer,
+            Color32::YELLOW,
+            Stroke::NONE,
+        ));
     }
 
     // Note: We may need to put something like this back, if we use multiple feature widths, feature layers etc.\
@@ -328,7 +344,13 @@ fn draw_filled_arc(
 }
 
 /// This is a fancy way of saying triangle.
-fn draw_arrowhead(data: &CircleData, width: f32, angle: (f32, f32), color: Color32, stroke: Stroke) -> Shape {
+fn draw_arrowhead(
+    data: &CircleData,
+    width: f32,
+    angle: (f32, f32),
+    color: Color32,
+    stroke: Stroke,
+) -> Shape {
     let center = data.center.to_vec2();
     let base_outer = data.to_screen * angle_to_pixel(angle.0, data.radius + width / 2.) + center;
     let base_inner = data.to_screen * angle_to_pixel(angle.0, data.radius - width / 2.) + center;
@@ -344,7 +366,12 @@ fn draw_arrowhead(data: &CircleData, width: f32, angle: (f32, f32), color: Color
     Shape::convex_polygon(points, color, stroke)
 }
 
-fn draw_features(features: &[Feature], data: &CircleData, selected: Selection, ui: &mut Ui) -> Vec<Shape> {
+fn draw_features(
+    features: &[Feature],
+    data: &CircleData,
+    selected: Selection,
+    ui: &mut Ui,
+) -> Vec<Shape> {
     let mut result = Vec::new();
 
     for (i, feature) in features.iter().enumerate() {
@@ -367,8 +394,14 @@ fn draw_features(features: &[Feature], data: &CircleData, selected: Selection, u
         let feature_color = Color32::from_rgb(r, g, b);
 
         let stroke_color = match selected {
-           Selection::Feature(j) => if j == i {FEATURE_OUTLINE_SELECTED} else {FEATURE_OUTLINE_COLOR},
-           _ => FEATURE_OUTLINE_COLOR
+            Selection::Feature(j) => {
+                if j == i {
+                    FEATURE_OUTLINE_SELECTED
+                } else {
+                    FEATURE_OUTLINE_COLOR
+                }
+            }
+            _ => FEATURE_OUTLINE_COLOR,
         };
 
         let stroke = Stroke::new(feature_stroke_width, stroke_color);
@@ -391,7 +424,6 @@ fn draw_features(features: &[Feature], data: &CircleData, selected: Selection, u
             stroke,
         ));
 
-
         // if i == features.len()  - 1 {
         //     // Egui doesn't support concave fills; convex_polygon will spill into the interior concave part.
         //     // Patch this by filling over this with a circle. This is roughly the inner points plus the center point,
@@ -409,7 +441,6 @@ fn draw_features(features: &[Feature], data: &CircleData, selected: Selection, u
         //
         //     ));
         // }
-
 
         // Draw the label.
         let angle_mid = (angle.0 + angle.1) / 2.;
@@ -911,7 +942,12 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
             // Draw features first, so other items like ticks will be displayed in front of the concave fill circlex.
             if state.ui.seq_visibility.show_features {
-                shapes.append(&mut draw_features(&state.generic.features, &data, state.ui.selected_item, ui));
+                shapes.append(&mut draw_features(
+                    &state.generic.features,
+                    &data,
+                    state.ui.selected_item,
+                    ui,
+                ));
             }
 
             shapes.append(&mut draw_ticks(&data, ui));
