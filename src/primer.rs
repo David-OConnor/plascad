@@ -433,7 +433,7 @@ pub fn calc_gc(seq: &[Nucleotide]) -> f32 {
 /// We run this to generate cloning primers when clicking the button
 pub fn make_cloning_primers(state: &mut State) {
     let seq_vector = &state.generic.seq;
-    let seq_insert = seq_from_str(&state.ui.cloning_seq_insert_input);
+    let seq_insert = &state.ui.cloning_insert.seq_insert;
 
     if let Some(mut primers) = design_slic_fc_primers(&seq_vector, &seq_insert, state.insert_loc) {
         let sequence_input = seq_to_str(&primers.insert_fwd.sequence);

@@ -1,8 +1,11 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use eframe::{
     egui,
-    egui::{pos2, Color32, Context, Key, PointerButton, ScrollArea, TextEdit, Ui},
+    egui::{pos2, Color32, Context, Key, PointerButton, ScrollArea, TextEdit, Ui, ViewportCommand},
     emath::RectTransform,
 };
 use navigation::Page;
@@ -197,6 +200,21 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
     }
 }
 
+pub fn set_window_title(path_loaded: &Option<PathBuf>, ui: &mut Ui) {
+    // Update the tilebar to reflect the current path loaded or saved.
+    if let Some(path) = path_loaded {
+        let filename = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name_str| name_str.to_string())
+            .unwrap();
+
+        let window_title = format!("{WINDOW_TITLE} - {}", filename);
+        ui.ctx()
+            .send_viewport_cmd(ViewportCommand::Title(window_title));
+    }
+}
+
 /// Handles keyboard and mouse input not associated with a widget.
 /// todo: MOve to a separate module if this becomes complex.
 fn handle_input(state: &mut State, ctx: &Context) {
@@ -240,7 +258,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             ui.label("Name: ");
             ui.add(
-                TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(200.),
+                TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(280.),
             );
         });
 

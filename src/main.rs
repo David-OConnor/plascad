@@ -18,7 +18,7 @@ use std::{
 
 use bincode::{Decode, Encode};
 use eframe::{self, egui, egui::Context};
-use egui_file_dialog::FileDialog;
+use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
@@ -91,7 +91,7 @@ fn check_all(data: &PlasmidData) {
 
 impl eframe::App for State {
     /// This is the GUI's event loop.
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         gui::draw(self, ctx);
     }
 }
@@ -163,11 +163,45 @@ struct FileDialogs {
     export_genbank: FileDialog,
     export_dna: FileDialog,
     cloning_load: FileDialog,
-    selected: Option<PathBuf>,
+    // todo: What do we use this for?
+    // selected: Option<PathBuf>,
 }
 
 impl Default for FileDialogs {
     fn default() -> Self {
+        // We can't clone `FileDialog`; use this to reduce repetition instead.
+        let cfg_import = FileDialogConfig {
+            // todo: Explore other optiosn A/R
+            ..Default::default()
+        }
+        .add_file_filter(
+            "PlasCAD files",
+            Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
+        )
+        .add_file_filter(
+            "FASTA files",
+            Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
+        )
+        .add_file_filter(
+            "GenBank files",
+            Arc::new(|p| {
+                let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
+                ext == "gb" || ext == "gbk"
+            }),
+        )
+        .add_file_filter(
+            "SnapGene DNA files",
+            Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
+        )
+        .add_file_filter(
+            // Note: We experience glitches if this name is too long. (Window extends horizontally)
+            "PCAD/FASTA/GB/SG",
+            Arc::new(|p| {
+                let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
+                ext == "pcad" || ext == "fasta" || ext == "gb" || ext == "gbk" || ext == "dna"
+            }),
+        );
+
         let save = FileDialog::new()
             // .add_quick_access("Project", |s| {
             //     s.add_path("☆  Examples", "examples");
@@ -179,38 +213,10 @@ impl Default for FileDialogs {
             .default_file_filter("PlasCAD files")
             .default_file_name(DEFAULT_SAVE_FILE)
             .id("0");
-        // .id("egui_file_dialog");
 
-        let import = FileDialog::new()
-            .add_file_filter(
-                "PlasCAD files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
-            )
-            .add_file_filter(
-                "FASTA files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
-            )
-            .add_file_filter(
-                "GenBank files",
-                Arc::new(|p| {
-                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                    ext == "gb" || ext == "gbk"
-                }),
-            )
-            .add_file_filter(
-                "SnapGene DNA files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
-            )
-            .add_file_filter(
-                // Note: We experience glitches if this name is too long. (Window extends horizontally)
-                "PCAD/FASTA/GB/SG",
-                Arc::new(|p| {
-                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                    ext == "pcad" || ext == "fasta" || ext == "gb" || ext == "gbk" || ext == "dna"
-                }),
-            )
+        let import = FileDialog::with_config(cfg_import.clone())
             .default_file_filter("PCAD/FASTA/GB/SG")
-            .id("2");
+            .id("1");
 
         let export_fasta = FileDialog::new()
             .add_file_filter(
@@ -242,36 +248,7 @@ impl Default for FileDialogs {
             .default_file_name(DEFAULT_DNA_FILE)
             .id("5");
 
-        // todo: CLoning Import is DRY, but Clone is not impleme
-        // nted for FileDialog.; Github issue sent.
-        let cloning_import = FileDialog::new()
-            .add_file_filter(
-                "PlasCAD files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
-            )
-            .add_file_filter(
-                "FASTA files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
-            )
-            .add_file_filter(
-                "GenBank files",
-                Arc::new(|p| {
-                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                    ext == "gb" || ext == "gbk"
-                }),
-            )
-            .add_file_filter(
-                "SnapGene DNA files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
-            )
-            .add_file_filter(
-                // Note: We experience glitches if this name is too long. (Window extends horizontally)
-                "PCAD/FASTA/GB/SG",
-                Arc::new(|p| {
-                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                    ext == "pcad" || ext == "fasta" || ext == "gb" || ext == "gbk" || ext == "dna"
-                }),
-            )
+        let cloning_import = FileDialog::with_config(cfg_import)
             .default_file_filter("PCAD/FASTA/GB/SG")
             .id("6");
 
@@ -283,7 +260,7 @@ impl Default for FileDialogs {
             export_genbank,
             export_dna,
             cloning_load: cloning_import,
-            selected: None,
+            // selected: None,
         }
     }
 }
@@ -295,6 +272,8 @@ struct CloningInsertData {
     /// `cloning_ins_features_loaded` indexes reference this sequence.
     pub seq_loaded: Seq,
     pub feature_selected: Option<usize>,
+    pub seq_insert: Seq,
+    pub seq_input: String,
 }
 
 /// Values defined here generally aren't worth saving to file etc.
@@ -304,7 +283,6 @@ struct StateUi {
     page: Page,
     page_seq: PageSeq,
     page_seq_top: PageSeqTop,
-    cloning_seq_insert_input: String,
     seq_input: String,
     pcr: PcrUi,
     feature_add: StateFeatureAdd,
@@ -336,8 +314,6 @@ impl Default for StateUi {
             page: Default::default(),
             page_seq: Default::default(),
             page_seq_top: Default::default(),
-            cloning_seq_insert_input: Default::default(),
-            // seq_vector_input: Default::default(),
             seq_input: Default::default(),
             pcr: Default::default(),
             feature_add: Default::default(),
@@ -397,6 +373,8 @@ struct State {
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
     reading_frame: ReadingFrame,
     volatile: StateVolatile,
+    /// Used to determine how the save function works, among other things.
+    path_loaded: Option<PathBuf>,
 }
 
 impl State {
@@ -476,7 +454,7 @@ impl State {
     /// Update the combined SLIC vector + insert sequence.
     pub fn sync_cloning_product(&mut self) {
         let seq_vector = &mut self.generic.seq;
-        let seq_insert = seq_from_str(&self.ui.cloning_seq_insert_input);
+        let seq_insert = &self.ui.cloning_insert.seq_insert;
 
         if self.insert_loc + 1 > seq_vector.len() {
             eprintln!(

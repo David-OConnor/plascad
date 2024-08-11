@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use eframe::egui::Ui;
+use eframe::egui::{Ui, ViewportCommand};
 use egui_file_dialog::FileDialog;
 
 use crate::{
@@ -18,6 +18,7 @@ use crate::{
         },
         snapgene::{export_snapgene, import_snapgene},
     },
+    gui::{set_window_title, WINDOW_TITLE},
     sequence::seq_to_str,
     State,
 };
@@ -57,17 +58,17 @@ fn load_button(dialog: &mut FileDialog, text: &str, hover_text: &str, ui: &mut U
 /// Ui elements for saving and loading data in various file formats. This includes our own format,
 /// FASTA, and (eventually) SnapGene's DNA format.
 pub fn save_section(state: &mut State, ui: &mut Ui) {
+    let button_text = if state.path_loaded.is_some() {
+        "Save"
+    } else {
+        "Quicksave"
+    };
     if ui
-        .button("Save")
+        .button(button_text)
         .on_hover_text("Save data. (Ctrl + s)")
         .clicked()
     {
-        if let Err(e) = save(
-            &PathBuf::from(DEFAULT_SAVE_FILE),
-            &StateToSave::from_state(state),
-        ) {
-            eprintln!("Error saving: {e}");
-        }
+        save_current_file(&state);
 
         // todo: You will likely more this to an automatic one.
         if let Err(e) = save(
@@ -140,8 +141,6 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     let mut sync = false;
 
     if let Some(path) = state.ui.file_dialogs.load.take_selected() {
-        state.ui.file_dialogs.selected = Some(path.to_owned());
-
         if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
             match extension.to_lowercase().as_ref() {
                 "pcad" => {
@@ -173,26 +172,29 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                     eprintln!("The file to import must be in PlasCAD, FASTA, GenBank, or SnapGene format.")
                 }
             }
+            state.path_loaded = Some(path.to_owned());
         }
     } else if let Some(path) = state.ui.file_dialogs.save.take_selected() {
-        state.ui.file_dialogs.selected = Some(path.to_owned());
-        if let Err(e) = save(&path, &StateToSave::from_state(state)) {
-            eprintln!("Error saving in PlasCAD format: {:?}", e);
+        match save(&path, &StateToSave::from_state(state)) {
+            Ok(_) => {
+                state.path_loaded = Some(path.to_owned());
+                set_window_title(&state.path_loaded, ui);
+            }
+            Err(e) => eprintln!("Error saving in PlasCAD format: {:?}", e),
         };
-    // } else if let Some(path) = state.ui.file_dialogs.load.take_selected() {
     } else if let Some(path) = state.ui.file_dialogs.export_fasta.take_selected() {
-        state.ui.file_dialogs.selected = Some(path.to_owned());
-
-        if let Err(e) = export_fasta(
+        match export_fasta(
             &state.generic.seq,
             &state.generic.metadata.plasmid_name,
             &path,
         ) {
-            eprintln!("Error exporting to FASTA: {:?}", e);
-        };
+            Ok(_) => {
+                state.path_loaded = Some(path.to_owned());
+                set_window_title(&state.path_loaded, ui);
+            }
+            Err(e) => eprintln!("Error exporting to FASTA: {:?}", e),
+        }
     } else if let Some(path) = state.ui.file_dialogs.export_genbank.take_selected() {
-        state.ui.file_dialogs.selected = Some(path.to_owned());
-
         let mut primer_matches = Vec::new();
         for primer in &state.generic.primers {
             for (dir, range) in &primer.volatile.matches_seq {
@@ -200,14 +202,20 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
             }
         }
 
-        if let Err(e) = export_genbank(&state.generic, &primer_matches, &path) {
-            eprintln!("Error exporting to GenBank: {:?}", e);
-        };
+        match export_genbank(&state.generic, &primer_matches, &path) {
+            Ok(_) => {
+                state.path_loaded = Some(path.to_owned());
+                set_window_title(&state.path_loaded, ui);
+            }
+            Err(e) => eprintln!("Error exporting to GenBank: {:?}", e),
+        }
     } else if let Some(path) = state.ui.file_dialogs.export_dna.take_selected() {
-        state.ui.file_dialogs.selected = Some(path.to_owned());
-
-        if let Err(e) = export_snapgene(&state.generic, &path) {
-            eprintln!("Error exporting to SnapGene: {:?}", e);
+        match export_snapgene(&state.generic, &path) {
+            Ok(_) => {
+                state.path_loaded = Some(path.to_owned());
+                set_window_title(&state.path_loaded, ui);
+            }
+            Err(e) => eprintln!("Error exporting to SnapGene: {:?}", e),
         };
     }
 
@@ -216,5 +224,63 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         state.sync_primer_metrics();
         state.sync_seq_related(None);
         state.ui.seq_input = seq_to_str(&state.generic.seq);
+
+        set_window_title(&state.path_loaded, ui);
+    }
+}
+
+/// Save the current file ("save" vice "save as") if there is one; if not, quicksave to an anonymous file.
+pub fn save_current_file(state: &State) {
+    match &state.path_loaded {
+        Some(path) => {
+            if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
+                match extension.to_lowercase().as_ref() {
+                    "pcad" => {
+                        if let Err(e) = save(&path, &StateToSave::from_state(state)) {
+                            eprintln!("Error saving in PlasCAD format: {:?}", e);
+                        };
+                    }
+                    // Does this work for FASTQ too?
+                    "fasta" => {
+                        if let Err(e) = export_fasta(
+                            &state.generic.seq,
+                            &state.generic.metadata.plasmid_name,
+                            &path,
+                        ) {
+                            eprintln!("Error exporting to FASTA: {:?}", e);
+                        };
+                    }
+                    "dna" => {
+                        if let Err(e) = export_snapgene(&state.generic, &path) {
+                            eprintln!("Error exporting to SnapGene: {:?}", e);
+                        };
+                    }
+                    "gb" | "gbk" => {
+                        let mut primer_matches = Vec::new();
+                        for primer in &state.generic.primers {
+                            for (dir, range) in &primer.volatile.matches_seq {
+                                primer_matches.push((*dir, range.clone(), primer.name.clone()));
+                            }
+                        }
+
+                        if let Err(e) = export_genbank(&state.generic, &primer_matches, &path) {
+                            eprintln!("Error exporting to GenBank: {:?}", e);
+                        };
+                    }
+                    _ => {
+                        eprintln!("Unexpected file format loading.")
+                    }
+                }
+            }
+        }
+        None => {
+            // Quicksave.
+            if let Err(e) = save(
+                &PathBuf::from(DEFAULT_SAVE_FILE),
+                &StateToSave::from_state(state),
+            ) {
+                eprintln!("Error quicksaving: {e}");
+            }
+        }
     }
 }

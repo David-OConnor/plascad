@@ -31,6 +31,7 @@ sequence on this end. The end point can then be adjusted to optimize primer qual
 Given the sequences for an insert, a vector, and insertion point, it will generate primers suitable for SLIC and FastCloning.
 It generates primers to amplify the entire vector, and insert primers that contain suitable overlap regions with the vector.
 
+It will also create a new file containing the sequence of the  cloning product.
 
 ### Sequence viewer
 This shows the sequence of interest (as generated from cloning, or manually input) with primers overlayed based on their
