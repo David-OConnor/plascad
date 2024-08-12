@@ -148,8 +148,8 @@ pub fn page_seq_top_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.label("Display above sequence:");
 
-        page_button(&mut state.ui.page_seq_top, PageSeqTop::Primers, ui, true);
-        page_button(&mut state.ui.page_seq_top, PageSeqTop::Features, ui, true);
         page_button(&mut state.ui.page_seq_top, PageSeqTop::None, ui, true);
+        page_button(&mut state.ui.page_seq_top, PageSeqTop::Features, ui, true);
+        page_button(&mut state.ui.page_seq_top, PageSeqTop::Primers, ui, true);
     });
 }

@@ -140,7 +140,6 @@ struct SeqVisibility {
     /// todo: Show and hide individual features?
     show_features: bool,
     show_reading_frame: bool,
-    show_start_stop_codons: bool,
 }
 
 impl Default for SeqVisibility {
@@ -149,8 +148,7 @@ impl Default for SeqVisibility {
             show_res: true,
             show_primers: true,
             show_features: true,
-            show_reading_frame: true,
-            show_start_stop_codons: false,
+            show_reading_frame: false,
         }
     }
 }
@@ -358,16 +356,10 @@ struct StateVolatile {
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
 #[derive(Default)]
 struct State {
-    ui: StateUi, // Does not need to be saved
+    ui: StateUi,
     /// Data that is the most fundamental to persistent state, and shared between save formats.
     generic: GenericData,
-    // seq: Seq,
-    // topology: SeqTopology,
-    // features: Vec<Feature>,
-    // primers: Vec<Primer>,
-    // metadata: Metadata,
     insert_loc: usize,
-    // generic: GenericData,// todo: Once your primers are set up.
     ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved

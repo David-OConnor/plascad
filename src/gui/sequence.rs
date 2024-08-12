@@ -1,12 +1,12 @@
 //! This module contains GUI code related to the sequence view.
 
-use eframe::egui::{Color32, RichText, TextEdit, Ui};
+use eframe::egui::{Color32, Frame, RichText, ScrollArea, TextEdit, Ui};
 
 // todo: monospace font for all seqs.
 use crate::sequence::{seq_from_str, seq_to_str, Feature};
 use crate::{
     gui::{
-        cloning,
+        SPLIT_SCREEN_MAX_HEIGHT,
         features::feature_table,
         navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
         primer_qc::primer_details,
@@ -20,10 +20,6 @@ use crate::{
     State,
 };
 fn seq_editor(state: &mut State, ui: &mut Ui) {
-    // ui.heading("Amplification");
-
-    // ui.add_space(ROW_SPACING);
-
     ui.horizontal(|ui| {
         ui.heading("Sequence:");
         ui.label(&format!("len: {}", state.ui.seq_input.len()));
@@ -70,9 +66,27 @@ fn feature_text(feature: &Option<usize>, features: &[Feature], ui: &mut Ui) {
 pub fn seq_page(state: &mut State, ui: &mut Ui) {
     page_seq_top_selector(state, ui);
 
+    // Limit the top section height.
+    let screen_height = ui.ctx().available_rect().height();
+    let half_screen_height = screen_height / SPLIT_SCREEN_MAX_HEIGHT;
+
     match state.ui.page_seq_top {
-        PageSeqTop::Primers => primer_details(state, ui),
-        PageSeqTop::Features => feature_table(state, ui),
+        PageSeqTop::Primers => {
+            Frame::none().show(ui, |ui| {
+                ScrollArea::vertical()
+                    .max_height(half_screen_height)
+                    .show(ui, |ui| primer_details(state, ui));
+            });
+        }
+        PageSeqTop::Features => {
+            Frame::none().show(ui, |ui| {
+                ScrollArea::vertical()
+                    .max_height(half_screen_height)
+                    .show(ui, |ui| {
+                        feature_table(state, ui);
+                    });
+            });
+        }
         PageSeqTop::None => (),
     }
 

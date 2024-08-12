@@ -41,6 +41,9 @@ pub const WINDOW_TITLE: &str = "PlasCAD";
 pub const ROW_SPACING: f32 = 22.;
 pub const COL_SPACING: f32 = 30.;
 
+// Note: This is basically working, but doesn't seem to reflect this scaling factor accurately.
+pub const SPLIT_SCREEN_MAX_HEIGHT: f32 = 3.5;
+
 // todo: Move this BLAST stuff A/R.
 const NCBI_BLAST_URL: &str = "https://blast.ncbi.nlm.nih.gov/Blast.cgi";
 
@@ -288,7 +291,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
             origin_change(state, ui);
         });
 
-        ui.add_space(ROW_SPACING);
+        ui.add_space(ROW_SPACING/2.);
 
         ScrollArea::vertical().show(ui, |ui| match state.ui.page {
             Page::Sequence => sequence::seq_page(state, ui),

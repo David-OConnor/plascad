@@ -4,8 +4,8 @@ use core::f32::consts::TAU;
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
-        Slider, Stroke, Ui,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, ScrollArea,
+        Sense, Shape, Slider, Stroke, Ui,
     },
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
@@ -13,6 +13,7 @@ use eframe::{
 
 use crate::{
     gui::{
+        SPLIT_SCREEN_MAX_HEIGHT,
         feature_from_index, features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
         select_feature, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
     },
@@ -868,7 +869,17 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
     // todo: ABility to select light mode, and other tools useful for publication.
     if !state.ui.hide_map_feature_editor {
-        feature_table(state, ui);
+        // Limit the top section height.
+        let screen_height = ui.ctx().available_rect().height();
+        let half_screen_height = screen_height / SPLIT_SCREEN_MAX_HEIGHT;
+
+        Frame::none().show(ui, |ui| {
+            ScrollArea::vertical()
+                .max_height(half_screen_height)
+                .show(ui, |ui| {
+                    feature_table(state, ui);
+                });
+        });
 
         ui.add_space(ROW_SPACING / 2.);
 

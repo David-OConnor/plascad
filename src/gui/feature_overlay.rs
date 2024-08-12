@@ -112,8 +112,16 @@ pub fn feature_seq_overlay(
 
         let mut top_left = start;
         let mut top_right = pos2(end.x + NT_WIDTH_PX, end.y);
-        let bottom_left = pos2(start.x, start.y + HEIGHT);
-        let bottom_right = pos2(end.x + NT_WIDTH_PX, end.y + HEIGHT);
+        let mut bottom_left = pos2(start.x, start.y + HEIGHT);
+        let mut bottom_right = pos2(end.x + NT_WIDTH_PX, end.y + HEIGHT);
+
+        // Display reverse primers below the sequence; this vertically mirrors.
+        if feature_type == FeatureType::Primer && direction == Reverse {
+            top_left.y += 3. * HEIGHT - 2.;
+            top_right.y += 3. * HEIGHT - 2.;
+            bottom_left.y += HEIGHT - 2.;
+            bottom_right.y += HEIGHT - 2.;
+        }
 
         // Add a slant, if applicable.
         match direction {
@@ -152,11 +160,17 @@ pub fn feature_seq_overlay(
         FeatureDirection::None => pos2(label_start_x, feature_ranges_px[0].0.y + LABEL_OFFSET), // todo: Examine
     };
 
+    let label_align = if feature_type == FeatureType::Primer && direction == Reverse {
+        Align2::RIGHT_CENTER
+    } else {
+        Align2::LEFT_CENTER
+    };
+
     let label = ui.ctx().fonts(|fonts| {
         Shape::text(
             fonts,
             label_pos,
-            Align2::LEFT_CENTER,
+            label_align,
             label,
             FontId::new(16., FontFamily::Proportional),
             color_label,
