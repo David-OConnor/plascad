@@ -5,7 +5,7 @@ use std::{
 };
 
 use eframe::{
-    egui::{RichText, TextEdit, Ui},
+    egui::{Frame, RichText, Stroke, TextEdit, Ui},
     epaint::Color32,
 };
 
@@ -20,8 +20,60 @@ use crate::{
     },
     primer::make_cloning_primers,
     sequence::{seq_from_str, seq_to_str, Feature, FeatureType},
-    Selection, State,
+    CloningInsertData, Selection, State,
 };
+
+/// Draw a selector for the insert, based on loading from a file.
+fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
+    for (i, feature) in data.features_loaded.iter().enumerate() {
+        let mut border_width = 0.;
+        if let Some(j) = data.feature_selected {
+            if i == j {
+                border_width = 1.;
+            }
+        }
+
+        Frame::none()
+            .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
+            .inner_margin(border_width)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    if ui.button("Select").clicked {
+                        data.feature_selected = Some(i);
+
+                        if feature.index_range.0 > 0 && feature.index_range.1 > 1 {
+                            let seq_this_ft =
+                                &data.seq_loaded[feature.index_range.0 - 1..feature.index_range.1];
+
+                            data.seq_insert = seq_this_ft.to_owned();
+                            data.seq_input = seq_to_str(&seq_this_ft);
+                        }
+                    }
+
+                    if !feature.label.is_empty() {
+                        ui.label(&feature.label);
+                        ui.add_space(COL_SPACING);
+                    }
+
+                    let (r, g, b) = feature.feature_type.color();
+                    ui.label(
+                        RichText::new(&feature.feature_type.to_string())
+                            .color(Color32::from_rgb(r, g, b)),
+                    );
+                    ui.add_space(COL_SPACING);
+
+                    ui.label(format!(
+                        "{}..{}",
+                        feature.index_range.0, feature.index_range.1
+                    ));
+                    ui.add_space(COL_SPACING);
+
+                    // +1 because it's inclusive.
+                    ui.label(format!("{} bp", feature.len()));
+                });
+            });
+    }
+}
 
 pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     ui.heading("SLIC and FastCloning");
@@ -98,6 +150,32 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
                         )
                     }
                 }
+
+                // Choose the initial insert as the CDS or gene with the largest len.
+                let mut best = None;
+                let mut best_len = 0;
+                for (i, feature) in state.ui.cloning_insert.features_loaded.iter().enumerate() {
+                    let len = feature.len();
+                    if (feature.feature_type == FeatureType::CodingRegion
+                        || feature.feature_type == FeatureType::Gene)
+                        && len > best_len
+                    {
+                        best_len = len;
+                        best = Some(i);
+                    }
+                }
+
+                if let Some(feat_i) = best {
+                    let feature = &state.ui.cloning_insert.features_loaded[feat_i];
+
+                    let seq_this_ft = state.ui.cloning_insert.seq_loaded
+                        [feature.index_range.0 - 1..feature.index_range.1]
+                        .to_vec();
+
+                    state.ui.cloning_insert.feature_selected = best;
+                    state.ui.cloning_insert.seq_insert = seq_this_ft.to_owned();
+                    state.ui.cloning_insert.seq_input = seq_to_str(&seq_this_ft);
+                }
             }
         }
 
@@ -107,8 +185,12 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             save_current_file(&state);
 
             state.sync_cloning_product();
-            state.sync_seq_related(None);
             make_cloning_primers(state);
+
+            let label = match state.ui.cloning_insert.feature_selected {
+                Some(i) => state.ui.cloning_insert.features_loaded[i].label.clone(),
+                None => "Cloning insert".to_owned(),
+            };
 
             // todo: Eventually, we'll likely be pulling in sequences already associated with a feature;
             // todo: Use the already existing data instead.
@@ -117,7 +199,7 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
                     state.insert_loc + 1,
                     state.insert_loc + 1 + state.ui.cloning_insert.seq_insert.len(),
                 ), // todo: Check off-by-one.
-                label: "Cloning insert".to_owned(),
+                label,
                 feature_type: FeatureType::CodingRegion,
                 ..Default::default()
             });
@@ -158,51 +240,8 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
         }
     });
 
-    // todo: Select red as you do on teh table.
-    // todo: Use the table element you have for primers.
-    for (i, feature) in state.ui.cloning_insert.features_loaded.iter().enumerate() {
-        ui.horizontal(|ui| {
-            if ui.button("Select").clicked {
-                state.ui.cloning_insert.feature_selected = Some(i);
-
-                if feature.index_range.0 > 0 && feature.index_range.1 > 1 {
-                    let seq_this_ft = &state.ui.cloning_insert.seq_loaded
-                        [feature.index_range.0 - 1..feature.index_range.1];
-
-                    state.ui.cloning_insert.seq_insert = seq_this_ft.to_owned();
-                    state.ui.cloning_insert.seq_input = seq_to_str(&seq_this_ft);
-
-                    // seq_text.truncate(60);
-                    // todo: Only elipses if truncated.
-                    // ui.label(format!("{seq_text}..."));
-                    // .color(Color32::from_rgb(r, g, b)
-                }
-            }
-
-            if !feature.label.is_empty() {
-                ui.label(&feature.label);
-                ui.add_space(COL_SPACING);
-            }
-
-            let (r, g, b) = feature.feature_type.color();
-            ui.label(
-                RichText::new(&feature.feature_type.to_string()).color(Color32::from_rgb(r, g, b)),
-            );
-            ui.add_space(COL_SPACING);
-
-            ui.label(format!(
-                "{}..{}",
-                feature.index_range.0, feature.index_range.1
-            ));
-            ui.add_space(COL_SPACING);
-
-            // +1 because it's inclusive.
-            ui.label(format!(
-                "{} bp",
-                feature.index_range.1 - feature.index_range.0 + 1
-            ));
-        });
-    }
+    ui.add_space(ROW_SPACING);
+    insert_selector(&mut state.ui.cloning_insert, ui);
 
     ui.add_space(ROW_SPACING);
 

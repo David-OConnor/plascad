@@ -8,6 +8,7 @@ use std::{
     collections::HashMap,
     fs::File,
     io::{self, ErrorKind, Write},
+    mem,
     ops::Range,
     path::Path,
 };
@@ -147,7 +148,7 @@ fn parse_features_primers(
         let mut direction = FeatureDirection::None;
         let mut label = String::new();
 
-        let index_range = match &feature.location {
+        let mut index_range = match &feature.location {
             // gb_io seems to list the start of the range as 1 too early; compensate.
             Location::Range(start, end) => (start.0 as usize + 1, end.0 as usize),
             Location::Complement(inner) => match **inner {
@@ -201,12 +202,16 @@ fn parse_features_primers(
         // GenBank stores primer bind sites (Which we treat as volatile), vice primer sequences.
         // Infer the sequence using the bind indices, and the main sequence.
         if feature_type == FeatureType::Primer {
+            // See other notes on start range index being odd.
+            if index_range.1 <= index_range.0 {
+                mem::swap(&mut index_range.1, &mut index_range.0);
+            }
+
             let sequence = match direction {
                 FeatureDirection::Reverse => {
                     let compl = seq_complement(&seq);
                     compl[seq.len() - (index_range.1 - 1)..seq.len() - (index_range.0)].to_vec()
                 }
-                // See other notes on start range index being odd.
                 _ => seq[index_range.0 - 1..index_range.1].to_vec(),
             };
 

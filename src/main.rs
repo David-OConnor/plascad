@@ -451,7 +451,7 @@ impl State {
         }
     }
 
-    /// Update the combined SLIC vector + insert sequence.
+    /// Upddate this sequence by inserting a sequence of interest; the new sequence is the cloning product.
     pub fn sync_cloning_product(&mut self) {
         let seq_vector = &mut self.generic.seq;
         let seq_insert = &self.ui.cloning_insert.seq_insert;
@@ -468,7 +468,25 @@ impl State {
         // self.generic.seq.clone_from(&seq_vector);
         seq_vector.splice(self.insert_loc..self.insert_loc, seq_insert.iter().cloned());
 
-        self.sync_primer_matches(None);
+        // todo: YOu may run into off-by-one issues on insert loc here; adjust A/R.
+        // Now, you have to update features affected by this insertion, shifting them right A/R.
+        for feature in &mut self.generic.features {
+            // Handle the case where the insert occurs over a feature. Do this before shifting features.
+            if feature.index_range.0 < self.insert_loc && feature.index_range.1 > self.insert_loc {
+                // todo: Divide into two features? For now, we are just trimming.
+                feature.index_range.1 = self.insert_loc - 1;
+            }
+
+            if feature.index_range.0 > self.insert_loc {
+                feature.index_range.0 += seq_insert.len();
+            }
+
+            if feature.index_range.1 > self.insert_loc {
+                feature.index_range.1 += seq_insert.len();
+            }
+        }
+
+        self.sync_seq_related(None);
     }
 
     /// Run this when the sequence changes.

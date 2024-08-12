@@ -273,6 +273,11 @@ impl Feature {
             None => self.feature_type.color(),
         }
     }
+
+    /// Get the feature len, in usize.
+    pub fn len(&self) -> usize {
+        self.index_range.1 - self.index_range.0 + 1 // +1 since it's inclusive.
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]

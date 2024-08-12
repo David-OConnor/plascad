@@ -101,7 +101,6 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
 
     let mut removed = None;
     for (i, feature) in state.generic.features.iter_mut().enumerate() {
-        let border_color = Color32::WHITE;
         let mut border_width = 0.;
         if let Selection::Feature(j) = state.ui.selected_item {
             if i == j {
@@ -153,6 +152,8 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
                     });
                 }
             });
+
+        ui.add_space(ROW_SPACING / 2.);
     }
     if let Some(rem_i) = removed {
         state.generic.features.remove(rem_i);

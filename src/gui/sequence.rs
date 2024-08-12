@@ -41,8 +41,9 @@ fn seq_editor(state: &mut State, ui: &mut Ui) {
 fn feature_text(feature: &Option<usize>, features: &[Feature], ui: &mut Ui) {
     match feature {
         Some(i) => {
-            if features.len() + 1 < *i {
+            if features.len() < *i + 1 {
                 eprintln!("Invalid hover feature");
+                return; // todo: Ideally set the feature to none.
             }
             let feature = &features[*i];
 
@@ -97,9 +98,9 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         PageSeq::EditSeq => {
             seq_editor(state, ui);
         }
-        PageSeq::EditSlic => {
-            cloning::seq_editor_slic(state, ui);
-        }
+        // PageSeq::EditSlic => {
+        //     cloning::seq_editor_slic(state, ui);
+        // }
         PageSeq::View => {
             ui.horizontal(|ui| {
                 // todo: DRY with above

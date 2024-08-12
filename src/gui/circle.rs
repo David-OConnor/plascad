@@ -285,42 +285,42 @@ fn draw_filled_arc(
     // Draw filled segments. It appears the limitation is based on segment absolute size, vice angular size.
     // No segment will be larger than our threshold.
     let circum_segment = data.radius * (angle.1 - angle.0);
-    let num_segments = (MAX_ARC_FILL / circum_segment) as usize + 1;
-    let segment_ang_dist = (angle.1 - angle.0) / num_segments as f32;
-
-    for i in 0..num_segments {
-        continue;
-        let ang_seg = (
-            angle.0 + i as f32 * segment_ang_dist,
-            angle.0 + (i + 1) as f32 * segment_ang_dist,
-        );
-
-        println!("ANG SEG: {:.4?}. Orig: {:.4?}", ang_seg, angle);
-        // todo: DRY
-        let mut points_outer = arc_points(
-            data.center_rel,
-            data.radius + width / 2.,
-            ang_seg.0,
-            ang_seg.1,
-        );
-        let mut points_inner = arc_points(
-            data.center_rel,
-            data.radius - width / 2.,
-            ang_seg.0,
-            ang_seg.1,
-        );
-
-        points_inner.reverse();
-
-        points_outer.append(&mut points_inner);
-
-        // result.push(Shape::convex_polygon(points_outer, fill_color, Stroke::NONE));
-        result.push(Shape::convex_polygon(
-            points_outer,
-            Color32::YELLOW,
-            Stroke::NONE,
-        ));
-    }
+    // let num_segments = (MAX_ARC_FILL / circum_segment) as usize + 1;
+    // let segment_ang_dist = (angle.1 - angle.0) / num_segments as f32;
+    //
+    // for i in 0..num_segments {
+    //     continue;
+    //     let ang_seg = (
+    //         angle.0 + i as f32 * segment_ang_dist,
+    //         angle.0 + (i + 1) as f32 * segment_ang_dist,
+    //     );
+    //
+    //     println!("ANG SEG: {:.4?}. Orig: {:.4?}", ang_seg, angle);
+    //     // todo: DRY
+    //     let mut points_outer = arc_points(
+    //         data.center_rel,
+    //         data.radius + width / 2.,
+    //         ang_seg.0,
+    //         ang_seg.1,
+    //     );
+    //     let mut points_inner = arc_points(
+    //         data.center_rel,
+    //         data.radius - width / 2.,
+    //         ang_seg.0,
+    //         ang_seg.1,
+    //     );
+    //
+    //     points_inner.reverse();
+    //
+    //     points_outer.append(&mut points_inner);
+    //
+    //     // result.push(Shape::convex_polygon(points_outer, fill_color, Stroke::NONE));
+    //     result.push(Shape::convex_polygon(
+    //         points_outer,
+    //         Color32::YELLOW,
+    //         Stroke::NONE,
+    //     ));
+    // }
 
     // Note: We may need to put something like this back, if we use multiple feature widths, feature layers etc.\
     // todo: Perhaps instead of drawing a pie, we draw slimmer slices.
@@ -608,40 +608,41 @@ fn top_details(state: &mut State, ui: &mut Ui) {
     ui.add_space(COL_SPACING / 2.);
 
     // Sliders to edit the feature.
-    if let Selection::Feature(feat_i) = &state.ui.selected_item {
+    if let Selection::Feature(feat_i) = &mut state.ui.selected_item {
         ui.spacing_mut().slider_width = FEATURE_SLIDER_WIDTH;
 
         if state.generic.features.len() + 1 < *feat_i {
             eprintln!("Invalid selected feature");
-        }
+            state.ui.selected_item = Selection::None;
+        } else {
+            let feature = &mut state.generic.features[*feat_i];
+            // todo: Handle wraps.
+            ui.label("Start:");
+            let start = feature.index_range.0; // Avoids a borrow error.
+            ui.add(Slider::new(
+                &mut feature.index_range.0,
+                0..=state.generic.seq.len(),
+            ));
+            // ui.add(
+            //     Slider::from_get_set(0.0..=state.generic.seq.len() as f32, |v| {
+            //     // Slider::new(&mut 0, 0..=state.generic.seq.len(), |v| {
+            //         if let Some(v_) = v {
+            //             v
+            //         }
+            //     }).text("Start")
+            // );
 
-        let feature = &mut state.generic.features[*feat_i];
-        // todo: Handle wraps.
-        ui.label("Start:");
-        let start = feature.index_range.0; // Avoids a borrow error.
-        ui.add(Slider::new(
-            &mut feature.index_range.0,
-            0..=state.generic.seq.len(),
-        ));
-        // ui.add(
-        //     Slider::from_get_set(0.0..=state.generic.seq.len() as f32, |v| {
-        //     // Slider::new(&mut 0, 0..=state.generic.seq.len(), |v| {
-        //         if let Some(v_) = v {
-        //             v
-        //         }
-        //     }).text("Start")
-        // );
+            ui.add_space(COL_SPACING);
+            ui.label("End:");
+            ui.add(Slider::new(
+                &mut feature.index_range.1,
+                0..=state.generic.seq.len(),
+            ));
 
-        ui.add_space(COL_SPACING);
-        ui.label("End:");
-        ui.add(Slider::new(
-            &mut feature.index_range.1,
-            0..=state.generic.seq.len(),
-        ));
-
-        // todo: Don't let end be before start.
-        if feature.index_range.0 > feature.index_range.1 {
-            feature.index_range.1 = feature.index_range.0 + 1;
+            // todo: Don't let end be before start.
+            if feature.index_range.0 > feature.index_range.1 {
+                feature.index_range.1 = feature.index_range.0 + 1;
+            }
         }
     }
 
@@ -743,7 +744,12 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
 
     let labels = vec![
         feature.label.clone(),
-        format!("{}..{}", feature.index_range.0, feature.index_range.1),
+        format!(
+            "{}..{}  {}bp",
+            feature.index_range.0,
+            feature.index_range.1,
+            feature.len()
+        ),
         feature.feature_type.to_string(),
     ];
 

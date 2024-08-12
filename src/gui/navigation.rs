@@ -18,6 +18,7 @@ pub enum Page {
     Map,
     Features,
     Primers,
+    Cloning,
     /// Determine optimal PCR parameters
     Pcr,
     Portions,
@@ -39,6 +40,7 @@ impl Display for Page {
             Self::Pcr => "PCR",
             Self::Features => "Features",
             Self::Primers => "Primers",
+            Self::Cloning => "SLIC/FC cloning",
             Self::Portions => "Mixing portions",
             Self::Metadata => "Data",
         }
@@ -53,6 +55,7 @@ pub fn page_selector(state: &mut State, ui: &mut Ui) {
         page_button(&mut state.ui.page, Page::Map, ui, true);
         page_button(&mut state.ui.page, Page::Features, ui, true);
         page_button(&mut state.ui.page, Page::Primers, ui, true);
+        page_button(&mut state.ui.page, Page::Cloning, ui, true);
         page_button(&mut state.ui.page, Page::Pcr, ui, true);
         page_button(&mut state.ui.page, Page::Metadata, ui, true);
         // page_button(&mut state.ui.page, Page::Portions, ui);
@@ -86,7 +89,7 @@ pub fn page_button<T: PartialEq + ToString>(page_state: &mut T, page: T, ui: &mu
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum PageSeq {
     EditSeq,
-    EditSlic,
+    // EditSlic,
     View,
 }
 
@@ -100,7 +103,7 @@ impl Display for PageSeq {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Self::EditSeq => "Edit sequence",
-            Self::EditSlic => "SLIC/FC cloning",
+            // Self::EditSlic => "SLIC/FC cloning",
             Self::View => "View sequence",
         }
         .to_owned();
@@ -112,7 +115,6 @@ pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         page_button(&mut state.ui.page_seq, PageSeq::EditSeq, ui, true);
         page_button(&mut state.ui.page_seq, PageSeq::View, ui, true);
-        page_button(&mut state.ui.page_seq, PageSeq::EditSlic, ui, true);
     });
 }
 

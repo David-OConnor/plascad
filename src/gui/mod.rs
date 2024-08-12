@@ -188,11 +188,22 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
             let pos_rel = from_screen * pos2(pos.0, pos.1);
 
             if pos_rel.x > 0. && pos_rel.y > 0. {
-                state.ui.selected_item =
-                    match feature_from_index(&state.ui.cursor_seq_i, &state.generic.features) {
+                let feature_i = feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
+
+                let mut toggled_off = false;
+                if let Selection::Feature(j) = state.ui.selected_item {
+                    if j == feature_i.unwrap_or(999) {
+                        state.ui.selected_item = Selection::None;
+                        toggled_off = true;
+                    }
+                }
+
+                if !toggled_off {
+                    state.ui.selected_item = match feature_i {
                         Some(i) => Selection::Feature(i),
                         None => Selection::None,
-                    }
+                    };
+                }
             }
         }
 
@@ -284,6 +295,9 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Map => circle::circle_page(state, ui),
             Page::Features => features::features_page(state, ui),
             Page::Primers => primer_details(state, ui),
+            Page::Cloning => {
+                cloning::seq_editor_slic(state, ui);
+            }
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Metadata => metadata::metadata_page(&mut state.generic.metadata, ui),
             _ => (),
