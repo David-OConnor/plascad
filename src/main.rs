@@ -13,6 +13,7 @@
 
 use std::{
     io,
+    ops::RangeInclusive,
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
@@ -24,7 +25,7 @@ use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
-use sequence::{seq_from_str, Seq};
+use sequence::Seq;
 
 use crate::{
     file_io::{
@@ -37,11 +38,12 @@ use crate::{
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::TM_TARGET,
-    restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
+    restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
         find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide,
         ReadingFrame, ReadingFrameMatch,
     },
+    tags::TagMatch,
 };
 
 mod feature_db_load;
@@ -55,6 +57,7 @@ mod restriction_enzyme;
 mod save_compat;
 mod sequence;
 mod solution_helper;
+mod tags;
 mod toxic_proteins;
 mod util;
 
@@ -319,7 +322,6 @@ impl Default for StateUi {
             seq_input: Default::default(),
             pcr: Default::default(),
             feature_add: Default::default(),
-            // primer_selected: None,
             feature_hover: Default::default(),
             selected_item: Selection::None,
             seq_visibility: Default::default(),
@@ -356,6 +358,7 @@ impl Default for Selection {
 struct StateVolatile {
     restriction_enzyme_sites: Vec<ReMatch>,
     reading_frame_matches: Vec<ReadingFrameMatch>,
+    tag_matches: Vec<TagMatch>,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
@@ -395,34 +398,12 @@ impl State {
     pub fn sync_re_sites(&mut self) {
         self.volatile.restriction_enzyme_sites = Vec::new();
 
-        // let seq_comp = seq_complement(seq);
-
-        for (lib_index, re) in self.restriction_enzyme_lib.iter().enumerate() {
-            // todo: Use bio lib?
-            let seq_len = self.generic.seq.len();
-            for i in 0..seq_len {
-                if i + re.seq.len() + 1 >= seq_len {
-                    continue;
-                }
-
-                if re.seq == self.generic.seq[i..i + re.seq.len()] {
-                    self.volatile.restriction_enzyme_sites.push(ReMatch {
-                        lib_index,
-                        seq_index: i,
-                        // direction: PrimerDirection::Forward,
-                    });
-                }
-                // todo: Simpler way?
-                // todo: Evaluate if this is what you want.
-                // if re.seq == seq_comp[i..i + re.seq.len()] {
-                //     self.restriction_enzyme_sites.push(ReMatch {
-                //         lib_index: i_re,
-                //         seq_index: i,
-                //         direction: PrimerDirection::Reverse,
-                //     });
-                // }
-            }
-        }
+        self.volatile
+            .restriction_enzyme_sites
+            .append(&mut find_re_matches(
+                &self.generic.seq,
+                &self.restriction_enzyme_lib,
+            ));
 
         // This sorting aids in our up/down label alternation in the display.
         self.volatile
@@ -448,12 +429,11 @@ impl State {
         }
     }
 
-    /// Upddate this sequence by inserting a sequence of interest.
-    /// todo: Is the insert_loc in 0 or 1-based indexing?
+    /// Upddate this sequence by inserting a sequence of interest. `insert_loc` uses 0-based indexing.
     pub fn insert_nucleotides(&mut self, insert: &[Nucleotide], insert_loc: usize) {
         let seq_vector = &mut self.generic.seq;
 
-        if insert_loc + 1 > seq_vector.len() {
+        if insert_loc > seq_vector.len() {
             eprintln!(
                 "Error creating cloning insert: insert loc {} is greater than vector len {}",
                 insert_loc,
@@ -465,14 +445,13 @@ impl State {
         // self.generic.seq.clone_from(&seq_vector);
         seq_vector.splice(insert_loc..insert_loc, insert.iter().cloned());
 
-        // todo: YOu may run into off-by-one issues on insert loc here; adjust A/R.
         // Now, you have to update features affected by this insertion, shifting them right A/R.
         for feature in &mut self.generic.features {
             // Handle the case where the insert occurs over a feature. Do this before shifting features.
-            if feature.index_range.0 < insert_loc && feature.index_range.1 > insert_loc {
-                // todo: Divide into two features? For now, we are just trimming.
-                feature.index_range.1 = insert_loc - 1;
-            }
+            // if feature.index_range.0 < insert_loc && feature.index_range.1 > insert_loc {
+            //     // todo: Divide into two features? For now, we are just trimming.
+            //     feature.index_range.1 = insert_loc - 1;
+            // }
 
             if feature.index_range.0 > insert_loc {
                 feature.index_range.0 += insert.len();
@@ -480,6 +459,30 @@ impl State {
 
             if feature.index_range.1 > insert_loc {
                 feature.index_range.1 += insert.len();
+            }
+        }
+
+        self.sync_seq_related(None);
+    }
+
+    /// One-based indexing. Similar to `insert_nucleotides`.
+    pub fn remove_nucleotides(&mut self, range: RangeInclusive<usize>) {
+        let seq = &mut self.generic.seq;
+        if range.end() + 1 > seq.len() {
+            return;
+        }
+
+        let count = range.clone().count();
+
+        seq.drain(range.clone());
+
+        // Now, you have to update features affected by this insertion, shifting them left A/R.
+        for feature in &mut self.generic.features {
+            if feature.index_range.0 > *range.end() {
+                feature.index_range.0 -= count;
+            }
+            if feature.index_range.1 > *range.end() {
+                feature.index_range.1 -= count;
             }
         }
 

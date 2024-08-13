@@ -79,7 +79,7 @@ pub fn metadata_page(data: &mut Metadata, ui: &mut Ui) {
     for ref_ in &mut data.references {
         ui.horizontal(|ui| {
             ui.label("Title:");
-            let response = ui.add(
+             ui.add(
                 TextEdit::multiline(&mut ref_.title)
                     .desired_width(ui.available_width() * WIDTH_RATIO)
                     .desired_rows(ROW_HEIGHT),
@@ -89,7 +89,7 @@ pub fn metadata_page(data: &mut Metadata, ui: &mut Ui) {
 
         ui.horizontal(|ui| {
             ui.label("Description:");
-            let response = ui.add(
+            ui.add(
                 TextEdit::multiline(&mut ref_.description)
                     .desired_width(ui.available_width() * WIDTH_RATIO)
                     .desired_rows(ROW_HEIGHT),

@@ -44,6 +44,7 @@ gb-io = "^0.7.1"
 webbrowser = "^1.0.1"
 url = "^2.5.2"
 
+
 [build-dependencies]
 # These are for embedding an application icon, on Windows.
 winresource = "^0.1.17"

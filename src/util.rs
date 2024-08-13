@@ -23,7 +23,9 @@ pub fn get_row_ranges(len: usize, chars_per_row: usize) -> Vec<Range<usize>> {
     let num_rows = len / chars_per_row + 1; // todo: +/-1 etc?
 
     for row_i in 0..num_rows {
-        result.push(row_i * chars_per_row..row_i * chars_per_row + chars_per_row);
+        let end = row_i * chars_per_row + chars_per_row;
+        let end = min(end, len + 1);
+        result.push(row_i * chars_per_row..end);
     }
 
     result
@@ -59,7 +61,6 @@ pub fn seq_i_to_pixel(seq_i: usize, row_ranges: &[Range<usize>]) -> Pos2 {
 }
 
 pub fn pixel_to_seq_i(pixel: Pos2, row_ranges: &[Range<usize>]) -> Option<usize> {
-    // todo: ROunding?
     let row = ((pixel.y - TEXT_Y_START) / SEQ_ROW_SPACING_PX) as usize;
     let col = ((pixel.x - TEXT_X_START) / NT_WIDTH_PX) as usize;
 

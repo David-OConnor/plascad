@@ -141,7 +141,7 @@ impl Default for FeatureType {
 
 impl FeatureType {
     /// For displaying in the UI
-    pub fn to_string(&self) -> String {
+    pub fn to_string(self) -> String {
         match self {
             Self::Generic => "Generic",
             Self::Gene => "Gene",
@@ -199,7 +199,7 @@ impl FeatureType {
     }
 
     /// Create a string for use with SnapGene and GenBank formats.
-    pub fn to_external_str(&self) -> String {
+    pub fn to_external_str(self) -> String {
         // todo: Update as required with more
         match self {
             Self::Generic => "misc_feature",
@@ -242,7 +242,7 @@ impl Default for FeatureDirection {
 }
 
 impl FeatureDirection {
-    pub fn to_string(&self) -> String {
+    pub fn to_string(self) -> String {
         match self {
             Self::None => "None",
             Self::Forward => "Forward",

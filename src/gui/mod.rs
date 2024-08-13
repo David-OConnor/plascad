@@ -1,12 +1,12 @@
 use std::{
-    path::{Path, PathBuf},
+    path::{PathBuf},
     str::FromStr,
 };
 
 use eframe::{
     egui,
     egui::{
-        pos2, Color32, Context, InputState, Key, PointerButton, ScrollArea, TextEdit, Ui,
+        pos2, Color32, Context, Event, Key, PointerButton, ScrollArea, TextEdit, Ui,
         ViewportCommand,
     },
     emath::RectTransform,
@@ -18,9 +18,8 @@ use crate::{
     file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
     gui::{
         primer_qc::primer_details,
-        seq_view::{NT_WIDTH_PX, VIEW_AREA_PAD_LEFT, VIEW_AREA_PAD_RIGHT},
     },
-    sequence::{Feature, FeatureType, Nucleotide},
+    sequence::{seq_from_str, Feature, FeatureType, Nucleotide},
     util, Selection, State,
 };
 
@@ -64,7 +63,7 @@ pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
     }
 }
 
-/// Get a text-representation of the cursor index; a slightly processed version of the raw index.
+/// Get a text-representation of the cursor index (Mouse or text); a slightly processed version of the raw index.
 /// We use this on the sequence and circle views.
 pub fn get_cursor_text(cursor_seq_i: Option<usize>, seq_len: usize) -> String {
     match cursor_seq_i {
@@ -229,7 +228,8 @@ pub fn set_window_title(path_loaded: &Option<PathBuf>, ui: &mut Ui) {
             .map(|name_str| name_str.to_string())
             .unwrap();
 
-        let window_title = format!("{WINDOW_TITLE} - {}", filename);
+        // let window_title = format!("{WINDOW_TITLE} - {}", filename);
+        let window_title = filename;
         ui.ctx()
             .send_viewport_cmd(ViewportCommand::Title(window_title));
     }
@@ -258,78 +258,88 @@ fn handle_input(state: &mut State, ctx: &Context) {
             state.ui.click_pending_handle = true;
         }
 
-        // This is a bit awk; borrow errors.
-        let mut move_cursor = None;
-        // todo: How can we control the rate?
-        if let Some(i) = &mut state.ui.text_cursor_i {
-            if ip.key_pressed(Key::ArrowLeft) {
-                move_cursor = Some(-1);
+        if let Page::Sequence = state.ui.page {
+            // This is a bit awk; borrow errors.
+            let mut move_cursor: Option<i32> = None;
+            // todo: How can we control the rate?
+            if let Some(i) = &mut state.ui.text_cursor_i {
+                if ip.key_pressed(Key::ArrowLeft) {
+                    move_cursor = Some(-1);
+                }
+                if ip.key_pressed(Key::ArrowRight) {
+                    move_cursor = Some(1);
+                }
+                if ip.key_pressed(Key::ArrowUp) {
+                    move_cursor = Some(-(state.ui.nt_chars_per_row as i32));
+                }
+                if ip.key_pressed(Key::ArrowDown) {
+                    move_cursor = Some(state.ui.nt_chars_per_row as i32);
+                }
             }
-            if ip.key_pressed(Key::ArrowRight) {
+
+            if let Some(i) = state.ui.text_cursor_i {
+                // Add NTs.
+                if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
+                    state.insert_nucleotides(&[Nucleotide::A], i);
+                }
+                if ip.key_pressed(Key::T) {
+                    state.insert_nucleotides(&[Nucleotide::T], i);
+                }
+                if ip.key_pressed(Key::C) {
+                    state.insert_nucleotides(&[Nucleotide::C], i);
+                }
+                if ip.key_pressed(Key::G) {
+                    state.insert_nucleotides(&[Nucleotide::G], i);
+                }
+                if ip.key_pressed(Key::Backspace) && i > 0 {
+                    state.remove_nucleotides(i - 1..=i - 1);
+                }
+                if ip.key_pressed(Key::Delete) {
+                    state.remove_nucleotides(i..=i);
+                }
+
+                // Paste nucleotides
+                for event in &ip.events {
+                    match event {
+                        Event::Cut => {
+                            // state.remove_nucleotides();
+                            // move_cursor = Some(pasted_text.len() as i32);
+                        }
+                        Event::Copy => {}
+                        Event::Paste(pasted_text) => {
+                            state.insert_nucleotides(&seq_from_str(&pasted_text), i);
+                            move_cursor = Some(pasted_text.len() as i32);
+                        }
+                        _ => (),
+                    }
+                }
+            }
+
+            if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
                 move_cursor = Some(1);
             }
-            if ip.key_pressed(Key::ArrowUp) {
-                // todo: DRY with seq_view
-                move_cursor = Some(-(state.ui.nt_chars_per_row as isize));
-            }
-            if ip.key_pressed(Key::ArrowDown) {
-                Some(state.ui.nt_chars_per_row);
-            }
-        }
-
-        if let Some(i) = state.ui.text_cursor_i {
-            // Add NTs.
-            if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
-                state.insert_nucleotides(&[Nucleotide::A], i);
-            }
             if ip.key_pressed(Key::T) {
-                state.insert_nucleotides(&[Nucleotide::T], i);
+                move_cursor = Some(1);
             }
             if ip.key_pressed(Key::C) {
-                state.insert_nucleotides(&[Nucleotide::C], i);
+                move_cursor = Some(1);
             }
             if ip.key_pressed(Key::G) {
-                state.insert_nucleotides(&[Nucleotide::G], i);
-            }
-        }
-
-        if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
-            move_cursor = Some(1);
-        }
-        if ip.key_pressed(Key::T) {
-            move_cursor = Some(1);
-        }
-        if ip.key_pressed(Key::C) {
-            move_cursor = Some(1);
-        }
-        if ip.key_pressed(Key::G) {
-            move_cursor = Some(1);
-        }
-
-        if ip.key_pressed(Key::Backspace) {
-            // todo: IMpl deleting.
-            move_cursor = Some(-1);
-        }
-
-        if ip.key_pressed(Key::Delete) {
-            move_cursor = Some(-1);
-        }
-
-        if let Some(i) = &mut state.ui.text_cursor_i {
-            if let Some(amt) = move_cursor {
-                // todo: Impl limits
-                *i += amt as usize;
+                move_cursor = Some(1);
             }
 
-            // if decrement_cursor {
-            //     if *i > 0 {
-            //         *i -= 1;
-            //     }
-            // } else if increment_cursor {
-            //     if *i + 1 < state.generic.seq.len() {
-            //         *i += 1;
-            //     }
-            // }
+            if ip.key_pressed(Key::Backspace) {
+                move_cursor = Some(-1);
+            }
+
+            if let Some(i) = &mut state.ui.text_cursor_i {
+                if let Some(amt) = move_cursor {
+                    let new_posit = *i as i32 + amt;
+                    if new_posit - 1 < state.generic.seq.len() as i32 {
+                        *i = new_posit as usize;
+                    }
+                }
+            }
         }
     });
 }
@@ -348,12 +358,14 @@ pub fn draw(state: &mut State, ctx: &Context) {
         ui.horizontal(|ui| {
             navigation::page_selector(state, ui);
 
-            ui.add_space(COL_SPACING);
+            ui.add_space(COL_SPACING / 2.);
 
             ui.label("Name: ");
             ui.add(
                 TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(280.),
             );
+
+            ui.label(format!("{} bp", state.generic.seq.len()));
         });
 
         ui.add_space(ROW_SPACING / 2.);

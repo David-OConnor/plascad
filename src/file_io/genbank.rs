@@ -113,7 +113,6 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
             source,
             organism,
             references,
-            ..Default::default()
         };
 
         return Ok(GenericData {
@@ -140,7 +139,7 @@ fn parse_features_primers(
     let mut primers = Vec::new();
 
     for feature in features {
-        let feature_type = FeatureType::from_external_str(&feature.kind.as_ref());
+        let feature_type = FeatureType::from_external_str(feature.kind.as_ref());
 
         // We parse label from qualifiers.
         // I'm unsure how direction works in GenBank files. It appears it's some mix of the LEFT/RIGHT
@@ -209,7 +208,7 @@ fn parse_features_primers(
 
             let sequence = match direction {
                 FeatureDirection::Reverse => {
-                    let compl = seq_complement(&seq);
+                    let compl = seq_complement(seq);
                     compl[seq.len() - (index_range.1 - 1)..seq.len() - (index_range.0)].to_vec()
                 }
                 _ => seq[index_range.0 - 1..index_range.1].to_vec(),

@@ -12,7 +12,7 @@ use std::{
 use bincode::{
     config,
     error::{DecodeError, EncodeError},
-    BorrowDecode, Decode, Encode,
+    Decode, Encode,
 };
 use bio::io::fasta;
 
@@ -113,7 +113,7 @@ impl StateToSave {
             generic: state.generic.clone(),
             insert_loc: state.cloning_insert_loc,
             ion_concentrations: state.ion_concentrations.clone(),
-            reading_frame: state.reading_frame.clone(),
+            reading_frame: state.reading_frame,
         }
     }
 
@@ -143,25 +143,25 @@ pub struct StateUiToSave {
 impl StateUiToSave {
     pub fn from_state(state: &StateUi) -> Self {
         Self {
-            page: state.page.clone(),
-            page_seq: state.page_seq.clone(),
-            page_seq_top: state.page_seq_top.clone(),
+            page: state.page,
+            page_seq: state.page_seq,
+            page_seq_top: state.page_seq_top,
             pcr: state.pcr.clone(),
             selected_item: state.selected_item,
             seq_visibility: state.seq_visibility.clone(),
-            hide_map_feature_editor: state.hide_map_feature_editor.clone(),
+            hide_map_feature_editor: state.hide_map_feature_editor,
         }
     }
 
     /// Used to load to state. The result is data from this struct, augmented with default values.
-    pub fn to_state(self) -> StateUi {
+    pub fn to_state(&self) -> StateUi {
         StateUi {
             page: self.page,
             page_seq: self.page_seq,
             page_seq_top: self.page_seq_top,
-            pcr: self.pcr,
+            pcr: self.pcr.clone(),
             selected_item: self.selected_item,
-            seq_visibility: self.seq_visibility,
+            seq_visibility: self.seq_visibility.clone(),
             hide_map_feature_editor: self.hide_map_feature_editor,
             ..Default::default()
         }

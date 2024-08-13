@@ -9,6 +9,7 @@
 use crate::{
     primer::PrimerDirection,
     sequence::{
+        seq_complement, Nucleotide,
         Nucleotide::{A, C, G, T},
         Seq,
     },
@@ -40,8 +41,6 @@ pub enum NucleotideGeneral {
 pub struct ReMatch {
     pub lib_index: usize,
     pub seq_index: usize,
-    // /// Direction helps align the cut site.
-    // pub direction: PrimerDirection,
 }
 
 pub struct RestrictionEnzyme {
@@ -61,6 +60,48 @@ impl RestrictionEnzyme {
             cut_after,
         }
     }
+}
+
+/// Go through a sequence, and attempt to match each lib in our RE lib to the sequence, in both directions
+pub fn find_re_matches(seq: &[Nucleotide], lib: &[RestrictionEnzyme]) -> Vec<ReMatch> {
+    let mut result = Vec::new();
+
+    for (lib_index, re) in lib.iter().enumerate() {
+        let re_compl = seq_complement(&re.seq);
+        // todo: Use bio lib?
+        let seq_len = seq.len();
+        for i in 0..seq_len {
+            if i + re.seq.len() + 1 >= seq_len {
+                continue;
+            }
+
+            if re.seq == seq[i..i + re.seq.len()] {
+                result.push(ReMatch {
+                    lib_index,
+                    seq_index: i,
+                });
+            }
+
+            // todo: Evaluate.
+            // if re_compl == seq[i..i + re.seq.len()] {
+            //     result.push(ReMatch {
+            //         lib_index,
+            //         seq_index: i,
+            //     });
+            // }
+
+            // todo: Simpler way?
+            // todo: Evaluate if this is what you want.
+            // if re.seq == seq_comp[i..i + re.seq.len()] {
+            //     self.restriction_enzyme_sites.push(ReMatch {
+            //         lib_index: i_re,
+            //         seq_index: i,
+            //         direction: PrimerDirection::Reverse,
+            //     });
+            // }
+        }
+    }
+    result
 }
 
 /// Load a set of common Restriction enzymes. Call this at program start, to load into a state field.

@@ -2,10 +2,9 @@
 
 use std::ops::Range;
 
-use bio::bio_types::annot::pos::Pos;
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, Sense,
         Shape, Stroke, Ui,
     },
     emath::RectTransform,
@@ -15,7 +14,7 @@ use eframe::{
 use crate::{
     gui::{
         feature_from_index, feature_overlay::draw_features, get_cursor_text,
-        navigation::page_button, primer_arrow, select_feature, COL_SPACING, ROW_SPACING,
+        navigation::page_button, primer_arrow, COL_SPACING, ROW_SPACING,
     },
     sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
@@ -75,8 +74,7 @@ fn re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             stroke: PathStroke::new(2., COLOR_RE),
         });
 
-        // let label_text = format!("{} - {}", re.name, re_match.seq_index);
-        let label_text = format!("{}", re.name);
+        let label_text = &re.name;
         let mut label_pos = pos2(cut_pos.x + 2., cut_pos.y - 4.);
 
         // Move the label position left if there is a nearby RE site on the right.
@@ -185,6 +183,7 @@ fn orf_selector(state: &mut State, ui: &mut Ui) {
 }
 
 /// Find the sequence index under the cursor, if it is over the sequence.
+/// 0-based indexing.
 fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &SeqViewData) -> Option<usize> {
     match cursor_pos {
         Some(p) => {
@@ -267,7 +266,9 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
         / NT_WIDTH_PX) as usize;
     let row_ranges = get_row_ranges(seq_len, state.ui.nt_chars_per_row);
 
-    let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, seq_len);
+    let mouse_posit_lbl = get_cursor_text(state.ui.cursor_seq_i, seq_len);
+    let text_posit_lbl = get_cursor_text(state.ui.text_cursor_i, seq_len);
+
     ui.horizontal(|ui| {
         orf_selector(state, ui);
         ui.add_space(COL_SPACING);
@@ -276,80 +277,80 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
         ui.add_space(COL_SPACING);
 
         ui.label("Cursor:");
-        ui.heading(cursor_posit_text);
+        ui.heading(text_posit_lbl);
+
+        ui.label("Mouse:");
+        ui.heading(mouse_posit_lbl);
     });
 
-    ScrollArea::vertical().id_source(0).show(ui, |ui| {
-        Frame::canvas(ui.style())
-            .fill(BACKGROUND_COLOR)
-            .show(ui, |ui| {
-                let (response, _painter) = {
-                    // Estimate required height, based on seq len.
-                    let total_seq_height = row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.;
+    Frame::canvas(ui.style())
+        .fill(BACKGROUND_COLOR)
+        .show(ui, |ui| {
+            let (response, _painter) = {
+                // Estimate required height, based on seq len.
+                let total_seq_height = row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.;
 
-                    let height = total_seq_height;
+                let height = total_seq_height;
 
-                    let desired_size = vec2(ui.available_width(), height);
-                    ui.allocate_painter(desired_size, Sense::click())
-                };
+                let desired_size = vec2(ui.available_width(), height);
+                ui.allocate_painter(desired_size, Sense::click())
+            };
 
-                let to_screen = RectTransform::from_to(
-                    Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-                    response.rect,
-                );
+            let to_screen = RectTransform::from_to(
+                Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+                response.rect,
+            );
 
-                let from_screen = to_screen.inverse();
+            let from_screen = to_screen.inverse();
 
-                let data = SeqViewData {
-                    seq_len,
-                    row_ranges,
-                    to_screen,
-                    from_screen,
-                };
+            let data = SeqViewData {
+                seq_len,
+                row_ranges,
+                to_screen,
+                from_screen,
+            };
 
-                let prev_cursor_i = state.ui.cursor_seq_i;
-                state.ui.cursor_seq_i = find_cursor_i(state.ui.cursor_pos, &data);
+            let prev_cursor_i = state.ui.cursor_seq_i;
+            state.ui.cursor_seq_i = find_cursor_i(state.ui.cursor_pos, &data);
 
-                if prev_cursor_i != state.ui.cursor_seq_i {
-                    state.ui.feature_hover =
-                        feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
-                }
+            if prev_cursor_i != state.ui.cursor_seq_i {
+                state.ui.feature_hover =
+                    feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
+            }
 
-                // Removed: We select cursor position instead now.
-                // select_feature(state, &from_screen);
+            // Removed: We select cursor position instead now.
+            // select_feature(state, &from_screen);
 
-                // todo: Move this into a function A/R.
-                if state.ui.click_pending_handle {
-                    state.ui.text_cursor_i = state.ui.cursor_seq_i;
-                    println!("TExt cursor  set: {:?}", state.ui.text_cursor_i);
-                    state.ui.click_pending_handle = false;
-                }
+            // todo: Move this into a function A/R.
+            if state.ui.click_pending_handle {
+                state.ui.text_cursor_i = state.ui.cursor_seq_i;
+                state.ui.click_pending_handle = false;
+            }
 
-                shapes.extend(draw_seq_indexes(&data, ui));
+            shapes.extend(draw_seq_indexes(&data, ui));
 
-                shapes.append(&mut draw_nts(state, &data, ui));
+            shapes.append(&mut draw_nts(state, &data, ui));
 
-                if state.ui.seq_visibility.show_primers {
-                    shapes.append(&mut primer_arrow::draw_primers(
-                        &state.generic.primers,
-                        &data,
-                        ui,
-                    ));
-                }
+            if state.ui.seq_visibility.show_primers {
+                shapes.append(&mut primer_arrow::draw_primers(
+                    &state.generic.primers,
+                    &data,
+                    ui,
+                ));
+            }
 
-                if state.ui.seq_visibility.show_features {
-                    shapes.append(&mut draw_features(&state.generic.features, &data, ui));
-                }
+            if state.ui.seq_visibility.show_features {
+                shapes.append(&mut draw_features(&state.generic.features, &data, ui));
+            }
 
-                if state.ui.seq_visibility.show_res {
-                    shapes.append(&mut re_sites(state, &data, ui));
-                }
+            if state.ui.seq_visibility.show_res {
+                shapes.append(&mut re_sites(state, &data, ui));
+            }
 
-                shapes.append(&mut draw_text_cursor(state.ui.text_cursor_i, &data));
+            shapes.append(&mut draw_text_cursor(state.ui.text_cursor_i, &data));
 
-                ui.painter().extend(shapes);
-            });
-    });
+            ui.painter().extend(shapes);
+        });
 
     ui.add_space(ROW_SPACING);
 }

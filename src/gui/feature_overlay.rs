@@ -167,7 +167,7 @@ pub fn feature_seq_overlay(
     };
 
     let label_align = if feature_type == FeatureType::Primer && direction == Reverse {
-        label_pos.y += 6.;
+        label_pos.y -= 2.;
         Align2::RIGHT_CENTER
     } else {
         Align2::LEFT_CENTER

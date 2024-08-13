@@ -1,7 +1,5 @@
 //! This module contains code related to drawing primer arrows in the sequence view.
 
-use std::ops::Range;
-
 use eframe::egui::{Pos2, Shape, Ui};
 
 use crate::{

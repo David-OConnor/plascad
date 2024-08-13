@@ -22,7 +22,7 @@ const COLORS: [Color; 4] = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 25
 fn color_rect(color: Color, ui: &mut Ui) {
     let color_rgb = Color32::from_rgb(color.0, color.1, color.2);
 
-    let (rect, response) = ui.allocate_exact_size(Vec2::new(60.0, 10.0), Sense::click());
+    let (rect, _response) = ui.allocate_exact_size(Vec2::new(60.0, 10.0), Sense::click());
     let painter = Painter::new(ui.ctx().clone(), ui.layer_id(), rect);
     painter.rect_filled(rect, 0.0, color_rgb);
 }

@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use eframe::egui::{Ui, ViewportCommand};
+use eframe::egui::{Ui};
 use egui_file_dialog::FileDialog;
 
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
         },
         snapgene::{export_snapgene, import_snapgene},
     },
-    gui::{set_window_title, WINDOW_TITLE},
+    gui::{set_window_title},
     sequence::seq_to_str,
     State,
 };
@@ -68,7 +68,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         .on_hover_text("Save data. (Ctrl + s)")
         .clicked()
     {
-        save_current_file(&state);
+        save_current_file(state);
 
         // todo: You will likely more this to an automatic one.
         if let Err(e) = save(
@@ -236,7 +236,7 @@ pub fn save_current_file(state: &State) {
             if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
                 match extension.to_lowercase().as_ref() {
                     "pcad" => {
-                        if let Err(e) = save(&path, &StateToSave::from_state(state)) {
+                        if let Err(e) = save(path, &StateToSave::from_state(state)) {
                             eprintln!("Error saving in PlasCAD format: {:?}", e);
                         };
                     }
@@ -245,13 +245,13 @@ pub fn save_current_file(state: &State) {
                         if let Err(e) = export_fasta(
                             &state.generic.seq,
                             &state.generic.metadata.plasmid_name,
-                            &path,
+                            path,
                         ) {
                             eprintln!("Error exporting to FASTA: {:?}", e);
                         };
                     }
                     "dna" => {
-                        if let Err(e) = export_snapgene(&state.generic, &path) {
+                        if let Err(e) = export_snapgene(&state.generic, path) {
                             eprintln!("Error exporting to SnapGene: {:?}", e);
                         };
                     }
@@ -263,7 +263,7 @@ pub fn save_current_file(state: &State) {
                             }
                         }
 
-                        if let Err(e) = export_genbank(&state.generic, &primer_matches, &path) {
+                        if let Err(e) = export_genbank(&state.generic, &primer_matches, path) {
                             eprintln!("Error exporting to GenBank: {:?}", e);
                         };
                     }

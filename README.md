@@ -31,17 +31,30 @@ sequence on this end. The end point can then be adjusted to optimize primer qual
 Given the sequences for an insert, a vector, and insertion point, it will generate primers suitable for SLIC and FastCloning.
 It generates primers to amplify the entire vector, and insert primers that contain suitable overlap regions with the vector.
 
-It will also create a new file containing the sequence of the  cloning product.
+It will also create a new file containing the sequence of the cloning product.
 
-### Sequence viewer
+
+### Sequence viewer and editor
 This shows the sequence of interest (as generated from cloning, or manually input) with primers overlayed based on their
 match location. It also displays cut sites for common restriction enzymes, and features loaded from a file, or set by the user.
 It includes basic reading frame (ORF) viewing for coding regions.
+
+It lets you do standard edit operations in a what-you-see-is-what-you-get manner. Ie, you can click the sequence to set the cursor,
+move the cursor with arrow keys, type the letters *A*, *C*, *T*, and *G* to insert nucleotides, etc.
 
 
 ### Circular map
 A circular sequence map of the plasmid being edited, with features, primers, restriction enzyme sites, and other data 
 displayed.
+
+
+### Feature and primer annotations
+Can create, edit, and load features and primers. We define primers as matching explicitly to specific indexes in the sequence,
+and primers as sequences of nucleotides that are dynamically matched. (TR)
+
+
+### Restriction enzyme and tag dynamic annotation
+Automatically identies and marks common restriction enzyme sites, and tags, such as the 6x or 8x HIS tag.
 
 
 ### PCR parameter generation
@@ -52,6 +65,7 @@ melting temperature, polymerase type, and other parameters.
 ### Interop with FASTA, GenBank, and SnapGene
 Can read and write FASTA, GenBank, and SnapGene .dna files. FASTA files store sequence data only, while GenBank, SnapGene, and PlasCAD's own format store sequence data, features, primers, and metadata. We use the [gb_io](https://docs.rs/gb-io/latest/gb_io/) library
 to handle GenBank parsing and writing.
+
 
 ### When to use each file format
 If you don't have interoperability requirements, you can use PlasCAD's own file format (.pcad extension) using the *Save* and *Load* buttons. This is a binary format that results in smaller file sizes (eg 4-10x smaller) than the others, due to using 2-bits to store each nucelotide, and a compact format in general.
@@ -72,13 +86,10 @@ Also of note, the native file format this program uses is more compact, includin
 
 
 ## Near-term plans
-- Reading frame tools
 - QCing plasmids for toxic proteins, and various forms of error
 - QC primers for problems in context of plasmids. (Eg multiple binding sites)
 - Identifying secondary structures, hairpins etc
-- Better sequence view and edit functionality
 - Utility features for specific applications
-- Better support for SnapGene and GenBank metadata
 
 
 ## Calculations used 

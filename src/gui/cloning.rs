@@ -46,7 +46,7 @@ fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
                                 &data.seq_loaded[feature.index_range.0 - 1..feature.index_range.1];
 
                             data.seq_insert = seq_this_ft.to_owned();
-                            data.seq_input = seq_to_str(&seq_this_ft);
+                            seq_this_ft.clone_into(&mut data.seq_insert);
                         }
                     }
 
@@ -57,7 +57,7 @@ fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
 
                     let (r, g, b) = feature.feature_type.color();
                     ui.label(
-                        RichText::new(&feature.feature_type.to_string())
+                        RichText::new(feature.feature_type.to_string())
                             .color(Color32::from_rgb(r, g, b)),
                     );
                     ui.add_space(COL_SPACING);
@@ -132,7 +132,7 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
                         state.ui.cloning_insert.seq_loaded = data.generic.seq;
                     }
                     "fasta" => {
-                        if let Ok((seq, id, description)) = import_fasta(&path) {
+                        if let Ok((seq, _id, _description)) = import_fasta(&path) {
                             state.ui.cloning_insert.seq_loaded = seq;
                         }
                     }
@@ -186,7 +186,7 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
         if ui.button("Clone").clicked() {
             // Save this vector; this file or quicksave instance will be turned into the cloning
             // product.
-            save_current_file(&state);
+            save_current_file(state);
 
             // todo: Unecessary clone
             let insert = state.ui.cloning_insert.seq_insert.clone();
@@ -213,7 +213,7 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             state.ui.page_seq = PageSeq::View;
             state.ui.selected_item = Selection::Feature(state.generic.features.len() - 1);
 
-            state.generic.metadata.plasmid_name = "SLIC cloning product".to_owned();
+            "SLIC cloning product".clone_into(&mut state.generic.metadata.plasmid_name);
 
             // todo: Option for GenBank and SnapGene formats here?
             let mut save_path = env::current_dir().unwrap();

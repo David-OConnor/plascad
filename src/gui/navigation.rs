@@ -102,9 +102,9 @@ impl Default for PageSeq {
 impl Display for PageSeq {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            Self::EditSeq => "Edit sequence",
+            Self::EditSeq => "Edit raw",
             // Self::EditSlic => "SLIC/FC cloning",
-            Self::View => "View sequence",
+            Self::View => "Sequence",
         }
         .to_owned();
         write!(f, "{}", str)

@@ -13,13 +13,17 @@ use eframe::{
 
 use crate::{
     gui::{
-        feature_from_index, feature_table::feature_table, get_cursor_text,
-        navigation::NAV_BUTTON_COLOR, select_feature, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
-        SPLIT_SCREEN_MAX_HEIGHT,
+        feature_from_index,
+        feature_table::feature_table,
+        get_cursor_text,
+        navigation::NAV_BUTTON_COLOR,
+        select_feature,
+        seq_view::{SeqViewData, COLOR_RE, COLOR_SEQ},
+        COL_SPACING, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
     },
     primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
-    sequence::{Feature, FeatureDirection, FeatureType},
+    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType},
     Selection, State,
 };
 
@@ -625,7 +629,7 @@ fn top_details(state: &mut State, ui: &mut Ui) {
             let feature = &mut state.generic.features[*feat_i];
             // todo: Handle wraps.
             ui.label("Start:");
-            let start = feature.index_range.0; // Avoids a borrow error.
+            // let start = feature.index_range.0; // Avoids a borrow error.
             ui.add(Slider::new(
                 &mut feature.index_range.0,
                 0..=state.generic.seq.len(),
@@ -831,7 +835,7 @@ fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Sh
                 eprintln!("Invalid selected feature");
             }
             let feature = &state.generic.features[*feat_i];
-            result.append(&mut draw_feature_text(&feature, data, ui));
+            result.append(&mut draw_feature_text(feature, data, ui));
         }
         Selection::Primer(prim_i) => {
             let primer = &state.generic.primers[*prim_i];
@@ -844,7 +848,7 @@ fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Sh
                         eprintln!("Invalid hover feature");
                     }
                     let feature = &state.generic.features[*feat_i];
-                    result.append(&mut draw_feature_text(&feature, data, ui));
+                    result.append(&mut draw_feature_text(feature, data, ui));
                 }
                 None => {
                     // Display a summary of the plasmid
@@ -865,6 +869,45 @@ fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Sh
                 }
             }
         }
+    }
+
+    result
+}
+
+/// Draw a small view of the sequence under the cursor.
+fn draw_mini_seq(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Shape> {
+    let mut result = Vec::new();
+
+    const OFFSET: Pos2 = pos2(4., 6.);
+
+    if let Some(i) = state.ui.cursor_seq_i {
+        let seq_len = (ui.available_width() / 11.) as usize;
+
+        let mut start = i as isize - seq_len as isize / 2;
+        let mut end = i + seq_len / 2;
+
+        if start < 0 {
+            start = 0;
+        }
+        if end + 1 >= state.generic.seq.len() {
+            end = state.generic.seq.len() - 1;
+        }
+
+        let start = start as usize;
+
+        let seq = &state.generic.seq[start..end];
+        let seq_text = seq_to_str(seq);
+
+        result.push(ui.ctx().fonts(|fonts| {
+            Shape::text(
+                fonts,
+                data.to_screen * OFFSET,
+                Align2::LEFT_CENTER,
+                &seq_text,
+                FontId::new(16., FontFamily::Monospace),
+                COLOR_SEQ,
+            )
+        }));
     }
 
     result
@@ -987,6 +1030,9 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             }
 
             shapes.append(&mut draw_center_text(&data, state, ui));
+
+            // todo: Filter option for this mini seq disp
+            shapes.append(&mut draw_mini_seq(&data, state, ui));
 
             ui.painter().extend(shapes);
         });

@@ -436,7 +436,7 @@ pub fn make_cloning_primers(state: &mut State) {
     let seq_insert = &state.ui.cloning_insert.seq_insert;
 
     if let Some(mut primers) =
-        design_slic_fc_primers(&seq_vector, &seq_insert, state.cloning_insert_loc)
+        design_slic_fc_primers(seq_vector, seq_insert, state.cloning_insert_loc)
     {
         let sequence_input = seq_to_str(&primers.insert_fwd.sequence);
 

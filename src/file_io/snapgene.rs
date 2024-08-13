@@ -105,7 +105,7 @@ pub fn import_snapgene(path: &Path) -> io::Result<GenericData> {
                 // todo: Note: This doesn't properly handle if there are multiple DNA packets.
                 // todo: How should we do that?
 
-                match parse_dna(&payload) {
+                match parse_dna(payload) {
                     Ok(v) => {
                         result.seq = v.0;
                         result.topology = v.1;
@@ -118,7 +118,7 @@ pub fn import_snapgene(path: &Path) -> io::Result<GenericData> {
                 Err(e) => eprintln!("Error parsing Primers packet: {:?}", e),
             },
             PacketType::Notes => match parse_notes(payload) {
-                Ok(v) => {
+                Ok(_v) => {
                     // if !v.inner.is_empty() {
                     //     // todo: Are there ever multiple notes?
                     //     result.metadata.plasmid_name = v.inner[0].title.clone();
