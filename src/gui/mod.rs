@@ -22,6 +22,8 @@ use crate::{
     sequence::{seq_from_str, Feature, FeatureType, Nucleotide},
     util, Selection, State,
 };
+use crate::file_io::save::load;
+use crate::gui::save::load_import;
 
 mod circle;
 mod cloning;
@@ -243,7 +245,7 @@ fn handle_input(state: &mut State, ctx: &Context) {
             state.generic.primers.push(Default::default());
         }
 
-        if ip.key_pressed(Key::S) && ip.modifiers.ctrl {
+        if ip.key_pressed(Key::S) && ip.modifiers.ctrl && !ip.modifiers.shift {
             if let Err(e) = save(
                 &PathBuf::from(DEFAULT_SAVE_FILE),
                 &StateToSave::from_state(state),
@@ -251,6 +253,15 @@ fn handle_input(state: &mut State, ctx: &Context) {
                 println!("Error saving: {e}");
             }
         }
+
+        if ip.key_pressed(Key::S) && ip.modifiers.ctrl && ip.modifiers.shift {
+            state.ui.file_dialogs.save.select_file();
+        }
+
+        if ip.key_pressed(Key::O) && ip.modifiers.ctrl {
+            state.ui.file_dialogs.load.select_file();
+        }
+
 
         state.ui.cursor_pos = ip.pointer.hover_pos().map(|pos| (pos.x, pos.y));
 

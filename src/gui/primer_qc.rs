@@ -129,10 +129,6 @@ To learn about a table column, mouse over it.");
                 return;
             }
 
-            ui.heading(&format!("Selected: {}", &state.generic.primers[sel_i].name));
-
-            ui.add_space(COL_SPACING);
-
             if ui.button(RichText::new("Up")).clicked() {
                 // todo: Arrow icons
                 if sel_i != 0 {
@@ -159,6 +155,9 @@ To learn about a table column, mouse over it.");
             {
                 state.ui.selected_item = Selection::None;
             }
+
+            ui.add_space(COL_SPACING);
+            ui.heading(&format!("Selected: {}", &state.generic.primers[sel_i].name));
         });
 
         ui.add_space(ROW_SPACING);

@@ -18,6 +18,18 @@ use std::{
 use num_enum::TryFromPrimitive;
 use quick_xml::{de::from_str, se::to_string};
 
+// We remove these from SnapGene feature qualifiers.
+const HTML_TAGS: [&str; 8] = [
+    "<html>",
+    "</html>",
+    "<body>",
+    "</body>",
+    "<i>",
+    "</i>",
+    "<b>",
+    "</b>",
+];
+
 use crate::{
     file_io::{
         get_filename,
@@ -202,7 +214,7 @@ mod feature_xml {
         pub feature_type: Option<String>,
         #[serde(rename = "@directionality", default)]
         pub directionality: Option<u8>,
-        #[serde(default)]
+        #[serde(rename = "@name", default)]
         pub name: Option<String>,
         // Other Feature attributes: allowSegmentOverlaps (0/1), consecutiveTranslationNumbering (0/1)
         #[serde(rename = "Segment", default)]
@@ -359,6 +371,12 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
                 if let Some(t) = &val.text {
                     v.clone_from(t);
                 }
+
+                // Remove the HTML tags and related that SnapGene inserts into qual values.
+                for html_tag in HTML_TAGS {
+                    v = v.replace(html_tag, "");
+                }
+
                 notes.insert(qual.name.clone(), v);
             }
         }

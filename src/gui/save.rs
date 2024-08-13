@@ -65,7 +65,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     };
     if ui
         .button(button_text)
-        .on_hover_text("Save data. (Ctrl + s)")
+        .on_hover_text("Save data. (Ctrl + S)")
         .clicked()
     {
         save_current_file(state);
@@ -84,23 +84,16 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         &state.generic.metadata.plasmid_name,
         "pcad",
         "Save as",
-        "Save data in the PlasCAD format.",
+        "Save data in the PlasCAD format. (Ctrl + Shift + S)",
         ui,
     );
 
     load_button(
         &mut state.ui.file_dialogs.load,
         "Load/Import",
-        "Load data in the PlasCAD, FASTA, GenBank, or .dna (SnapGene) formats",
+        "Load data in the PlasCAD, FASTA, GenBank, or .dna (SnapGene) formats (Ctrl + O)",
         ui,
     );
-
-    // load_button(
-    //     &mut state.ui.file_dialogs.import,
-    //     "Import",
-    //     "Import data in the FASTA, GenBank, or .dna (SnapGene) formats",
-    //     ui,
-    // );
 
     save_button(
         &mut state.ui.file_dialogs.export_fasta,
@@ -141,39 +134,8 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     let mut sync = false;
 
     if let Some(path) = state.ui.file_dialogs.load.take_selected() {
-        if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
-            match extension.to_lowercase().as_ref() {
-                "pcad" => {
-                    *state = State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
-                    sync = true;
-                }
-                // Does this work for FASTQ too?
-                "fasta" => {
-                    if let Ok((seq, id, description)) = import_fasta(&path) {
-                        state.generic.seq = seq;
-                        state.generic.metadata.plasmid_name = id;
-                        state.generic.metadata.comments = vec![description];
-                        sync = true;
-                    }
-                }
-                "dna" => {
-                    if let Ok(data) = import_snapgene(&path) {
-                        state.generic = data;
-                        sync = true;
-                    }
-                }
-                "gb" | "gbk" => {
-                    if let Ok(data) = import_genbank(&path) {
-                        state.generic = data;
-                        sync = true;
-                    }
-                }
-                _ => {
-                    eprintln!("The file to import must be in PlasCAD, FASTA, GenBank, or SnapGene format.")
-                }
-            }
-            state.path_loaded = Some(path.to_owned());
-        }
+        sync = true;
+        load_import(state, &path);
     } else if let Some(path) = state.ui.file_dialogs.save.take_selected() {
         match save(&path, &StateToSave::from_state(state)) {
             Ok(_) => {
@@ -226,6 +188,39 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         state.ui.seq_input = seq_to_str(&state.generic.seq);
 
         set_window_title(&state.path_loaded, ui);
+    }
+}
+
+/// Load from a file of various formats.
+pub fn load_import(state: &mut State, path: &Path) {
+    if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
+        match extension.to_lowercase().as_ref() {
+            "pcad" => {
+                *state = State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+            }
+            // Does this work for FASTQ too?
+            "fasta" => {
+                if let Ok((seq, id, description)) = import_fasta(&path) {
+                    state.generic.seq = seq;
+                    state.generic.metadata.plasmid_name = id;
+                    state.generic.metadata.comments = vec![description];
+                }
+            }
+            "dna" => {
+                if let Ok(data) = import_snapgene(&path) {
+                    state.generic = data;
+                }
+            }
+            "gb" | "gbk" => {
+                if let Ok(data) = import_genbank(&path) {
+                    state.generic = data;
+                }
+            }
+            _ => {
+                eprintln!("The file to import must be in PlasCAD, FASTA, GenBank, or SnapGene format.")
+            }
+        }
+        state.path_loaded = Some(path.to_owned());
     }
 }
 
