@@ -6,11 +6,11 @@ use eframe::egui::{Color32, Frame, RichText, ScrollArea, TextEdit, Ui};
 use crate::sequence::{seq_from_str, seq_to_str, Feature};
 use crate::{
     gui::{
-        SPLIT_SCREEN_MAX_HEIGHT,
-        features::feature_table,
+        feature_table::feature_table,
         navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
         primer_qc::primer_details,
         seq_view::sequence_vis,
+        SPLIT_SCREEN_MAX_HEIGHT,
     },
     Selection,
 };
@@ -112,37 +112,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         PageSeq::EditSeq => {
             seq_editor(state, ui);
         }
-        // PageSeq::EditSlic => {
-        //     cloning::seq_editor_slic(state, ui);
-        // }
         PageSeq::View => {
-            ui.horizontal(|ui| {
-                // todo: DRY with above
-
-                // todo: Impl insert loc changing A/R. Likely in a specialty cloning mode.
-                // ui.label("Insert location: ");
-                // let mut entry = state.insert_loc.to_string();
-                // if ui.button("⏴").clicked() {
-                //     if state.insert_loc > 0 {
-                //         state.insert_loc -= 1;
-                //     }
-                //     state.sync_cloning_product();
-                // };
-                //
-                // let response = ui.add(TextEdit::singleline(&mut entry).desired_width(40.));
-                // if response.changed() {
-                //     state.insert_loc = entry.parse().unwrap_or(0);
-                //     state.sync_cloning_product();
-                // }
-
-                // if ui.button("⏵").clicked() {
-                //     if state.insert_loc + 1 < state.ui.seq_vector_input.len() {
-                //         state.insert_loc += 1;
-                //     }
-                //     state.sync_cloning_product();
-                // };
-            });
-
             sequence_vis(state, ui);
         }
     }

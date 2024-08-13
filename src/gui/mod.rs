@@ -5,7 +5,10 @@ use std::{
 
 use eframe::{
     egui,
-    egui::{pos2, Color32, Context, Key, PointerButton, ScrollArea, TextEdit, Ui, ViewportCommand},
+    egui::{
+        pos2, Color32, Context, InputState, Key, PointerButton, ScrollArea, TextEdit, Ui,
+        ViewportCommand,
+    },
     emath::RectTransform,
 };
 use navigation::Page;
@@ -13,7 +16,10 @@ use url::Url;
 
 use crate::{
     file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
-    gui::primer_qc::primer_details,
+    gui::{
+        primer_qc::primer_details,
+        seq_view::{NT_WIDTH_PX, VIEW_AREA_PAD_LEFT, VIEW_AREA_PAD_RIGHT},
+    },
     sequence::{Feature, FeatureType, Nucleotide},
     util, Selection, State,
 };
@@ -21,7 +27,7 @@ use crate::{
 mod circle;
 mod cloning;
 mod feature_overlay;
-mod features;
+mod feature_table;
 mod metadata;
 pub mod navigation;
 mod pcr;
@@ -251,6 +257,80 @@ fn handle_input(state: &mut State, ctx: &Context) {
         if ip.pointer.button_clicked(PointerButton::Primary) {
             state.ui.click_pending_handle = true;
         }
+
+        // This is a bit awk; borrow errors.
+        let mut move_cursor = None;
+        // todo: How can we control the rate?
+        if let Some(i) = &mut state.ui.text_cursor_i {
+            if ip.key_pressed(Key::ArrowLeft) {
+                move_cursor = Some(-1);
+            }
+            if ip.key_pressed(Key::ArrowRight) {
+                move_cursor = Some(1);
+            }
+            if ip.key_pressed(Key::ArrowUp) {
+                // todo: DRY with seq_view
+                move_cursor = Some(-(state.ui.nt_chars_per_row as isize));
+            }
+            if ip.key_pressed(Key::ArrowDown) {
+                Some(state.ui.nt_chars_per_row);
+            }
+        }
+
+        if let Some(i) = state.ui.text_cursor_i {
+            // Add NTs.
+            if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
+                state.insert_nucleotides(&[Nucleotide::A], i);
+            }
+            if ip.key_pressed(Key::T) {
+                state.insert_nucleotides(&[Nucleotide::T], i);
+            }
+            if ip.key_pressed(Key::C) {
+                state.insert_nucleotides(&[Nucleotide::C], i);
+            }
+            if ip.key_pressed(Key::G) {
+                state.insert_nucleotides(&[Nucleotide::G], i);
+            }
+        }
+
+        if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
+            move_cursor = Some(1);
+        }
+        if ip.key_pressed(Key::T) {
+            move_cursor = Some(1);
+        }
+        if ip.key_pressed(Key::C) {
+            move_cursor = Some(1);
+        }
+        if ip.key_pressed(Key::G) {
+            move_cursor = Some(1);
+        }
+
+        if ip.key_pressed(Key::Backspace) {
+            // todo: IMpl deleting.
+            move_cursor = Some(-1);
+        }
+
+        if ip.key_pressed(Key::Delete) {
+            move_cursor = Some(-1);
+        }
+
+        if let Some(i) = &mut state.ui.text_cursor_i {
+            if let Some(amt) = move_cursor {
+                // todo: Impl limits
+                *i += amt as usize;
+            }
+
+            // if decrement_cursor {
+            //     if *i > 0 {
+            //         *i -= 1;
+            //     }
+            // } else if increment_cursor {
+            //     if *i + 1 < state.generic.seq.len() {
+            //         *i += 1;
+            //     }
+            // }
+        }
     });
 }
 
@@ -291,12 +371,12 @@ pub fn draw(state: &mut State, ctx: &Context) {
             origin_change(state, ui);
         });
 
-        ui.add_space(ROW_SPACING/2.);
+        ui.add_space(ROW_SPACING / 2.);
 
         ScrollArea::vertical().show(ui, |ui| match state.ui.page {
             Page::Sequence => sequence::seq_page(state, ui),
             Page::Map => circle::circle_page(state, ui),
-            Page::Features => features::features_page(state, ui),
+            Page::Features => feature_table::features_page(state, ui),
             Page::Primers => primer_details(state, ui),
             Page::Cloning => {
                 cloning::seq_editor_slic(state, ui);

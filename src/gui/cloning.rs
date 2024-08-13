@@ -80,23 +80,27 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
 
     // todo: Once you add this capability.
     ui.label("Clone a sequence into this one. Below, either paste the insert sequence, or select a \
-    file (GenBank, SnapGene, FASTA, or PlasCAD) containing the insert sequence. Select the insert location: \
-    This is the position in the vector (The currently open sequence) the insert will be placed after. Then click \"Make cloning primers\". This will \
+    file (GenBank, SnapGene, FASTA, or PlasCAD) containing the insert sequence. Swr the insert location: \
+    This is the position in the vector (The currently open sequence) the insert will be placed after. Then click \"Clone\". This will \
     update the sequence with the insert, and create optimized primers for both the insert and vector.");
 
-    ui.label("A new file dialog will open, prompting you to save a new file for the combined product. Your\
-    current (vector) file will be saved, and the new cloning product file will be opened.");
+    ui.add_space(ROW_SPACING);
+
+    ui.label(
+        "A file dialog will open, prompting you to save a new file for the combined product. Your \
+    current (vector) file will be saved, and the new cloning product file will be opened.",
+    );
 
     ui.add_space(ROW_SPACING);
 
     ui.horizontal(|ui| {
         ui.label("Insert location: ");
-        let mut entry = state.insert_loc.to_string();
+        let mut entry = state.cloning_insert_loc.to_string();
         if ui
             .add(TextEdit::singleline(&mut entry).desired_width(40.))
             .changed()
         {
-            state.insert_loc = entry.parse().unwrap_or(0);
+            state.cloning_insert_loc = entry.parse().unwrap_or(0);
         }
 
         ui.add_space(COL_SPACING);
@@ -184,7 +188,9 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             // product.
             save_current_file(&state);
 
-            state.sync_cloning_product();
+            // todo: Unecessary clone
+            let insert = state.ui.cloning_insert.seq_insert.clone();
+            state.insert_nucleotides(&insert, state.cloning_insert_loc);
             make_cloning_primers(state);
 
             let label = match state.ui.cloning_insert.feature_selected {
@@ -196,8 +202,8 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             // todo: Use the already existing data instead.
             state.generic.features.push(Feature {
                 index_range: (
-                    state.insert_loc + 1,
-                    state.insert_loc + 1 + state.ui.cloning_insert.seq_insert.len(),
+                    state.cloning_insert_loc + 1,
+                    state.cloning_insert_loc + 1 + state.ui.cloning_insert.seq_insert.len(),
                 ), // todo: Check off-by-one.
                 label,
                 feature_type: FeatureType::CodingRegion,

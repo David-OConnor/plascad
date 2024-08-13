@@ -80,23 +80,29 @@ pub fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
     vec
 }
 
-// todo: Abstract out/use in feature overlay
 /// Given an index range of a feature, return sequence ranges for each row the feature occupies, that
 /// contain the sequence. This, after converting to pixels, corresponds to how we draw features and primers.
+/// This is used to draw overlays over the sequence that line up with a given index range.
 pub fn get_feature_ranges(
     feature_rng: &Range<usize>,
     all_ranges: &[Range<usize>],
 ) -> Vec<Range<usize>> {
     let mut result = Vec::new();
 
-    if feature_rng.end < feature_rng.start || feature_rng.end == 0 {
-        // eprintln!("Error with feature ranges; start after end. Start: {}, end: {}", feature_rng.start, feature_rng.end);
+    if feature_rng.end <= feature_rng.start || feature_rng.end == 0 {
+        eprintln!(
+            "Error with feature ranges; start after end. Start: {}, end: {}",
+            feature_rng.start, feature_rng.end
+        );
         return result;
     }
 
     for range in all_ranges {
         if range.end < range.start || range.end == 0 {
-            // eprintln!("Error with ranges; start after end. Start: {}, end: {}", range.start, range.end);
+            eprintln!(
+                "Error with ranges; start after end. Start: {}, end: {}",
+                range.start, range.end
+            );
             return result;
         }
 
@@ -104,10 +110,10 @@ pub fn get_feature_ranges(
             // Contains start only, or start and end.
             let end = min(range.end, feature_rng.end);
 
-            result.push(feature_rng.start..end - 1); // todo experimenting.
+            result.push(feature_rng.start..end - 1);
         } else if range.contains(&feature_rng.end) {
             // Contains end only.
-            result.push(range.start..feature_rng.end); // todo experimenting.
+            result.push(range.start..feature_rng.end);
         } else if feature_rng.start < range.start && feature_rng.end > range.end {
             // Include this entire row
             result.push(range.start..range.end - 1);
@@ -119,10 +125,6 @@ pub fn get_feature_ranges(
 }
 
 pub fn color_from_hex(hex: &str) -> Result<Color, ParseIntError> {
-    // if hex.len() != 6 {
-    //     return Err(std::num::ParseIntError::new()); // This line won't actually compile since there's no ParseIntError::new(), we'll handle the length check below.
-    // }
-
     let hex = &hex[1..]; // Remove the leading #
 
     let r = u8::from_str_radix(&hex[0..2], 16)?;

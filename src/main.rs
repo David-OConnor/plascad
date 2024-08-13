@@ -9,6 +9,8 @@
 
 // todo: Break out Generic into its own mod?
 
+// Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
+
 use std::{
     io,
     path::{Path, PathBuf},
@@ -37,8 +39,8 @@ use crate::{
     primer::TM_TARGET,
     restriction_enzyme::{load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, ReadingFrame,
-        ReadingFrameMatch,
+        find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide,
+        ReadingFrame, ReadingFrameMatch,
     },
 };
 
@@ -284,7 +286,7 @@ struct StateUi {
     seq_input: String,
     pcr: PcrUi,
     feature_add: StateFeatureAdd,
-    primer_selected: Option<usize>, // primer page only.
+    // primer_selected: Option<usize>, // primer page only.
     feature_hover: Option<usize>,
     selected_item: Selection,
     seq_visibility: SeqVisibility,
@@ -304,6 +306,8 @@ struct StateUi {
     /// from cursor positions may be decoupled, and depends on the view.
     click_pending_handle: bool,
     cloning_insert: CloningInsertData,
+    /// Volatile; computed dynamically based on window size.
+    nt_chars_per_row: usize,
 }
 
 impl Default for StateUi {
@@ -315,7 +319,7 @@ impl Default for StateUi {
             seq_input: Default::default(),
             pcr: Default::default(),
             feature_add: Default::default(),
-            primer_selected: None,
+            // primer_selected: None,
             feature_hover: Default::default(),
             selected_item: Selection::None,
             seq_visibility: Default::default(),
@@ -328,6 +332,7 @@ impl Default for StateUi {
             text_cursor_i: None,
             click_pending_handle: false,
             cloning_insert: Default::default(),
+            nt_chars_per_row: 0,
         }
     }
 }
@@ -359,7 +364,7 @@ struct State {
     ui: StateUi,
     /// Data that is the most fundamental to persistent state, and shared between save formats.
     generic: GenericData,
-    insert_loc: usize,
+    cloning_insert_loc: usize,
     ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
@@ -443,38 +448,38 @@ impl State {
         }
     }
 
-    /// Upddate this sequence by inserting a sequence of interest; the new sequence is the cloning product.
-    pub fn sync_cloning_product(&mut self) {
+    /// Upddate this sequence by inserting a sequence of interest.
+    /// todo: Is the insert_loc in 0 or 1-based indexing?
+    pub fn insert_nucleotides(&mut self, insert: &[Nucleotide], insert_loc: usize) {
         let seq_vector = &mut self.generic.seq;
-        let seq_insert = &self.ui.cloning_insert.seq_insert;
 
-        if self.insert_loc + 1 > seq_vector.len() {
+        if insert_loc + 1 > seq_vector.len() {
             eprintln!(
                 "Error creating cloning insert: insert loc {} is greater than vector len {}",
-                self.insert_loc,
+                insert_loc,
                 seq_vector.len()
             );
             return;
         }
 
         // self.generic.seq.clone_from(&seq_vector);
-        seq_vector.splice(self.insert_loc..self.insert_loc, seq_insert.iter().cloned());
+        seq_vector.splice(insert_loc..insert_loc, insert.iter().cloned());
 
         // todo: YOu may run into off-by-one issues on insert loc here; adjust A/R.
         // Now, you have to update features affected by this insertion, shifting them right A/R.
         for feature in &mut self.generic.features {
             // Handle the case where the insert occurs over a feature. Do this before shifting features.
-            if feature.index_range.0 < self.insert_loc && feature.index_range.1 > self.insert_loc {
+            if feature.index_range.0 < insert_loc && feature.index_range.1 > insert_loc {
                 // todo: Divide into two features? For now, we are just trimming.
-                feature.index_range.1 = self.insert_loc - 1;
+                feature.index_range.1 = insert_loc - 1;
             }
 
-            if feature.index_range.0 > self.insert_loc {
-                feature.index_range.0 += seq_insert.len();
+            if feature.index_range.0 > insert_loc {
+                feature.index_range.0 += insert.len();
             }
 
-            if feature.index_range.1 > self.insert_loc {
-                feature.index_range.1 += seq_insert.len();
+            if feature.index_range.1 > insert_loc {
+                feature.index_range.1 += insert.len();
             }
         }
 

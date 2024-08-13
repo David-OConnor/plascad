@@ -13,9 +13,9 @@ use eframe::{
 
 use crate::{
     gui::{
+        feature_from_index, feature_table::feature_table, get_cursor_text,
+        navigation::NAV_BUTTON_COLOR, select_feature, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
         SPLIT_SCREEN_MAX_HEIGHT,
-        feature_from_index, features::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
-        select_feature, seq_view::COLOR_RE, COL_SPACING, ROW_SPACING,
     },
     primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
@@ -461,12 +461,18 @@ fn draw_features(
             )
         };
 
+        let label = if feature.label.is_empty() {
+            &feature.feature_type.to_string()
+        } else {
+            &feature.label
+        };
+
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
                 fonts,
                 data.to_screen * label_pt,
                 label_align,
-                &feature.label,
+                label,
                 FontId::new(16., FontFamily::Proportional),
                 stroke.color,
             )
@@ -612,7 +618,7 @@ fn top_details(state: &mut State, ui: &mut Ui) {
     if let Selection::Feature(feat_i) = &mut state.ui.selected_item {
         ui.spacing_mut().slider_width = FEATURE_SLIDER_WIDTH;
 
-        if state.generic.features.len() + 1 < *feat_i {
+        if state.generic.features.len() < *feat_i + 1 {
             eprintln!("Invalid selected feature");
             state.ui.selected_item = Selection::None;
         } else {
@@ -941,9 +947,6 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             state.ui.cursor_seq_i = find_cursor_i(state.ui.cursor_pos, &data);
 
             if prev_cursor_i != state.ui.cursor_seq_i {
-                state.ui.feature_hover = None;
-                // todo: Consider cacheing this, instead of running each renderx.
-                // todo: You may not need the state.ui hover_feature i: You can probably use a local ref here.
                 state.ui.feature_hover =
                     feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
             }

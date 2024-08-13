@@ -5,7 +5,7 @@ use eframe::egui::{
 };
 
 use crate::{
-    gui::{int_field, ROW_SPACING},
+    gui::{int_field, COL_SPACING, ROW_SPACING},
     sequence::{
         Feature,
         FeatureDirection::{self, Forward, Reverse},
@@ -131,6 +131,27 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
                     ui.label("Color:");
                     color_picker(&mut feature.color_override, 3 + i, ui);
 
+                    // todo: This section repetative with primers.
+                    let mut selected = false;
+                    if let Selection::Feature(sel_i) = state.ui.selected_item {
+                        if sel_i == i {
+                            selected = true;
+                        }
+                    }
+
+                    if selected {
+                        if ui
+                            .button(RichText::new("🔘").color(Color32::GREEN))
+                            .clicked()
+                        {
+                            state.ui.selected_item = Selection::None;
+                        }
+                    } else if ui.button("🔘").clicked() {
+                        state.ui.selected_item = Selection::Feature(i);
+                    }
+
+                    ui.add_space(COL_SPACING); // Less likely to accidentally delete.
+
                     if ui
                         .button(RichText::new("Delete 🗑").color(Color32::RED))
                         .clicked()
@@ -162,21 +183,21 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
 
 pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        ui.heading("Add feature: ");
-
-        int_field(&mut state.ui.feature_add.start_posit, "Start:", ui);
-        int_field(&mut state.ui.feature_add.end_posit, "End:", ui);
-
-        ui.label("Label:");
-        ui.add(
-            TextEdit::singleline(&mut state.ui.feature_add.label).desired_width(LABEL_EDIT_WIDTH),
-        );
-
-        ui.label("Type:");
-        feature_type_picker(&mut state.ui.feature_add.feature_type, 200, ui);
-
-        ui.label("Color:");
-        color_picker(&mut state.ui.feature_add.color, 2, ui);
+        // ui.heading("Add feature: ");
+        //
+        // int_field(&mut state.ui.feature_add.start_posit, "Start:", ui);
+        // int_field(&mut state.ui.feature_add.end_posit, "End:", ui);
+        //
+        // ui.label("Label:");
+        // ui.add(
+        //     TextEdit::singleline(&mut state.ui.feature_add.label).desired_width(LABEL_EDIT_WIDTH),
+        // );
+        //
+        // ui.label("Type:");
+        // feature_type_picker(&mut state.ui.feature_add.feature_type, 200, ui);
+        //
+        // ui.label("Color:");
+        // color_picker(&mut state.ui.feature_add.color, 2, ui);
 
         if ui.button("➕ Add").clicked() {
             if state.ui.feature_add.start_posit == 0 {

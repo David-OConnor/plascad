@@ -111,7 +111,7 @@ impl StateToSave {
     pub fn from_state(state: &State) -> Self {
         Self {
             generic: state.generic.clone(),
-            insert_loc: state.insert_loc,
+            insert_loc: state.cloning_insert_loc,
             ion_concentrations: state.ion_concentrations.clone(),
             reading_frame: state.reading_frame.clone(),
         }
@@ -121,7 +121,7 @@ impl StateToSave {
     pub fn to_state(self) -> State {
         State {
             generic: self.generic,
-            insert_loc: self.insert_loc,
+            cloning_insert_loc: self.insert_loc,
             ion_concentrations: self.ion_concentrations,
             reading_frame: self.reading_frame,
             ..Default::default()

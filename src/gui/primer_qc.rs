@@ -7,7 +7,7 @@ use crate::{
     gui::{COL_SPACING, ROW_SPACING},
     primer::{make_amplification_primers, IonConcentrations, Primer, TuneSetting},
     sequence::{seq_from_str, seq_to_str},
-    State,
+    Selection, State,
 };
 
 const TABLE_ROW_HEIGHT: f32 = 60.;
@@ -116,15 +116,15 @@ To learn about a table column, mouse over it.");
 
     ui.add_space(ROW_SPACING);
 
-    if let Some(sel_i) = state.ui.primer_selected {
+    if let Selection::Primer(sel_i) = state.ui.selected_item {
         ui.horizontal(|ui| {
             if sel_i + 1 > state.generic.primers.len() {
                 // This currently happens if deleting the bottom-most primer.
                 // If so, select the primer above it.
-                state.ui.primer_selected = if !state.generic.primers.is_empty() {
-                    Some(state.generic.primers.len() - 1)
+                state.ui.selected_item = if !state.generic.primers.is_empty() {
+                    Selection::Primer(state.generic.primers.len() - 1)
                 } else {
-                    None
+                    Selection::None
                 };
                 return;
             }
@@ -137,13 +137,13 @@ To learn about a table column, mouse over it.");
                 // todo: Arrow icons
                 if sel_i != 0 {
                     state.generic.primers.swap(sel_i, sel_i - 1);
-                    state.ui.primer_selected = Some(sel_i - 1);
+                    state.ui.selected_item = Selection::Primer(sel_i - 1);
                 }
             }
             if ui.button(RichText::new("Dn")).clicked() && sel_i != state.generic.primers.len() - 1
             {
                 state.generic.primers.swap(sel_i, sel_i + 1);
-                state.ui.primer_selected = Some(sel_i + 1);
+                state.ui.selected_item = Selection::Primer(sel_i + 1);
             }
 
             if ui
@@ -157,7 +157,7 @@ To learn about a table column, mouse over it.");
                 .button(RichText::new("Deselect").color(Color32::GOLD))
                 .clicked()
             {
-                state.ui.primer_selected = None;
+                state.ui.selected_item = Selection::None;
             }
         });
 
@@ -359,19 +359,18 @@ To learn about a table column, mouse over it.");
 
                     row.col(|ui| {
                         let mut selected = false;
-
-                        if let Some(sel_i) = state.ui.primer_selected {
+                        if let Selection::Primer(sel_i) = state.ui.selected_item {
                             if sel_i == i {
-                                selected = true
+                                selected = true;
                             }
                         }
 
                         if selected {
                             if ui.button(RichText::new("🔘").color(Color32::GREEN)).clicked() {
-                                state.ui.primer_selected = None;
+                                state.ui.selected_item = Selection::None;
                             }
                         } else if ui.button("🔘").clicked() {
-                            state.ui.primer_selected = Some(i);
+                            state.ui.selected_item = Selection::Primer(i);
                         }
                     });
                 });
@@ -417,8 +416,6 @@ fn primer_tune_display(
                 }
                 tuned = true;
             };
-
-            // ui.label(&format!("({i})"));
         }
 
         // This section shows the trimmed sequence, with the removed parts visible to the left and right.
@@ -454,13 +451,11 @@ fn primer_tune_display(
                         _ => 0,
                     };
 
-                    // todo: We still have a crash her.e
                     if *i + 1 < primer.volatile.sequence_input.len() - t5p_len {
                         *i += 1;
                     }
                     tuned = true;
                 };
-                // ui.label(&format!("({i})"));
             }
         });
 

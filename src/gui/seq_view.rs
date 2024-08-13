@@ -2,10 +2,11 @@
 
 use std::ops::Range;
 
+use bio::bio_types::annot::pos::Pos;
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
-        Shape, Ui,
+        Shape, Stroke, Ui,
     },
     emath::RectTransform,
     epaint::PathStroke,
@@ -26,19 +27,37 @@ pub const FONT_SIZE_SEQ: f32 = 14.;
 pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
 pub const COLOR_CODING_REGION: Color32 = Color32::from_rgb(255, 0, 170);
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
+pub const COLOR_CURSOR: Color32 = Color32::from_rgb(255, 255, 0);
 
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
 pub const VIEW_AREA_PAD_LEFT: f32 = 60.; // Bigger to accomodate the index display.
 pub const VIEW_AREA_PAD_RIGHT: f32 = 20.;
-pub const SEQ_ROW_SPACING_PX: f32 = 34.;
+// pub const SEQ_ROW_SPACING_PX: f32 = 34.;
+pub const SEQ_ROW_SPACING_PX: f32 = 40.;
 
 pub const TEXT_X_START: f32 = VIEW_AREA_PAD_LEFT;
 pub const TEXT_Y_START: f32 = TEXT_X_START;
 const MAX_SEQ_AREA_HEIGHT: u16 = 300;
 
-fn re_sites(state: &State, ui: &mut Ui, seq_i_to_px_rel: impl Fn(usize) -> Pos2) -> Vec<Shape> {
+/// These aguments define the circle, and are used in many places in this module.
+pub struct SeqViewData {
+    pub seq_len: usize,
+    pub row_ranges: Vec<Range<usize>>,
+    pub to_screen: RectTransform,
+    pub from_screen: RectTransform,
+    // /// This is `from_screen * center`. We store it here to cache.
+    // pub center_rel: Pos2,
+}
+
+impl SeqViewData {
+    pub fn seq_i_to_px_rel(&self, i: usize) -> Pos2 {
+        self.to_screen * seq_i_to_pixel(i, &self.row_ranges)
+    }
+}
+
+fn re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
     for (i_match, re_match) in state.volatile.restriction_enzyme_sites.iter().enumerate() {
@@ -47,7 +66,7 @@ fn re_sites(state: &State, ui: &mut Ui, seq_i_to_px_rel: impl Fn(usize) -> Pos2)
         }
         let re = &state.restriction_enzyme_lib[re_match.lib_index];
         let cut_i = re_match.seq_index + 1; // to display in the right place.
-        let cut_pos = seq_i_to_px_rel(cut_i + re.cut_after as usize);
+        let cut_pos = data.seq_i_to_px_rel(cut_i + re.cut_after as usize);
 
         let bottom = pos2(cut_pos.x, cut_pos.y + 20.);
 
@@ -121,14 +140,10 @@ pub fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
 }
 
 /// Draw each row's start sequence range to its left.
-fn draw_seq_indexes(
-    row_ranges: &[Range<usize>],
-    seq_i_to_px_rel: impl Fn(usize) -> Pos2,
-    ui: &mut Ui,
-) -> Vec<Shape> {
+fn draw_seq_indexes(data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
-    for range in row_ranges {
-        let mut pos = seq_i_to_px_rel(range.start);
+    for range in &data.row_ranges {
+        let mut pos = data.seq_i_to_px_rel(range.start);
         pos.x -= VIEW_AREA_PAD_LEFT;
 
         // 1-based indexing.
@@ -170,18 +185,14 @@ fn orf_selector(state: &mut State, ui: &mut Ui) {
 }
 
 /// Find the sequence index under the cursor, if it is over the sequence.
-fn find_cursor_i(
-    cursor_pos: Option<(f32, f32)>,
-    from_screen: &RectTransform,
-    row_ranges: &[Range<usize>],
-) -> Option<usize> {
+fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &SeqViewData) -> Option<usize> {
     match cursor_pos {
         Some(p) => {
             // We've had issues where cursor above the seq would be treated as first row.
-            let pos_relative = from_screen * pos2(p.0, p.1);
+            let pos_relative = data.from_screen * pos2(p.0, p.1);
 
             if pos_relative.x > 0. && pos_relative.y > 0. {
-                pixel_to_seq_i(pos_relative, row_ranges)
+                pixel_to_seq_i(pos_relative, &data.row_ranges)
             } else {
                 None
             }
@@ -190,15 +201,71 @@ fn find_cursor_i(
     }
 }
 
+/// Draw the DNA sequence nucleotide by nucleotide. This allows fine control over color, and other things.
+fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
+    let mut result = Vec::new();
+
+    for (i, nt) in state.generic.seq.iter().enumerate() {
+        let pos = data.seq_i_to_px_rel(i);
+
+        let letter_color = {
+            let mut r = COLOR_SEQ;
+
+            if state.ui.seq_visibility.show_reading_frame {
+                for rf in &state.volatile.reading_frame_matches {
+                    let (start, end) = rf.range;
+                    let i_ = i + 1; // 1-based indexing
+                    if start <= i_ && i_ <= end {
+                        r = COLOR_CODING_REGION;
+                    }
+                }
+            }
+            r
+        };
+
+        result.push(ui.ctx().fonts(|fonts| {
+            Shape::text(
+                fonts,
+                pos,
+                Align2::LEFT_TOP,
+                nt.as_str(),
+                // Note: Monospace is important for sequences.
+                FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
+                letter_color,
+            )
+        }));
+    }
+
+    result
+}
+
+fn draw_text_cursor(cursor_i: Option<usize>, data: &SeqViewData) -> Vec<Shape> {
+    let mut result = Vec::new();
+
+    if let Some(i) = cursor_i {
+        let mut top = data.seq_i_to_px_rel(i);
+        top.y -= 3.;
+        let bottom = pos2(top.x, top.y + 23.);
+
+        result.push(Shape::line_segment(
+            [top, bottom],
+            Stroke::new(2., COLOR_CURSOR),
+        ));
+    }
+
+    result
+}
+
 /// Draw the sequence with primers, insertion points, and other data visible, A/R
 pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     let mut shapes = vec![];
 
     let seq_len = state.generic.seq.len();
 
-    let nt_chars_per_row = ((ui.available_width() - (VIEW_AREA_PAD_LEFT + VIEW_AREA_PAD_RIGHT))
+    state.ui.nt_chars_per_row = ((ui.available_width()
+        - (VIEW_AREA_PAD_LEFT + VIEW_AREA_PAD_RIGHT))
         / NT_WIDTH_PX) as usize;
-    let row_ranges = get_row_ranges(seq_len, nt_chars_per_row);
+    let row_ranges = get_row_ranges(seq_len, state.ui.nt_chars_per_row);
 
     let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, seq_len);
     ui.horizontal(|ui| {
@@ -211,6 +278,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
         ui.label("Cursor:");
         ui.heading(cursor_posit_text);
     });
+
     ScrollArea::vertical().id_source(0).show(ui, |ui| {
         Frame::canvas(ui.style())
             .fill(BACKGROUND_COLOR)
@@ -218,7 +286,6 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 let (response, _painter) = {
                     // Estimate required height, based on seq len.
                     let total_seq_height = row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.;
-                    // leto height = min(total_seq_height as u16, MAX_SEQ_AREA_HEIGHT);
 
                     let height = total_seq_height;
 
@@ -233,84 +300,52 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
                 let from_screen = to_screen.inverse();
 
+                let data = SeqViewData {
+                    seq_len,
+                    row_ranges,
+                    to_screen,
+                    from_screen,
+                };
+
                 let prev_cursor_i = state.ui.cursor_seq_i;
-                state.ui.cursor_seq_i =
-                    find_cursor_i(state.ui.cursor_pos, &from_screen, &row_ranges);
+                state.ui.cursor_seq_i = find_cursor_i(state.ui.cursor_pos, &data);
 
                 if prev_cursor_i != state.ui.cursor_seq_i {
-                    state.ui.feature_hover = None;
-                    // todo: Consider cacheing this, instead of running each renderx.
-                    // todo: You may not need the state.ui hover_feature i: You can probably use a local ref here.
                     state.ui.feature_hover =
                         feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
                 }
 
-                select_feature(state, &from_screen);
+                // Removed: We select cursor position instead now.
+                // select_feature(state, &from_screen);
 
-                state.ui.cursor_seq_i =
-                    find_cursor_i(state.ui.cursor_pos, &from_screen, &row_ranges);
-
-                let seq_i_to_px_rel = |i| to_screen * seq_i_to_pixel(i, &row_ranges);
-
-                shapes.extend(draw_seq_indexes(&row_ranges, seq_i_to_px_rel, ui));
-
-                let ctx = ui.ctx();
-
-                // Draw the sequence NT by NT. This allows fine control over color, and other things.
-                for (i, nt) in state.generic.seq.iter().enumerate() {
-                    let pos = seq_i_to_px_rel(i);
-
-                    let letter_color = {
-                        let mut r = COLOR_SEQ;
-
-                        if state.ui.seq_visibility.show_reading_frame {
-                            for rf in &state.volatile.reading_frame_matches {
-                                let (start, end) = rf.range;
-                                let i_ = i + 1; // 1-based indexing
-                                if start <= i_ && i_ <= end {
-                                    r = COLOR_CODING_REGION;
-                                }
-                            }
-                        }
-
-                        r
-                    };
-
-                    shapes.push(ctx.fonts(|fonts| {
-                        Shape::text(
-                            fonts,
-                            pos,
-                            Align2::LEFT_TOP,
-                            nt.as_str(),
-                            // Note: Monospace is important for sequences.
-                            FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
-                            letter_color,
-                        )
-                    }));
+                // todo: Move this into a function A/R.
+                if state.ui.click_pending_handle {
+                    state.ui.text_cursor_i = state.ui.cursor_seq_i;
+                    println!("TExt cursor  set: {:?}", state.ui.text_cursor_i);
+                    state.ui.click_pending_handle = false;
                 }
+
+                shapes.extend(draw_seq_indexes(&data, ui));
+
+                shapes.append(&mut draw_nts(state, &data, ui));
 
                 if state.ui.seq_visibility.show_primers {
                     shapes.append(&mut primer_arrow::draw_primers(
                         &state.generic.primers,
-                        &row_ranges,
-                        seq_len,
+                        &data,
                         ui,
-                        seq_i_to_px_rel,
                     ));
-                }
-
-                if state.ui.seq_visibility.show_res {
-                    shapes.append(&mut re_sites(state, ui, seq_i_to_px_rel));
                 }
 
                 if state.ui.seq_visibility.show_features {
-                    shapes.append(&mut draw_features(
-                        &state.generic.features,
-                        &row_ranges,
-                        ui,
-                        seq_i_to_px_rel,
-                    ));
+                    shapes.append(&mut draw_features(&state.generic.features, &data, ui));
                 }
+
+                if state.ui.seq_visibility.show_res {
+                    shapes.append(&mut re_sites(state, &data, ui));
+                }
+
+                shapes.append(&mut draw_text_cursor(state.ui.text_cursor_i, &data));
 
                 ui.painter().extend(shapes);
             });

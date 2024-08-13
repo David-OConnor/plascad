@@ -12,7 +12,7 @@ use eframe::{
 use crate::{
     gui::{
         primer_arrow::{HEIGHT, LABEL_OFFSET, SLANT, STROKE_WIDTH},
-        seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX},
+        seq_view::{SeqViewData, NT_WIDTH_PX, SEQ_ROW_SPACING_PX},
     },
     sequence::{
         Feature, FeatureDirection,
@@ -23,17 +23,11 @@ use crate::{
     Color,
 };
 
-const VERTICAL_OFFSET_FEATURE: f32 = 14.; // Number of pixels above the sequence text.
+const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?
 
-pub fn draw_features(
-    features: &[Feature],
-    row_ranges: &[Range<usize>],
-    ui: &mut Ui,
-    seq_i_to_px_rel: impl Fn(usize) -> Pos2,
-) -> Vec<Shape> {
+pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut shapes = Vec::new();
 
-    // todo: Do not run these calcs each time. Cache.
     for feature in features {
         // Source features generally take up the whole plasmid length.
         // Alternative: Filter by features that take up the whole length.
@@ -42,35 +36,44 @@ pub fn draw_features(
         }
 
         if feature.index_range.0 < 1 {
+            eprintln!("Invalid sequence index");
             continue; // 0 is invalid, in 1-based indexing, and will underflow.
         }
 
+        // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
+        // todo in this way.
         // The -1 assymetry is because these ranges are inclusive.
         let feature_ranges = get_feature_ranges(
             &(feature.index_range.0 - 1..feature.index_range.1),
-            row_ranges,
+            &data.row_ranges,
         );
 
         let feature_ranges_px: Vec<(Pos2, Pos2)> = feature_ranges
             .iter()
-            .map(|r| (seq_i_to_px_rel(r.start), seq_i_to_px_rel(r.end)))
+            .map(|r| (data.seq_i_to_px_rel(r.start), data.seq_i_to_px_rel(r.end)))
             .collect();
 
-        // todo: PUt back; temp check on compiling.
+        let label = if feature.label.is_empty() {
+            &feature.feature_type.to_string()
+        } else {
+            &feature.label
+        };
+
         shapes.append(&mut feature_seq_overlay(
             &feature_ranges_px,
             feature.feature_type,
             feature.color(),
             VERTICAL_OFFSET_FEATURE,
             feature.direction,
-            &feature.label,
+            label,
             ui,
         ));
     }
     shapes
 }
 
-/// Make a visual indicator on the sequence view for a feature, including primers. For use inside a Frame::canvas.
+/// Make a visual indicator on the sequence view for a feature, including primers.
+/// For use inside a Frame::canvas.
 pub fn feature_seq_overlay(
     feature_ranges_px: &[(Pos2, Pos2)],
     feature_type: FeatureType,
@@ -103,6 +106,9 @@ pub fn feature_seq_overlay(
 
     let mut result = Vec::new();
 
+    // Depends on font size.
+    let rev_primer_offset = -1.;
+
     for (i, (mut start, mut end)) in feature_ranges_px.iter().enumerate() {
         // Display the overlay centered around the NT letters, vice above, for non-primer features.
         if feature_type != FeatureType::Primer {
@@ -117,10 +123,10 @@ pub fn feature_seq_overlay(
 
         // Display reverse primers below the sequence; this vertically mirrors.
         if feature_type == FeatureType::Primer && direction == Reverse {
-            top_left.y += 3. * HEIGHT - 2.;
-            top_right.y += 3. * HEIGHT - 2.;
-            bottom_left.y += HEIGHT - 2.;
-            bottom_right.y += HEIGHT - 2.;
+            top_left.y += 3. * HEIGHT - rev_primer_offset;
+            top_right.y += 3. * HEIGHT - rev_primer_offset;
+            bottom_left.y += HEIGHT - rev_primer_offset;
+            bottom_right.y += HEIGHT - rev_primer_offset;
         }
 
         // Add a slant, if applicable.
@@ -151,7 +157,7 @@ pub fn feature_seq_overlay(
         FeatureDirection::None => feature_ranges_px[0].0.x,
     } + LABEL_OFFSET;
 
-    let label_pos = match direction {
+    let mut label_pos = match direction {
         Forward => pos2(label_start_x, feature_ranges_px[0].0.y + LABEL_OFFSET),
         Reverse => pos2(
             label_start_x,
@@ -161,6 +167,7 @@ pub fn feature_seq_overlay(
     };
 
     let label_align = if feature_type == FeatureType::Primer && direction == Reverse {
+        label_pos.y += 6.;
         Align2::RIGHT_CENTER
     } else {
         Align2::LEFT_CENTER
@@ -172,7 +179,7 @@ pub fn feature_seq_overlay(
             label_pos,
             label_align,
             label,
-            FontId::new(16., FontFamily::Proportional),
+            FontId::new(13., FontFamily::Proportional),
             color_label,
         )
     });

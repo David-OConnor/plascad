@@ -28,12 +28,12 @@ eframe = "^0.28.1"
 egui_extras = "^0.28.1"  # For tables.
 egui-file-dialog = "^0.6.0" #  For file dialogs.
 
-serde = { version = "^1.0.204", features = ["derive"] }
+serde = { version = "^1.0.206", features = ["derive"] }
 num_enum = "0.7.3"  # reversing a u8-repr.
 
 # For FASTA read and write. Note: We can ditch this for a custom parser; FASTA is easy.
 # Note, 2024-08-09: Removing this appears to have minimal impact on binary size.
-bio = "^2.0.0"
+bio = "^2.0.1"
 quick-xml = {version = "0.36.1", features = ["serialize"]}   # For Snapgene feature parsing and writing.
 # We use bincode for saving and loading to files using our custom format.
 bincode = "^2.0.0-rc.3"
@@ -47,3 +47,14 @@ url = "^2.5.2"
 [build-dependencies]
 # These are for embedding an application icon, on Windows.
 winresource = "^0.1.17"
+
+# todo: Experimenting to get executable file size down.
+# https://doc.rust-lang.org/cargo/reference/profiles.html
+[profile.release]
+strip = true  # Strip symbols from binary. Very little improvement in size.
+# Optimize for size. May make it tough to use with a debugger. Possibly could make it slower(?); the docs imply
+# experimenting is required.
+# opt-level = 'z'  # Optimize for binary size; gives about 60% of the original size.
+# opt-level = 's'  # Optimize for binary size; gives about 60% of the original size.
+#codegen-units = 1  # Small decrease in binary size; longer compile time.
+lto = true  # Can produce better optimized code, at the cost of longer linking time. Very little size improvement.
