@@ -280,6 +280,16 @@ impl Feature {
     pub fn len(&self) -> usize {
         self.index_range.1 - self.index_range.0 + 1 // +1 since it's inclusive.
     }
+    
+    /// Formats the indexes, and size of this feature.
+    pub fn location_descrip(&self) -> String {
+        format!(
+            "{}..{}  {} bp",
+            self.index_range.0,
+            self.index_range.1,
+            self.len()
+        )
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]

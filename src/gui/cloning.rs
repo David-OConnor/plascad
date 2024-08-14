@@ -22,6 +22,7 @@ use crate::{
     sequence::{seq_from_str, seq_to_str, Feature, FeatureType},
     CloningInsertData, Selection, State,
 };
+use crate::sequence::FeatureDirection;
 
 /// Draw a selector for the insert, based on loading from a file.
 fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
@@ -62,14 +63,11 @@ fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
                     );
                     ui.add_space(COL_SPACING);
 
-                    ui.label(format!(
-                        "{}..{}",
-                        feature.index_range.0, feature.index_range.1
-                    ));
+                    ui.label(feature.location_descrip());
                     ui.add_space(COL_SPACING);
 
                     // +1 because it's inclusive.
-                    ui.label(format!("{} bp", feature.len()));
+                    ui.label(feature.location_descrip());
                 });
             });
     }
@@ -80,7 +78,7 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
 
     // todo: Once you add this capability.
     ui.label("Clone a sequence into this one. Below, either paste the insert sequence, or select a \
-    file (GenBank, SnapGene, FASTA, or PlasCAD) containing the insert sequence. Swr the insert location: \
+    file (GenBank, SnapGene, FASTA, or PlasCAD) containing the insert sequence. Ser the insert location: \
     This is the position in the vector (The currently open sequence) the insert will be placed after. Then click \"Clone\". This will \
     update the sequence with the insert, and create optimized primers for both the insert and vector.");
 
@@ -203,10 +201,11 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             state.generic.features.push(Feature {
                 index_range: (
                     state.cloning_insert_loc + 1,
-                    state.cloning_insert_loc + 1 + state.ui.cloning_insert.seq_insert.len(),
-                ), // todo: Check off-by-one.
+                    state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len(),
+                ),
                 label,
                 feature_type: FeatureType::CodingRegion,
+                direction: FeatureDirection::Forward,
                 ..Default::default()
             });
 

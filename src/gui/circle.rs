@@ -755,12 +755,7 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
 
     let labels = vec![
         feature.label.clone(),
-        format!(
-            "{}..{}  {}bp",
-            feature.index_range.0,
-            feature.index_range.1,
-            feature.len()
-        ),
+        feature.location_descrip(),
         feature.feature_type.to_string(),
     ];
 

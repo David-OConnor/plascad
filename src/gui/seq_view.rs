@@ -25,11 +25,11 @@ use crate::{
 pub const FONT_SIZE_SEQ: f32 = 14.;
 pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
 // (0xAD, 0xD8, 0xE6)
-pub const COLOR_SEQ_DIMMED: Color32 = Color32::from_rgb(150, 170, 175); // Eg dim when there are search results
+pub const COLOR_SEQ_DIMMED: Color32 = Color32::from_rgb(140, 160, 165); // Eg dim when there are search results
 pub const COLOR_CODING_REGION: Color32 = Color32::from_rgb(255, 0, 170);
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 pub const COLOR_CURSOR: Color32 = Color32::from_rgb(255, 255, 0);
-pub const COLOR_SEARCH_RESULTS: Color32 = Color32::from_rgb(255, 255, 100);
+pub const COLOR_SEARCH_RESULTS: Color32 = Color32::from_rgb(255, 255, 130);
 
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 

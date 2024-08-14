@@ -46,10 +46,7 @@ fn feature_text(feature: &Option<usize>, features: &[Feature], ui: &mut Ui) {
             let feature = &features[*i];
 
             ui.label(&feature.label); // todo: IDeally heading here, but it is currnetly causing display jumping.
-            ui.label(format!(
-                "{}..{}",
-                feature.index_range.0, feature.index_range.1
-            ));
+            ui.label(feature.location_descrip());
             let (r, g, b) = feature.color();
             ui.label(
                 RichText::new(feature.feature_type.to_string()).color(Color32::from_rgb(r, g, b)),

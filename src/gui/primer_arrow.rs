@@ -15,6 +15,7 @@ pub const VERTICAL_OFFSET_PRIMER: f32 = 18.; // A fudge factor?
 pub const LABEL_OFFSET: f32 = 7.;
 pub const HEIGHT: f32 = 16.;
 pub const SLANT: f32 = 12.; // slant different, in pixels, for the arrow.
+pub const SLANT_DIV2: f32 = SLANT / 2.;
 
 /// Add primer arrows to the display.
 pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {

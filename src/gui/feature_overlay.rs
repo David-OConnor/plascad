@@ -11,7 +11,7 @@ use eframe::{
 
 use crate::{
     gui::{
-        primer_arrow::{HEIGHT, LABEL_OFFSET, SLANT, STROKE_WIDTH},
+        primer_arrow::{HEIGHT, LABEL_OFFSET, SLANT_DIV2, STROKE_WIDTH},
         seq_view::{SeqViewData, NT_WIDTH_PX, SEQ_ROW_SPACING_PX},
     },
     sequence::{
@@ -42,9 +42,8 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
 
         // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
         // todo in this way.
-        // The -1 assymetry is because these ranges are inclusive.
         let feature_ranges = get_feature_ranges(
-            &(feature.index_range.0 - 1..feature.index_range.1),
+            &(feature.index_range.0 - 1..feature.index_range.1 - 1),
             &data.row_ranges,
         );
 
@@ -133,12 +132,14 @@ pub fn feature_seq_overlay(
         match direction {
             Forward => {
                 if i + 1 == feature_ranges_px.len() {
-                    top_right.x -= SLANT;
+                    top_right.x -= SLANT_DIV2;
+                    bottom_right.x += SLANT_DIV2;
                 }
             }
             Reverse => {
                 if i == 0 {
-                    top_left.x += SLANT;
+                    top_left.x += SLANT_DIV2;
+                    bottom_left.x -= SLANT_DIV2;
                 }
             }
             _ => (),
