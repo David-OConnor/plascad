@@ -1,6 +1,5 @@
 //! GUI code for the features editor and related.
 
-use eframe::egui;
 use eframe::egui::{
     Color32, ComboBox, Frame, Painter, RichText, Sense, Stroke, TextEdit, Ui, Vec2,
 };
@@ -45,11 +44,10 @@ fn color_picker(val: &mut Option<Color>, feature_color: Color, ui: &mut Ui) {
     }
 
     let (r, g, b) = val.unwrap();
-    let mut color =  Color32::from_rgb(r, g, b);
+    let mut color = Color32::from_rgb(r, g, b);
     if ui.color_edit_button_srgba(&mut color).changed() {
         *val = Some((color.r(), color.g(), color.b()));
     }
-
 }
 
 /// A selector for use with feature addition and editing.
@@ -123,7 +121,11 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
                     direction_picker(&mut feature.direction, 300 + i, ui);
 
                     ui.label("Custom color:");
-                    color_picker(&mut feature.color_override, feature.feature_type.color(), ui);
+                    color_picker(
+                        &mut feature.color_override,
+                        feature.feature_type.color(),
+                        ui,
+                    );
 
                     // todo: This section repetative with primers.
                     let mut selected = false;
@@ -157,10 +159,8 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
                 for (key, value) in &mut feature.notes {
                     ui.horizontal(|ui| {
                         ui.label("Note:");
-                        ui.label(key); // todo!
-                        // ui.add(
-                        //     TextEdit::singleline(&mut note.0).desired_width(200.),
-                        // );
+                        ui.label(key.to_string()); // todo!
+                        ui.add(TextEdit::singleline(key).desired_width(200.));
 
                         ui.label("Value:");
                         ui.add(TextEdit::singleline(value).desired_width(200.));

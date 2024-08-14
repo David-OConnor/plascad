@@ -20,21 +20,15 @@ use quick_xml::{de::from_str, se::to_string};
 
 // We remove these from SnapGene feature qualifiers.
 const HTML_TAGS: [&str; 8] = [
-    "<html>",
-    "</html>",
-    "<body>",
-    "</body>",
-    "<i>",
-    "</i>",
-    "<b>",
-    "</b>",
+    "<html>", "</html>", "<body>", "</body>", "<i>", "</i>", "<b>", "</b>",
 ];
 
 use crate::{
     file_io::{
         get_filename,
         snapgene::feature_xml::{
-            FeatureSnapGene, Features, Notes, PrimerSnapGene, Primers, Segment,
+            FeatureSnapGene, Features, Notes, PrimerSnapGene, Primers, Qualifier, QualifierValue,
+            Segment,
         },
         GenericData,
     },
@@ -355,7 +349,8 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
             None => FeatureType::default(),
         };
 
-        let mut notes = HashMap::new();
+        // let mut notes = HashMap::new();
+        let mut notes = Vec::new();
         for qual in &feature_sg.qualifiers {
             // It seems there is generally one value per qualifier. In the case there are multiple,
             // we will parse them as separate notes.
@@ -377,7 +372,8 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
                     v = v.replace(html_tag, "");
                 }
 
-                notes.insert(qual.name.clone(), v);
+                // notes.insert(qual.name.clone(), v);
+                notes.push((qual.name.clone(), v));
             }
         }
 
@@ -505,10 +501,22 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
             color: feature.color_override.map(color_to_hex),
         }];
 
+        let mut qualifiers = Vec::new();
+        for (key, value) in &feature.notes {
+            qualifiers.push(Qualifier {
+                name: key.to_string(),
+                values: vec![QualifierValue {
+                    text: Some(value.to_string()),
+                    predef: None,
+                    int: None,
+                }],
+            })
+        }
+
         features_sg.inner.push(FeatureSnapGene {
             feature_type: Some(feature.feature_type.to_string()),
             segments,
-            qualifiers: Vec::new(),
+            qualifiers,
             name: Some(feature.label.clone()),
             directionality,
         });

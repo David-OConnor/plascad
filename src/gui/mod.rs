@@ -1,7 +1,4 @@
-use std::{
-    path::{PathBuf},
-    str::FromStr,
-};
+use std::{path::PathBuf, str::FromStr};
 
 use eframe::{
     egui,
@@ -15,15 +12,11 @@ use navigation::Page;
 use url::Url;
 
 use crate::{
-    file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
-    gui::{
-        primer_qc::primer_details,
-    },
+    file_io::save::{load, save, StateToSave, DEFAULT_SAVE_FILE},
+    gui::{primer_qc::primer_details, save::load_import},
     sequence::{seq_from_str, Feature, FeatureType, Nucleotide},
     util, Selection, State,
 };
-use crate::file_io::save::load;
-use crate::gui::save::load_import;
 
 mod circle;
 mod cloning;
@@ -265,7 +258,6 @@ fn handle_input(state: &mut State, ctx: &Context) {
         if ip.key_pressed(Key::O) && ip.modifiers.ctrl {
             state.ui.file_dialogs.load.select_file();
         }
-
 
         state.ui.cursor_pos = ip.pointer.hover_pos().map(|pos| (pos.x, pos.y));
 

@@ -225,13 +225,15 @@ fn parse_features_primers(
         }
 
         // Parse notes from qualifiers other than label and direction.
-        let mut notes = HashMap::new();
+        // let mut notes = HashMap::new();
+        let mut notes = Vec::new();
         for (qual_key, val) in &feature.qualifiers {
             if qual_key == "label" {
                 continue; // We handle this separately.
             }
             if let Some(v) = val {
-                notes.insert(qual_key.to_string(), v.clone());
+                // notes.insert(qual_key.to_string(), v.clone());
+                notes.push((qual_key.to_string(), v.clone()));
             }
         }
 
@@ -269,7 +271,8 @@ pub fn export_genbank(
         let mut qualifiers = vec![("label".into(), Some(feature.label.clone()))];
 
         for note in &feature.notes {
-            qualifiers.push(((&**note.0).into(), Some(note.1.clone())));
+            qualifiers.push(((&*note.0).into(), Some(note.1.clone())));
+            // qualifiers.push((note.0.clone(), Some(note.1.clone())));
         }
 
         match feature.direction {

@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use eframe::egui::{Ui};
+use eframe::egui::Ui;
 use egui_file_dialog::FileDialog;
 
 use crate::{
@@ -18,7 +18,7 @@ use crate::{
         },
         snapgene::{export_snapgene, import_snapgene},
     },
-    gui::{set_window_title},
+    gui::set_window_title,
     sequence::seq_to_str,
     State,
 };
@@ -225,7 +225,9 @@ pub fn load_import(state: &mut State, path: &Path) {
                 }
             }
             _ => {
-                eprintln!("The file to import must be in PlasCAD, FASTA, GenBank, or SnapGene format.")
+                eprintln!(
+                    "The file to import must be in PlasCAD, FASTA, GenBank, or SnapGene format."
+                )
             }
         }
         state.path_loaded = Some(path.to_owned());

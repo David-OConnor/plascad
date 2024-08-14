@@ -4,8 +4,8 @@ use std::ops::Range;
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, Sense,
-        Shape, Stroke, Ui,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, Sense, Shape, Stroke,
+        Ui,
     },
     emath::RectTransform,
     epaint::PathStroke,

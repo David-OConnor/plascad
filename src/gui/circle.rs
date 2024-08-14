@@ -895,7 +895,7 @@ fn draw_mini_seq(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Shape
         if start < 0 {
             start = 0;
         }
-        if end + 1 >= seq_full_len && seq_full_len > 0{
+        if end + 1 >= seq_full_len && seq_full_len > 0 {
             end = seq_full_len - 1;
         }
 
