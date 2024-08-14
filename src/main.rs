@@ -378,6 +378,16 @@ struct State {
 }
 
 impl State {
+    /// Reset data; we currently use this for making "new" data.
+    pub fn reset(&mut self) {
+        self.generic = Default::default();
+        self.volatile = Default::default();
+
+        self.ui.cursor_pos = None;
+        self.ui.cursor_seq_i = None;
+        self.ui.text_cursor_i = None;
+    }
+
     /// Runs the match serach between primers and sequences. Run this when primers and sequences change.
     pub fn sync_primer_matches(&mut self, primer_i: Option<usize>) {
         let primers = match primer_i {

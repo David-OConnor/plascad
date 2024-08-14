@@ -1,5 +1,6 @@
 //! GUI code for the features editor and related.
 
+use eframe::egui;
 use eframe::egui::{
     Color32, ComboBox, Frame, Painter, RichText, Sense, Stroke, TextEdit, Ui, Vec2,
 };
@@ -16,8 +17,6 @@ use crate::{
 
 const LABEL_EDIT_WIDTH: f32 = 140.;
 
-const COLORS: [Color; 4] = [(255, 255, 255), (255, 0, 0), (0, 255, 0), (0, 0, 255)];
-
 /// Add a rectangle of the color for the selector.
 fn color_rect(color: Color, ui: &mut Ui) {
     let color_rgb = Color32::from_rgb(color.0, color.1, color.2);
@@ -28,34 +27,29 @@ fn color_rect(color: Color, ui: &mut Ui) {
 }
 
 /// A color selector for use with feature addition and editing.
-fn color_picker(val: &mut Option<Color>, id: usize, ui: &mut Ui) {
-    let label_none = "Use type color";
-    // let text = match val {
-    //     Some((r, g, b)) => &format!("{}, {}, {}", r, g, b),
-    //     None => label_none,
-    // };
+fn color_picker(val: &mut Option<Color>, feature_color: Color, ui: &mut Ui) {
+    let mut color_override = val.is_some();
+    if ui.checkbox(&mut color_override, "").changed {
+        if color_override {
+            // Default to the feature color when checking.
+            *val = Some(feature_color);
+        } else {
+            *val = None;
+            return;
+        }
+    }
 
-    color_rect(val.unwrap_or_default(), ui);
+    // Only show the color picker if choosing to override.
+    if val.is_none() {
+        return;
+    }
 
-    ComboBox::from_id_source(id)
-        .width(80.)
-        // .selected_text(text) // todo temp
-        .show_ui(ui, |ui| {
-            ui.selectable_value(val, None, label_none);
+    let (r, g, b) = val.unwrap();
+    let mut color =  Color32::from_rgb(r, g, b);
+    if ui.color_edit_button_srgba(&mut color).changed() {
+        *val = Some((color.r(), color.g(), color.b()));
+    }
 
-            for color in COLORS {
-                ui.horizontal(|ui| {
-                    ui.selectable_value(val, Some(color), "");
-                    color_rect(color, ui);
-                });
-
-                // ui.selectable_value(
-                //     val,
-                //     Some((color.0, color.1, color.2)),
-                //     color.3, // todo temp. How can you show a color image?
-                // );
-            }
-        });
 }
 
 /// A selector for use with feature addition and editing.
@@ -128,8 +122,8 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
                     ui.label("Dir:");
                     direction_picker(&mut feature.direction, 300 + i, ui);
 
-                    ui.label("Color:");
-                    color_picker(&mut feature.color_override, 3 + i, ui);
+                    ui.label("Custom color:");
+                    color_picker(&mut feature.color_override, feature.feature_type.color(), ui);
 
                     // todo: This section repetative with primers.
                     let mut selected = false;
@@ -164,9 +158,9 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
                     ui.horizontal(|ui| {
                         ui.label("Note:");
                         ui.label(key); // todo!
-                                       // ui.add(
-                                       //     TextEdit::singleline(&mut note.0).desired_width(200.),
-                                       // );
+                        // ui.add(
+                        //     TextEdit::singleline(&mut note.0).desired_width(200.),
+                        // );
 
                         ui.label("Value:");
                         ui.add(TextEdit::singleline(value).desired_width(200.));

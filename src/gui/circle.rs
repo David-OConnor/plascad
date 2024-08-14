@@ -880,17 +880,23 @@ fn draw_mini_seq(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Shape
 
     const OFFSET: Pos2 = pos2(4., 6.);
 
-    if let Some(i) = state.ui.cursor_seq_i {
-        let seq_len = (ui.available_width() / 11.) as usize;
+    let seq_full_len = state.generic.seq.len();
 
-        let mut start = i as isize - seq_len as isize / 2;
-        let mut end = i + seq_len / 2;
+    if seq_full_len < 10 {
+        return result;
+    }
+
+    if let Some(i) = state.ui.cursor_seq_i {
+        let seq_mini_len = (ui.available_width() / 11.) as usize;
+
+        let mut start = i as isize - seq_mini_len as isize / 2;
+        let mut end = i + seq_mini_len / 2;
 
         if start < 0 {
             start = 0;
         }
-        if end + 1 >= state.generic.seq.len() {
-            end = state.generic.seq.len() - 1;
+        if end + 1 >= seq_full_len && seq_full_len > 0{
+            end = seq_full_len - 1;
         }
 
         let start = start as usize;

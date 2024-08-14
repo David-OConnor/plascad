@@ -58,6 +58,14 @@ fn load_button(dialog: &mut FileDialog, text: &str, hover_text: &str, ui: &mut U
 /// Ui elements for saving and loading data in various file formats. This includes our own format,
 /// FASTA, and (eventually) SnapGene's DNA format.
 pub fn save_section(state: &mut State, ui: &mut Ui) {
+    if ui
+        .button("New")
+        .on_hover_text("Create and open a new file. (Ctrl + N)")
+        .clicked()
+    {
+        state.reset();
+    }
+
     let button_text = if state.path_loaded.is_some() {
         "Save"
     } else {

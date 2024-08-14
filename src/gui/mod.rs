@@ -254,6 +254,10 @@ fn handle_input(state: &mut State, ctx: &Context) {
             }
         }
 
+        if ip.key_pressed(Key::N) && ip.modifiers.ctrl {
+            state.reset();
+        }
+
         if ip.key_pressed(Key::S) && ip.modifiers.ctrl && ip.modifiers.shift {
             state.ui.file_dialogs.save.select_file();
         }
