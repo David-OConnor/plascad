@@ -1,5 +1,5 @@
 use std::{collections::HashMap, fmt::Display, io};
-
+use std::ops::RangeInclusive;
 use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;
 
@@ -8,6 +8,8 @@ use crate::{
     sequence::Nucleotide::{A, C, G, T},
     Color,
 };
+
+pub const MIN_SEARCH_LEN: usize = 4;
 
 // Index 0: 5' end.
 pub type Seq = Vec<Nucleotide>;
@@ -415,4 +417,46 @@ pub struct Reference {
     pub journal: Option<String>,
     pub pubmed: Option<String>,
     pub remark: Option<String>,
+}
+
+pub struct SearchMatch {
+    /// 0-based indexing.
+    pub range: RangeInclusive<usize>,
+    // todo: More A/R
+}
+
+/// Find exact matches in the target sequence of our search nucleotides.
+/// todo: Optionally support partial matches.
+pub fn find_search_matches(seq: &[Nucleotide], search_seq: &[Nucleotide]) -> Vec<SearchMatch> {
+    let mut result = Vec::new();
+    let search_len = search_seq.len();
+    let seq_len = seq.len();
+
+    // todo: Handle wraps around the edge for circular plasmids.
+
+    for i in 0..seq_len {
+        let end = i + search_len; // for inclusive
+        if end > seq.len() {
+            break;
+        }
+
+        if &seq[i..end] == search_seq {
+            result.push(SearchMatch { range: i..=end - 1 });
+        }
+    }
+
+    let compl = seq_complement(seq);
+    // todo: DRY.
+    for i in 0..seq_len {
+        let end = i + search_len; // for inclusive
+        if end > seq.len() {
+            break;
+        }
+
+        if &compl[i..end] == search_seq {
+            result.push(SearchMatch { range: seq_len - (end + 0)..=seq_len - (i + 1) });
+        }
+    }
+
+    result
 }

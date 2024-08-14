@@ -12,11 +12,12 @@ use navigation::Page;
 use url::Url;
 
 use crate::{
-    file_io::save::{load, save, StateToSave, DEFAULT_SAVE_FILE},
-    gui::{primer_qc::primer_details, save::load_import},
+    file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
+    gui::{primer_qc::primer_details},
     sequence::{seq_from_str, Feature, FeatureType, Nucleotide},
     util, Selection, State,
 };
+use crate::sequence::seq_to_str;
 
 mod circle;
 mod cloning;
@@ -251,6 +252,17 @@ fn handle_input(state: &mut State, ctx: &Context) {
             state.reset();
         }
 
+        // Copy; for now, the highlighted feature.
+        if ip.key_pressed(Key::C) && ip.modifiers.ctrl {
+            println!("COPY key");
+        }
+
+        if ip.key_pressed(Key::F) && ip.modifiers.ctrl {
+            state.ui.highlight_search_input = true;
+            // Disable the cursor, so we don't insert nucleotides while searching!
+            state.ui.text_cursor_i = None;
+        }
+
         if ip.key_pressed(Key::S) && ip.modifiers.ctrl && ip.modifiers.shift {
             state.ui.file_dialogs.save.select_file();
         }
@@ -263,6 +275,16 @@ fn handle_input(state: &mut State, ctx: &Context) {
 
         if ip.pointer.button_clicked(PointerButton::Primary) {
             state.ui.click_pending_handle = true;
+        }
+
+        // This event match is not specific to the seqe page
+        for event in &ip.events {
+            match event {
+                Event::Cut => {state.copy_feature()}
+                Event::Copy => {state.copy_feature()}
+                Event::Paste(pasted_text) => {}
+                _ => (),
+            }
         }
 
         if let Page::Sequence = state.ui.page {
@@ -292,7 +314,7 @@ fn handle_input(state: &mut State, ctx: &Context) {
                 if ip.key_pressed(Key::T) {
                     state.insert_nucleotides(&[Nucleotide::T], i);
                 }
-                if ip.key_pressed(Key::C) {
+                if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
                     state.insert_nucleotides(&[Nucleotide::C], i);
                 }
                 if ip.key_pressed(Key::G) {
@@ -328,7 +350,7 @@ fn handle_input(state: &mut State, ctx: &Context) {
             if ip.key_pressed(Key::T) {
                 move_cursor = Some(1);
             }
-            if ip.key_pressed(Key::C) {
+            if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
                 move_cursor = Some(1);
             }
             if ip.key_pressed(Key::G) {
@@ -388,11 +410,22 @@ pub fn draw(state: &mut State, ctx: &Context) {
             }
 
             origin_change(state, ui);
+
+            match state.ui.selected_item {
+                Selection::None => (),
+                _ => {
+                    ui.add_space(COL_SPACING);
+                    if ui.button("🗐").on_hover_text("Copy the selected feature or primer. (Ctrl + C)").clicked() {
+                        state.copy_feature()
+                    }
+                }
+            }
         });
 
         ui.add_space(ROW_SPACING / 2.);
 
-        ScrollArea::vertical().show(ui, |ui| match state.ui.page {
+        // ScrollArea::vertical().show(ui, |ui| match state.ui.page {
+        match state.ui.page {
             Page::Sequence => sequence::seq_page(state, ui),
             Page::Map => circle::circle_page(state, ui),
             Page::Features => feature_table::features_page(state, ui),
@@ -404,6 +437,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Metadata => metadata::metadata_page(&mut state.generic.metadata, ui),
             _ => (),
             // Page::Portions => portions::portions_page(state, ui),
-        });
+            // });
+        }
     });
 }

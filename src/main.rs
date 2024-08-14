@@ -10,6 +10,7 @@
 // todo: Break out Generic into its own mod?
 
 // Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
+use copypasta::{ClipboardContext, ClipboardProvider};
 
 use std::{
     io,
@@ -22,29 +23,30 @@ use std::{
 use bincode::{Decode, Encode};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::{FileDialog, FileDialogConfig};
-use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
+use file_io::save::{DEFAULT_SAVE_FILE, load, StateToSave};
 use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
 use sequence::Seq;
 
 use crate::{
     file_io::{
-        save::{
-            StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
-            DEFAULT_PREFS_FILE,
-        },
         GenericData,
+        save::{
+            DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE, DEFAULT_PREFS_FILE,
+            StateUiToSave,
+        },
     },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::TM_TARGET,
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        find_orf_matches, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide,
-        ReadingFrame, ReadingFrameMatch,
+        Feature, FeatureDirection, FeatureType, find_orf_matches, Nucleotide, ReadingFrame,
+        ReadingFrameMatch, seq_to_str,
     },
     tags::TagMatch,
 };
+use crate::sequence::{find_search_matches, MIN_SEARCH_LEN, SearchMatch};
 
 mod feature_db_load;
 mod file_io;
@@ -60,23 +62,9 @@ mod solution_helper;
 mod tags;
 mod toxic_proteins;
 mod util;
+mod amino_acids;
 
 type Color = (u8, u8, u8); // RGB
-
-#[derive(Clone, Copy)]
-enum AminoAcid {
-    Met,
-    Ser,
-    Ile,
-    Gln,
-    His,
-    Phe,
-    Arg,
-    Val,
-    Leu,
-    Cys,
-    Asp,
-}
 
 struct PlasmidData {
     // todo : Which seq type? There are many.
@@ -311,6 +299,9 @@ struct StateUi {
     cloning_insert: CloningInsertData,
     /// Volatile; computed dynamically based on window size.
     nt_chars_per_row: usize,
+    search_input: String,
+    /// Used to trigger a search focus on hitting ctrl+f
+    highlight_search_input: bool,
 }
 
 impl Default for StateUi {
@@ -323,18 +314,20 @@ impl Default for StateUi {
             pcr: Default::default(),
             feature_add: Default::default(),
             feature_hover: Default::default(),
-            selected_item: Selection::None,
+            selected_item: Default::default(),
             seq_visibility: Default::default(),
             hide_map_feature_editor: true,
             cursor_pos: None,
             cursor_seq_i: None,
             file_dialogs: Default::default(),
-            show_origin_change: false,
-            new_origin: 0,
-            text_cursor_i: None,
-            click_pending_handle: false,
+            show_origin_change: Default::default(),
+            new_origin: Default::default(),
+            text_cursor_i: Default::default(),
+            click_pending_handle: Default::default(),
             cloning_insert: Default::default(),
-            nt_chars_per_row: 0,
+            nt_chars_per_row: Default::default(),
+            search_input: Default::default(),
+            highlight_search_input: false,
         }
     }
 }
@@ -359,6 +352,7 @@ struct StateVolatile {
     restriction_enzyme_sites: Vec<ReMatch>,
     reading_frame_matches: Vec<ReadingFrameMatch>,
     tag_matches: Vec<TagMatch>,
+    search_matches: Vec<SearchMatch>,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
@@ -375,6 +369,7 @@ struct State {
     volatile: StateVolatile,
     /// Used to determine how the save function works, among other things.
     path_loaded: Option<PathBuf>,
+    search_seq: Seq,
 }
 
 impl State {
@@ -424,6 +419,15 @@ impl State {
     pub fn sync_reading_frame(&mut self) {
         self.volatile.reading_frame_matches =
             find_orf_matches(&self.generic.seq, self.reading_frame);
+    }
+
+    pub fn sync_search(&mut self) {
+        if self.search_seq.len() >= MIN_SEARCH_LEN {
+            self.volatile.search_matches =
+                find_search_matches(&self.generic.seq, &self.search_seq);
+        } else {
+            self.volatile.search_matches = Vec::new();
+        }
     }
 
     pub fn sync_primer_metrics(&mut self) {
@@ -504,6 +508,7 @@ impl State {
         self.sync_primer_matches(primer_i);
         self.sync_re_sites();
         self.sync_reading_frame();
+        self.sync_search();
 
         self.ui.seq_input = seq_to_str(&self.generic.seq);
     }
@@ -531,6 +536,26 @@ impl State {
         result.ui.seq_input = seq_to_str(&result.generic.seq);
 
         result
+    }
+    
+    /// Copy the sequence of the selected feature or primer to the clipboard, if applicable.
+    pub fn copy_feature(&self) {
+        match self.ui.selected_item {
+            Selection::Feature(i) => {
+                let feature = &self.generic.features[i];
+                let seq = &self.generic.seq[feature.index_range.0 - 1..feature.index_range.1];
+
+                let mut ctx = ClipboardContext::new().unwrap();
+                ctx.set_contents(seq_to_str(seq)).unwrap();
+            }
+            Selection::Primer(i) => {
+                let primer = &self.generic.primers[i];
+
+                let mut ctx = ClipboardContext::new().unwrap();
+                ctx.set_contents(seq_to_str(&primer.sequence)).unwrap();
+            }
+            _ => (),
+        }
     }
 }
 

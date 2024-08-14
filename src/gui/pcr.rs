@@ -26,8 +26,7 @@ where
 
     ui.label(&format!("{}: ", label));
     let mut entry = val.to_string();
-    let response = ui.add(TextEdit::singleline(&mut entry).desired_width(30.));
-    if response.changed() {
+    if ui.add(TextEdit::singleline(&mut entry).desired_width(30.)).changed() {
         *val = entry.parse().unwrap_or(default);
         changed = true;
     }

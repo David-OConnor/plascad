@@ -4,8 +4,8 @@ use std::ops::Range;
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, Sense, Shape, Stroke,
-        Ui,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
+        Shape, Stroke, Ui,
     },
     emath::RectTransform,
     epaint::PathStroke,
@@ -24,9 +24,12 @@ use crate::{
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
 pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
+// (0xAD, 0xD8, 0xE6)
+pub const COLOR_SEQ_DIMMED: Color32 = Color32::from_rgb(150, 170, 175); // Eg dim when there are search results
 pub const COLOR_CODING_REGION: Color32 = Color32::from_rgb(255, 0, 170);
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 pub const COLOR_CURSOR: Color32 = Color32::from_rgb(255, 255, 0);
+pub const COLOR_SEARCH_RESULTS: Color32 = Color32::from_rgb(255, 255, 100);
 
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 
@@ -56,7 +59,7 @@ impl SeqViewData {
     }
 }
 
-fn re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
+fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
     for (i_match, re_match) in state.volatile.restriction_enzyme_sites.iter().enumerate() {
@@ -210,15 +213,32 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
         let letter_color = {
             let mut r = COLOR_SEQ;
 
+            let mut highlighted = false;
             if state.ui.seq_visibility.show_reading_frame {
                 for rf in &state.volatile.reading_frame_matches {
                     let (start, end) = rf.range;
                     let i_ = i + 1; // 1-based indexing
                     if start <= i_ && i_ <= end {
                         r = COLOR_CODING_REGION;
+                        highlighted = true;
                     }
                 }
             }
+
+
+            // This overrides reading frame matches.
+            for search_result in &state.volatile.search_matches {
+                if search_result.range.contains(&i) {
+                    r = COLOR_SEARCH_RESULTS;
+                    highlighted = true;
+                }
+            }
+
+            // Dim normal text if there are search results.
+            if state.volatile.search_matches.len() > 0 && !highlighted  {
+                r = COLOR_SEQ_DIMMED;
+            }
+
             r
         };
 
@@ -283,74 +303,74 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
         ui.heading(mouse_posit_lbl);
     });
 
-    Frame::canvas(ui.style())
-        .fill(BACKGROUND_COLOR)
-        .show(ui, |ui| {
-            let (response, _painter) = {
-                // Estimate required height, based on seq len.
-                let total_seq_height = row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.;
+    ScrollArea::vertical().show(ui, |ui| {
+        Frame::canvas(ui.style())
+            .fill(BACKGROUND_COLOR)
+            .show(ui, |ui| {
+                let (response, _painter) = {
+                    // Estimate required height, based on seq len.
+                    let total_seq_height = row_ranges.len() as f32 * SEQ_ROW_SPACING_PX + 60.;
 
-                let height = total_seq_height;
+                    let height = total_seq_height;
 
-                let desired_size = vec2(ui.available_width(), height);
-                ui.allocate_painter(desired_size, Sense::click())
-            };
+                    let desired_size = vec2(ui.available_width(), height);
+                    ui.allocate_painter(desired_size, Sense::click())
+                };
 
-            let to_screen = RectTransform::from_to(
-                Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-                response.rect,
-            );
+                let to_screen = RectTransform::from_to(
+                    Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+                    response.rect,
+                );
 
-            let from_screen = to_screen.inverse();
+                let from_screen = to_screen.inverse();
 
-            let data = SeqViewData {
-                seq_len,
-                row_ranges,
-                to_screen,
-                from_screen,
-            };
+                let data = SeqViewData {
+                    seq_len,
+                    row_ranges,
+                    to_screen,
+                    from_screen,
+                };
 
-            let prev_cursor_i = state.ui.cursor_seq_i;
-            state.ui.cursor_seq_i = find_cursor_i(state.ui.cursor_pos, &data);
+                let prev_cursor_i = state.ui.cursor_seq_i;
+                state.ui.cursor_seq_i = find_cursor_i(state.ui.cursor_pos, &data);
 
-            if prev_cursor_i != state.ui.cursor_seq_i {
-                state.ui.feature_hover =
-                    feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
-            }
+                if prev_cursor_i != state.ui.cursor_seq_i {
+                    state.ui.feature_hover =
+                        feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
+                }
 
-            // Removed: We select cursor position instead now.
-            // select_feature(state, &from_screen);
+                // Removed: We select cursor position instead now.
+                // select_feature(state, &from_screen);
 
-            // todo: Move this into a function A/R.
-            if state.ui.click_pending_handle {
-                state.ui.text_cursor_i = state.ui.cursor_seq_i;
-                state.ui.click_pending_handle = false;
-            }
+                // todo: Move this into a function A/R.
+                if state.ui.click_pending_handle {
+                    state.ui.text_cursor_i = state.ui.cursor_seq_i;
+                    state.ui.click_pending_handle = false;
+                }
 
-            shapes.extend(draw_seq_indexes(&data, ui));
+                shapes.extend(draw_seq_indexes(&data, ui));
 
-            shapes.append(&mut draw_nts(state, &data, ui));
+                shapes.append(&mut draw_nts(state, &data, ui));
 
-            if state.ui.seq_visibility.show_primers {
-                shapes.append(&mut primer_arrow::draw_primers(
-                    &state.generic.primers,
-                    &data,
-                    ui,
-                ));
-            }
+                if state.ui.seq_visibility.show_primers {
+                    shapes.append(&mut primer_arrow::draw_primers(
+                        &state.generic.primers,
+                        &data,
+                        ui,
+                    ));
+                }
 
-            if state.ui.seq_visibility.show_features {
-                shapes.append(&mut draw_features(&state.generic.features, &data, ui));
-            }
+                if state.ui.seq_visibility.show_features {
+                    shapes.append(&mut draw_features(&state.generic.features, &data, ui));
+                }
 
-            if state.ui.seq_visibility.show_res {
-                shapes.append(&mut re_sites(state, &data, ui));
-            }
+                if state.ui.seq_visibility.show_res {
+                    shapes.append(&mut draw_re_sites(state, &data, ui));
+                }
 
-            shapes.append(&mut draw_text_cursor(state.ui.text_cursor_i, &data));
+                shapes.append(&mut draw_text_cursor(state.ui.text_cursor_i, &data));
 
-            ui.painter().extend(shapes);
-        });
-
-    ui.add_space(ROW_SPACING);
+                ui.painter().extend(shapes);
+            });
+    });
 }

@@ -44,6 +44,9 @@ gb-io = "^0.7.1"
 webbrowser = "^1.0.1"
 url = "^2.5.2"
 
+# For clipboard operations not supported directly by EGUI
+copypasta = "^0.10.1"
+
 
 [build-dependencies]
 # These are for embedding an application icon, on Windows.
