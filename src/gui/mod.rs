@@ -13,11 +13,10 @@ use url::Url;
 
 use crate::{
     file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
-    gui::{primer_qc::primer_details},
-    sequence::{seq_from_str, Feature, FeatureType, Nucleotide},
+    gui::primer_qc::primer_details,
+    sequence::{seq_from_str, seq_to_str, Feature, FeatureType, Nucleotide},
     util, Selection, State,
 };
-use crate::sequence::seq_to_str;
 
 mod circle;
 mod cloning;
@@ -280,8 +279,8 @@ fn handle_input(state: &mut State, ctx: &Context) {
         // This event match is not specific to the seqe page
         for event in &ip.events {
             match event {
-                Event::Cut => {state.copy_feature()}
-                Event::Copy => {state.copy_feature()}
+                Event::Cut => state.copy_feature(),
+                Event::Copy => state.copy_feature(),
                 Event::Paste(pasted_text) => {}
                 _ => (),
             }
@@ -415,7 +414,11 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 Selection::None => (),
                 _ => {
                     ui.add_space(COL_SPACING);
-                    if ui.button("🗐").on_hover_text("Copy the selected feature or primer. (Ctrl + C)").clicked() {
+                    if ui
+                        .button("🗐")
+                        .on_hover_text("Copy the selected feature or primer. (Ctrl + C)")
+                        .clicked()
+                    {
                         state.copy_feature()
                     }
                 }

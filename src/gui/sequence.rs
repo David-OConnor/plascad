@@ -1,7 +1,9 @@
 //! This module contains GUI code related to the sequence view.
 
-use eframe::egui::{Color32, Frame, RichText, ScrollArea, TextEdit, Ui, TextBuffer};
-use eframe::egui::text::CursorRange;
+use eframe::egui::{
+    text::CursorRange, Color32, Frame, RichText, ScrollArea, TextBuffer, TextEdit, Ui,
+};
+
 // todo: monospace font for all seqs.
 use crate::sequence::{seq_from_str, seq_to_str, Feature, MIN_SEARCH_LEN};
 use crate::{
@@ -95,22 +97,27 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         page_seq_selector(state, ui);
         ui.add_space(COL_SPACING);
 
-        ui.label("🔍").on_hover_text("Search the sequence and its complement for this term. (Ctrl + F to highlight)");
+        ui.label("🔍").on_hover_text(
+            "Search the sequence and its complement for this term. (Ctrl + F to highlight)",
+        );
 
         // This nonstandard way of adding the text input is required for the auto-highlight on ctrl+F behavior.
-        let mut output = TextEdit::singleline(&mut state.ui.search_input).desired_width(400.).show(ui);
+        let mut output = TextEdit::singleline(&mut state.ui.search_input)
+            .desired_width(400.)
+            .show(ui);
         let response = output.response;
 
         if state.ui.highlight_search_input {
             state.ui.highlight_search_input = false;
             response.request_focus();
 
-            output.cursor_range = Some(CursorRange::select_all(&output.galley)); // todo: Not working
+            output.cursor_range = Some(CursorRange::select_all(&output.galley));
+            // todo: Not working
         }
 
         if response.changed {
             state.search_seq = seq_from_str(&state.ui.search_input);
-            state.ui.search_input = seq_to_str(&state.search_seq);  // Ensures only valid NTs are present.
+            state.ui.search_input = seq_to_str(&state.search_seq); // Ensures only valid NTs are present.
             state.sync_search();
         };
 

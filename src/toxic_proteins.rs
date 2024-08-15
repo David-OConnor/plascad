@@ -2,7 +2,6 @@
 
 use crate::sequence::Seq;
 
-
 #[derive(Clone, Copy)]
 enum Host {
     Ecoli,

@@ -1,7 +1,8 @@
 use std::fmt;
+
 use quick_xml::escape::unescape;
-use crate::sequence::Nucleotide;
-use crate::sequence::Nucleotide::*;
+
+use crate::sequence::{Nucleotide, Nucleotide::*};
 
 /// This struct and its method is largely copied from the `peptide` project.
 #[derive(Clone, Copy)]
@@ -53,8 +54,8 @@ impl AminoAcid {
             Self::Phe => "F",
             Self::Tyr => "Y",
             Self::Trp => "W",
-
-        }.to_owned()
+        }
+        .to_owned()
     }
 
     /// https://en.wikipedia.org/wiki/DNA_and_RNA_codon_tables#/media/File:Aminoacids_table.svg
@@ -76,14 +77,14 @@ impl AminoAcid {
     pub fn from_codons(codons: [Nucleotide; 3]) -> Option<Self> {
         // Handle cases that are defined entirely by the first two codons.
         match codons[0..2] {
-            [C, G]  => return Some(Self::Arg),
-            [C, C]  => return Some(Self::Pro),
-            [C, T]  => return Some(Self::Leu),
-            [T, C]  => return Some(Self::Ser),
-            [G, G]  => return Some(Self::Gly),
-            [G, C]  => return Some(Self::Ala),
-            [G, T]  => return Some(Self::Val),
-            [A, C]  => return Some(Self::Thr),
+            [C, G] => return Some(Self::Arg),
+            [C, C] => return Some(Self::Pro),
+            [C, T] => return Some(Self::Leu),
+            [T, C] => return Some(Self::Ser),
+            [G, G] => return Some(Self::Gly),
+            [G, C] => return Some(Self::Ala),
+            [G, T] => return Some(Self::Val),
+            [A, C] => return Some(Self::Thr),
             _ => (),
         }
 
@@ -125,7 +126,7 @@ impl AminoAcid {
     }
 }
 
-impl fmt::Display for AminoAcid{
+impl fmt::Display for AminoAcid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let v = match self {
             Self::Arg => "Arg (R)",

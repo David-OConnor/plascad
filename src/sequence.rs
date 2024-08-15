@@ -1,5 +1,5 @@
-use std::{collections::HashMap, fmt::Display, io};
-use std::ops::RangeInclusive;
+use std::{collections::HashMap, fmt::Display, io, ops::RangeInclusive};
+
 use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;
 
@@ -280,7 +280,7 @@ impl Feature {
     pub fn len(&self) -> usize {
         self.index_range.1 - self.index_range.0 + 1 // +1 since it's inclusive.
     }
-    
+
     /// Formats the indexes, and size of this feature.
     pub fn location_descrip(&self) -> String {
         format!(
@@ -464,7 +464,9 @@ pub fn find_search_matches(seq: &[Nucleotide], search_seq: &[Nucleotide]) -> Vec
         }
 
         if &compl[i..end] == search_seq {
-            result.push(SearchMatch { range: seq_len - (end + 0)..=seq_len - (i + 1) });
+            result.push(SearchMatch {
+                range: seq_len - (end + 0)..=seq_len - (i + 1),
+            });
         }
     }
 

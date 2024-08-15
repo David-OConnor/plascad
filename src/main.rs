@@ -10,8 +10,6 @@
 // todo: Break out Generic into its own mod?
 
 // Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
-use copypasta::{ClipboardContext, ClipboardProvider};
-
 use std::{
     io,
     ops::RangeInclusive,
@@ -21,33 +19,34 @@ use std::{
 };
 
 use bincode::{Decode, Encode};
+use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::{FileDialog, FileDialogConfig};
-use file_io::save::{DEFAULT_SAVE_FILE, load, StateToSave};
+use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
 use sequence::Seq;
 
 use crate::{
     file_io::{
-        GenericData,
         save::{
-            DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE, DEFAULT_PREFS_FILE,
-            StateUiToSave,
+            StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
+            DEFAULT_PREFS_FILE,
         },
+        GenericData,
     },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::TM_TARGET,
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        Feature, FeatureDirection, FeatureType, find_orf_matches, Nucleotide, ReadingFrame,
-        ReadingFrameMatch, seq_to_str,
+        find_orf_matches, find_search_matches, seq_to_str, Feature, FeatureDirection, FeatureType,
+        Nucleotide, ReadingFrame, ReadingFrameMatch, SearchMatch, MIN_SEARCH_LEN,
     },
     tags::TagMatch,
 };
-use crate::sequence::{find_search_matches, MIN_SEARCH_LEN, SearchMatch};
 
+mod amino_acids;
 mod feature_db_load;
 mod file_io;
 mod gui;
@@ -62,7 +61,6 @@ mod solution_helper;
 mod tags;
 mod toxic_proteins;
 mod util;
-mod amino_acids;
 
 type Color = (u8, u8, u8); // RGB
 
@@ -423,8 +421,7 @@ impl State {
 
     pub fn sync_search(&mut self) {
         if self.search_seq.len() >= MIN_SEARCH_LEN {
-            self.volatile.search_matches =
-                find_search_matches(&self.generic.seq, &self.search_seq);
+            self.volatile.search_matches = find_search_matches(&self.generic.seq, &self.search_seq);
         } else {
             self.volatile.search_matches = Vec::new();
         }
@@ -537,7 +534,7 @@ impl State {
 
         result
     }
-    
+
     /// Copy the sequence of the selected feature or primer to the clipboard, if applicable.
     pub fn copy_feature(&self) {
         match self.ui.selected_item {

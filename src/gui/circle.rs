@@ -833,6 +833,10 @@ fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Sh
             result.append(&mut draw_feature_text(feature, data, ui));
         }
         Selection::Primer(prim_i) => {
+            if prim_i + 1 > state.generic.primers.len() {
+                eprintln!("Invalid primer.");
+                return result;
+            }
             let primer = &state.generic.primers[*prim_i];
             // todo
         }

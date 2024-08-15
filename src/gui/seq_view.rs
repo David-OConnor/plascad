@@ -225,7 +225,6 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                 }
             }
 
-
             // This overrides reading frame matches.
             for search_result in &state.volatile.search_matches {
                 if search_result.range.contains(&i) {
@@ -235,7 +234,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             }
 
             // Dim normal text if there are search results.
-            if state.volatile.search_matches.len() > 0 && !highlighted  {
+            if state.volatile.search_matches.len() > 0 && !highlighted {
                 r = COLOR_SEQ_DIMMED;
             }
 

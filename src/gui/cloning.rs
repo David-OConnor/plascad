@@ -19,10 +19,9 @@ use crate::{
         navigation::PageSeq, save::save_current_file, set_window_title, COL_SPACING, ROW_SPACING,
     },
     primer::make_cloning_primers,
-    sequence::{seq_from_str, seq_to_str, Feature, FeatureType},
+    sequence::{seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType},
     CloningInsertData, Selection, State,
 };
-use crate::sequence::FeatureDirection;
 
 /// Draw a selector for the insert, based on loading from a file.
 fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {

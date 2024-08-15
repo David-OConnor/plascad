@@ -112,14 +112,17 @@ impl Primer {
     }
 
     fn tune_single_end(&mut self, ion: &IonConcentrations) {
-        if self.sequence.len() <= MIN_PRIMER_LEN {
+        // todo: Using the seq_input as the only way we store total len feels janky.
+        let len_untrimmed = self.volatile.sequence_input.len();
+
+        if len_untrimmed <= MIN_PRIMER_LEN {
             return;
         }
 
         let mut best_val = 0;
         let mut best_score = 0.;
 
-        let num_vals = self.sequence.len() - MIN_PRIMER_LEN;
+        let num_vals = len_untrimmed - MIN_PRIMER_LEN;
 
         for val in 0..num_vals {
             // When this function is called, exactly one of these ends should be enabled.
@@ -148,8 +151,10 @@ impl Primer {
     }
 
     fn tune_both_ends(&mut self, ion: &IonConcentrations) {
-        let primer_len = self.sequence.len();
-        if primer_len <= MIN_PRIMER_LEN {
+        // todo: Using the seq_input as the only way we store total len feels janky.
+        let len_untrimmed = self.volatile.sequence_input.len();
+
+        if len_untrimmed <= MIN_PRIMER_LEN {
             return;
         }
 
@@ -162,9 +167,9 @@ impl Primer {
         // the 5' end and expanding towards 3', but either direction will do), and length, up
         // to the other end.
 
-        for val_5p in 0..primer_len - MIN_PRIMER_LEN {
-            for len in MIN_PRIMER_LEN..primer_len - val_5p {
-                let val_3p = primer_len - (val_5p + len);
+        for val_5p in 0..len_untrimmed - MIN_PRIMER_LEN {
+            for len in MIN_PRIMER_LEN..len_untrimmed - val_5p {
+                let val_3p = len_untrimmed - (val_5p + len);
 
                 if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
                     *tune_val = val_3p;
@@ -221,7 +226,6 @@ impl Primer {
             end = full_len
         }
 
-        // todo: Is loading from the input here appropriate? In our current setup, it seems to be required.
         self.sequence = seq_from_str(&self.volatile.sequence_input[start..end]);
         self.volatile.metrics = self.calc_metrics(ion_concentrations);
 
@@ -382,9 +386,6 @@ pub struct PrimerData {
     pub seq_removed_3p: String,
     /// todo: Which direction is the range, if the direction is reverse?
     pub matches_seq: Vec<(PrimerDirection, Range<usize>)>,
-    // pub matches_vector: Vec<(PrimerDirection, Range<usize>)>, // todo: Currently unused.
-    // pub matches_insert: Vec<(PrimerDirection, Range<usize>)>, // todo: Currently unused.
-    // pub matches_vector_with_insert: Vec<(PrimerDirection, Range<usize>)>,
 }
 
 impl PrimerData {
@@ -401,7 +402,7 @@ impl Default for TuneSetting {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
 pub enum TuneSetting {
     Disabled,
     /// Inner: Offset index; this marks the distance from the respective ends that the sequence is attentuated to.
@@ -479,6 +480,14 @@ pub fn make_cloning_primers(state: &mut State) {
         primers.insert_rev.volatile = insert_rev_data;
         primers.vector_fwd.volatile = vector_fwd_data;
         primers.vector_rev.volatile = vector_rev_data;
+
+        // Note: If we don't run `run_calcs` before tune here, we get unexpected beavhior culminating
+        // in a crash after attempting to tune primers. This is likely related to syncing the tuned-out
+        // part of the primers.
+        primers.insert_fwd.run_calcs(&state.ion_concentrations);
+        primers.insert_rev.run_calcs(&state.ion_concentrations);
+        primers.vector_fwd.run_calcs(&state.ion_concentrations);
+        primers.vector_rev.run_calcs(&state.ion_concentrations);
 
         primers.insert_fwd.tune(&state.ion_concentrations);
         primers.insert_rev.tune(&state.ion_concentrations);

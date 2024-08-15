@@ -23,10 +23,12 @@ pub struct PrimerMetrics {
     /// How many G and C nts are in the last 5 (3' end) nts of the sequence.
     pub gc_3p_count: u8,
     pub self_end_dimer: u8,
+    pub seq_len: usize,
     pub repeats: u8,
     pub tm_score: f32,
     pub gc_score: f32,
     pub gc_3p_score: f32,
+    pub len_score: f32,
     pub dimer_score: f32,
     /// https://www.benchling.com/primer-design-for-pcr
     /// "Avoid runs of four or more of a single base (e.g., ACCCCC), or four or more dinucleotide
@@ -46,6 +48,7 @@ impl PrimerMetrics {
         const WEIGHT_STAB: f32 = 1.;
         // const WEIGHT_COMPLEXITY: f32 = 1.;
         const WEIGHT_DIMER: f32 = 1.;
+        const WEIGHT_LEN: f32 = 1.;
         const WEIGHT_REPEATS: f32 = 1.;
 
         // todo: Instead of closeness to 59, should it be >54??
@@ -55,6 +58,19 @@ impl PrimerMetrics {
 
         // This is currently a linear map, between 0 and 1.
         self.gc_score = 1. - (self.gc_portion - GC_TARGET).abs() * 2.;
+
+        self.len_score = match self.seq_len {
+            18..=24 => 1.,
+            _ => {
+                // More gentle penalty for long primers.
+                let max_falloff = if self.seq_len > 21 {
+                    20.
+                } else {
+                    7.
+                };
+                map_linear(21. - self.seq_len as f32, (0., max_falloff), (1., 0.))
+            }
+        };
 
         // Sources differ on if 4 is an ok value. AmplifX calls it "good"; [the DNA universe](https://the-dna-universe.com/2022/09/05/primer-design-guide-the-top-5-factors-to-consider-for-optimum-performance/)
         // considers it to be bad.
@@ -76,13 +92,14 @@ impl PrimerMetrics {
             _ => 0.,
         };
 
-        self.quality_score = ((WEIGHT_TM * self.tm_score
+        self.quality_score = (WEIGHT_TM * self.tm_score
             + WEIGHT_GC * self.gc_score
             + WEIGHT_STAB * self.gc_3p_score
             // + WEIGHT_COMPLEXITY * self.complexity_score
-            + WEIGHT_DIMER * self.dimer_score)
+            + WEIGHT_DIMER * self.dimer_score
+            + WEIGHT_LEN * self.len_score
             + WEIGHT_REPEATS * self.repeats_score)
-            / 5.
+            / 6.
     }
 }
 
@@ -183,6 +200,7 @@ impl Primer {
         let mut result = PrimerMetrics {
             melting_temp: self.calc_tm(ion_concentrations),
             gc_portion: calc_gc(&self.sequence),
+            seq_len: self.sequence.len(),
             gc_3p_count: self.count_3p_g_c(),
             // complexity: self.calc_complexity(),
             self_end_dimer: self.calc_self_end_dimer(),
