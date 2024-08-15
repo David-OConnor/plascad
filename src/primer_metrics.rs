@@ -63,12 +63,12 @@ impl PrimerMetrics {
             18..=24 => 1.,
             _ => {
                 // More gentle penalty for long primers.
-                let max_falloff = if self.seq_len > 21 {
-                    20.
-                } else {
-                    7.
-                };
-                map_linear(21. - self.seq_len as f32, (0., max_falloff), (1., 0.))
+                let max_falloff = if self.seq_len > 21 { 20. } else { 7. };
+                map_linear(
+                    (21. - self.seq_len as f32).abs(),
+                    (0., max_falloff),
+                    (1., 0.),
+                )
             }
         };
 

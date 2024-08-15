@@ -57,7 +57,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
     let mut run_match_sync = None; // Avoids a double-mutation error.
 
     TableBuilder::new(ui)
-        .column(Column::initial(600.).resizable(true)) // Sequence
+        .column(Column::initial(650.).resizable(true)) // Sequence
         .column(Column::initial(160.).resizable(true)) // Description
         .column(Column::auto().resizable(true))// Len
         .column(Column::auto().resizable(true))// Matches
@@ -118,18 +118,18 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                 body.row(TABLE_ROW_HEIGHT, |mut row| {
                     row.col(|ui| {
                         ui.horizontal(|ui| {
+                            let color = match primer.volatile.tune_setting {
+                                TuneSetting::Only5(_) | TuneSetting::Both(_) => Color32::GREEN,
+                                _ => Color32::LIGHT_GRAY,
+                            };
                             if ui
-                                .button(RichText::new("T").color(if let TuneSetting::Enabled(_) = primer.volatile.tunable_5p {
-                                    Color32::GREEN
-                                } else {
-                                    Color32::LIGHT_GRAY
-                                }))
+                                .button(RichText::new("T").color(color))
                                 .clicked()
                             {
-                                primer.volatile.tunable_5p.toggle();
-                                if primer.volatile.tunable_5p == TuneSetting::Disabled {
-                                    primer.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
-                                }
+                                primer.volatile.tune_setting.toggle_5p();
+                                // if primer.volatile.tunable_5p == TuneSetting::Disabled {
+                                primer.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
+                                // }
                                 run_match_sync = Some(i);
                             }
 
@@ -145,30 +145,33 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                                 run_match_sync = Some(i);
                             }
 
+                            let color = match primer.volatile.tune_setting {
+                                TuneSetting::Only3(_) | TuneSetting::Both(_) => Color32::GREEN,
+                                _ => Color32::LIGHT_GRAY,
+                            };
                             if ui
-                                .button(RichText::new("T").color(if let TuneSetting::Enabled(_) = primer.volatile.tunable_3p {
-                                    Color32::GREEN
-                                } else {
-                                    Color32::LIGHT_GRAY
-                                }))
+                                .button(RichText::new("T").color(color))
                                 .clicked()
                             {
-                                primer.volatile.tunable_3p.toggle();
-                                if primer.volatile.tunable_3p == TuneSetting::Disabled {
+                                primer.volatile.tune_setting.toggle_3p();
+                                // if primer.volatile.tunable_3p == TuneSetting::Disabled {
                                     primer.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
-                                }
+                                // }
                                 run_match_sync = Some(i);
                             }
 
                             ui.add_space(COL_SPACING);
 
-                            if primer.volatile.tunable_3p != TuneSetting::Disabled || primer.volatile.tunable_5p != TuneSetting::Disabled {
-                                if ui
-                                    .button(RichText::new("Tune")).on_hover_text("Tune selected ends for this primer").clicked()
-                                {
-                                    primer.tune(&state.ion_concentrations);
-                                    run_match_sync = Some(i);
+                            match primer.volatile.tune_setting {
+                                TuneSetting::Both(_) | TuneSetting::Only5(_) | TuneSetting::Only3(_) => {
+                                    if ui
+                                        .button(RichText::new("Tune")).on_hover_text("Tune selected ends for this primer").clicked()
+                                    {
+                                        primer.tune(&state.ion_concentrations);
+                                        run_match_sync = Some(i);
+                                    }
                                 }
+                                _ => (),
                             }
                         });
 
@@ -327,17 +330,6 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
                     primer.run_calcs(&state.ion_concentrations); // Note: We only need to run the TM calc.
                 }
             }
-
-            // if ui.button("Load").clicked() {}
-
-            // // todo: Temp. Find a better way.
-            // if ui.button("Sync primer disp").clicked() {
-            //     for p_data in &mut state.primer_data {
-            //         p_data.matches_amplification_seq = p_data.primer.match_to_seq(&state.seq_amplicon);
-            //         p_data.matches_slic_insert = p_data.primer.match_to_seq(&state.seq_insert);
-            //         p_data.matches_slic_vector = p_data.primer.match_to_seq(&state.seq_vector);
-            //     }
-            // }
         });
 
         ui.label("Tuning instructions: Include more of the target sequence than required on the end[s] that can be tuned. These are the \
@@ -413,13 +405,20 @@ fn primer_tune_display(
     // This avoids a double-mutable error
     let mut tuned = false;
 
+    let len_full = primer.volatile.sequence_input.len();
+
     // Section for tuning primer length.
     ui.horizontal(|ui| {
-        // This layout allows even spacing.
-        // ui.allocate_ui(egui::Vec2::new(ui.available_width(), 0.0), |ui| {
-        //     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+        // todo: We only need this when the button is clicked, but getting borrow errors.
+        // This tune limit controls the maximum value of this tune; only applicable if both ends are tunable.
+        let (tune_limit_5p, tune_limit_3p) = match primer.volatile.tune_setting {
+            // Note: The 3p end is minus two, both due to our normal indexing logic, and since the anchor is technically
+            // between two nucleotides.
+            TuneSetting::Both((anchor, _, _)) => (anchor, len_full - anchor - 2), // -2
+            _ => (len_full - 1, len_full - 1) // No limit other than primer size.
+        };
 
-        if let TuneSetting::Enabled(i) = &mut primer.volatile.tunable_5p {
+        if let Some(i) = primer.volatile.tune_setting.val_5p_mut() {
             ui.label("5'");
             if ui.button("⏴").clicked() {
                 if *i > 0 {
@@ -428,12 +427,25 @@ fn primer_tune_display(
                 tuned = true;
             };
             if ui.button("⏵").clicked() {
-                let t3p_len = match primer.volatile.tunable_3p {
-                    TuneSetting::Enabled(t) => t,
-                    _ => 0,
-                };
-                if *i + 1 < primer.volatile.sequence_input.len() - t3p_len {
+                if *i < tune_limit_5p {
                     *i += 1;
+                }
+                tuned = true;
+            };
+        }
+
+        // Allow setting the anchor. (Eg insertion point when cloning)
+        if let TuneSetting::Both((anchor, _, _)) = &mut primer.volatile.tune_setting {
+            ui.label(format!("Anchor ({}):", *anchor + 1)).on_hover_text("Generally for cloning insert primers; the point of insertion. Can not be tuned out, and primer size is assessed on both sides of it.");
+            if ui.button("⏴").clicked() {
+                if *anchor > 0 {
+                    *anchor -= 1;
+                }
+                tuned = true;
+            };
+            if ui.button("⏵").clicked() {
+                if *anchor + 1 < len_full {
+                    *anchor += 1;
                 }
                 tuned = true;
             };
@@ -444,9 +456,10 @@ fn primer_tune_display(
             ui.label(RichText::new(&primer.volatile.seq_removed_5p).color(Color32::GRAY));
             ui.add_space(COL_SPACING / 2.);
 
-            if primer.volatile.tunable_5p != TuneSetting::Disabled
-                || primer.volatile.tunable_3p != TuneSetting::Disabled
-            {
+            // if primer.volatile.tunable_5p != TuneSetting::Disabled
+            //     || primer.volatile.tunable_3p != TuneSetting::Disabled
+            // {
+            if primer.volatile.tune_setting.tunable() {
                 ui.label(RichText::new(seq_to_str(&primer.sequence)).color(Color32::LIGHT_BLUE));
             }
 
@@ -457,7 +470,7 @@ fn primer_tune_display(
         // Note: We need to reverse the item order for this method of right-justifying to work.
         // This is kind of OK with the intent here though.
         ui.with_layout(Layout::right_to_left(Align::Max), |ui| {
-            if let TuneSetting::Enabled(i) = &mut primer.volatile.tunable_3p {
+                if let Some(i) = primer.volatile.tune_setting.val_3p_mut() {
                 ui.label("3'");
 
                 if ui.button("⏵").clicked() {
@@ -467,12 +480,7 @@ fn primer_tune_display(
                     tuned = true;
                 };
                 if ui.button("⏴").clicked() {
-                    let t5p_len = match primer.volatile.tunable_5p {
-                        TuneSetting::Enabled(t) => t,
-                        _ => 0,
-                    };
-
-                    if *i + 1 < primer.volatile.sequence_input.len() - t5p_len {
+                    if *i < tune_limit_3p {
                         *i += 1;
                     }
                     tuned = true;

@@ -313,7 +313,8 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     let height = total_seq_height;
 
                     let desired_size = vec2(ui.available_width(), height);
-                    ui.allocate_painter(desired_size, Sense::click())
+                    // ui.allocate_painter(desired_size, Sense::click())
+                    ui.allocate_painter(desired_size, Sense::click_and_drag())
                 };
 
                 let to_screen = RectTransform::from_to(
@@ -343,7 +344,10 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
                 // todo: Move this into a function A/R.
                 if state.ui.click_pending_handle {
-                    state.ui.text_cursor_i = state.ui.cursor_seq_i;
+                    // This is set up so that a click outside the text area won't reset the cursor.
+                    if state.ui.cursor_seq_i.is_some() {
+                        state.ui.text_cursor_i = state.ui.cursor_seq_i;
+                    }
                     state.ui.click_pending_handle = false;
                 }
 

@@ -74,11 +74,6 @@ impl Primer {
                 let seq_end = (seq_start + primer_len) % seq_len;
                 result.push((PrimerDirection::Forward, seq_start..seq_end));
             }
-
-            // let end_i = (seq_start_i + self.sequence.len()) % seq_len;
-            // if self.sequence == seq[seq_start_i..end_i] {
-            //     result.push((PrimerDirection::Forward, seq_start_i))
-            // }
         }
 
         for seq_start in 0..seq_len {
@@ -94,23 +89,14 @@ impl Primer {
 
     /// Automatically select primer length based on quality score.
     pub fn tune(&mut self, ion: &IonConcentrations) {
-        if self.volatile.tunable_3p != TuneSetting::Disabled
-            && self.volatile.tunable_5p == TuneSetting::Disabled
-        {
-            self.tune_single_end(ion);
-        }
-        if self.volatile.tunable_3p == TuneSetting::Disabled
-            && self.volatile.tunable_5p != TuneSetting::Disabled
-        {
-            self.tune_single_end(ion);
-        }
-        if self.volatile.tunable_3p != TuneSetting::Disabled
-            && self.volatile.tunable_5p != TuneSetting::Disabled
-        {
-            self.tune_both_ends(ion);
+        match self.volatile.tune_setting {
+            TuneSetting::Both(_) => self.tune_both_ends(ion),
+            TuneSetting::Disabled => (),
+            _ => self.tune_single_end(ion),
         }
     }
 
+    /// Note: In its current form, this assumes only one end is tunable, prior to calling this function.
     fn tune_single_end(&mut self, ion: &IonConcentrations) {
         // todo: Using the seq_input as the only way we store total len feels janky.
         let len_untrimmed = self.volatile.sequence_input.len();
@@ -125,11 +111,11 @@ impl Primer {
         let num_vals = len_untrimmed - MIN_PRIMER_LEN;
 
         for val in 0..num_vals {
-            // When this function is called, exactly one of these ends should be enabled.
-            if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
+            // When this function is called, exactly one of these ends must be enabled.
+            if let Some(tune_val) = self.volatile.tune_setting.val_3p_mut() {
                 *tune_val = val;
             }
-            if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_5p {
+            if let Some(tune_val) = self.volatile.tune_setting.val_5p_mut() {
                 *tune_val = val;
             }
             self.run_calcs(ion);
@@ -142,8 +128,10 @@ impl Primer {
             }
         }
 
-        if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
-            // This is getting a bit verbose.
+        if let Some(tune_val) = self.volatile.tune_setting.val_5p_mut() {
+            *tune_val = best_val;
+        }
+        if let Some(tune_val) = self.volatile.tune_setting.val_3p_mut() {
             *tune_val = best_val;
         }
 
@@ -162,62 +150,86 @@ impl Primer {
         let mut best_val_3p = 0;
         let mut best_score = 0.;
 
-        // We will iterate over all possible tunings within the bounds of the limits of both ends,
-        // and minimum primer length. We do so by varying the start point (We set this, starting at
-        // the 5' end and expanding towards 3', but either direction will do), and length, up
-        // to the other end.
+        let num_vals_5p = len_untrimmed - MIN_PRIMER_LEN;
 
-        for val_5p in 0..len_untrimmed - MIN_PRIMER_LEN {
-            for len in MIN_PRIMER_LEN..len_untrimmed - val_5p {
-                let val_3p = len_untrimmed - (val_5p + len);
+        // for val in 0..num_vals {
+        //     // When this function is called, exactly one of these ends must be enabled.
+        //     if let Some(tune_val) = self.volatile.tune_setting.val_3p_mut() {
+        //         *tune_val = val;
+        //     }
+        //     if let Some(tune_val) = self.volatile.tune_setting.val_5p_mut() {
+        //         *tune_val = val;
+        //     }
+        //     self.run_calcs(ion);
+        //
+        //     if let Some(metrics) = &self.volatile.metrics {
+        //         if metrics.quality_score > best_score {
+        //             best_val = val;
+        //             best_score = metrics.quality_score;
+        //         }
+        //     }
+        // }
 
-                if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
-                    *tune_val = val_3p;
-                }
-                if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_5p {
-                    *tune_val = val_5p;
-                }
-                self.run_calcs(ion);
+        //
+        //
+        // // We will iterate over all possible tunings within the bounds of the limits of both ends,
+        // // and minimum primer length. We do so by varying the start point (We set this, starting at
+        // // the 5' end and expanding towards 3', but either direction will do), and length, up
+        // // to the other end.
+        //
+        // for val_5p in 0..len_untrimmed - MIN_PRIMER_LEN {
+        //     for len in MIN_PRIMER_LEN..len_untrimmed - val_5p {
+        //         let val_3p = len_untrimmed - (val_5p + len);
+        //
+        //         if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
+        //             *tune_val = val_3p;
+        //         }
+        //         if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_5p {
+        //             *tune_val = val_5p;
+        //         }
+        //         self.run_calcs(ion);
+        //
+        //         if let Some(metrics) = &self.volatile.metrics {
+        //             if metrics.quality_score > best_score {
+        //                 best_val_5p = val_5p;
+        //                 best_val_3p = val_3p;
+        //                 best_score = metrics.quality_score;
+        //             }
+        //         }
+        //     }
+        // }
 
-                if let Some(metrics) = &self.volatile.metrics {
-                    if metrics.quality_score > best_score {
-                        best_val_5p = val_5p;
-                        best_val_3p = val_3p;
-                        best_score = metrics.quality_score;
-                    }
-                }
-            }
-        }
-
-        if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_5p {
-            // This is getting a bit verbose.
+        if let Some(tune_val) = self.volatile.tune_setting.val_5p_mut() {
             *tune_val = best_val_5p;
         }
-
-        if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
-            // This is getting a bit verbose.
+        if let Some(tune_val) = self.volatile.tune_setting.val_3p_mut() {
             *tune_val = best_val_3p;
         }
+
         self.run_calcs(ion);
     }
 
     /// Perform calculations on primer quality and related data. Run this when the sequence changes,
     /// the tuning values change etc.
+    ///
+    /// This also syncs the active sequence based on the tune settings.
     pub fn run_calcs(&mut self, ion_concentrations: &IonConcentrations) {
         let full_len = self.volatile.sequence_input.len();
         let mut start = 0;
         let mut end = full_len;
 
-        if let TuneSetting::Enabled(i) = self.volatile.tunable_5p {
-            start = i;
+        // if let TuneSetting::Enabled(i) = self.volatile.tunable_5p {
+        if let Some(i) = self.volatile.tune_setting.val_5p_mut() {
+            start = *i;
         }
 
-        if let TuneSetting::Enabled(i) = self.volatile.tunable_3p {
-            end = if i > full_len {
+        // if let TuneSetting::Enabled(i) = self.volatile.tunable_3p {
+        if let Some(i) = self.volatile.tune_setting.val_3p_mut() {
+            end = if *i > full_len {
                 // Prevents an overrun.
                 0
             } else {
-                full_len - i
+                full_len - *i
             };
         }
 
@@ -376,12 +388,13 @@ pub struct PrimerData {
     // tunable_end: TunableEnd,
     /// These fields control if a given primer end is fixed (Eg marking the start of an insert,
     /// marking the insert point in a vector etc) or if we can tune its length to optimize the primer.
-    pub tunable_5p: TuneSetting,
-    pub tunable_3p: TuneSetting,
+    // todo: You need to be able to mark cloning glue primer stops.
+    // pub tunable_5p: TuneSetting,
+    // pub tunable_3p: TuneSetting,
+    pub tune_setting: TuneSetting,
+
     /// These seq_removed fields are redundant with primer and tune settings. We use them to cache
     /// the actual sequences that are removed for display purposes.
-    // seq_removed_5p: Seq,
-    // seq_removed_3p: Seq
     pub seq_removed_5p: String,
     pub seq_removed_3p: String,
     /// todo: Which direction is the range, if the direction is reverse?
@@ -396,24 +409,92 @@ impl PrimerData {
     }
 }
 
+// #[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
+// pub enum TuneSetting {
+//     Disabled,
+//     /// Inner: Offset index; this marks the distance from the respective ends that the sequence is attentuated to.
+//     Enabled(usize),
+// }
+
+#[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
+pub enum TuneSetting {
+    /// Inner: Offset index; this marks the distance from the respective ends that the sequence is attentuated to.
+    /// The 3' end is the anchor.
+    Only5(usize),
+    /// The 5' end is the anchor.
+    Only3(usize),
+    /// There is a central anchor, and both ends are tuanble. We use this for the insert primers of
+    /// SLIC and FC.
+    Both((usize, usize, usize)), // (Anchor from 5', 5p, 3p)
+
+    Disabled,
+    // Enabled(usize),
+}
+
 impl Default for TuneSetting {
     fn default() -> Self {
         Self::Disabled
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
-pub enum TuneSetting {
-    Disabled,
-    /// Inner: Offset index; this marks the distance from the respective ends that the sequence is attentuated to.
-    Enabled(usize),
-}
-
 impl TuneSetting {
-    pub fn toggle(&mut self) {
+    pub fn toggle_5p(&mut self) {
         *self = match self {
-            Self::Disabled => Self::Enabled(0),
-            _ => Self::Disabled,
+            Self::Only5(_) => Self::Disabled,
+            Self::Only3(_) => Self::Both((0, 10, 0)), // todo: 20? Hmm.
+            Self::Both(_) => Self::Only3(0),
+            Self::Disabled => Self::Only5(0),
+        }
+    }
+    pub fn toggle_3p(&mut self) {
+        *self = match self {
+            Self::Only3(_) => Self::Disabled,
+            Self::Only5(_) => Self::Both((0, 10, 0)), // todo: 20? Hmm.
+            Self::Both(_) => Self::Only5(0),
+            Self::Disabled => Self::Only3(0),
+        }
+    }
+
+    /// If the 5p end is tunable, get its valu.
+    pub fn val_5p(&self) -> Option<usize> {
+        match self {
+            Self::Only5(mut v) => Some(v),
+            Self::Both(v) => Some(v.1),
+            _ => None,
+        }
+    }
+
+    /// If the 5p end is tunable, get its value.
+    pub fn val_3p(&self) -> Option<usize> {
+        match self {
+            Self::Only3(mut v) => Some(v),
+            Self::Both(v) => Some(v.2),
+            _ => None,
+        }
+    }
+
+    /// If the 5p end is tunable, get its value, mutably.
+    pub fn val_5p_mut(&mut self) -> Option<&mut usize> {
+        match self {
+            Self::Only5(ref mut v) => Some(v),
+            Self::Both(ref mut v) => Some(&mut v.1),
+            _ => None,
+        }
+    }
+
+    /// If the 5p end is tunable, get its value, mutably.
+    pub fn val_3p_mut(&mut self) -> Option<&mut usize> {
+        match self {
+            Self::Only3(ref mut v) => Some(v),
+            Self::Both(ref mut v) => Some(&mut v.2),
+            _ => None,
+        }
+    }
+
+    pub fn tunable(&self) -> bool {
+        match self {
+            Self::Disabled => false,
+            _ => true,
         }
     }
 }
@@ -444,8 +525,9 @@ pub fn make_cloning_primers(state: &mut State) {
         let insert_fwd_data = PrimerData {
             sequence_input,
             // Both ends are  tunable, since this glues the insert to the vector
-            tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tune_setting: TuneSetting::Both((0, DEFAULT_TRIM_AMT, DEFAULT_TRIM_AMT)),
+            // tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            // tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
         };
 
@@ -453,8 +535,9 @@ pub fn make_cloning_primers(state: &mut State) {
         let insert_rev_data = PrimerData {
             sequence_input,
             // Both ends are tunable, since this glues the insert to the vector
-            tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tune_setting: TuneSetting::Both((0, DEFAULT_TRIM_AMT, DEFAULT_TRIM_AMT)),
+            // tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            // tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
         };
 
@@ -462,17 +545,20 @@ pub fn make_cloning_primers(state: &mut State) {
         let vector_fwd_data = PrimerData {
             sequence_input,
             // 5' is non-tunable: This is the insert location.
-            tunable_5p: TuneSetting::Disabled,
-            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tune_setting: TuneSetting::Only3(DEFAULT_TRIM_AMT),
+            // tunable_5p: TuneSetting::Disabled,
+            // tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
         };
 
         let sequence_input = seq_to_str(&primers.vector_rev.sequence);
         let vector_rev_data = PrimerData {
             sequence_input,
-            tunable_5p: TuneSetting::Disabled,
+            // tunable_5p: TuneSetting::Disabled,
             // 3' is non-tunable: This is the insert location.
-            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tune_setting: TuneSetting::Only3(DEFAULT_TRIM_AMT), // todo: Which one??
+
+            // tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
         };
 
@@ -511,16 +597,18 @@ pub fn make_amplification_primers(state: &mut State) {
 
         let primer_fwd_data = PrimerData {
             sequence_input,
-            tunable_5p: TuneSetting::Disabled,
-            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tune_setting: TuneSetting::Only3(DEFAULT_TRIM_AMT),
+            // tunable_5p: TuneSetting::Disabled,
+            // tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
         };
 
         let sequence_input = seq_to_str(&primers.rev.sequence);
         let primer_rev_data = PrimerData {
             sequence_input,
-            tunable_5p: TuneSetting::Disabled,
-            tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tune_setting: TuneSetting::Only3(DEFAULT_TRIM_AMT),
+            // tunable_5p: TuneSetting::Disabled,
+            // tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
         };
 

@@ -303,6 +303,11 @@ fn handle_input(state: &mut State, ctx: &Context) {
                 if ip.key_pressed(Key::ArrowDown) {
                     move_cursor = Some(state.ui.nt_chars_per_row as i32);
                 }
+                // Escape key: Remove the text cursor.
+                if ip.key_pressed(Key::Escape) {
+                    move_cursor = None;
+                    state.ui.text_cursor_i = None;
+                }
             }
 
             if let Some(i) = state.ui.text_cursor_i {
