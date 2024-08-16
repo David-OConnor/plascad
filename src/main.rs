@@ -10,7 +10,13 @@
 // todo: Break out Generic into its own mod?
 
 // Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
-use std::{env, io, ops::RangeInclusive, path::{Path, PathBuf}, str::FromStr, sync::Arc};
+use std::{
+    env, io,
+    ops::RangeInclusive,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+};
 
 use bincode::{Decode, Encode};
 use copypasta::{ClipboardContext, ClipboardProvider};
@@ -31,7 +37,7 @@ use crate::{
     },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
-    primer::TM_TARGET,
+    primer::{TuneSetting, TM_TARGET},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
         find_orf_matches, find_search_matches, seq_to_str, Feature, FeatureDirection, FeatureType,
@@ -39,7 +45,6 @@ use crate::{
     },
     tags::TagMatch,
 };
-use crate::primer::TuneSetting;
 
 mod amino_acids;
 mod feature_db_load;
@@ -78,7 +83,6 @@ fn check_all(data: &PlasmidData) {
 impl eframe::App for State {
     /// This is the GUI's event loop.
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
-
         gui::draw(self, ctx);
     }
 }
@@ -296,6 +300,12 @@ struct StateUi {
     search_input: String,
     /// Used to trigger a search focus on hitting ctrl+f
     highlight_search_input: bool,
+    /// Activated when the user selects the search box; disables character insertion.
+    search_active: bool,
+    /// This is used for selecting nucleotides on the sequence viewer.
+    dragging: bool,
+    /// 1-based indexing.
+    text_selection: Option<(usize, usize)>,
 }
 
 impl Default for StateUi {
@@ -311,8 +321,8 @@ impl Default for StateUi {
             selected_item: Default::default(),
             seq_visibility: Default::default(),
             hide_map_feature_editor: true,
-            cursor_pos: None,
-            cursor_seq_i: None,
+            cursor_pos: Default::default(),
+            cursor_seq_i: Default::default(),
             file_dialogs: Default::default(),
             show_origin_change: Default::default(),
             new_origin: Default::default(),
@@ -321,7 +331,10 @@ impl Default for StateUi {
             cloning_insert: Default::default(),
             nt_chars_per_row: Default::default(),
             search_input: Default::default(),
-            highlight_search_input: false,
+            highlight_search_input: Default::default(),
+            search_active: Default::default(),
+            dragging: Default::default(),
+            text_selection: Default::default(),
         }
     }
 }
@@ -539,8 +552,16 @@ impl State {
         result
     }
 
-    /// Copy the sequence of the selected feature or primer to the clipboard, if applicable.
+    /// Copy the sequence of the selected text selection, feature or primer to the clipboard, if applicable.
     pub fn copy_feature(&self) {
+        // Text selection takes priority.
+        if let Some((start, end)) = self.ui.text_selection {
+            let seq = &self.generic.seq[start - 1..end];
+
+            let mut ctx = ClipboardContext::new().unwrap();
+            ctx.set_contents(seq_to_str(seq)).unwrap();
+        }
+
         match self.ui.selected_item {
             Selection::Feature(i) => {
                 let feature = &self.generic.features[i];
@@ -579,15 +600,11 @@ fn main() {
     };
 
     let path = PathBuf::from_str(&file_path).unwrap();
-    let mut state = State::load(
-        &path,
-        &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap(),
-    );
+    let mut state = State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
 
     if window_title_initial != WINDOW_TITLE {
         state.path_loaded = Some(path);
     }
-
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);
@@ -600,5 +617,10 @@ fn main() {
         ..Default::default()
     };
 
-    eframe::run_native(&window_title_initial, options, Box::new(|_cc| Ok(Box::new(state)))).unwrap();
+    eframe::run_native(
+        &window_title_initial,
+        options,
+        Box::new(|_cc| Ok(Box::new(state))),
+    )
+    .unwrap();
 }

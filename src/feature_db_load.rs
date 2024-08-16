@@ -4,8 +4,17 @@
 
 use crate::sequence::{Feature, Nucleotide};
 
+/// todo: Abstract this out later, if it makes sense.
+fn find_his_tags(seq: &[Nucleotide]) -> Vec<Feature> {
+    let mut result = Vec::new();
+
+    result
+}
+
 pub fn find_features(seq: &[Nucleotide]) -> Vec<Feature> {
     let mut result = Vec::new();
+
+    result.append(&mut find_his_tags(seq));
 
     result
 }

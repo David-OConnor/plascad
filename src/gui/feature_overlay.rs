@@ -22,11 +22,48 @@ use crate::{
     util::get_feature_ranges,
     Color,
 };
+use crate::gui::seq_view::COLOR_CURSOR;
 
 const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?
 
+/// We include this in this module because visually, it is very similar to the overlay.
+/// Note: At least for now, selection uses 1-based indexing.
+pub fn draw_selection(selection: &(usize, usize), data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
+    let mut result = Vec::new();
+
+    if selection.0 < 1 || selection.1 > data.seq_len {
+        eprintln!("Invalid sequence index");
+        return result;
+    }
+
+    // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
+    // todo in this way.
+    let selection_ranges = get_feature_ranges(
+        // todo: QC off-by-one.
+        &(selection.0 - 1..selection.1),
+        &data.row_ranges,
+    );
+
+    let selection_ranges_px: Vec<(Pos2, Pos2)> = selection_ranges
+        .iter()
+        .map(|r| (data.seq_i_to_px_rel(r.start - 0), data.seq_i_to_px_rel(r.end - 1)))
+        .collect();
+
+    result.append(&mut feature_seq_overlay(
+        &selection_ranges_px,
+        FeatureType::Selection,
+        (COLOR_CURSOR.r(), COLOR_CURSOR.g(), COLOR_CURSOR.b()),
+        VERTICAL_OFFSET_FEATURE,
+        FeatureDirection::None,
+        "",
+        ui,
+    ));
+
+    result
+}
+
 pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
-    let mut shapes = Vec::new();
+    let mut result = Vec::new();
 
     for feature in features {
         // Source features generally take up the whole plasmid length.
@@ -58,7 +95,7 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
             &feature.label
         };
 
-        shapes.append(&mut feature_seq_overlay(
+        result.append(&mut feature_seq_overlay(
             &feature_ranges_px,
             feature.feature_type,
             feature.color(),
@@ -68,7 +105,7 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
             ui,
         ));
     }
-    shapes
+    result
 }
 
 /// Make a visual indicator on the sequence view for a feature, including primers.
@@ -145,10 +182,23 @@ pub fn feature_seq_overlay(
             _ => (),
         }
 
-        result.push(Shape::Path(PathShape::closed_line(
-            vec![top_left, bottom_left, bottom_right, top_right],
-            stroke,
-        )));
+        let shape = match feature_type {
+            FeatureType::Selection => {
+                Shape::Path(PathShape::convex_polygon(
+                    vec![top_left, bottom_left, bottom_right, top_right],
+                    stroke.color,
+                    stroke,
+                ))
+            }
+            _ => {
+                Shape::Path(PathShape::closed_line(
+                    vec![top_left, bottom_left, bottom_right, top_right],
+                    stroke,
+                ))
+            }
+        };
+
+        result.push(shape);
     }
 
     // todo: Examine.

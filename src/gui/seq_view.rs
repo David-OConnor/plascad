@@ -20,6 +20,7 @@ use crate::{
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
     State, StateUi,
 };
+use crate::gui::feature_overlay::draw_selection;
 
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
@@ -30,6 +31,7 @@ pub const COLOR_CODING_REGION: Color32 = Color32::from_rgb(255, 0, 170);
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 pub const COLOR_CURSOR: Color32 = Color32::from_rgb(255, 255, 0);
 pub const COLOR_SEARCH_RESULTS: Color32 = Color32::from_rgb(255, 255, 130);
+pub const COLOR_SELECTED_NTS: Color32 = Color32::from_rgb(255, 60, 255);
 
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 
@@ -225,7 +227,17 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                 }
             }
 
-            // This overrides reading frame matches.
+            // todo: We have inconsistencies in how we index across the board.
+            // todo: Try resolving using the inclusive range type, and standardizing to 1-based.
+            // todo: Resolve this one field at a time, from a working state.
+            if let Some((start, end)) = state.ui.text_selection{
+                let i_ = i + 1;
+                if start <= i_ && i_  < end {
+                    r = COLOR_SELECTED_NTS;
+                }
+            }
+
+            // This overrides reading frame matches and text selection.
             for search_result in &state.volatile.search_matches {
                 if search_result.range.contains(&i) {
                     r = COLOR_SEARCH_RESULTS;
@@ -347,13 +359,13 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     // This is set up so that a click outside the text area won't reset the cursor.
                     if state.ui.cursor_seq_i.is_some() {
                         state.ui.text_cursor_i = state.ui.cursor_seq_i;
+                        state.ui.search_active = false;
+                        state.ui.text_selection = None;
                     }
                     state.ui.click_pending_handle = false;
                 }
 
                 shapes.extend(draw_seq_indexes(&data, ui));
-
-                shapes.append(&mut draw_nts(state, &data, ui));
 
                 if state.ui.seq_visibility.show_primers {
                     shapes.append(&mut primer_arrow::draw_primers(
@@ -370,6 +382,14 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 if state.ui.seq_visibility.show_res {
                     shapes.append(&mut draw_re_sites(state, &data, ui));
                 }
+
+                if let Some(selection) = &state.ui.text_selection {
+                    shapes.append(&mut draw_selection(selection, &data, ui));
+                }
+
+                // Draw nucleotides arfter the selection, so it shows through the fill.
+                shapes.append(&mut draw_nts(state, &data, ui));
+
 
                 shapes.append(&mut draw_text_cursor(state.ui.text_cursor_i, &data));
 

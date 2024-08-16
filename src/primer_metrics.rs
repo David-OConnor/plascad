@@ -4,7 +4,7 @@ use bincode::{Decode, Encode};
 
 use crate::{
     melting_temp_calcs,
-    primer::{calc_gc, IonConcentrations, Primer, MIN_PRIMER_LEN},
+    primer::{calc_gc, IonConcentrations, Primer, TuneSetting, MIN_PRIMER_LEN},
     sequence::{
         Nucleotide,
         Nucleotide::{C, G},
@@ -12,7 +12,6 @@ use crate::{
     util::{map_linear, remove_duplicates},
     TM_TARGET,
 };
-use crate::primer::TuneSetting;
 
 /// Metrics related to primer quality.
 #[derive(Clone, Debug, Default, Encode, Decode)]
@@ -63,7 +62,7 @@ impl PrimerMetrics {
         // This is currently a linear map, between 0 and 1.
         self.gc_score = 1. - (self.gc_portion - GC_TARGET).abs() * 2.;
 
-// todo: This is not sophisticated enough, but is a start; we need to assess the length on both
+        // todo: This is not sophisticated enough, but is a start; we need to assess the length on both
         // todo sides of the anchor individually.
         self.len_score = if dual_end {
             let max_falloff_dist = 16.;
@@ -73,7 +72,11 @@ impl PrimerMetrics {
                 36..=48 => 1.,
                 _ => {
                     // More gentle penalty for long primers.
-                    let max_falloff = if self.seq_len > ideal as usize { ideal + max_falloff_dist } else { ideal - max_falloff_dist };
+                    let max_falloff = if self.seq_len > ideal as usize {
+                        ideal + max_falloff_dist
+                    } else {
+                        ideal - max_falloff_dist
+                    };
                     map_linear(
                         (ideal - self.seq_len as f32).abs(),
                         (0., max_falloff),
@@ -89,7 +92,11 @@ impl PrimerMetrics {
                 18..=24 => 1.,
                 _ => {
                     // More gentle penalty for long primers.
-                    let max_falloff = if self.seq_len > ideal as usize { ideal + max_falloff_dist } else { ideal - max_falloff_dist };
+                    let max_falloff = if self.seq_len > ideal as usize {
+                        ideal + max_falloff_dist
+                    } else {
+                        ideal - max_falloff_dist
+                    };
                     map_linear(
                         (ideal - self.seq_len as f32).abs(),
                         (0., max_falloff),

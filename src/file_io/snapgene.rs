@@ -32,14 +32,13 @@ use crate::{
         },
         GenericData,
     },
-    primer::Primer,
+    primer::{Primer, PrimerData},
     sequence::{
         seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq,
         SeqTopology,
     },
     util::{color_from_hex, color_to_hex},
 };
-use crate::primer::PrimerData;
 
 const COOKIE_PACKET_LEN: usize = 14;
 
@@ -196,6 +195,7 @@ fn parse_dna(payload: &[u8]) -> io::Result<(Seq, SeqTopology)> {
 // todo: Consider a sub-module for XML parsing.
 mod feature_xml {
     use std::str::FromStr;
+
     use serde::{Deserialize, Deserializer, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -225,7 +225,11 @@ mod feature_xml {
     pub struct FeatureSnapGene {
         #[serde(rename = "@type")]
         pub feature_type: Option<String>,
-        #[serde(rename = "@directionality", deserialize_with = "deserialize_directionality", default)]
+        #[serde(
+            rename = "@directionality",
+            deserialize_with = "deserialize_directionality",
+            default
+        )]
         pub directionality: Option<u8>,
         #[serde(rename = "@name", default)]
         pub name: Option<String>,

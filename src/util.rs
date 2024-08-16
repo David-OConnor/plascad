@@ -1,6 +1,12 @@
-use std::{cmp::min, collections::HashSet, io, num::ParseIntError, ops::Range};
-use std::io::ErrorKind;
-use std::num::IntErrorKind;
+use std::{
+    cmp::min,
+    collections::HashSet,
+    io,
+    io::ErrorKind,
+    num::{IntErrorKind, ParseIntError},
+    ops::Range,
+};
+
 use eframe::egui::{pos2, Pos2};
 
 use crate::{
@@ -85,6 +91,7 @@ pub fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
 /// Given an index range of a feature, return sequence ranges for each row the feature occupies, that
 /// contain the sequence. This, after converting to pixels, corresponds to how we draw features and primers.
 /// This is used to draw overlays over the sequence that line up with a given index range.
+/// todo: This should be RangeInclusive.
 pub fn get_feature_ranges(
     feature_rng: &Range<usize>,
     all_ranges: &[Range<usize>],
@@ -133,18 +140,12 @@ pub fn color_from_hex(hex: &str) -> io::Result<Color> {
         return Err(io::Error::new(ErrorKind::InvalidData, "Invalid color"));
     }
 
-    let r = u8::from_str_radix(&hex[0..2], 16).map_err(|_| io::Error::new(
-        ErrorKind::InvalidData,
-        "Invalid color radix",
-    ))?;
-    let g = u8::from_str_radix(&hex[2..4], 16).map_err(|_| io::Error::new(
-        ErrorKind::InvalidData,
-        "Invalid color radix",
-    ))?;
-    let b = u8::from_str_radix(&hex[4..6], 16).map_err(|_| io::Error::new(
-        ErrorKind::InvalidData,
-        "Invalid color radix",
-    ))?;
+    let r = u8::from_str_radix(&hex[0..2], 16)
+        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Invalid color radix"))?;
+    let g = u8::from_str_radix(&hex[2..4], 16)
+        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Invalid color radix"))?;
+    let b = u8::from_str_radix(&hex[4..6], 16)
+        .map_err(|_| io::Error::new(ErrorKind::InvalidData, "Invalid color radix"))?;
 
     Ok((r, g, b))
 }
@@ -176,7 +177,6 @@ pub fn change_origin(state: &mut State) {
     // todo: What else to update?
     state.sync_seq_related(None);
 }
-
 
 // use std::env::current_exe;
 // use winreg::enums::HKEY_CURRENT_USER;

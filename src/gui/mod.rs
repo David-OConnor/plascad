@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::FromStr};
+use std::{mem, path::PathBuf, str::FromStr};
 
 use eframe::{
     egui,
@@ -13,16 +13,17 @@ use url::Url;
 
 use crate::{
     file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
-    gui::primer_qc::primer_details,
+    gui::{primer_qc::primer_details, save::load_import},
     sequence::{seq_from_str, seq_to_str, Feature, FeatureType, Nucleotide},
     util, Selection, State,
 };
-use crate::gui::save::load_import;
+use crate::gui::input::handle_input;
 
 mod circle;
 mod cloning;
 mod feature_overlay;
 mod feature_table;
+mod input;
 mod metadata;
 pub mod navigation;
 mod pcr;
@@ -226,173 +227,7 @@ pub fn set_window_title(path_loaded: &Option<PathBuf>, ui: &mut Ui) {
         None => WINDOW_TITLE.to_owned(),
     };
 
-    ui.ctx()
-        .send_viewport_cmd(ViewportCommand::Title(title));
-}
-
-/// Handles keyboard and mouse input not associated with a widget.
-/// todo: MOve to a separate module if this becomes complex.
-fn handle_input(state: &mut State, ui: &mut Ui) {
-    let mut file_loaded = false;
-
-    ui.ctx().input(|ip| {
-        // Check for file drop
-        if let Some(dropped_files) = ip.raw.dropped_files.first() {
-            if let Some(path) = &dropped_files.path {
-                load_import(state, &path);
-
-                state.sync_pcr();
-                state.sync_primer_metrics();
-                state.sync_seq_related(None);
-                file_loaded = true;
-            }
-        }
-
-        if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
-            state.generic.primers.push(Default::default());
-        }
-
-        if ip.key_pressed(Key::S) && ip.modifiers.ctrl && !ip.modifiers.shift {
-            if let Err(e) = save(
-                &PathBuf::from(DEFAULT_SAVE_FILE),
-                &StateToSave::from_state(state),
-            ) {
-                println!("Error saving: {e}");
-            }
-        }
-
-        if ip.key_pressed(Key::N) && ip.modifiers.ctrl {
-            state.reset();
-        }
-
-        // Copy; for now, the highlighted feature.
-        if ip.key_pressed(Key::C) && ip.modifiers.ctrl {
-            println!("COPY key");
-        }
-
-        if ip.key_pressed(Key::F) && ip.modifiers.ctrl {
-            state.ui.highlight_search_input = true;
-            // Disable the cursor, so we don't insert nucleotides while searching!
-            state.ui.text_cursor_i = None;
-        }
-
-        if ip.key_pressed(Key::S) && ip.modifiers.ctrl && ip.modifiers.shift {
-            state.ui.file_dialogs.save.select_file();
-        }
-
-        if ip.key_pressed(Key::O) && ip.modifiers.ctrl {
-            state.ui.file_dialogs.load.select_file();
-        }
-
-        state.ui.cursor_pos = ip.pointer.hover_pos().map(|pos| (pos.x, pos.y));
-
-        if ip.pointer.button_clicked(PointerButton::Primary) {
-            state.ui.click_pending_handle = true;
-        }
-
-        // This event match is not specific to the seqe page
-        for event in &ip.events {
-            match event {
-                Event::Cut => state.copy_feature(),
-                Event::Copy => state.copy_feature(),
-                Event::Paste(pasted_text) => {}
-                _ => (),
-            }
-        }
-
-        if let Page::Sequence = state.ui.page {
-            // This is a bit awk; borrow errors.
-            let mut move_cursor: Option<i32> = None;
-            // todo: How can we control the rate?
-            if let Some(i) = &mut state.ui.text_cursor_i {
-                if ip.key_pressed(Key::ArrowLeft) {
-                    move_cursor = Some(-1);
-                }
-                if ip.key_pressed(Key::ArrowRight) {
-                    move_cursor = Some(1);
-                }
-                if ip.key_pressed(Key::ArrowUp) {
-                    move_cursor = Some(-(state.ui.nt_chars_per_row as i32));
-                }
-                if ip.key_pressed(Key::ArrowDown) {
-                    move_cursor = Some(state.ui.nt_chars_per_row as i32);
-                }
-                // Escape key: Remove the text cursor.
-                if ip.key_pressed(Key::Escape) {
-                    move_cursor = None;
-                    state.ui.text_cursor_i = None;
-                }
-            }
-
-            if let Some(i) = state.ui.text_cursor_i {
-                // Add NTs.
-                if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
-                    state.insert_nucleotides(&[Nucleotide::A], i);
-                }
-                if ip.key_pressed(Key::T) {
-                    state.insert_nucleotides(&[Nucleotide::T], i);
-                }
-                if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
-                    state.insert_nucleotides(&[Nucleotide::C], i);
-                }
-                if ip.key_pressed(Key::G) {
-                    state.insert_nucleotides(&[Nucleotide::G], i);
-                }
-                if ip.key_pressed(Key::Backspace) && i > 0 {
-                    state.remove_nucleotides(i - 1..=i - 1);
-                }
-                if ip.key_pressed(Key::Delete) {
-                    state.remove_nucleotides(i..=i);
-                }
-
-                // Paste nucleotides
-                for event in &ip.events {
-                    match event {
-                        Event::Cut => {
-                            // state.remove_nucleotides();
-                            // move_cursor = Some(pasted_text.len() as i32);
-                        }
-                        Event::Copy => {}
-                        Event::Paste(pasted_text) => {
-                            state.insert_nucleotides(&seq_from_str(&pasted_text), i);
-                            move_cursor = Some(pasted_text.len() as i32);
-                        }
-                        _ => (),
-                    }
-                }
-            }
-
-            if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
-                move_cursor = Some(1);
-            }
-            if ip.key_pressed(Key::T) {
-                move_cursor = Some(1);
-            }
-            if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
-                move_cursor = Some(1);
-            }
-            if ip.key_pressed(Key::G) {
-                move_cursor = Some(1);
-            }
-
-            if ip.key_pressed(Key::Backspace) {
-                move_cursor = Some(-1);
-            }
-
-            if let Some(i) = &mut state.ui.text_cursor_i {
-                if let Some(amt) = move_cursor {
-                    let new_posit = *i as i32 + amt;
-                    if new_posit - 1 < state.generic.seq.len() as i32 {
-                        *i = new_posit as usize;
-                    }
-                }
-            }
-        }
-    });
-
-    if file_loaded {
-        set_window_title(&state.path_loaded, ui);
-    }
+    ui.ctx().send_viewport_cmd(ViewportCommand::Title(title));
 }
 
 pub fn draw(state: &mut State, ctx: &Context) {
@@ -433,17 +268,25 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             origin_change(state, ui);
 
+            let mut selection_avail = false;
+            if state.ui.text_selection.is_some() {
+                selection_avail = true;
+            }
             match state.ui.selected_item {
                 Selection::None => (),
                 _ => {
-                    ui.add_space(COL_SPACING);
-                    if ui
-                        .button("🗐")
-                        .on_hover_text("Copy the selected feature or primer. (Ctrl + C)")
-                        .clicked()
-                    {
-                        state.copy_feature()
-                    }
+                    selection_avail = true;
+                }
+            }
+
+            if selection_avail {
+                ui.add_space(COL_SPACING);
+                if ui
+                    .button("🗐")
+                    .on_hover_text("Copy the selected selection, feature or primer. (Ctrl + C)")
+                    .clicked()
+                {
+                    state.copy_feature()
                 }
             }
         });

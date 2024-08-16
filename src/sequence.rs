@@ -133,6 +133,8 @@ pub enum FeatureType {
     Source,
     Exon,
     Transcript,
+    /// Like Primer, this is not a real feature; we use it to draw the selection highlighted area.
+    Selection,
 }
 
 impl Default for FeatureType {
@@ -157,6 +159,7 @@ impl FeatureType {
             Self::Source => "Source",
             Self::Exon => "Exon",
             Self::Transcript => "Transcript",
+            Self::Selection => "",
         }
         .to_owned()
     }
@@ -175,6 +178,7 @@ impl FeatureType {
             Self::Source => (120, 70, 120),
             Self::Exon => (255, 255, 180),
             Self::Transcript => (180, 255, 180),
+            Self::Selection => (255, 255, 0),
         }
     }
 
@@ -215,6 +219,7 @@ impl FeatureType {
             Self::Source => "source",
             Self::Exon => "exon",
             Self::Transcript => "transcript",
+            Self::Selection => "",
         }
         .to_string()
     }

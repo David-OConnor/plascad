@@ -86,7 +86,7 @@ FASTA files contain sequence data, so using this format will result in the losso
 for SnapGene 2-way compatibility, use the GenBank format until this is resolved.
 
 
-#### Opening files with PlasCAD
+#### Associating files with PlasCAD
 If you wish to associate a file type (eg the native .pcad format) with PlasCAD, you must set it up manually with your operating 
 system, as PlasCAD does not have an installer. Example on Windows: *Right-click a file → Open With → Choose another app → 
 (Select where you saved the program) → Always.*

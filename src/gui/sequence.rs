@@ -115,6 +115,10 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             // todo: Not working
         }
 
+        if response.gained_focus() {
+            state.ui.search_active = true; // Disable character entries in the sequence.
+        }
+
         if response.changed {
             state.search_seq = seq_from_str(&state.ui.search_input);
             state.ui.search_input = seq_to_str(&state.search_seq); // Ensures only valid NTs are present.

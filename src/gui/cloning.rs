@@ -192,7 +192,6 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             let insert = state.ui.cloning_insert.seq_insert.clone();
             state.insert_nucleotides(&insert, state.cloning_insert_loc);
 
-
             let label = match state.ui.cloning_insert.feature_selected {
                 Some(i) => state.ui.cloning_insert.features_loaded[i].label.clone(),
                 None => "Cloning insert".to_owned(),

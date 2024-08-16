@@ -123,7 +123,7 @@ impl Primer {
         // };
 
         for val in 0..num_vals {
-    // We need to have this assignment in the loop to prevent borrow errors.
+            // We need to have this assignment in the loop to prevent borrow errors.
             let i = match &mut self.volatile.tune_setting {
                 TuneSetting::Only5(v) => v,
                 TuneSetting::Only3(v) => v,
@@ -163,7 +163,7 @@ impl Primer {
         let mut best_score = 0.;
 
         // As for single-ended, we assume this function only runs when both ends are marked tunable.
-        let (anchor,_, _) = match self.volatile.tune_setting {
+        let (anchor, _, _) = match self.volatile.tune_setting {
             TuneSetting::Both(v) => v,
             _ => return,
         };
@@ -177,7 +177,7 @@ impl Primer {
         let num_vals_3p = if anchor < MIN_PRIMER_LEN {
             0
         } else {
-            (len_untrimmed  - anchor) - MIN_PRIMER_LEN
+            (len_untrimmed - anchor) - MIN_PRIMER_LEN
         };
 
         // A nested loop: Try all combinations.
@@ -202,7 +202,7 @@ impl Primer {
             }
         }
 
-        let (_, i_5p,i_3p) = match &mut self.volatile.tune_setting {
+        let (_, i_5p, i_3p) = match &mut self.volatile.tune_setting {
             TuneSetting::Both(v) => v,
             _ => return,
         };
@@ -524,7 +524,11 @@ pub fn make_cloning_primers(state: &mut State) {
         let insert_fwd_data = PrimerData {
             sequence_input,
             // Both ends are  tunable, since this glues the insert to the vector
-            tune_setting: TuneSetting::Both((UNTRIMMED_LEN_INSERT, DEFAULT_TRIM_AMT, DEFAULT_TRIM_AMT)), // todo: TIe the anchor to the const
+            tune_setting: TuneSetting::Both((
+                UNTRIMMED_LEN_INSERT,
+                DEFAULT_TRIM_AMT,
+                DEFAULT_TRIM_AMT,
+            )), // todo: TIe the anchor to the const
             ..Default::default()
         };
 
@@ -532,7 +536,11 @@ pub fn make_cloning_primers(state: &mut State) {
         let insert_rev_data = PrimerData {
             sequence_input,
             // Both ends are tunable, since this glues the insert to the vector
-            tune_setting: TuneSetting::Both((UNTRIMMED_LEN_VECTOR, DEFAULT_TRIM_AMT, DEFAULT_TRIM_AMT)), // todo: QC
+            tune_setting: TuneSetting::Both((
+                UNTRIMMED_LEN_VECTOR,
+                DEFAULT_TRIM_AMT,
+                DEFAULT_TRIM_AMT,
+            )), // todo: QC
             ..Default::default()
         };
 
