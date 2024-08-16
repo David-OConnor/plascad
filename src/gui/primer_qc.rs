@@ -200,7 +200,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                     row.col(|ui| {
                         // todo: Cache this?
                         // let num_matches = data.matches_seq.len() + data.matches_vector_with_insert.len();
-                        let num_matches = primer.volatile.matches_seq.len() +  primer.volatile.matches_seq.len();
+                        let num_matches = primer.volatile.matches_seq.len();
                         ui.label(num_matches.to_string());
                     });
 
@@ -426,7 +426,7 @@ fn primer_tune_display(
                 (anchor, p3)
             }, // -2
             _ => {
-                if len_full >= 0 {
+                if len_full > 0 {
                 (len_full - 1, len_full - 1)
                 } else {
                     (len_full, len_full)

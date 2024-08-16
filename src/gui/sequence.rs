@@ -118,6 +118,9 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         if response.changed {
             state.search_seq = seq_from_str(&state.ui.search_input);
             state.ui.search_input = seq_to_str(&state.search_seq); // Ensures only valid NTs are present.
+
+            // todo: This still adds a single char, then blanks the cursor...
+            state.ui.text_cursor_i = None; // Make sure we are not adding chars.
             state.sync_search();
         };
 

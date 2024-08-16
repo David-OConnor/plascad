@@ -185,10 +185,13 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             // product.
             save_current_file(state);
 
+            // Make sure to create cloning primers before performing the insert, or the result will be wrong.
+            make_cloning_primers(state);
+
             // todo: Unecessary clone
             let insert = state.ui.cloning_insert.seq_insert.clone();
             state.insert_nucleotides(&insert, state.cloning_insert_loc);
-            make_cloning_primers(state);
+
 
             let label = match state.ui.cloning_insert.feature_selected {
                 Some(i) => state.ui.cloning_insert.features_loaded[i].label.clone(),

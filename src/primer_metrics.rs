@@ -46,13 +46,14 @@ impl PrimerMetrics {
     pub fn update_scores(&mut self, dual_end: bool) {
         const GC_TARGET: f32 = 0.5;
 
+        // todo: Do these weights have to add up to 1/total?
         const WEIGHT_TM: f32 = 1.;
         const WEIGHT_GC: f32 = 1.;
         const WEIGHT_STAB: f32 = 1.;
         // const WEIGHT_COMPLEXITY: f32 = 1.;
         const WEIGHT_DIMER: f32 = 1.;
-        const WEIGHT_LEN: f32 = 1.;
-        const WEIGHT_REPEATS: f32 = 1.;
+        const WEIGHT_LEN: f32 = 1.5;
+        const WEIGHT_REPEATS: f32 = 0.5;
 
         // todo: Instead of closeness to 59, should it be >54??
         // Also: 50-60C. And within 5C of the complement primer.
@@ -109,7 +110,12 @@ impl PrimerMetrics {
             _ => unreachable!(),
         };
 
-        self.repeats_score = match self.repeats {
+        let repeats = if dual_end {
+            self.repeats / 2 // todo: odd-number rounding
+        } else {
+            self.repeats
+        };
+        self.repeats_score = match repeats {
             0 => 1.,
             1 => 0.8,
             2 => 0.6,

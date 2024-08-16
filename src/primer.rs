@@ -19,6 +19,11 @@ use crate::{
 pub const MIN_PRIMER_LEN: usize = 10;
 pub const TM_TARGET: f32 = 59.; // Also used as a default for PCR GUI.
 
+// These lenghts should be long enough for reasonablely high-length primers, should that be
+// required for optimal characteristics.
+const UNTRIMMED_LEN_INSERT: usize = 30;
+const UNTRIMMED_LEN_VECTOR: usize = 32;
+
 // todo: Sort out your types.
 
 /// These are also relevant for FastCloning.
@@ -249,11 +254,6 @@ pub fn design_slic_fc_primers(
     seq_insert: &Seq,
     insert_loc: usize,
 ) -> Option<SlicPrimers> {
-    // These lenghts should be long enough for reasonablely high-length primers, should that be
-    // required for optimal characteristics.
-    const UNTRIMMED_LEN_INSERT: usize = 30;
-    const UNTRIMMED_LEN_VECTOR: usize = 32;
-
     let seq_len_vector = seq_vector.len();
     let seq_len_insert = seq_insert.len();
 
@@ -511,6 +511,7 @@ pub fn calc_gc(seq: &[Nucleotide]) -> f32 {
 }
 
 /// We run this to generate cloning primers when clicking the button
+/// Make sure to do this before inserting the insert into the sequence.
 pub fn make_cloning_primers(state: &mut State) {
     let seq_vector = &state.generic.seq;
     let seq_insert = &state.ui.cloning_insert.seq_insert;
@@ -523,9 +524,7 @@ pub fn make_cloning_primers(state: &mut State) {
         let insert_fwd_data = PrimerData {
             sequence_input,
             // Both ends are  tunable, since this glues the insert to the vector
-            tune_setting: TuneSetting::Both((0, DEFAULT_TRIM_AMT, DEFAULT_TRIM_AMT)),
-            // tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-            // tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tune_setting: TuneSetting::Both((UNTRIMMED_LEN_INSERT, DEFAULT_TRIM_AMT, DEFAULT_TRIM_AMT)), // todo: TIe the anchor to the const
             ..Default::default()
         };
 
@@ -533,9 +532,7 @@ pub fn make_cloning_primers(state: &mut State) {
         let insert_rev_data = PrimerData {
             sequence_input,
             // Both ends are tunable, since this glues the insert to the vector
-            tune_setting: TuneSetting::Both((0, DEFAULT_TRIM_AMT, DEFAULT_TRIM_AMT)),
-            // tunable_5p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
-            // tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
+            tune_setting: TuneSetting::Both((UNTRIMMED_LEN_VECTOR, DEFAULT_TRIM_AMT, DEFAULT_TRIM_AMT)), // todo: QC
             ..Default::default()
         };
 
@@ -544,8 +541,6 @@ pub fn make_cloning_primers(state: &mut State) {
             sequence_input,
             // 5' is non-tunable: This is the insert location.
             tune_setting: TuneSetting::Only3(DEFAULT_TRIM_AMT),
-            // tunable_5p: TuneSetting::Disabled,
-            // tunable_3p: TuneSetting::Enabled(DEFAULT_TRIM_AMT),
             ..Default::default()
         };
 
