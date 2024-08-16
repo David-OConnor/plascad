@@ -26,6 +26,9 @@ This allows primer length to be automatically or manually changed to optimize th
 one or more primer end as not having a fixed starting point, and providing more-than-expected nucleotides of the matching 
 sequence on this end. The end point can then be adjusted to optimize primer qualities.
 
+When both ends are marked as tunable, PlasCAD assumes this primer is for attaching two DNA fragments together, as in SLIC and FC
+cloning.
+
 
 ### Primer generation for SLIC and FastCloning
 Given the sequences for an insert, a vector, and insertion point, it will generate primers suitable for SLIC and FastCloning.
@@ -70,14 +73,23 @@ to handle GenBank parsing and writing.
 ### When to use each file format
 If you don't have interoperability requirements, you can use PlasCAD's own file format (.pcad extension) using the *Save* and *Load* buttons. This is a binary format that results in smaller file sizes (eg 4-10x smaller) than the others, due to using 2-bits to store each nucelotide, and a compact format in general.
 
-[GenBank](https://www.ncbi.nlm.nih.gov/genbank/) and SnapGene are popular formats, and provide the best interoperability with other software. [AddGene](https://www.addgene.org/) and other resources have files available in these formats.
+[GenBank](https://www.ncbi.nlm.nih.gov/genbank/) and SnapGene are popular formats, and provideinteroperability with other software. [AddGene](https://www.addgene.org/) and other resources have files available in these formats.
+
+PlasCAD currently cannot process all data in the DNA format, nor can it produce a DNA file capable of being opened by SnapGene.
+This means you can open DNA files and get most of the useful data, but we do not recommend saving in them. With this in mind, **GenBank is the best format for
+compatibility with other software**.
 
 FASTA files contain sequence data, so using this format will result in the lossof feature and primer data.
 
-GenBank, SnapGene, and PlasCAD files are all generally compatible with each other; they can be switched between freely. However, PlasCAD currently does not support some features from the other formats, including Qualifiers.
 
 **Important**: This program currently does not produce SnapGene native format files that can be opened by SnapGene. If looking
 for SnapGene 2-way compatibility, use the GenBank format until this is resolved.
+
+
+#### Opening files with PlasCAD
+If you wish to associate a file type (eg the native .pcad format) with PlasCAD, you must set it up manually with your operating 
+system, as PlasCAD does not have an installer. Example on Windows: *Right-click a file → Open With → Choose another app → 
+(Select where you saved the program) → Always.*
 
 
 ## Why another plasmid editor
@@ -90,9 +102,11 @@ Also of note, the native file format this program uses is more compact, includin
 
 ## Near-term plans
 - QCing plasmids for toxic proteins, and various forms of error
-- QC primers for problems in context of plasmids. (Eg multiple binding sites)
+- QC primers for problems in context of plasmids. (Eg multiple/partial binding sites)
 - Identifying secondary structures, hairpins etc
 - Utility features for specific applications
+- More robust editing features
+- Better handling of overlapping features
 
 
 ## Calculations used 

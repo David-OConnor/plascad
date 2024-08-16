@@ -1,5 +1,6 @@
-use std::{cmp::min, collections::HashSet, num::ParseIntError, ops::Range};
-
+use std::{cmp::min, collections::HashSet, io, num::ParseIntError, ops::Range};
+use std::io::ErrorKind;
+use std::num::IntErrorKind;
 use eframe::egui::{pos2, Pos2};
 
 use crate::{
@@ -125,12 +126,25 @@ pub fn get_feature_ranges(
     result
 }
 
-pub fn color_from_hex(hex: &str) -> Result<Color, ParseIntError> {
+pub fn color_from_hex(hex: &str) -> io::Result<Color> {
     let hex = &hex[1..]; // Remove the leading #
 
-    let r = u8::from_str_radix(&hex[0..2], 16)?;
-    let g = u8::from_str_radix(&hex[2..4], 16)?;
-    let b = u8::from_str_radix(&hex[4..6], 16)?;
+    if hex.len() < 6 {
+        return Err(io::Error::new(ErrorKind::InvalidData, "Invalid color"));
+    }
+
+    let r = u8::from_str_radix(&hex[0..2], 16).map_err(|_| io::Error::new(
+        ErrorKind::InvalidData,
+        "Invalid color radix",
+    ))?;
+    let g = u8::from_str_radix(&hex[2..4], 16).map_err(|_| io::Error::new(
+        ErrorKind::InvalidData,
+        "Invalid color radix",
+    ))?;
+    let b = u8::from_str_radix(&hex[4..6], 16).map_err(|_| io::Error::new(
+        ErrorKind::InvalidData,
+        "Invalid color radix",
+    ))?;
 
     Ok((r, g, b))
 }
@@ -162,3 +176,26 @@ pub fn change_origin(state: &mut State) {
     // todo: What else to update?
     state.sync_seq_related(None);
 }
+
+
+// use std::env::current_exe;
+// use winreg::enums::HKEY_CURRENT_USER;
+// use winreg::RegKey;
+//
+// /// Associate file extensions in Windows. Requires the program to be run as an administrator.
+// fn associate_windows_file_extension() -> io::Result<()> {
+//     let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+//
+//     let extension_key = hkcu.create_subkey(r"Software\Classes\.pcad")?;
+//     extension_key.set_value("", &"pcadfile")?;
+//
+//     let file_type_key = hkcu.create_subkey(r"Software\Classes\pcadfile")?;
+//     file_type_key.set_value("", &"My PCAD File")?;
+//
+//     let exe_path = current_exe()?.to_str().unwrap().to_string();
+//
+//     let command_key = hkcu.create_subkey(r"Software\Classes\pcadfile\shell\open\command")?;
+//     command_key.set_value("", &format!("\"{}\" \"%1\"", exe_path))?;
+//
+//     Ok(())
+// }

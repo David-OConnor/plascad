@@ -5,7 +5,6 @@
 //! (NIH article on GenBank)[https://www.ncbi.nlm.nih.gov/genbank/]
 
 use std::{
-    collections::HashMap,
     fs::File,
     io::{self, ErrorKind, Write},
     mem,

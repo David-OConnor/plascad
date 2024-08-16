@@ -193,7 +193,6 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         state.sync_pcr();
         state.sync_primer_metrics();
         state.sync_seq_related(None);
-        state.ui.seq_input = seq_to_str(&state.generic.seq);
 
         set_window_title(&state.path_loaded, ui);
     }
@@ -205,6 +204,7 @@ pub fn load_import(state: &mut State, path: &Path) {
         match extension.to_lowercase().as_ref() {
             "pcad" => {
                 *state = State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+                state.path_loaded = Some(path.to_owned());
             }
             // Does this work for FASTQ too?
             "fasta" => {
@@ -212,16 +212,22 @@ pub fn load_import(state: &mut State, path: &Path) {
                     state.generic.seq = seq;
                     state.generic.metadata.plasmid_name = id;
                     state.generic.metadata.comments = vec![description];
+                    // FASTA is seq-only data, so don't attempt to save over it.
+                    state.path_loaded = None;
                 }
             }
             "dna" => {
                 if let Ok(data) = import_snapgene(&path) {
                     state.generic = data;
+                    // We do not mark the path as opened if using SnapGene, since we currently can  not
+                    // fully understand the format, nor make a native file SnapGene can open.
+                    state.path_loaded = None;
                 }
             }
             "gb" | "gbk" => {
                 if let Ok(data) = import_genbank(&path) {
                     state.generic = data;
+                    state.path_loaded = Some(path.to_owned());
                 }
             }
             _ => {
@@ -230,7 +236,6 @@ pub fn load_import(state: &mut State, path: &Path) {
                 )
             }
         }
-        state.path_loaded = Some(path.to_owned());
     }
 }
 

@@ -10,13 +10,7 @@
 // todo: Break out Generic into its own mod?
 
 // Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
-use std::{
-    io,
-    ops::RangeInclusive,
-    path::{Path, PathBuf},
-    str::FromStr,
-    sync::Arc,
-};
+use std::{env, io, ops::RangeInclusive, path::{Path, PathBuf}, str::FromStr, sync::Arc};
 
 use bincode::{Decode, Encode};
 use copypasta::{ClipboardContext, ClipboardProvider};
@@ -84,6 +78,7 @@ fn check_all(data: &PlasmidData) {
 impl eframe::App for State {
     /// This is the GUI's event loop.
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+
         gui::draw(self, ctx);
     }
 }
@@ -566,10 +561,33 @@ impl State {
 }
 
 fn main() {
-    let state = State::load(
-        &PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap(),
+    let mut window_title_initial = WINDOW_TITLE.to_owned();
+    let file_path = {
+        let mut r = DEFAULT_SAVE_FILE;
+
+        // Windows and possibly other operating systems, if attempting to use your program to natively
+        // open a file type, will use command line argumentse to indicate this. Determine if the program
+        // is being launched this way, and if so, open the file.
+        let args: Vec<String> = env::args().collect();
+        if args.len() > 1 {
+            let temp = &args[1];
+            r = temp;
+            window_title_initial = r.to_owned();
+        }
+
+        r.to_owned()
+    };
+
+    let path = PathBuf::from_str(&file_path).unwrap();
+    let mut state = State::load(
+        &path,
         &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap(),
     );
+
+    if window_title_initial != WINDOW_TITLE {
+        state.path_loaded = Some(path);
+    }
+
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);
@@ -582,5 +600,5 @@ fn main() {
         ..Default::default()
     };
 
-    eframe::run_native(WINDOW_TITLE, options, Box::new(|_cc| Ok(Box::new(state)))).unwrap();
+    eframe::run_native(&window_title_initial, options, Box::new(|_cc| Ok(Box::new(state)))).unwrap();
 }

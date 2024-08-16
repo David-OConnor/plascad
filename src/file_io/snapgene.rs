@@ -39,6 +39,7 @@ use crate::{
     },
     util::{color_from_hex, color_to_hex},
 };
+use crate::primer::PrimerData;
 
 const COOKIE_PACKET_LEN: usize = 14;
 
@@ -194,7 +195,8 @@ fn parse_dna(payload: &[u8]) -> io::Result<(Seq, SeqTopology)> {
 
 // todo: Consider a sub-module for XML parsing.
 mod feature_xml {
-    use serde::{Deserialize, Serialize};
+    use std::str::FromStr;
+    use serde::{Deserialize, Deserializer, Serialize};
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct Features {
@@ -202,11 +204,28 @@ mod feature_xml {
         pub inner: Vec<FeatureSnapGene>,
     }
 
+    // Workaround for parsing "" into None not supported natively by quick-xml/serde.
+    fn deserialize_directionality<'de, D>(deserializer: D) -> Result<Option<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: Option<String> = Option::deserialize(deserializer)?;
+        if let Some(s) = s {
+            if s.is_empty() {
+                Ok(None)
+            } else {
+                u8::from_str(&s).map(Some).map_err(serde::de::Error::custom)
+            }
+        } else {
+            Ok(None)
+        }
+    }
+
     #[derive(Debug, Serialize, Deserialize)]
     pub struct FeatureSnapGene {
         #[serde(rename = "@type")]
         pub feature_type: Option<String>,
-        #[serde(rename = "@directionality", default)]
+        #[serde(rename = "@directionality", deserialize_with = "deserialize_directionality", default)]
         pub directionality: Option<u8>,
         #[serde(rename = "@name", default)]
         pub name: Option<String>,
@@ -215,7 +234,6 @@ mod feature_xml {
         pub segments: Vec<Segment>,
         #[serde(rename = "Q", default)]
         pub qualifiers: Vec<Qualifier>,
-        // pub qualifiers: Option<Vec<Qualifier>>,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
@@ -226,7 +244,7 @@ mod feature_xml {
         pub range: Option<String>,
         #[serde(rename = "@name", default)]
         pub name: Option<String>,
-        #[serde(rename = "@color", default)]
+        #[serde(rename = "@color", default, skip_serializing_if = "Option::is_none")]
         pub color: Option<String>, // Hex.
                                    // Other fields: "translated": 0/1
     }
@@ -241,11 +259,11 @@ mod feature_xml {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct QualifierValue {
-        #[serde(rename = "@text", default)]
+        #[serde(rename = "@text", default, skip_serializing_if = "Option::is_none")]
         pub text: Option<String>,
-        #[serde(rename = "@predef", default)]
+        #[serde(rename = "@predef", default, skip_serializing_if = "Option::is_none")]
         pub predef: Option<String>,
-        #[serde(rename = "@int", default)]
+        #[serde(rename = "@int", default, skip_serializing_if = "Option::is_none")]
         pub int: Option<i32>,
     }
 
@@ -360,6 +378,7 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
                 if let Some(t) = &val.int {
                     v = t.to_string();
                 }
+
                 if let Some(t) = &val.predef {
                     v.clone_from(t);
                 }
@@ -422,11 +441,13 @@ fn parse_primers(payload: &[u8]) -> io::Result<Vec<Primer>> {
 
     let mut result = Vec::new();
     for primer_sg in &primers.inner {
+        let seq = seq_from_str(&primer_sg.sequence);
+        let volatile = PrimerData::new(&seq);
         result.push(Primer {
-            sequence: seq_from_str(&primer_sg.sequence),
+            sequence: seq,
             name: primer_sg.name.clone(),
             description: Some(primer_sg.description.clone()),
-            volatile: Default::default(),
+            volatile,
         });
     }
 
@@ -503,6 +524,7 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
 
         let mut qualifiers = Vec::new();
         for (key, value) in &feature.notes {
+            // todo: If int parsable, consider saving as an int.
             qualifiers.push(Qualifier {
                 name: key.to_string(),
                 values: vec![QualifierValue {

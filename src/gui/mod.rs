@@ -17,6 +17,7 @@ use crate::{
     sequence::{seq_from_str, seq_to_str, Feature, FeatureType, Nucleotide},
     util, Selection, State,
 };
+use crate::gui::save::load_import;
 
 mod circle;
 mod cloning;
@@ -214,26 +215,39 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
     }
 }
 
+/// Update the tilebar to reflect the current path loaded or saved.
 pub fn set_window_title(path_loaded: &Option<PathBuf>, ui: &mut Ui) {
-    // Update the tilebar to reflect the current path loaded or saved.
-    if let Some(path) = path_loaded {
-        let filename = path
+    let title = match path_loaded {
+        Some(path) => path
             .file_name()
             .and_then(|name| name.to_str())
             .map(|name_str| name_str.to_string())
-            .unwrap();
+            .unwrap(),
+        None => WINDOW_TITLE.to_owned(),
+    };
 
-        // let window_title = format!("{WINDOW_TITLE} - {}", filename);
-        let window_title = filename;
-        ui.ctx()
-            .send_viewport_cmd(ViewportCommand::Title(window_title));
-    }
+    ui.ctx()
+        .send_viewport_cmd(ViewportCommand::Title(title));
 }
 
 /// Handles keyboard and mouse input not associated with a widget.
 /// todo: MOve to a separate module if this becomes complex.
-fn handle_input(state: &mut State, ctx: &Context) {
-    ctx.input(|ip| {
+fn handle_input(state: &mut State, ui: &mut Ui) {
+    let mut file_loaded = false;
+
+    ui.ctx().input(|ip| {
+        // Check for file drop
+        if let Some(dropped_files) = ip.raw.dropped_files.first() {
+            if let Some(path) = &dropped_files.path {
+                load_import(state, &path);
+
+                state.sync_pcr();
+                state.sync_primer_metrics();
+                state.sync_seq_related(None);
+                file_loaded = true;
+            }
+        }
+
         if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
             state.generic.primers.push(Default::default());
         }
@@ -375,12 +389,16 @@ fn handle_input(state: &mut State, ctx: &Context) {
             }
         }
     });
+
+    if file_loaded {
+        set_window_title(&state.path_loaded, ui);
+    }
 }
 
 pub fn draw(state: &mut State, ctx: &Context) {
-    handle_input(state, ctx);
-
     egui::CentralPanel::default().show(ctx, |ui| {
+        handle_input(state, ui);
+
         // todo: This section DRY with seq viewx.
 
         let mut visuals = ctx.style().visuals.clone();

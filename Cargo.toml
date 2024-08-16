@@ -46,6 +46,7 @@ url = "^2.5.2"
 
 # For clipboard operations not supported directly by EGUI
 copypasta = "^0.10.1"
+#winreg = "0.52.0"
 
 
 [build-dependencies]
