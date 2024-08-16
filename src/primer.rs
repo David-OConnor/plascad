@@ -110,14 +110,22 @@ impl Primer {
 
         let num_vals = len_untrimmed - MIN_PRIMER_LEN;
 
+        // When this function is called, exactly one of these ends must be enabled.
+        // let (i) = match &mut self.volatile.tune_setting {
+        //     TuneSetting::Only5(v) => v,
+        //     TuneSetting::Only3(v) => v,
+        //     _ => return,
+        // };
+
         for val in 0..num_vals {
-            // When this function is called, exactly one of these ends must be enabled.
-            if let Some(tune_val) = self.volatile.tune_setting.val_3p_mut() {
-                *tune_val = val;
-            }
-            if let Some(tune_val) = self.volatile.tune_setting.val_5p_mut() {
-                *tune_val = val;
-            }
+    // We need to have this assignment in the loop to prevent borrow errors.
+            let i = match &mut self.volatile.tune_setting {
+                TuneSetting::Only5(v) => v,
+                TuneSetting::Only3(v) => v,
+                _ => return,
+            };
+
+            *i = val;
             self.run_calcs(ion);
 
             if let Some(metrics) = &self.volatile.metrics {
@@ -128,13 +136,12 @@ impl Primer {
             }
         }
 
-        if let Some(tune_val) = self.volatile.tune_setting.val_5p_mut() {
-            *tune_val = best_val;
-        }
-        if let Some(tune_val) = self.volatile.tune_setting.val_3p_mut() {
-            *tune_val = best_val;
-        }
-
+        let i = match &mut self.volatile.tune_setting {
+            TuneSetting::Only5(v) => v,
+            TuneSetting::Only3(v) => v,
+            _ => return,
+        };
+        *i = best_val;
         self.run_calcs(ion);
     }
 
@@ -142,69 +149,60 @@ impl Primer {
         // todo: Using the seq_input as the only way we store total len feels janky.
         let len_untrimmed = self.volatile.sequence_input.len();
 
-        if len_untrimmed <= MIN_PRIMER_LEN {
+        // We need the min primer length on both sides of the anchor.
+        if len_untrimmed <= MIN_PRIMER_LEN * 2 {
             return;
         }
 
-        let mut best_val_5p = 0;
-        let mut best_val_3p = 0;
+        let mut best_val = (0, 0);
         let mut best_score = 0.;
 
-        let num_vals_5p = len_untrimmed - MIN_PRIMER_LEN;
+        // As for single-ended, we assume this function only runs when both ends are marked tunable.
+        let (anchor,_, _) = match self.volatile.tune_setting {
+            TuneSetting::Both(v) => v,
+            _ => return,
+        };
 
-        // for val in 0..num_vals {
-        //     // When this function is called, exactly one of these ends must be enabled.
-        //     if let Some(tune_val) = self.volatile.tune_setting.val_3p_mut() {
-        //         *tune_val = val;
-        //     }
-        //     if let Some(tune_val) = self.volatile.tune_setting.val_5p_mut() {
-        //         *tune_val = val;
-        //     }
-        //     self.run_calcs(ion);
-        //
-        //     if let Some(metrics) = &self.volatile.metrics {
-        //         if metrics.quality_score > best_score {
-        //             best_val = val;
-        //             best_score = metrics.quality_score;
-        //         }
-        //     }
-        // }
+        // We ensure we have the min primer len on either side of the anchor.
+        let num_vals_5p = if anchor < MIN_PRIMER_LEN {
+            0
+        } else {
+            anchor - MIN_PRIMER_LEN
+        };
+        let num_vals_3p = if anchor < MIN_PRIMER_LEN {
+            0
+        } else {
+            (len_untrimmed  - anchor) - MIN_PRIMER_LEN
+        };
 
-        //
-        //
-        // // We will iterate over all possible tunings within the bounds of the limits of both ends,
-        // // and minimum primer length. We do so by varying the start point (We set this, starting at
-        // // the 5' end and expanding towards 3', but either direction will do), and length, up
-        // // to the other end.
-        //
-        // for val_5p in 0..len_untrimmed - MIN_PRIMER_LEN {
-        //     for len in MIN_PRIMER_LEN..len_untrimmed - val_5p {
-        //         let val_3p = len_untrimmed - (val_5p + len);
-        //
-        //         if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_3p {
-        //             *tune_val = val_3p;
-        //         }
-        //         if let TuneSetting::Enabled(tune_val) = &mut self.volatile.tunable_5p {
-        //             *tune_val = val_5p;
-        //         }
-        //         self.run_calcs(ion);
-        //
-        //         if let Some(metrics) = &self.volatile.metrics {
-        //             if metrics.quality_score > best_score {
-        //                 best_val_5p = val_5p;
-        //                 best_val_3p = val_3p;
-        //                 best_score = metrics.quality_score;
-        //             }
-        //         }
-        //     }
-        // }
+        // A nested loop: Try all combinations.
+        for val5 in 0..num_vals_5p {
+            for val3 in 0..num_vals_3p {
+                // As for single-ended, we assume this function only runs when both ends are marked tunable.
+                let (_, i_5p, i_3p) = match &mut self.volatile.tune_setting {
+                    TuneSetting::Both(v) => v,
+                    _ => return,
+                };
 
-        if let Some(tune_val) = self.volatile.tune_setting.val_5p_mut() {
-            *tune_val = best_val_5p;
+                *i_5p = val5;
+                *i_3p = val3;
+                self.run_calcs(ion);
+
+                if let Some(metrics) = &self.volatile.metrics {
+                    if metrics.quality_score > best_score {
+                        best_val = (val5, val3);
+                        best_score = metrics.quality_score;
+                    }
+                }
+            }
         }
-        if let Some(tune_val) = self.volatile.tune_setting.val_3p_mut() {
-            *tune_val = best_val_3p;
-        }
+
+        let (_, i_5p,i_3p) = match &mut self.volatile.tune_setting {
+            TuneSetting::Both(v) => v,
+            _ => return,
+        };
+        *i_5p = best_val.0;
+        *i_3p = best_val.1;
 
         self.run_calcs(ion);
     }

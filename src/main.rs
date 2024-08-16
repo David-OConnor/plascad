@@ -45,6 +45,7 @@ use crate::{
     },
     tags::TagMatch,
 };
+use crate::primer::TuneSetting;
 
 mod amino_acids;
 mod feature_db_load;
@@ -429,14 +430,22 @@ impl State {
 
     pub fn sync_primer_metrics(&mut self) {
         for primer in &mut self.generic.primers {
-            primer.volatile.sequence_input = seq_to_str(&primer.sequence);
-
-            if let Some(metrics) = &mut primer.volatile.metrics {
-                metrics.update_scores();
-            }
-            if primer.volatile.metrics.is_none() {
-                primer.run_calcs(&self.ion_concentrations);
-            }
+            primer.run_calcs(&self.ion_concentrations);
+            //
+            // primer.volatile.sequence_input = seq_to_str(&primer.sequence);
+            //
+            //
+            // if let Some(metrics) = &mut primer.volatile.metrics {
+            //     let dual_ended = match primer.volatile.tune_setting {
+            //         TuneSetting::Both(_) => true,
+            //         _ => false,
+            //     };
+            //
+            //     metrics.update_scores(dual_ended);
+            // }
+            // if primer.volatile.metrics.is_none() {
+            //     primer.run_calcs(&self.ion_concentrations);
+            // }
         }
     }
 

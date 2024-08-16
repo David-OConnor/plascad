@@ -12,6 +12,7 @@ use crate::{
     util::{map_linear, remove_duplicates},
     TM_TARGET,
 };
+use crate::primer::TuneSetting;
 
 /// Metrics related to primer quality.
 #[derive(Clone, Debug, Default, Encode, Decode)]
@@ -40,7 +41,9 @@ pub struct PrimerMetrics {
 
 impl PrimerMetrics {
     /// Return a quality score, on a scale from 0 to 1.
-    pub fn update_scores(&mut self) {
+    /// `dual_end` indicates if this is a double-end-tunable primer, which generally means a cloning
+    /// insert primer. This affects the len-based score.
+    pub fn update_scores(&mut self, dual_end: bool) {
         const GC_TARGET: f32 = 0.5;
 
         const WEIGHT_TM: f32 = 1.;
@@ -59,16 +62,39 @@ impl PrimerMetrics {
         // This is currently a linear map, between 0 and 1.
         self.gc_score = 1. - (self.gc_portion - GC_TARGET).abs() * 2.;
 
-        self.len_score = match self.seq_len {
-            18..=24 => 1.,
-            _ => {
-                // More gentle penalty for long primers.
-                let max_falloff = if self.seq_len > 21 { 20. } else { 7. };
-                map_linear(
-                    (21. - self.seq_len as f32).abs(),
-                    (0., max_falloff),
-                    (1., 0.),
-                )
+// todo: This is not sophisticated enough, but is a start; we need to assess the length on both
+        // todo sides of the anchor individually.
+        self.len_score = if dual_end {
+            let max_falloff_dist = 16.;
+            let ideal = 42.;
+
+            match self.seq_len {
+                36..=48 => 1.,
+                _ => {
+                    // More gentle penalty for long primers.
+                    let max_falloff = if self.seq_len > ideal as usize { ideal + max_falloff_dist } else { ideal - max_falloff_dist };
+                    map_linear(
+                        (ideal - self.seq_len as f32).abs(),
+                        (0., max_falloff),
+                        (1., 0.),
+                    )
+                }
+            }
+        } else {
+            let max_falloff_dist = 8.;
+            let ideal = 21.;
+            // todo: DRy with above.
+            match self.seq_len {
+                18..=24 => 1.,
+                _ => {
+                    // More gentle penalty for long primers.
+                    let max_falloff = if self.seq_len > ideal as usize { ideal + max_falloff_dist } else { ideal - max_falloff_dist };
+                    map_linear(
+                        (ideal - self.seq_len as f32).abs(),
+                        (0., max_falloff),
+                        (1., 0.),
+                    )
+                }
             }
         };
 
@@ -207,7 +233,11 @@ impl Primer {
             repeats: self.calc_repeats(),
             ..Default::default()
         };
-        result.update_scores();
+        let dual_ended = match self.volatile.tune_setting {
+            TuneSetting::Both(_) => true,
+            _ => false,
+        };
+        result.update_scores(dual_ended);
 
         Some(result)
     }
