@@ -57,7 +57,6 @@ fn main() {
 
     let mut feature_maps = Vec::new();
 
-    println!("Parsing {} files", files_genbank.len());
     for file in files_genbank {
         let path = PathBuf::from_str(file).unwrap();
 

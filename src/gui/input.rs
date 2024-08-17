@@ -23,7 +23,7 @@ fn handle_global(state: &mut State, ip: &InputState) {
             &PathBuf::from(DEFAULT_SAVE_FILE),
             &StateToSave::from_state(state),
         ) {
-            println!("Error saving: {e}");
+            eprintln!("Error saving: {e}");
         }
     }
 
