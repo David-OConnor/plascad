@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=PlasCAD
+Exec=~/plascad/plascad
+Icon=~/plascad/icon.png
+Type=Application
+Terminal=false
+Categories=Development;Science;Biology;
+Comment=Plasmid and Primer editing tools

@@ -13,6 +13,8 @@ Design software for plasmid and primer creation and validation.
 [Download, unzip, and run](https://github.com/David-OConnor/plascad/releases). 
 
 
+Note: On some Linux distros (eg Ubuntu), run `setup_linux_desktop.sh` to create a Desktop GUI entry.
+
 ### Mac
 Compile from source by [downloading and installing Rust](https://www.rust-lang.org/tools/install), then running `cargo install plascad` from a CLI.
 
