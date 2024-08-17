@@ -556,7 +556,7 @@ impl State {
     pub fn copy_feature(&self) {
         // Text selection takes priority.
         if let Some((start, end)) = self.ui.text_selection {
-            let seq = &self.generic.seq[start - 1..end];
+            let seq = &self.generic.seq[start - 1..end - 1];
 
             let mut ctx = ClipboardContext::new().unwrap();
             ctx.set_contents(seq_to_str(seq)).unwrap();

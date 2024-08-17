@@ -12,7 +12,7 @@ use eframe::{
 use crate::{
     gui::{
         primer_arrow::{HEIGHT, LABEL_OFFSET, SLANT_DIV2, STROKE_WIDTH},
-        seq_view::{SeqViewData, NT_WIDTH_PX, SEQ_ROW_SPACING_PX},
+        seq_view::{SeqViewData, COLOR_CURSOR, NT_WIDTH_PX, SEQ_ROW_SPACING_PX},
     },
     sequence::{
         Feature, FeatureDirection,
@@ -22,7 +22,6 @@ use crate::{
     util::get_feature_ranges,
     Color,
 };
-use crate::gui::seq_view::COLOR_CURSOR;
 
 const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?
 
@@ -40,13 +39,18 @@ pub fn draw_selection(selection: &(usize, usize), data: &SeqViewData, ui: &mut U
     // todo in this way.
     let selection_ranges = get_feature_ranges(
         // todo: QC off-by-one.
-        &(selection.0 - 1..selection.1),
+        &(selection.0 - 1..=selection.1),
         &data.row_ranges,
     );
 
     let selection_ranges_px: Vec<(Pos2, Pos2)> = selection_ranges
         .iter()
-        .map(|r| (data.seq_i_to_px_rel(r.start - 0), data.seq_i_to_px_rel(r.end - 1)))
+        .map(|r| {
+            (
+                data.seq_i_to_px_rel(r.start() - 0),
+                data.seq_i_to_px_rel(r.end() - 1),
+            )
+        })
         .collect();
 
     result.append(&mut feature_seq_overlay(
@@ -80,13 +84,18 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
         // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
         // todo in this way.
         let feature_ranges = get_feature_ranges(
-            &(feature.index_range.0 - 1..feature.index_range.1 - 1),
+            &(feature.index_range.0 - 1..=feature.index_range.1 - 1),
             &data.row_ranges,
         );
 
         let feature_ranges_px: Vec<(Pos2, Pos2)> = feature_ranges
             .iter()
-            .map(|r| (data.seq_i_to_px_rel(r.start), data.seq_i_to_px_rel(r.end)))
+            .map(|r| {
+                (
+                    data.seq_i_to_px_rel(*r.start()),
+                    data.seq_i_to_px_rel(*r.end()),
+                )
+            })
             .collect();
 
         let label = if feature.label.is_empty() {
@@ -183,19 +192,15 @@ pub fn feature_seq_overlay(
         }
 
         let shape = match feature_type {
-            FeatureType::Selection => {
-                Shape::Path(PathShape::convex_polygon(
-                    vec![top_left, bottom_left, bottom_right, top_right],
-                    stroke.color,
-                    stroke,
-                ))
-            }
-            _ => {
-                Shape::Path(PathShape::closed_line(
-                    vec![top_left, bottom_left, bottom_right, top_right],
-                    stroke,
-                ))
-            }
+            FeatureType::Selection => Shape::Path(PathShape::convex_polygon(
+                vec![top_left, bottom_left, bottom_right, top_right],
+                stroke.color,
+                stroke,
+            )),
+            _ => Shape::Path(PathShape::closed_line(
+                vec![top_left, bottom_left, bottom_right, top_right],
+                stroke,
+            )),
         };
 
         result.push(shape);

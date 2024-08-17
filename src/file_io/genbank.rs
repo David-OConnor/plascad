@@ -8,7 +8,7 @@ use std::{
     fs::File,
     io::{self, ErrorKind, Write},
     mem,
-    ops::Range,
+    ops::{Range, RangeInclusive},
     path::Path,
 };
 
@@ -252,7 +252,7 @@ fn parse_features_primers(
 /// Export our local state into the GenBank format. This includes sequence, features, and primers.
 pub fn export_genbank(
     data: &GenericData,
-    primer_matches: &[(PrimerDirection, Range<usize>, String)],
+    primer_matches: &[(PrimerDirection, RangeInclusive<usize>, String)],
     path: &Path,
 ) -> io::Result<()> {
     let file = File::create(path)?;
@@ -307,13 +307,13 @@ pub fn export_genbank(
 
     for (dir, indexes, name) in primer_matches {
         // todo: Location code is DRY with features.
-        let start: i64 = indexes.start.try_into().unwrap();
-        let end: i64 = indexes.end.try_into().unwrap();
+        let start: i64 = (*indexes.start()).try_into().unwrap();
+        let end: i64 = (*indexes.end()).try_into().unwrap();
 
         let location = match dir {
             PrimerDirection::Forward => Location::Range(
                 (start, Before(false)),
-                (indexes.end.try_into().unwrap(), After(false)),
+                ((*indexes.end()).try_into().unwrap(), After(false)),
             ),
             PrimerDirection::Reverse => Location::Complement(Box::new(Location::Range(
                 (data.seq.len() as i64 - (end + 1), Before(false)),

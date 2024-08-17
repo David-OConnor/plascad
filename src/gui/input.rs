@@ -13,7 +13,6 @@ use crate::{
 
 /// Handle hotkeys and clicks that affect all pages.
 fn handle_global(state: &mut State, ip: &InputState) {
-
     if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
         state.generic.primers.push(Default::default());
     }

@@ -1,6 +1,6 @@
 //! This module contains GUI code related to the sequence visulization.
 
-use std::ops::Range;
+use std::ops::{Range, RangeInclusive};
 
 use eframe::{
     egui::{
@@ -13,14 +13,16 @@ use eframe::{
 
 use crate::{
     gui::{
-        feature_from_index, feature_overlay::draw_features, get_cursor_text,
-        navigation::page_button, primer_arrow, COL_SPACING, ROW_SPACING,
+        feature_from_index,
+        feature_overlay::{draw_features, draw_selection},
+        get_cursor_text,
+        navigation::page_button,
+        primer_arrow, COL_SPACING, ROW_SPACING,
     },
     sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
     State, StateUi,
 };
-use crate::gui::feature_overlay::draw_selection;
 
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
@@ -48,7 +50,7 @@ const MAX_SEQ_AREA_HEIGHT: u16 = 300;
 /// These aguments define the circle, and are used in many places in this module.
 pub struct SeqViewData {
     pub seq_len: usize,
-    pub row_ranges: Vec<Range<usize>>,
+    pub row_ranges: Vec<RangeInclusive<usize>>,
     pub to_screen: RectTransform,
     pub from_screen: RectTransform,
     // /// This is `from_screen * center`. We store it here to cache.
@@ -146,11 +148,11 @@ pub fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
 fn draw_seq_indexes(data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
     for range in &data.row_ranges {
-        let mut pos = data.seq_i_to_px_rel(range.start);
+        let mut pos = data.seq_i_to_px_rel(*range.start());
         pos.x -= VIEW_AREA_PAD_LEFT;
 
         // 1-based indexing.
-        let text = range.start + 1; // tood: 1k etc?
+        let text = range.start() + 1; // tood: 1k etc?
 
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
@@ -230,9 +232,9 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             // todo: We have inconsistencies in how we index across the board.
             // todo: Try resolving using the inclusive range type, and standardizing to 1-based.
             // todo: Resolve this one field at a time, from a working state.
-            if let Some((start, end)) = state.ui.text_selection{
+            if let Some((start, end)) = state.ui.text_selection {
                 let i_ = i + 1;
-                if start <= i_ && i_  < end {
+                if start <= i_ && i_ < end {
                     r = COLOR_SELECTED_NTS;
                 }
             }
@@ -389,7 +391,6 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
                 // Draw nucleotides arfter the selection, so it shows through the fill.
                 shapes.append(&mut draw_nts(state, &data, ui));
-
 
                 shapes.append(&mut draw_text_cursor(state.ui.text_cursor_i, &data));
 

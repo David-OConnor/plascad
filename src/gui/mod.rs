@@ -13,11 +13,10 @@ use url::Url;
 
 use crate::{
     file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
-    gui::{primer_qc::primer_details, save::load_import},
+    gui::{input::handle_input, primer_qc::primer_details, save::load_import},
     sequence::{seq_from_str, seq_to_str, Feature, FeatureType, Nucleotide},
     util, Selection, State,
 };
-use crate::gui::input::handle_input;
 
 mod circle;
 mod cloning;

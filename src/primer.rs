@@ -1,6 +1,6 @@
 //! This module contains code related to primer (oglionucleotide) design and QC.
 
-use std::ops::Range;
+use std::ops::{Range, RangeInclusive};
 
 use bincode::{Decode, Encode};
 
@@ -59,7 +59,10 @@ impl Primer {
     /// Match this primer to a sequence. Check both directions.
     /// Returns direction, and start and end indexes of the sequence. If direction is reversed,
     /// the indexs matches to the reversed index.
-    pub fn match_to_seq(&self, seq: &[Nucleotide]) -> Vec<(PrimerDirection, Range<usize>)> {
+    pub fn match_to_seq(
+        &self,
+        seq: &[Nucleotide],
+    ) -> Vec<(PrimerDirection, RangeInclusive<usize>)> {
         let mut result = Vec::new();
 
         // This check prevents spurious small-sequence matches, which may be numerous otherwise.
@@ -77,7 +80,7 @@ impl Primer {
             let seq_iter = seq.iter().cycle().skip(seq_start).take(primer_len);
             if self.sequence.iter().eq(seq_iter) {
                 let seq_end = (seq_start + primer_len) % seq_len;
-                result.push((PrimerDirection::Forward, seq_start..seq_end));
+                result.push((PrimerDirection::Forward, seq_start..=seq_end));
             }
         }
 
@@ -85,7 +88,7 @@ impl Primer {
             let seq_iter = complement.iter().cycle().skip(seq_start).take(primer_len);
             if self.sequence.iter().eq(seq_iter) {
                 let seq_end = (seq_start + primer_len) % seq_len;
-                result.push((PrimerDirection::Reverse, seq_start..seq_end));
+                result.push((PrimerDirection::Reverse, seq_start..=seq_end));
             }
         }
 
@@ -386,17 +389,13 @@ pub struct PrimerData {
     // tunable_end: TunableEnd,
     /// These fields control if a given primer end is fixed (Eg marking the start of an insert,
     /// marking the insert point in a vector etc) or if we can tune its length to optimize the primer.
-    // todo: You need to be able to mark cloning glue primer stops.
-    // pub tunable_5p: TuneSetting,
-    // pub tunable_3p: TuneSetting,
     pub tune_setting: TuneSetting,
-
     /// These seq_removed fields are redundant with primer and tune settings. We use them to cache
     /// the actual sequences that are removed for display purposes.
     pub seq_removed_5p: String,
     pub seq_removed_3p: String,
     /// todo: Which direction is the range, if the direction is reverse?
-    pub matches_seq: Vec<(PrimerDirection, Range<usize>)>,
+    pub matches_seq: Vec<(PrimerDirection, RangeInclusive<usize>)>,
 }
 
 impl PrimerData {

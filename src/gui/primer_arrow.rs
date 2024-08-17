@@ -30,7 +30,7 @@ pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<
             let seq_range = match direction {
                 PrimerDirection::Forward => seq_range.clone(),
                 PrimerDirection::Reverse => {
-                    (data.seq_len - seq_range.end)..(data.seq_len - seq_range.start)
+                    (data.seq_len - seq_range.end())..=(data.seq_len - seq_range.start())
                 }
             };
 
@@ -38,7 +38,12 @@ pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<
 
             let feature_ranges_px: Vec<(Pos2, Pos2)> = feature_ranges
                 .iter()
-                .map(|r| (data.seq_i_to_px_rel(r.start), data.seq_i_to_px_rel(r.end)))
+                .map(|r| {
+                    (
+                        data.seq_i_to_px_rel(*r.start()),
+                        data.seq_i_to_px_rel(*r.end()),
+                    )
+                })
                 .collect();
 
             let color = match direction {
