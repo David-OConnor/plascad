@@ -24,6 +24,7 @@ use crate::{
     primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::{seq_to_str, Feature, FeatureDirection, FeatureType},
+    util::RangeIncl,
     Selection, State,
 };
 
@@ -519,12 +520,12 @@ fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape
             let seq_range = match direction {
                 PrimerDirection::Forward => seq_range.clone(),
                 PrimerDirection::Reverse => {
-                    (data.seq_len - seq_range.end)..=(data.seq_len - seq_range.start)
+                    RangeIncl::new(data.seq_len - seq_range.end, data.seq_len - seq_range.start)
                 }
             };
 
-            let angle_start = seq_i_to_angle(*seq_range.start, data.seq_len);
-            let angle_end = seq_i_to_angle(*seq_range.end, data.seq_len);
+            let angle_start = seq_i_to_angle(seq_range.start, data.seq_len);
+            let angle_end = seq_i_to_angle(seq_range.end, data.seq_len);
             let angle_mid = (angle_start + angle_end) / 2.;
 
             let point_start_inner =
@@ -629,37 +630,21 @@ fn top_details(state: &mut State, ui: &mut Ui) {
             let feature = &mut state.generic.features[*feat_i];
             // todo: Handle wraps.
             ui.label("Start:");
-            // let start = feature.index_range.0; // Avoids a borrow error.
-            let mut start = *feature.range.start;
-            if ui
-                .add(Slider::new(&mut start, 0..=state.generic.seq.len()))
-                .changed()
-            {
-                feature.range = start..=feature.range.end.clone();
-            };
-            // ui.add(
-            //     Slider::from_get_set(0.0..=state.generic.seq.len() as f32, |v| {
-            //     // Slider::new(&mut 0, 0..=state.generic.seq.len(), |v| {
-            //         if let Some(v_) = v {
-            //             v
-            //         }
-            //     }).text("Start")
-            // );
+            ui.add(Slider::new(
+                &mut feature.range.start,
+                0..=state.generic.seq.len(),
+            ));
 
             ui.add_space(COL_SPACING);
             ui.label("End:");
-
-            let mut end = *feature.range.end;
-            if ui
-                .add(Slider::new(&mut end, 0..=state.generic.seq.len()))
-                .changed()
-            {
-                feature.range = feature.range.end.clone()..=end;
-            };
+            ui.add(Slider::new(
+                &mut feature.range.end,
+                0..=state.generic.seq.len(),
+            ));
 
             // todo: Don't let end be before start.
             if feature.range.start > feature.range.end {
-                feature.range = *feature.range.start..=feature.range.start + 1;
+                feature.range.end = feature.range.start + 1;
             }
         }
     }

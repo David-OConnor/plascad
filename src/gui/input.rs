@@ -55,6 +55,10 @@ fn handle_global(state: &mut State, ip: &InputState) {
 
         state.ui.click_pending_handle = true;
     }
+
+    if ip.pointer.button_double_clicked(PointerButton::Primary) {
+        state.ui.dblclick_pending_handle = true;
+    }
 }
 
 /// Handle text selection on the sequence page.
@@ -63,9 +67,11 @@ fn handle_text_selection(state_ui: &mut StateUi, dragging: bool) {
         // A drag has started.
         if !state_ui.dragging {
             state_ui.dragging = true;
-            if let Some(i) = &state_ui.cursor_seq_i {
-                state_ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
-            }
+            // We are handling in the seq view after setting cursor seq i. Still glitchy.
+
+            // if let Some(i) = &state_ui.cursor_seq_i {
+            //     state_ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
+            // }
         } else {
             // The drag is in progress; continually update the selection, for visual feedback.
             if let Some(i) = &state_ui.cursor_seq_i {
@@ -111,8 +117,8 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
         // This event match is not specific to the seqe page
         for event in &ip.events {
             match event {
-                Event::Cut => state.copy_feature(),
-                Event::Copy => state.copy_feature(),
+                Event::Cut => state.copy_seq(),
+                Event::Copy => state.copy_seq(),
                 Event::Paste(pasted_text) => {}
                 _ => (),
             }
@@ -148,9 +154,14 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
             }
 
             // Insert nucleotides A/R.
-            if let Some(i) = state.ui.text_cursor_i {
-                let i = i + 1; // Insert after this nucleotide; not before.
-                               // Don't allow accidental nt insertion when the user is entering into the search bar.
+            if let Some(mut i) = state.ui.text_cursor_i {
+                if i > state.generic.seq.len() {
+                    i = 0; // todo?? Having an overflow when backspacing near origin.
+                }
+
+                let mut i = i + 1; // Insert after this nucleotide; not before.
+                                   // Don't allow accidental nt insertion when the user is entering into the search bar.
+
                 if !state.ui.search_active {
                     // Add NTs.
                     if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
@@ -165,7 +176,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                     if ip.key_pressed(Key::G) {
                         state.insert_nucleotides(&[Nucleotide::G], i);
                     }
-                    if ip.key_pressed(Key::Backspace) && i > 0 {
+                    if ip.key_pressed(Key::Backspace) && i > 1 {
                         state.remove_nucleotides(RangeIncl::new(i - 1, i - 1));
                     }
                     if ip.key_pressed(Key::Delete) {

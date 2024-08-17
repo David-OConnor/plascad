@@ -1,5 +1,7 @@
 //! This module contains GUI code related to the sequence view.
 
+use std::process::id;
+
 use eframe::egui::{
     text::CursorRange, Color32, Frame, RichText, ScrollArea, TextBuffer, TextEdit, Ui,
 };
@@ -27,7 +29,7 @@ fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
         ui.label(&format!("len: {}", state.ui.seq_input.len()));
     });
 
-    ScrollArea::vertical().show(ui, |ui| {
+    ScrollArea::vertical().id_source(200).show(ui, |ui| {
         let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
         if response.changed() {
             state.generic.seq = seq_from_str(&state.ui.seq_input);
@@ -76,6 +78,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             Frame::none().show(ui, |ui| {
                 ScrollArea::vertical()
                     .max_height(half_screen_height)
+                    .id_source(69)
                     .show(ui, |ui| primer_details(state, ui));
             });
         }
@@ -83,6 +86,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             Frame::none().show(ui, |ui| {
                 ScrollArea::vertical()
                     .max_height(half_screen_height)
+                    .id_source(70)
                     .show(ui, |ui| {
                         feature_table(state, ui);
                     });
@@ -140,27 +144,26 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(COL_SPACING);
 
-        // let mut feature_to_disp = None;
-        // if let Selection::Feature(i) = state.ui.selected_item {
-        //     feature_to_disp = Some(i);
-        // } else if state.ui.feature_hover.is_some() {
-        //     feature_to_disp = Some(state.ui.feature_hover.unwrap());
-        // }
-        //
-        // For now, we have no way to select features on the sequence viewer; re-implement the above A/R.
-        let feature_to_disp = &state.ui.feature_hover;
+        let mut feature_to_disp = None;
+        if let Selection::Feature(i) = state.ui.selected_item {
+            feature_to_disp = Some(i);
+        } else if state.ui.feature_hover.is_some() {
+            feature_to_disp = Some(state.ui.feature_hover.unwrap());
+        }
 
         feature_text(&feature_to_disp, &state.generic.features, ui);
     });
 
     ui.add_space(ROW_SPACING / 2.);
 
-    ScrollArea::vertical().show(ui, |ui| match state.ui.page_seq {
-        PageSeq::EditSeq => {
-            seq_editor_raw(state, ui);
-        }
-        PageSeq::View => {
-            sequence_vis(state, ui);
-        }
-    });
+    ScrollArea::vertical()
+        .id_source(100)
+        .show(ui, |ui| match state.ui.page_seq {
+            PageSeq::EditSeq => {
+                seq_editor_raw(state, ui);
+            }
+            PageSeq::View => {
+                sequence_vis(state, ui);
+            }
+        });
 }

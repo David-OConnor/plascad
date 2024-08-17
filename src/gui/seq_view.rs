@@ -17,7 +17,7 @@ use crate::{
         feature_overlay::{draw_features, draw_selection},
         get_cursor_text,
         navigation::page_button,
-        primer_arrow, COL_SPACING, ROW_SPACING,
+        primer_arrow, select_feature, COL_SPACING, ROW_SPACING,
     },
     sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl},
@@ -148,10 +148,10 @@ pub fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
 fn draw_seq_indexes(data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
     for range in &data.row_ranges {
-        let mut pos = data.seq_i_to_px_rel(*range.start());
+        let mut pos = data.seq_i_to_px_rel(range.start);
         pos.x -= VIEW_AREA_PAD_LEFT;
 
-        let text = range.start();
+        let text = range.start;
 
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
@@ -210,6 +210,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
     for (i, nt) in state.generic.seq.iter().enumerate() {
+        let i = i + 1; // 1-based indexing.
         let pos = data.seq_i_to_px_rel(i);
 
         let letter_color = {
@@ -218,10 +219,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             let mut highlighted = false;
             if state.ui.seq_visibility.show_reading_frame {
                 for rf in &state.volatile.reading_frame_matches {
-                    // let (start, end) = rf.range;
-                    // let i_ = i + 1; // 1-based indexing
                     if rf.range.contains(i) {
-                        // if start <= i_ && i_ <= end {
                         r = COLOR_CODING_REGION;
                         highlighted = true;
                     }
@@ -274,7 +272,8 @@ fn draw_text_cursor(cursor_i: Option<usize>, data: &SeqViewData) -> Vec<Shape> {
 
     if let Some(i) = cursor_i {
         let mut top = data.seq_i_to_px_rel(i);
-        top.x += NT_WIDTH_PX; // Draw the cursor after this NT, not before.
+        // Draw the cursor after this NT, not before. // todo: Not sure why we need 2*.
+        top.x += 2. * NT_WIDTH_PX;
         top.y -= 3.;
         let bottom = pos2(top.x, top.y + 23.);
 
@@ -313,6 +312,11 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
         ui.label("Mouse:");
         ui.heading(mouse_posit_lbl);
+
+        ui.label("Selection: ");
+        if let Some(selection) = state.ui.text_selection {
+            ui.heading(format!("{selection}"));
+        }
     });
 
     ScrollArea::vertical().show(ui, |ui| {
@@ -352,8 +356,16 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                         feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
                 }
 
+                // Handle drag start; we do this here to prevent the start-off-by-one errors we get in the
+                // general input codex. {}
+                if state.ui.dragging && state.ui.text_selection.is_none() {
+                    if let Some(i) = &state.ui.cursor_seq_i {
+                        state.ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
+                    }
+                }
+
                 // Removed: We select cursor position instead now.
-                // select_feature(state, &from_screen);
+                select_feature(state, &from_screen);
 
                 // todo: Move this into a function A/R.
                 if state.ui.click_pending_handle {
@@ -377,7 +389,12 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 }
 
                 if state.ui.seq_visibility.show_features {
-                    shapes.append(&mut draw_features(&state.generic.features, &data, ui));
+                    shapes.append(&mut draw_features(
+                        &state.generic.features,
+                        state.ui.selected_item,
+                        &data,
+                        ui,
+                    ));
                 }
 
                 if state.ui.seq_visibility.show_res {
@@ -385,7 +402,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 }
 
                 if let Some(selection) = &state.ui.text_selection {
-                    shapes.append(&mut draw_selection(selection, &data, ui));
+                    shapes.append(&mut draw_selection(*selection, &data, ui));
                 }
 
                 // Draw nucleotides arfter the selection, so it shows through the fill.

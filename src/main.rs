@@ -295,6 +295,8 @@ struct StateUi {
     /// We store if we've clicked somewhere separately from the action, as getting a sequence index
     /// from cursor positions may be decoupled, and depends on the view.
     click_pending_handle: bool,
+    /// We use this for selecting features from the seq view
+    dblclick_pending_handle: bool,
     cloning_insert: CloningInsertData,
     /// Volatile; computed dynamically based on window size.
     nt_chars_per_row: usize,
@@ -329,6 +331,7 @@ impl Default for StateUi {
             new_origin: Default::default(),
             text_cursor_i: Default::default(),
             click_pending_handle: Default::default(),
+            dblclick_pending_handle: Default::default(),
             cloning_insert: Default::default(),
             nt_chars_per_row: Default::default(),
             search_input: Default::default(),
@@ -482,12 +485,12 @@ impl State {
             //     feature.index_range.1 = insert_loc - 1;
             // }
 
-            if *feature.range.start() > insert_loc {
-                feature.range = feature.range.start() + insert.len()..=*feature.range.end();
+            if feature.range.start > insert_loc {
+                feature.range.start = feature.range.start + insert.len();
             }
 
-            if *feature.range.end() > insert_loc {
-                feature.range = *feature.range.start()..=feature.range.end() + insert.len();
+            if feature.range.end > insert_loc {
+                feature.range.end = feature.range.end + insert.len();
             }
         }
 
@@ -497,21 +500,21 @@ impl State {
     /// One-based indexing. Similar to `insert_nucleotides`.
     pub fn remove_nucleotides(&mut self, range: RangeIncl) {
         let seq = &mut self.generic.seq;
-        if range.end() + 1 > seq.len() {
+        if range.end + 1 > seq.len() {
             return;
         }
 
-        let count = range.clone().count();
+        let count = range.len();
 
-        seq.drain(range.clone());
+        seq.drain(range.start..=range.end);
 
         // Now, you have to update features affected by this insertion, shifting them left A/R.
         for feature in &mut self.generic.features {
-            if feature.range.start() > range.end() {
-                feature.range = feature.range.start() - count..=*feature.range.end()
+            if feature.range.start > range.end {
+                feature.range.start = feature.range.start - count;
             }
-            if feature.range.end() > range.end() {
-                feature.range = *feature.range.start()..=feature.range.end() - count
+            if feature.range.end > range.end {
+                feature.range.end = feature.range.end - count;
             }
         }
 
@@ -554,26 +557,23 @@ impl State {
     }
 
     /// Copy the sequence of the selected text selection, feature or primer to the clipboard, if applicable.
-    pub fn copy_feature(&self) {
+    pub fn copy_seq(&self) {
         // Text selection takes priority.
         if let Some(selection) = &self.ui.text_selection {
-            // todo: Why is -1 not working here?
-            // let seq = &self.generic.seq[selection.start() - 1..=selection.end()- 1];
-            let seq = &self.generic.seq[selection.clone()];
-
-            let mut ctx = ClipboardContext::new().unwrap();
-            ctx.set_contents(seq_to_str(seq)).unwrap();
+            if let Some(seq) = selection.index_seq(&self.generic.seq) {
+                let mut ctx = ClipboardContext::new().unwrap();
+                ctx.set_contents(seq_to_str(seq)).unwrap();
+            }
         }
 
         match self.ui.selected_item {
             Selection::Feature(i) => {
                 let feature = &self.generic.features[i];
                 // todo: Why -1 not working?
-                let seq = &self.generic.seq[feature.range.clone()];
-                // let seq = &self.generic.seq[feature.range.start() - 1..=feature.range.end() - 1];
-
-                let mut ctx = ClipboardContext::new().unwrap();
-                ctx.set_contents(seq_to_str(seq)).unwrap();
+                if let Some(seq) = feature.range.index_seq(&self.generic.seq) {
+                    let mut ctx = ClipboardContext::new().unwrap();
+                    ctx.set_contents(seq_to_str(seq)).unwrap();
+                }
             }
             Selection::Primer(i) => {
                 let primer = &self.generic.primers[i];

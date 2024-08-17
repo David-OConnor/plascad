@@ -277,7 +277,7 @@ pub struct Feature {
 impl Default for Feature {
     fn default() -> Self {
         Self {
-            range: 1..=1,
+            range: RangeIncl::new(1, 1),
             feature_type: Default::default(),
             direction: Default::default(),
             label: Default::default(),
@@ -298,15 +298,15 @@ impl Feature {
 
     /// Get the feature len, in usize.
     pub fn len(&self) -> usize {
-        self.range.end() - self.range.start() - 1
+        self.range.end - self.range.start - 1
     }
 
     /// Formats the indexes, and size of this feature.
     pub fn location_descrip(&self) -> String {
         format!(
             "{}..{}  {} bp",
-            self.range.start(),
-            self.range.end(),
+            self.range.start,
+            self.range.end,
             self.len()
         )
     }

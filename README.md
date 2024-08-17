@@ -45,10 +45,24 @@ It includes basic reading frame (ORF) viewing for coding regions.
 It lets you do standard edit operations in a what-you-see-is-what-you-get manner. Ie, you can click the sequence to set the cursor,
 move the cursor with arrow keys, type the letters *A*, *C*, *T*, and *G* to insert nucleotides, etc.
 
+#### Notes:
+- Double-click to select a feature
+- Ctrl + F to search for a sequence
+- Ctrl+C and Ctrl+V to copy and paste sequences
+- Click and drag to select text
+- Use the keyboard to insert nucleotides, move the cursor etc
+- When a feature or primer is selected, that's what's copied, vice the selection
+- The feature and primer editor tables is availabe to be displayed above the map
+
 
 ### Circular map
 A circular sequence map of the plasmid being edited, with features, primers, restriction enzyme sites, and other data 
 displayed.
+
+#### Notes:
+- Click to select a feature
+- You can change feature ranges using the sliders,or their adjacent text boxes at the top.
+- The feature editor table is availabe to be displayed above the map
 
 
 ### Feature and primer annotations

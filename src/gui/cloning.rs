@@ -20,6 +20,7 @@ use crate::{
     },
     primer::make_cloning_primers,
     sequence::{seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType},
+    util::RangeIncl,
     CloningInsertData, Selection, State,
 };
 
@@ -41,10 +42,7 @@ fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
                     if ui.button("Select").clicked {
                         data.feature_selected = Some(i);
 
-                        if *feature.range.start() > 0 && *feature.range.end() > 1 {
-                            let seq_this_ft = &data.seq_loaded
-                                [feature.range.start() - 1..=feature.range.end() - 1];
-
+                        if let Some(seq_this_ft) = feature.range.index_seq(&data.seq_loaded) {
                             data.seq_insert = seq_this_ft.to_owned();
                             seq_this_ft.clone_into(&mut data.seq_insert);
                         }
@@ -169,13 +167,13 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
                 if let Some(feat_i) = best {
                     let feature = &state.ui.cloning_insert.features_loaded[feat_i];
 
-                    let seq_this_ft = state.ui.cloning_insert.seq_loaded
-                        [feature.range.start() - 1..=feature.range.end() - 1]
-                        .to_vec();
-
-                    state.ui.cloning_insert.feature_selected = best;
-                    state.ui.cloning_insert.seq_insert = seq_this_ft.to_owned();
-                    state.ui.cloning_insert.seq_input = seq_to_str(&seq_this_ft);
+                    if let Some(seq_this_ft) =
+                        feature.range.index_seq(&state.ui.cloning_insert.seq_loaded)
+                    {
+                        state.ui.cloning_insert.feature_selected = best;
+                        state.ui.cloning_insert.seq_insert = seq_this_ft.to_owned();
+                        state.ui.cloning_insert.seq_input = seq_to_str(&seq_this_ft);
+                    }
                 }
             }
         }
@@ -200,8 +198,10 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             // todo: Eventually, we'll likely be pulling in sequences already associated with a feature;
             // todo: Use the already existing data instead.
             state.generic.features.push(Feature {
-                range: state.cloning_insert_loc + 1
-                    ..=state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len(),
+                range: RangeIncl::new(
+                    state.cloning_insert_loc + 1,
+                    state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len(),
+                ),
                 label,
                 feature_type: FeatureType::CodingRegion,
                 direction: FeatureDirection::Forward,

@@ -1,7 +1,5 @@
 //! This module contains code related to primer (oglionucleotide) design and QC.
 
-use std::ops::{Range, RangeInclusive};
-
 use bincode::{Decode, Encode};
 
 use crate::{
@@ -12,6 +10,7 @@ use crate::{
         Nucleotide::{C, G},
         Seq,
     },
+    util::RangeIncl,
     State,
 };
 
@@ -59,10 +58,7 @@ impl Primer {
     /// Match this primer to a sequence. Check both directions.
     /// Returns direction, and start and end indexes of the sequence. If direction is reversed,
     /// the indexs matches to the reversed index.
-    pub fn match_to_seq(
-        &self,
-        seq: &[Nucleotide],
-    ) -> Vec<(PrimerDirection, RangeInclusive<usize>)> {
+    pub fn match_to_seq(&self, seq: &[Nucleotide]) -> Vec<(PrimerDirection, RangeIncl)> {
         let mut result = Vec::new();
 
         // This check prevents spurious small-sequence matches, which may be numerous otherwise.
@@ -80,7 +76,7 @@ impl Primer {
             let seq_iter = seq.iter().cycle().skip(seq_start).take(primer_len);
             if self.sequence.iter().eq(seq_iter) {
                 let seq_end = (seq_start + primer_len) % seq_len;
-                result.push((PrimerDirection::Forward, seq_start..=seq_end));
+                result.push((PrimerDirection::Forward, RangeIncl::new(seq_start, seq_end)));
             }
         }
 
@@ -88,7 +84,7 @@ impl Primer {
             let seq_iter = complement.iter().cycle().skip(seq_start).take(primer_len);
             if self.sequence.iter().eq(seq_iter) {
                 let seq_end = (seq_start + primer_len) % seq_len;
-                result.push((PrimerDirection::Reverse, seq_start..=seq_end));
+                result.push((PrimerDirection::Reverse, RangeIncl::new(seq_start, seq_end)));
             }
         }
 

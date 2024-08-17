@@ -169,8 +169,8 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
                 continue; // From GenBank; generally the whole seq.
             }
 
-            if seq_i > feature.range.start() && seq_i < feature.range.end() {
-                let feature_size = feature.range.end() - feature.range.start() - 1;
+            if *seq_i > feature.range.start && *seq_i < feature.range.end {
+                let feature_size = feature.range.end - feature.range.start - 1;
                 if feature_size < smallest_feature_size {
                     smallest_feature = i;
                     smallest_feature_size = feature_size;
@@ -186,7 +186,13 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
 /// Selects a feature, if there is a click in the appropriate canvas; used in both the sequence,
 /// and map views.
 pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
-    if state.ui.click_pending_handle {
+    let click_handle = match &mut state.ui.page {
+        Page::Sequence => &mut state.ui.dblclick_pending_handle,
+        Page::Map => &mut state.ui.click_pending_handle,
+        _ => &mut false,
+    };
+
+    if *click_handle {
         // Don't let clicks out of this canvas remove the selected item.
         if let Some(pos) = state.ui.cursor_pos {
             let pos_rel = from_screen * pos2(pos.0, pos.1);
@@ -211,7 +217,7 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
             }
         }
 
-        state.ui.click_pending_handle = false;
+        *click_handle = false;
     }
 }
 
@@ -285,7 +291,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                     .on_hover_text("Copy the selected selection, feature or primer. (Ctrl + C)")
                     .clicked()
                 {
-                    state.copy_feature()
+                    state.copy_seq()
                 }
             }
         });

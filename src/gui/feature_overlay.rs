@@ -20,7 +20,7 @@ use crate::{
         FeatureType,
     },
     util::{get_feature_ranges, RangeIncl},
-    Color,
+    Color, Selection,
 };
 
 const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?
@@ -41,12 +41,7 @@ pub fn draw_selection(selection: RangeIncl, data: &SeqViewData, ui: &mut Ui) -> 
 
     let selection_ranges_px: Vec<(Pos2, Pos2)> = selection_ranges
         .iter()
-        .map(|r| {
-            (
-                data.seq_i_to_px_rel(*r.start()),
-                data.seq_i_to_px_rel(*r.end()),
-            )
-        })
+        .map(|r| (data.seq_i_to_px_rel(r.start), data.seq_i_to_px_rel(r.end)))
         .collect();
 
     result.append(&mut feature_seq_overlay(
@@ -56,23 +51,29 @@ pub fn draw_selection(selection: RangeIncl, data: &SeqViewData, ui: &mut Ui) -> 
         VERTICAL_OFFSET_FEATURE,
         FeatureDirection::None,
         "",
+        true,
         ui,
     ));
 
     result
 }
 
-pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
+pub fn draw_features(
+    features: &[Feature],
+    selected_item: Selection,
+    data: &SeqViewData,
+    ui: &mut Ui,
+) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    for feature in features {
+    for (i, feature) in features.iter().enumerate() {
         // Source features generally take up the whole plasmid length.
         // Alternative: Filter by features that take up the whole length.
         if feature.feature_type == FeatureType::Source {
             continue;
         }
 
-        if *feature.range.start() < 1 {
+        if feature.range.start < 1 {
             eprintln!("Invalid sequence index");
             continue; // 0 is invalid, in 1-based indexing, and will underflow.
         }
@@ -83,18 +84,18 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
 
         let feature_ranges_px: Vec<(Pos2, Pos2)> = feature_ranges
             .iter()
-            .map(|r| {
-                (
-                    data.seq_i_to_px_rel(*r.start()),
-                    data.seq_i_to_px_rel(*r.end()),
-                )
-            })
+            .map(|r| (data.seq_i_to_px_rel(r.start), data.seq_i_to_px_rel(r.end)))
             .collect();
 
         let label = if feature.label.is_empty() {
             &feature.feature_type.to_string()
         } else {
             &feature.label
+        };
+
+        let selected = match selected_item {
+            Selection::Feature(j) => i == j,
+            _ => false,
         };
 
         result.append(&mut feature_seq_overlay(
@@ -104,6 +105,7 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
             VERTICAL_OFFSET_FEATURE,
             feature.direction,
             label,
+            selected,
             ui,
         ));
     }
@@ -119,6 +121,7 @@ pub fn feature_seq_overlay(
     vertical_offset: f32,
     direction: FeatureDirection,
     label: &str,
+    filled: bool,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     if feature_ranges_px.is_empty() {
@@ -184,16 +187,18 @@ pub fn feature_seq_overlay(
             _ => (),
         }
 
-        let shape = match feature_type {
-            FeatureType::Selection => Shape::Path(PathShape::convex_polygon(
+        // let shape = match feature_type {
+        let shape = if filled {
+            Shape::Path(PathShape::convex_polygon(
                 vec![top_left, bottom_left, bottom_right, top_right],
                 stroke.color,
                 stroke,
-            )),
-            _ => Shape::Path(PathShape::closed_line(
+            ))
+        } else {
+            Shape::Path(PathShape::closed_line(
                 vec![top_left, bottom_left, bottom_right, top_right],
                 stroke,
-            )),
+            ))
         };
 
         result.push(shape);

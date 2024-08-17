@@ -3,12 +3,13 @@
 use eframe::egui::{Color32, ComboBox, Frame, RichText, ScrollArea, Stroke, TextEdit, Ui};
 
 use crate::{
-    gui::{COL_SPACING, ROW_SPACING},
+    gui::{int_field, COL_SPACING, ROW_SPACING},
     sequence::{
         Feature,
         FeatureDirection::{self, Forward, Reverse},
         FeatureType,
     },
+    util::RangeIncl,
     Color, Selection, State,
 };
 
@@ -95,26 +96,8 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
             .show(ui, |ui| {
                 ui.heading(RichText::new(&feature.label).color(Color32::GOLD));
                 ui.horizontal(|ui| {
-                    // int_field(&mut feature.range.start(), "Start:", ui);
-                    // int_field(&mut feature.range.end(), "End:", ui);
-
-                    ui.label("Start:");
-                    let mut entry = feature.range.start().to_string();
-                    if ui
-                        .add(TextEdit::singleline(&mut entry).desired_width(40.))
-                        .changed()
-                    {
-                        feature.range = entry.parse().unwrap_or(1)..=*feature.range.end()
-                    }
-
-                    ui.label("End:");
-                    let mut entry = feature.range.end().to_string();
-                    if ui
-                        .add(TextEdit::singleline(&mut entry).desired_width(40.))
-                        .changed()
-                    {
-                        feature.range = *feature.range.start()..=entry.parse().unwrap_or(1)
-                    }
+                    int_field(&mut feature.range.start, "Start:", ui);
+                    int_field(&mut feature.range.end, "End:", ui);
 
                     ui.label("Label:");
                     ui.add(
@@ -203,7 +186,10 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
             }
 
             state.generic.features.push(Feature {
-                range: state.ui.feature_add.start_posit..=state.ui.feature_add.end_posit,
+                range: RangeIncl::new(
+                    state.ui.feature_add.start_posit,
+                    state.ui.feature_add.end_posit,
+                ),
                 feature_type: FeatureType::Generic,
                 direction: FeatureDirection::None,
                 label: state.ui.feature_add.label.clone(),

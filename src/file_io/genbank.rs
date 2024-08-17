@@ -136,6 +136,8 @@ fn parse_features_primers(
     let mut result_ft = Vec::new();
     let mut primers = Vec::new();
 
+    let compl = seq_complement(seq);
+
     for feature in features {
         let feature_type = FeatureType::from_external_str(feature.kind.as_ref());
 
@@ -206,9 +208,8 @@ fn parse_features_primers(
         if feature_type == FeatureType::Primer {
             let sequence = match direction {
                 FeatureDirection::Reverse => {
-                    let compl = seq_complement(seq);
-                    let range =
-                        RangeIncl::new(seq.len() - (range.end - 1), seq.len() - (range.start - 1));
+                    let range = RangeIncl::new(seq.len() - (range.end), seq.len() - (range.start));
+
                     range.index_seq(&compl).unwrap_or_default()
                 }
                 _ => range.index_seq(&seq).unwrap_or_default(),

@@ -67,8 +67,6 @@ pub fn find_re_matches(seq: &[Nucleotide], lib: &[RestrictionEnzyme]) -> Vec<ReM
     let mut result = Vec::new();
 
     for (lib_index, re) in lib.iter().enumerate() {
-        let re_compl = seq_complement(&re.seq);
-        // todo: Use bio lib?
         let seq_len = seq.len();
         for i in 0..seq_len {
             if i + re.seq.len() + 1 >= seq_len {
@@ -78,27 +76,9 @@ pub fn find_re_matches(seq: &[Nucleotide], lib: &[RestrictionEnzyme]) -> Vec<ReM
             if re.seq == seq[i..i + re.seq.len()] {
                 result.push(ReMatch {
                     lib_index,
-                    seq_index: i,
+                    seq_index: i + 1, // +1 indexing.
                 });
             }
-
-            // todo: Evaluate.
-            // if re_compl == seq[i..i + re.seq.len()] {
-            //     result.push(ReMatch {
-            //         lib_index,
-            //         seq_index: i,
-            //     });
-            // }
-
-            // todo: Simpler way?
-            // todo: Evaluate if this is what you want.
-            // if re.seq == seq_comp[i..i + re.seq.len()] {
-            //     self.restriction_enzyme_sites.push(ReMatch {
-            //         lib_index: i_re,
-            //         seq_index: i,
-            //         direction: PrimerDirection::Reverse,
-            //     });
-            // }
         }
     }
     result
