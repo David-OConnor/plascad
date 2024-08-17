@@ -329,7 +329,8 @@ impl Default for StateUi {
             file_dialogs: Default::default(),
             show_origin_change: Default::default(),
             new_origin: Default::default(),
-            text_cursor_i: Default::default(),
+            // text_cursor_i: Default::default(),
+            text_cursor_i: Some(0),
             click_pending_handle: Default::default(),
             dblclick_pending_handle: Default::default(),
             cloning_insert: Default::default(),
@@ -391,7 +392,8 @@ impl State {
 
         self.ui.cursor_pos = None;
         self.ui.cursor_seq_i = None;
-        self.ui.text_cursor_i = None;
+        self.ui.text_cursor_i = Some(0); // todo: For now; having trouble with cursor on empty seq
+        self.ui.seq_input = String::new();
     }
 
     /// Runs the match serach between primers and sequences. Run this when primers and sequences change.
@@ -465,31 +467,26 @@ impl State {
     pub fn insert_nucleotides(&mut self, insert: &[Nucleotide], insert_loc: usize) {
         let seq_vector = &mut self.generic.seq;
 
-        if insert_loc > seq_vector.len() {
+        let insert_i = insert_loc - 1; // 1-based indexing.
+
+        if insert_i > seq_vector.len() {
             eprintln!(
-                "Error creating cloning insert: insert loc {} is greater than vector len {}",
+                "Error inserting nucleotides: insert loc {} is greater than vector len {}",
                 insert_loc,
                 seq_vector.len()
             );
             return;
         }
 
-        // self.generic.seq.clone_from(&seq_vector);
-        seq_vector.splice(insert_loc..insert_loc, insert.iter().cloned());
+        seq_vector.splice(insert_i..insert_i, insert.iter().cloned());
 
         // Now, you have to update features affected by this insertion, shifting them right A/R.
         for feature in &mut self.generic.features {
-            // Handle the case where the insert occurs over a feature. Do this before shifting features.
-            // if feature.index_range.0 < insert_loc && feature.index_range.1 > insert_loc {
-            //     // todo: Divide into two features? For now, we are just trimming.
-            //     feature.index_range.1 = insert_loc - 1;
-            // }
-
-            if feature.range.start > insert_loc {
+            if feature.range.start > insert_i {
                 feature.range.start = feature.range.start + insert.len();
             }
 
-            if feature.range.end > insert_loc {
+            if feature.range.end > insert_i {
                 feature.range.end = feature.range.end + insert.len();
             }
         }

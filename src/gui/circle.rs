@@ -602,24 +602,9 @@ fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape
     result
 }
 
-fn top_details(state: &mut State, ui: &mut Ui) {
-    // todo: A/R
-    // display_filters(&mut state.ui, ui);
-    // We re-impl display_filters to, to avoid having reading frames. Change A/R.
-
-    ui.label("RE sites:");
-    ui.checkbox(&mut state.ui.seq_visibility.show_res, "");
-    ui.add_space(COL_SPACING / 2.);
-
-    ui.label("Features:");
-    ui.checkbox(&mut state.ui.seq_visibility.show_features, "");
-    ui.add_space(COL_SPACING / 2.);
-
-    ui.label("Primers:");
-    ui.checkbox(&mut state.ui.seq_visibility.show_primers, "");
-    ui.add_space(COL_SPACING / 2.);
-
-    // Sliders to edit the feature.
+/// Change the selected feature's range from the sequence or map views.
+/// todo: Move out of circle.rs, as it's also used in the seq view now.
+pub fn feature_range_sliders(state: &mut State, ui: &mut Ui) {
     if let Selection::Feature(feat_i) = &mut state.ui.selected_item {
         ui.spacing_mut().slider_width = FEATURE_SLIDER_WIDTH;
 
@@ -648,6 +633,27 @@ fn top_details(state: &mut State, ui: &mut Ui) {
             }
         }
     }
+}
+
+fn top_details(state: &mut State, ui: &mut Ui) {
+    // todo: A/R
+    // display_filters(&mut state.ui, ui);
+    // We re-impl display_filters to, to avoid having reading frames. Change A/R.
+
+    ui.label("RE sites:");
+    ui.checkbox(&mut state.ui.seq_visibility.show_res, "");
+    ui.add_space(COL_SPACING / 2.);
+
+    ui.label("Features:");
+    ui.checkbox(&mut state.ui.seq_visibility.show_features, "");
+    ui.add_space(COL_SPACING / 2.);
+
+    ui.label("Primers:");
+    ui.checkbox(&mut state.ui.seq_visibility.show_primers, "");
+    ui.add_space(COL_SPACING / 2.);
+
+    // Sliders to edit the feature.
+    feature_range_sliders(state, ui);
 
     ui.add_space(COL_SPACING);
     ui.label("Cursor:");

@@ -130,6 +130,7 @@ Also of note, the native file format this program uses is more compact, includin
 - Utility features for specific applications
 - More robust editing features
 - Better handling of overlapping features
+- Automatic feature annotation for common things like tags and promoters. 
 
 
 ## Calculations used 

@@ -88,7 +88,7 @@ pub fn page_button<T: PartialEq + ToString>(page_state: &mut T, page: T, ui: &mu
 /// This is used for selecting what is displayed in the sequence view, ie view or edit.
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum PageSeq {
-    EditSeq,
+    EditRaw,
     // EditSlic,
     View,
 }
@@ -102,7 +102,7 @@ impl Default for PageSeq {
 impl Display for PageSeq {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            Self::EditSeq => "Edit raw",
+            Self::EditRaw => "Edit raw",
             // Self::EditSlic => "SLIC/FC cloning",
             Self::View => "Sequence",
         }
@@ -113,7 +113,7 @@ impl Display for PageSeq {
 
 pub fn page_seq_selector(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        page_button(&mut state.ui.page_seq, PageSeq::EditSeq, ui, true);
+        page_button(&mut state.ui.page_seq, PageSeq::EditRaw, ui, true);
         page_button(&mut state.ui.page_seq, PageSeq::View, ui, true);
     });
 }

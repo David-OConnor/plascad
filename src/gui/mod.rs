@@ -64,9 +64,8 @@ pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
 pub fn get_cursor_text(cursor_seq_i: Option<usize>, seq_len: usize) -> String {
     match cursor_seq_i {
         Some(p) => {
-            if p < seq_len {
-                // + 1, as the convention is to use 1-based indexing vice 0.
-                (p + 1).to_string()
+            if p <= seq_len {
+                p.to_string()
                 // This occurs if the cursor is on the last row, right of the last NT.
             } else {
                 String::new()

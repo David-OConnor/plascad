@@ -10,6 +10,7 @@ use eframe::egui::{
 use crate::sequence::{seq_from_str, seq_to_str, Feature, MIN_SEARCH_LEN};
 use crate::{
     gui::{
+        circle::feature_range_sliders,
         feature_table::feature_table,
         navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
         primer_qc::primer_details,
@@ -23,6 +24,7 @@ use crate::{
     gui::{COL_SPACING, ROW_SPACING},
     State,
 };
+
 fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.heading("Sequence:");
@@ -67,7 +69,12 @@ fn feature_text(feature: &Option<usize>, features: &[Feature], ui: &mut Ui) {
 
 /// Component for the sequence page.
 pub fn seq_page(state: &mut State, ui: &mut Ui) {
-    page_seq_top_selector(state, ui);
+    ui.horizontal(|ui| {
+        page_seq_top_selector(state, ui);
+
+        // Sliders to edit the feature.
+        feature_range_sliders(state, ui);
+    });
 
     // Limit the top section height.
     let screen_height = ui.ctx().available_rect().height();
@@ -159,7 +166,8 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
     ScrollArea::vertical()
         .id_source(100)
         .show(ui, |ui| match state.ui.page_seq {
-            PageSeq::EditSeq => {
+            PageSeq::EditRaw => {
+                state.ui.text_cursor_i = None; // prevents double-edits
                 seq_editor_raw(state, ui);
             }
             PageSeq::View => {

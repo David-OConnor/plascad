@@ -69,14 +69,14 @@ fn handle_text_selection(state_ui: &mut StateUi, dragging: bool) {
             state_ui.dragging = true;
             // We are handling in the seq view after setting cursor seq i. Still glitchy.
 
-            // if let Some(i) = &state_ui.cursor_seq_i {
-            //     state_ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
-            // }
+            if let Some(i) = &state_ui.cursor_seq_i {
+                state_ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
+            }
         } else {
             // The drag is in progress; continually update the selection, for visual feedback.
             if let Some(i) = &state_ui.cursor_seq_i {
                 if let Some(sel_range) = &mut state_ui.text_selection {
-                    sel_range.end = i + 1; // todo: Not sure why + 1;
+                    sel_range.end = *i;
 
                     if sel_range.start > sel_range.end {
                         mem::swap(&mut sel_range.start, &mut sel_range.end);
@@ -220,9 +220,10 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
 
             if let Some(i) = &mut state.ui.text_cursor_i {
                 if let Some(amt) = move_cursor {
-                    let new_posit = *i as i32 + amt;
-                    if new_posit - 1 < state.generic.seq.len() as i32 {
-                        *i = new_posit as usize;
+                    let new_posit = (*i as i32 + amt) as usize;
+                    // println!("NEW POSIT: {new_posit}");
+                    if new_posit + 1 <= state.generic.seq.len() {
+                        *i = new_posit;
                     }
                 }
             }

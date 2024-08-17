@@ -196,7 +196,13 @@ fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &SeqViewData) -> Option<u
             let pos_relative = data.from_screen * pos2(p.0, p.1);
 
             if pos_relative.x > 0. && pos_relative.y > 0. {
-                pixel_to_seq_i(pos_relative, &data.row_ranges)
+                let mut result = pixel_to_seq_i(pos_relative, &data.row_ranges);
+                if let Some(i) = result {
+                    if i > data.seq_len {
+                        return None;
+                    }
+                }
+                result
             } else {
                 None
             }
@@ -286,8 +292,9 @@ fn draw_text_cursor(cursor_i: Option<usize>, data: &SeqViewData) -> Vec<Shape> {
 
     if let Some(i) = cursor_i {
         let mut top = data.seq_i_to_px_rel(i);
-        // Draw the cursor after this NT, not before. // todo: Not sure why we need 2*.
-        top.x += 2. * NT_WIDTH_PX;
+
+        // Draw the cursor after this NT, not before.
+        top.x += NT_WIDTH_PX;
         top.y -= 3.;
         let bottom = pos2(top.x, top.y + 23.);
 
@@ -372,11 +379,11 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
                 // Handle drag start; we do this here to prevent the start-off-by-one errors we get in the
                 // general input codex. {}
-                if state.ui.dragging && state.ui.text_selection.is_none() {
-                    if let Some(i) = &state.ui.cursor_seq_i {
-                        state.ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
-                    }
-                }
+                // if state.ui.dragging && state.ui.text_selection.is_none() {
+                //     if let Some(i) = &state.ui.cursor_seq_i {
+                //         state.ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
+                //     }
+                // }
 
                 // Removed: We select cursor position instead now.
                 select_feature(state, &from_screen);
@@ -386,6 +393,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     // This is set up so that a click outside the text area won't reset the cursor.
                     if state.ui.cursor_seq_i.is_some() {
                         state.ui.text_cursor_i = state.ui.cursor_seq_i;
+                        // println!("Text cursor: {:?}", state.ui.text_cursor_i);
                         state.ui.search_active = false;
                         state.ui.text_selection = None;
                     }

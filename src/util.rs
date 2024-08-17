@@ -102,9 +102,11 @@ fn seq_i_to_col_row(seq_i: usize, row_ranges: &[RangeIncl]) -> (usize, usize) {
 /// Maps sequence index, as displayed on a manually-wrapped UI display, to the relative pixel.
 pub fn seq_i_to_pixel(seq_i: usize, row_ranges: &[RangeIncl]) -> Pos2 {
     let (col, row) = seq_i_to_col_row(seq_i, row_ranges);
+    // This adjustment is used for placing the cursor at position 0; prior to the first nucleotide.
+    let col = if seq_i == 0 { -1. } else { col as f32 };
 
     pos2(
-        TEXT_X_START + col as f32 * NT_WIDTH_PX,
+        TEXT_X_START + col * NT_WIDTH_PX,
         TEXT_Y_START + row as f32 * SEQ_ROW_SPACING_PX,
     )
 }
@@ -116,7 +118,7 @@ pub fn pixel_to_seq_i(pixel: Pos2, row_ranges: &[RangeIncl]) -> Option<usize> {
     // todo: Index vice loop?
     for (row_, range) in row_ranges.iter().enumerate() {
         if row_ == row {
-            return Some(range.start + col - 1); // todo: Not sure why.
+            return Some(range.start + col);
         }
     }
 
