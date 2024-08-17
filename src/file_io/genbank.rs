@@ -7,8 +7,6 @@
 use std::{
     fs::File,
     io::{self, ErrorKind, Write},
-    mem,
-    ops::{Range, RangeInclusive},
     path::Path,
 };
 
@@ -26,6 +24,7 @@ use crate::{
         seq_complement, Feature, FeatureDirection, FeatureType, Metadata, Nucleotide, Reference,
         SeqTopology,
     },
+    util::RangeIncl,
 };
 
 /// Read a file in the GenBank format.
@@ -146,22 +145,22 @@ fn parse_features_primers(
         let mut direction = FeatureDirection::None;
         let mut label = String::new();
 
-        let mut index_range = match &feature.location {
+        let mut range = match &feature.location {
             // gb_io seems to list the start of the range as 1 too early; compensate.
-            Location::Range(start, end) => start.0 as usize + 1..=end.0 as usize,
+            Location::Range(start, end) => RangeIncl::new(start.0 as usize + 1, end.0 as usize),
             Location::Complement(inner) => match **inner {
                 Location::Range(start, end) => {
                     direction = FeatureDirection::Reverse;
-                    start.0 as usize + 1..=end.0 as usize
+                    RangeIncl::new(start.0 as usize, end.0 as usize)
                 }
                 _ => {
                     eprintln!("Unexpected gb_io compl range type: {:?}", feature.location);
-                    1..=1
+                    RangeIncl::new(1, 1)
                 }
             },
             _ => {
                 eprintln!("Unexpected gb_io range type: {:?}", feature.location);
-                1..=1
+                RangeIncl::new(1, 1)
             }
         };
 
@@ -197,21 +196,24 @@ fn parse_features_primers(
             }
         }
 
+        // Passing through the origin, most likely. Loop around past the end.
+        if range.end < range.start {
+            range = RangeIncl::new(range.start, seq.len() + range.end);
+        }
+
         // GenBank stores primer bind sites (Which we treat as volatile), vice primer sequences.
         // Infer the sequence using the bind indices, and the main sequence.
         if feature_type == FeatureType::Primer {
-            // See other notes on start range index being odd.
-            if index_range.start() <= index_range.end() {
-                mem::swap(&mut index_range.start(), &mut index_range.end());
-            }
-
             let sequence = match direction {
                 FeatureDirection::Reverse => {
                     let compl = seq_complement(seq);
-                    compl[seq.len() - (index_range.start() - 1)..=seq.len() - (index_range.end())].to_vec()
+                    let range =
+                        RangeIncl::new(seq.len() - (range.end - 1), seq.len() - (range.start - 1));
+                    range.index_seq(&compl).unwrap_or_default()
                 }
-                _ => seq[*index_range.start() - 1..=*index_range.end()].to_vec(),
-            };
+                _ => range.index_seq(&seq).unwrap_or_default(),
+            }
+            .to_vec();
 
             let volatile = PrimerData::new(&sequence);
             primers.push(Primer {
@@ -237,7 +239,7 @@ fn parse_features_primers(
         }
 
         result_ft.push(Feature {
-            range: index_range,
+            range,
             feature_type,
             direction,
             label,
@@ -252,7 +254,7 @@ fn parse_features_primers(
 /// Export our local state into the GenBank format. This includes sequence, features, and primers.
 pub fn export_genbank(
     data: &GenericData,
-    primer_matches: &[(PrimerDirection, RangeInclusive<usize>, String)],
+    primer_matches: &[(PrimerDirection, RangeIncl, String)],
     path: &Path,
 ) -> io::Result<()> {
     let file = File::create(path)?;
@@ -284,8 +286,8 @@ pub fn export_genbank(
             _ => (),
         }
 
-        let start: i64 = (*feature.range.start()).try_into().unwrap();
-        let end: i64 = (*feature.range.end()).try_into().unwrap();
+        let start: i64 = feature.range.start.try_into().unwrap();
+        let end: i64 = feature.range.end.try_into().unwrap();
 
         let location = match feature.direction {
             FeatureDirection::Reverse => Location::Complement(Box::new(Location::Range(
@@ -294,7 +296,7 @@ pub fn export_genbank(
             ))),
             _ => Location::Range(
                 (start - 1, Before(false)),
-                ((*feature.range.end()).try_into().unwrap(), After(false)),
+                (feature.range.end.try_into().unwrap(), After(false)),
             ),
         };
 
@@ -307,13 +309,13 @@ pub fn export_genbank(
 
     for (dir, indexes, name) in primer_matches {
         // todo: Location code is DRY with features.
-        let start: i64 = (*indexes.start()).try_into().unwrap();
-        let end: i64 = (*indexes.end()).try_into().unwrap();
+        let start: i64 = indexes.start.try_into().unwrap();
+        let end: i64 = indexes.end.try_into().unwrap();
 
         let location = match dir {
             PrimerDirection::Forward => Location::Range(
                 (start, Before(false)),
-                ((*indexes.end()).try_into().unwrap(), After(false)),
+                (indexes.end.try_into().unwrap(), After(false)),
             ),
             PrimerDirection::Reverse => Location::Complement(Box::new(Location::Range(
                 (data.seq.len() as i64 - (end + 1), Before(false)),

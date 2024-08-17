@@ -1,18 +1,46 @@
 use std::{
-    cmp::min,
+    cmp::{min, PartialOrd},
     collections::HashSet,
     io,
     io::ErrorKind,
-    num::{IntErrorKind, ParseIntError},
-    ops::{Range, RangeInclusive},
+    ops::RangeInclusive,
 };
 
+use bincode::{Decode, Encode};
 use eframe::egui::{pos2, Pos2};
 
 use crate::{
     gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
     Color, State,
 };
+
+/// A replacement for std::RangeInclusive, but copy type, and directly-accessible (mutable) fields.
+/// An official replacement is eventually coming, but not for a while likely.
+#[derive(Clone, Copy, Debug, Encode, Decode)]
+pub struct RangeIncl {
+    pub start: usize,
+    pub end: usize,
+}
+
+impl RangeIncl {
+    pub fn new(start: usize, end: usize) -> Self {
+        Self { start, end }
+    }
+    pub fn contains(&self, val: usize) -> bool {
+        val >= self.start && val <= self.end
+    }
+
+    /// This function handles both the +1 nature of our range indexing,
+    /// and error handling for out of bounds. (The latter of which panics at runtime)
+    pub fn index_seq<'a, T>(&self, seq: &'a [T]) -> Option<&'a [T]> {
+        if self.start < 1 || self.end + 1 > seq.len() {
+            return None;
+        }
+
+        Some(&seq[self.start..=self.end])
+    }
+}
+
 /// Utility function to linearly map an input value to an output
 pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 {
     // todo: You may be able to optimize calls to this by having the ranges pre-store
@@ -44,12 +72,12 @@ pub fn get_row_ranges(len: usize, chars_per_row: usize) -> Vec<RangeInclusive<us
 
 // todo: We currently don't use this as a standalone fn; wrap back into `seq_i_to_pixel` a/r.
 /// Maps sequence index, as displayed on a manually-wrapped UI display, to row and column indices.
-fn seq_i_to_col_row(seq_i: usize, row_ranges: &[RangeInclusive<usize>]) -> (usize, usize) {
+fn seq_i_to_col_row(seq_i: usize, row_ranges: &[RangeIncl]) -> (usize, usize) {
     let mut row = 0;
     let mut row_range = 0..=10;
 
     for (row_, range) in row_ranges.iter().enumerate() {
-        if range.contains(&seq_i) {
+        if range.contains(seq_i) {
             row = row_;
             row_range = range.clone();
             break;
@@ -62,7 +90,7 @@ fn seq_i_to_col_row(seq_i: usize, row_ranges: &[RangeInclusive<usize>]) -> (usiz
 }
 
 /// Maps sequence index, as displayed on a manually-wrapped UI display, to the relative pixel.
-pub fn seq_i_to_pixel(seq_i: usize, row_ranges: &[RangeInclusive<usize>]) -> Pos2 {
+pub fn seq_i_to_pixel(seq_i: usize, row_ranges: &[RangeIncl]) -> Pos2 {
     let (col, row) = seq_i_to_col_row(seq_i, row_ranges);
 
     pos2(
@@ -78,7 +106,7 @@ pub fn pixel_to_seq_i(pixel: Pos2, row_ranges: &[RangeInclusive<usize>]) -> Opti
     // todo: Index vice loop?
     for (row_, range) in row_ranges.iter().enumerate() {
         if row_ == row {
-            return Some(range.start() + col - 1);
+            return Some(range.start() + col - 1); // todo: Not sure why.
         }
     }
 
@@ -97,8 +125,8 @@ pub fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
 /// This is used to draw overlays over the sequence that line up with a given index range.
 /// todo: This should be RangeInclusive.
 pub fn get_feature_ranges(
-    feature_rng: &RangeInclusive<usize>,
-    all_ranges: &[RangeInclusive<usize>],
+    feature_rng: &RangeIncl,
+    all_ranges: &[RangeIncl],
 ) -> Vec<RangeInclusive<usize>> {
     let mut result = Vec::new();
 
@@ -113,26 +141,26 @@ pub fn get_feature_ranges(
 
     for range in all_ranges {
         if range.end() < range.start() || *range.end() == 0 {
-            eprintln!(
-                "Error with ranges; start after end. Start: {}, end: {}",
-                range.start(),
-                range.end()
-            );
+            // eprintln!(
+            //     "Error with ranges; start after end. Start: {}, end: {}",
+            //     range.start(),
+            //     range.end()
+            // );
             return result;
         }
 
-        if range.contains(&feature_rng.start()) {
+        if range.contains(&feature_rng.start) {
             // Contains start only, or start and end.
-            let end = min(range.end(), feature_rng.end());
+            let end = min(range.end, feature_rng.end);
 
             // result.push(feature_rng.start..end - 1);
-            result.push(*feature_rng.start()..=*end);
-        } else if range.contains(&feature_rng.end()) {
+            result.push(RangeIncl::new(feature_rng.start, end));
+        } else if range.contains(&feature_rng.end) {
             // Contains end only.
-            result.push(*range.start()..=*feature_rng.end());
-        } else if feature_rng.start() < range.start() && feature_rng.end() > range.end() {
+            result.push(RangeIncl::new(range.start, feature_rng.end));
+        } else if feature_rng.start < range.start && feature_rng.end > range.end {
             // Include this entire row
-            result.push(*range.start()..=*range.end());
+            result.push(RangeIncl::new(range.start, range.end));
         }
         // If none of the above, this row doesn't contain any of the sequence of interest.
     }
@@ -175,8 +203,10 @@ pub fn change_origin(state: &mut State) {
     for feature in &mut state.generic.features {
         // Convert to i32 to prevent an underflow on crash if we wrap. Use `rem_euclid`,
         // as Rust has unexpected behavior when using modulus on negatives.
-        feature.range = (*feature.range.start() as i32 + 1 - *origin as i32).rem_euclid(seq_len as i32) as usize..=
-            (*feature.range.end() as i32 + 1 - *origin as i32).rem_euclid(seq_len as i32) as usize
+        feature.range = (*feature.range.start() as i32 + 1 - *origin as i32)
+            .rem_euclid(seq_len as i32) as usize
+            ..=(*feature.range.end() as i32 + 1 - *origin as i32).rem_euclid(seq_len as i32)
+                as usize
     }
 
     // todo: What else to update?

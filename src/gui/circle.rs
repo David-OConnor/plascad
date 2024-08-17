@@ -54,7 +54,7 @@ const FEATURE_WIDTH_DEFAULT: f32 = 26.;
 const PRIMER_WIDTH: f32 = 54.;
 const PRIMER_STROKE_WIDTH: f32 = 2.;
 
-const TIP_LEN: f32 = 0.05; // Len of arrow tips, in radians
+const TIP_LEN: f32 = 0.03; // Len of arrow tips, in radians
 const TIP_WIDTH_RATIO: f32 = 1.5; // Compared to its feature width.
 
 // Radius, comparedd to the available width or height (whichever is lower).
@@ -411,8 +411,8 @@ fn draw_features(
 
         let stroke = Stroke::new(feature_stroke_width, stroke_color);
 
-        let angle_start = seq_i_to_angle(*feature.range.start(), data.seq_len);
-        let angle_end = seq_i_to_angle(*feature.range.end(), data.seq_len);
+        let angle_start = seq_i_to_angle(feature.range.start, data.seq_len);
+        let angle_end = seq_i_to_angle(feature.range.end, data.seq_len);
 
         // We subtract parts from the start or end angle for the arrow tip, if present.
         let angle = match feature.direction {
@@ -519,12 +519,12 @@ fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape
             let seq_range = match direction {
                 PrimerDirection::Forward => seq_range.clone(),
                 PrimerDirection::Reverse => {
-                    (data.seq_len - seq_range.end())..=(data.seq_len - seq_range.start())
+                    (data.seq_len - seq_range.end)..=(data.seq_len - seq_range.start)
                 }
             };
 
-            let angle_start = seq_i_to_angle(*seq_range.start(), data.seq_len);
-            let angle_end = seq_i_to_angle(*seq_range.end(), data.seq_len);
+            let angle_start = seq_i_to_angle(*seq_range.start, data.seq_len);
+            let angle_end = seq_i_to_angle(*seq_range.end, data.seq_len);
             let angle_mid = (angle_start + angle_end) / 2.;
 
             let point_start_inner =
@@ -630,12 +630,12 @@ fn top_details(state: &mut State, ui: &mut Ui) {
             // todo: Handle wraps.
             ui.label("Start:");
             // let start = feature.index_range.0; // Avoids a borrow error.
-            let mut start = *feature.range.start();
-            if ui.add(Slider::new(
-                &mut start,
-                0..=state.generic.seq.len(),
-            )).changed() {
-                feature.range = start..=feature.range.end().clone();
+            let mut start = *feature.range.start;
+            if ui
+                .add(Slider::new(&mut start, 0..=state.generic.seq.len()))
+                .changed()
+            {
+                feature.range = start..=feature.range.end.clone();
             };
             // ui.add(
             //     Slider::from_get_set(0.0..=state.generic.seq.len() as f32, |v| {
@@ -649,17 +649,17 @@ fn top_details(state: &mut State, ui: &mut Ui) {
             ui.add_space(COL_SPACING);
             ui.label("End:");
 
-            let mut end = *feature.range.end();
-            if ui.add(Slider::new(
-                &mut end,
-                0..=state.generic.seq.len(),
-            )).changed() {
-                feature.range = feature.range.end().clone()..=end;
+            let mut end = *feature.range.end;
+            if ui
+                .add(Slider::new(&mut end, 0..=state.generic.seq.len()))
+                .changed()
+            {
+                feature.range = feature.range.end.clone()..=end;
             };
 
             // todo: Don't let end be before start.
-            if feature.range.start() > feature.range.end() {
-                feature.range = *feature.range.start()..=feature.range.start() + 1;
+            if feature.range.start > feature.range.end {
+                feature.range = *feature.range.start..=feature.range.start + 1;
             }
         }
     }

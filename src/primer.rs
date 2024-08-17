@@ -395,7 +395,7 @@ pub struct PrimerData {
     pub seq_removed_5p: String,
     pub seq_removed_3p: String,
     /// todo: Which direction is the range, if the direction is reverse?
-    pub matches_seq: Vec<(PrimerDirection, RangeInclusive<usize>)>,
+    pub matches_seq: Vec<(PrimerDirection, RangeIncl)>,
 }
 
 impl PrimerData {

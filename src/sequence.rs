@@ -2,9 +2,11 @@ use std::{fmt::Display, io, ops::RangeInclusive};
 
 use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;
+
 use crate::{
     primer::PrimerDirection,
     sequence::Nucleotide::{A, C, G, T},
+    util::RangeIncl,
     Color,
 };
 
@@ -109,7 +111,7 @@ pub struct ReadingFrameMatch {
     pub frame: ReadingFrame,
     /// 1-based indexing.
     /// Indices are respective to the non-complementary seq, for both forward and reverse reading frames.
-    pub range: RangeInclusive<usize>,
+    pub range: RangeIncl,
 }
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
@@ -261,7 +263,7 @@ impl FeatureDirection {
 pub struct Feature {
     // pub range: (usize, usize),
     /// 1-based indexing, inclusive. (Note: Could also use the builtin RangeInclusive.)
-    pub range: RangeInclusive<usize>,
+    pub range: RangeIncl,
     pub feature_type: FeatureType,
     pub direction: FeatureDirection,
     pub label: String,
@@ -403,12 +405,12 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
             // the non-complementary seq, for both forward and reverse reading frames.
             let range = match orf {
                 ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => {
-                    frame_open.unwrap() + 1 + offset..= i + 2 + offset
+                    RangeIncl::new(frame_open.unwrap() + 1 + offset, i + 2 + offset)
                 }
-                _ =>
-                    seq_len_full - (i + 2 + offset)..=
+                _ => RangeIncl::new(
+                    seq_len_full - (i + 2 + offset),
                     seq_len_full - (frame_open.unwrap() + offset) - 1,
-
+                ),
             };
 
             result.push(ReadingFrameMatch { frame: orf, range });
@@ -449,7 +451,7 @@ pub struct Reference {
 
 pub struct SearchMatch {
     /// 0-based indexing.
-    pub range: RangeInclusive<usize>,
+    pub range: RangeIncl,
     // todo: More A/R
 }
 
@@ -469,7 +471,9 @@ pub fn find_search_matches(seq: &[Nucleotide], search_seq: &[Nucleotide]) -> Vec
         }
 
         if &seq[i..end] == search_seq {
-            result.push(SearchMatch { range: i..=end - 1 });
+            result.push(SearchMatch {
+                range: RangeIncl::new(i, end),
+            });
         }
     }
 
@@ -483,7 +487,7 @@ pub fn find_search_matches(seq: &[Nucleotide], search_seq: &[Nucleotide]) -> Vec
 
         if &compl[i..end] == search_seq {
             result.push(SearchMatch {
-                range: seq_len - (end + 0)..=seq_len - (i + 1),
+                range: RangeIncl::new(seq_len - (end + 0), seq_len - (i + 1)),
             });
         }
     }

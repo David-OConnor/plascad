@@ -11,10 +11,11 @@ use std::{
     collections::HashMap,
     fs::File,
     io::{self, ErrorKind, Read, Write},
+    ops::RangeInclusive,
     path::Path,
     str,
 };
-use std::ops::RangeInclusive;
+
 use num_enum::TryFromPrimitive;
 use quick_xml::{de::from_str, se::to_string};
 
@@ -37,7 +38,7 @@ use crate::{
         seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq,
         SeqTopology,
     },
-    util::{color_from_hex, color_to_hex},
+    util::{color_from_hex, color_to_hex, RangeIncl},
 };
 
 const COOKIE_PACKET_LEN: usize = 14;
@@ -410,8 +411,8 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
             };
 
             let range = match &segment.range {
-                Some(r) => range_from_str(r).unwrap_or(1..=1),
-                None => 1..=1,
+                Some(r) => range_from_str(r).unwrap_or(RangeIncl::new(1, 1)),
+                None => RangeIncl::new(1, 1),
             };
 
             result.push(Feature {
@@ -490,7 +491,7 @@ fn parse_notes(payload: &[u8]) -> io::Result<Notes> {
     Ok(result)
 }
 
-fn range_from_str(range: &str) -> Result<RangeInclusive<usize>, &'static str> {
+fn range_from_str(range: &str) -> Result<RangeIncl, &'static str> {
     let parts: Vec<&str> = range.split('-').collect();
     if parts.len() != 2 {
         return Err("Invalid range format");
@@ -503,7 +504,7 @@ fn range_from_str(range: &str) -> Result<RangeInclusive<usize>, &'static str> {
         .parse::<usize>()
         .map_err(|_| "Invalid number in range")?;
 
-    Ok(start..=end)
+    Ok(RangeIncl::new(start, end))
 }
 
 /// Add feature data to the buffer.
@@ -518,10 +519,7 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
 
         let segments = vec![Segment {
             segment_type: None,
-            range: Some(format!(
-                "{}-{}",
-                feature.range.start(), feature.range.end()
-            )),
+            range: Some(format!("{}-{}", feature.range.start, feature.range.end)),
             name: None,
             color: feature.color_override.map(color_to_hex),
         }];

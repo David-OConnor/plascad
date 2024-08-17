@@ -1,11 +1,9 @@
 //! GUI code for the features editor and related.
 
-use eframe::egui::{
-    Color32, ComboBox, Frame, Painter, RichText, ScrollArea, Sense, Stroke, TextEdit, Ui, Vec2,
-};
+use eframe::egui::{Color32, ComboBox, Frame, RichText, ScrollArea, Stroke, TextEdit, Ui};
 
 use crate::{
-    gui::{int_field, COL_SPACING, ROW_SPACING},
+    gui::{COL_SPACING, ROW_SPACING},
     sequence::{
         Feature,
         FeatureDirection::{self, Forward, Reverse},
@@ -95,6 +93,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
             .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
             .inner_margin(border_width)
             .show(ui, |ui| {
+                ui.heading(RichText::new(&feature.label).color(Color32::GOLD));
                 ui.horizontal(|ui| {
                     // int_field(&mut feature.range.start(), "Start:", ui);
                     // int_field(&mut feature.range.end(), "End:", ui);
@@ -204,10 +203,7 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
             }
 
             state.generic.features.push(Feature {
-                range:
-                    state.ui.feature_add.start_posit..=
-                    state.ui.feature_add.end_posit
-                ,
+                range: state.ui.feature_add.start_posit..=state.ui.feature_add.end_posit,
                 feature_type: FeatureType::Generic,
                 direction: FeatureDirection::None,
                 label: state.ui.feature_add.label.clone(),

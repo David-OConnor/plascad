@@ -12,12 +12,12 @@
 // Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
 use std::{
     env, io,
-    ops::RangeInclusive,
+    ops::{Range, RangeInclusive},
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
 };
-use std::ops::Range;
+
 use bincode::{Decode, Encode};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{self, egui, egui::Context};
@@ -44,6 +44,7 @@ use crate::{
         Nucleotide, ReadingFrame, ReadingFrameMatch, SearchMatch, MIN_SEARCH_LEN,
     },
     tags::TagMatch,
+    util::RangeIncl,
 };
 
 mod amino_acids;
@@ -305,8 +306,7 @@ struct StateUi {
     /// This is used for selecting nucleotides on the sequence viewer.
     dragging: bool,
     /// 1-based indexing.
-    // text_selection: Option<(usize, usize)>,
-    text_selection: Option<RangeInclusive<usize>>,
+    text_selection: Option<RangeIncl>,
 }
 
 impl Default for StateUi {
@@ -495,7 +495,7 @@ impl State {
     }
 
     /// One-based indexing. Similar to `insert_nucleotides`.
-    pub fn remove_nucleotides(&mut self, range: RangeInclusive<usize>) {
+    pub fn remove_nucleotides(&mut self, range: RangeIncl) {
         let seq = &mut self.generic.seq;
         if range.end() + 1 > seq.len() {
             return;
@@ -557,7 +557,9 @@ impl State {
     pub fn copy_feature(&self) {
         // Text selection takes priority.
         if let Some(selection) = &self.ui.text_selection {
-            let seq = &self.generic.seq[selection.start() - 1..=selection.end()- 1];
+            // todo: Why is -1 not working here?
+            // let seq = &self.generic.seq[selection.start() - 1..=selection.end()- 1];
+            let seq = &self.generic.seq[selection.clone()];
 
             let mut ctx = ClipboardContext::new().unwrap();
             ctx.set_contents(seq_to_str(seq)).unwrap();
@@ -566,7 +568,9 @@ impl State {
         match self.ui.selected_item {
             Selection::Feature(i) => {
                 let feature = &self.generic.features[i];
-                let seq = &self.generic.seq[feature.range.start() - 1..=feature.range.end() - 1];
+                // todo: Why -1 not working?
+                let seq = &self.generic.seq[feature.range.clone()];
+                // let seq = &self.generic.seq[feature.range.start() - 1..=feature.range.end() - 1];
 
                 let mut ctx = ClipboardContext::new().unwrap();
                 ctx.set_contents(seq_to_str(seq)).unwrap();

@@ -20,7 +20,7 @@ use crate::{
         primer_arrow, COL_SPACING, ROW_SPACING,
     },
     sequence::ReadingFrame,
-    util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
+    util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl},
     State, StateUi,
 };
 
@@ -50,7 +50,7 @@ const MAX_SEQ_AREA_HEIGHT: u16 = 300;
 /// These aguments define the circle, and are used in many places in this module.
 pub struct SeqViewData {
     pub seq_len: usize,
-    pub row_ranges: Vec<RangeInclusive<usize>>,
+    pub row_ranges: Vec<RangeIncl>,
     pub to_screen: RectTransform,
     pub from_screen: RectTransform,
     // /// This is `from_screen * center`. We store it here to cache.
@@ -220,8 +220,8 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                 for rf in &state.volatile.reading_frame_matches {
                     // let (start, end) = rf.range;
                     // let i_ = i + 1; // 1-based indexing
-                    if rf.range.contains(&i) {
-                    // if start <= i_ && i_ <= end {
+                    if rf.range.contains(i) {
+                        // if start <= i_ && i_ <= end {
                         r = COLOR_CODING_REGION;
                         highlighted = true;
                     }
@@ -232,14 +232,14 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             // todo: Try resolving using the inclusive range type, and standardizing to 1-based.
             // todo: Resolve this one field at a time, from a working state.
             if let Some(sel_range) = &state.ui.text_selection {
-                if sel_range.contains(&i) {
+                if sel_range.contains(i) {
                     r = COLOR_SELECTED_NTS;
                 }
             }
 
             // This overrides reading frame matches and text selection.
             for search_result in &state.volatile.search_matches {
-                if search_result.range.contains(&i) {
+                if search_result.range.contains(i) {
                     r = COLOR_SEARCH_RESULTS;
                     highlighted = true;
                 }
@@ -274,6 +274,7 @@ fn draw_text_cursor(cursor_i: Option<usize>, data: &SeqViewData) -> Vec<Shape> {
 
     if let Some(i) = cursor_i {
         let mut top = data.seq_i_to_px_rel(i);
+        top.x += NT_WIDTH_PX; // Draw the cursor after this NT, not before.
         top.y -= 3.;
         let bottom = pos2(top.x, top.y + 23.);
 

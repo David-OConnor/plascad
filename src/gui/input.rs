@@ -8,6 +8,7 @@ use crate::{
     file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
     gui::{navigation::Page, save::load_import, set_window_title},
     sequence::{seq_from_str, Nucleotide},
+    util::RangeIncl,
     State, StateUi,
 };
 
@@ -47,6 +48,11 @@ fn handle_global(state: &mut State, ip: &InputState) {
     state.ui.cursor_pos = ip.pointer.hover_pos().map(|pos| (pos.x, pos.y));
 
     if ip.pointer.button_clicked(PointerButton::Primary) {
+        // todo: Not working for fixing our fast-sel off-by-one bug.
+        // if let Some(i) = &state.ui.cursor_seq_i {
+        //     state.ui.text_selection = Some(*i..=*i); // 1-based indexing. Second value is a placeholder.
+        // }
+
         state.ui.click_pending_handle = true;
     }
 }
@@ -57,18 +63,17 @@ fn handle_text_selection(state_ui: &mut StateUi, dragging: bool) {
         // A drag has started.
         if !state_ui.dragging {
             state_ui.dragging = true;
-            println!("Drag start");
             if let Some(i) = &state_ui.cursor_seq_i {
-                state_ui.text_selection = Some(*i..=*i); // 1-based indexing. Second value is a placeholder.
+                state_ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
             }
         } else {
             // The drag is in progress; continually update the selection, for visual feedback.
             if let Some(i) = &state_ui.cursor_seq_i {
                 if let Some(sel_range) = &mut state_ui.text_selection {
-                    *sel_range = *sel_range.start()..=*i + 1; // todo: Not sure why.,
+                    sel_range.end = i + 1; // todo: Not sure why + 1;
 
-                    if sel_range.start() > sel_range.end() {
-                        *sel_range = *sel_range.end()..=*sel_range.start();
+                    if sel_range.start > sel_range.end {
+                        mem::swap(&mut sel_range.start, &mut sel_range.end);
                     }
                 }
             }
@@ -144,7 +149,8 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
 
             // Insert nucleotides A/R.
             if let Some(i) = state.ui.text_cursor_i {
-                // Don't allow accidental nt insertion when the user is entering into the search bar.
+                let i = i + 1; // Insert after this nucleotide; not before.
+                               // Don't allow accidental nt insertion when the user is entering into the search bar.
                 if !state.ui.search_active {
                     // Add NTs.
                     if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
@@ -160,10 +166,10 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                         state.insert_nucleotides(&[Nucleotide::G], i);
                     }
                     if ip.key_pressed(Key::Backspace) && i > 0 {
-                        state.remove_nucleotides(i - 1..=i - 1);
+                        state.remove_nucleotides(RangeIncl::new(i - 1, i - 1));
                     }
                     if ip.key_pressed(Key::Delete) {
-                        state.remove_nucleotides(i..=i);
+                        state.remove_nucleotides(RangeIncl::new(i, i));
                     }
                 }
 

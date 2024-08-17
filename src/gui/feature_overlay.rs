@@ -19,7 +19,7 @@ use crate::{
         FeatureDirection::{Forward, Reverse},
         FeatureType,
     },
-    util::get_feature_ranges,
+    util::{get_feature_ranges, RangeIncl},
     Color,
 };
 
@@ -27,20 +27,17 @@ const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?
 
 /// We include this in this module because visually, it is very similar to the overlay.
 /// Note: At least for now, selection uses 1-based indexing.
-pub fn draw_selection(selection: &RangeInclusive<usize>, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
+pub fn draw_selection(selection: RangeIncl, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    if *selection.start() < 1 || selection.end() + 1 > data.seq_len {
+    if selection.start < 1 || selection.end + 1 > data.seq_len {
         eprintln!("Invalid sequence index");
         return result;
     }
 
     // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
     // todo in this way.
-    let selection_ranges = get_feature_ranges(
-        selection,
-        &data.row_ranges,
-    );
+    let selection_ranges = get_feature_ranges(&selection, &data.row_ranges);
 
     let selection_ranges_px: Vec<(Pos2, Pos2)> = selection_ranges
         .iter()
@@ -82,10 +79,7 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
 
         // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
         // todo in this way.
-        let feature_ranges = get_feature_ranges(
-            &feature.range,
-            &data.row_ranges,
-        );
+        let feature_ranges = get_feature_ranges(&feature.range, &data.row_ranges);
 
         let feature_ranges_px: Vec<(Pos2, Pos2)> = feature_ranges
             .iter()
