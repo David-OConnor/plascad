@@ -38,6 +38,9 @@ It will also create a new file containing the sequence of the cloning product.
 
 
 ### Sequence viewer and editor
+
+![Sequence view screenshot](screenshots/seq_aug_24.png)
+
 This shows the sequence of interest (as generated from cloning, or manually input) with primers overlayed based on their
 match location. It also displays cut sites for common restriction enzymes, and features loaded from a file, or set by the user.
 It includes basic reading frame (ORF) viewing for coding regions.
@@ -46,18 +49,21 @@ It lets you do standard edit operations in a what-you-see-is-what-you-get manner
 move the cursor with arrow keys, type the letters *A*, *C*, *T*, and *G* to insert nucleotides, etc.
 
 #### Notes:
-- Double-click to select a feature
-- Ctrl + F to search for a sequence
-- Ctrl+C and Ctrl+V to copy and paste sequences
-- Click and drag to select text
-- Use the keyboard to insert nucleotides, move the cursor etc
-- When a feature or primer is selected, that's what's copied, vice the selection
-- The feature and primer editor tables is availabe to be displayed above the map
+- Double-click to select a feature.
+- Ctrl + F to search for a sequence.
+- Ctrl+C and Ctrl+V to copy and paste sequences.
+- Click and drag to select text.
+- Use the keyboard to insert nucleotides, move the cursor etc.
+- When a feature or primer is selected, that's what's copied, vice the selection.
+- The feature and primer editor tables is availabe to be displayed above the map.
+- Use the Escape key to remove selections and the cursor.
 
 
 ### Circular map
 A circular sequence map of the plasmid being edited, with features, primers, restriction enzyme sites, and other data 
 displayed.
+
+![Map view screenshot](screenshots/map_aug_24.png)
 
 #### Notes:
 - Click to select a feature

@@ -11,18 +11,13 @@ use eframe::{
     epaint::PathStroke,
 };
 
-use crate::{
-    gui::{
-        feature_from_index,
-        feature_overlay::{draw_features, draw_selection},
-        get_cursor_text,
-        navigation::page_button,
-        primer_arrow, select_feature, COL_SPACING, ROW_SPACING,
-    },
-    sequence::ReadingFrame,
-    util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl},
-    State, StateUi,
-};
+use crate::{gui::{
+    feature_from_index,
+    feature_overlay::{draw_features, draw_selection},
+    get_cursor_text,
+    navigation::page_button,
+    primer_arrow, select_feature, COL_SPACING, ROW_SPACING,
+}, sequence::ReadingFrame, util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl}, State, StateUi, Selection};
 
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
@@ -224,6 +219,20 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                         highlighted = true;
                     }
                 }
+            }
+
+            // If a feature is selected, highlight its text, so it's more visible against the potentially
+            // bright fill.
+            match state.ui.selected_item {
+                Selection::Feature(i_ft) => {
+                    if i_ft + 1 < state.generic.features.len() {
+                        let range = &state.generic.features[i_ft].range;
+                        if range.contains(i) {
+                            r = COLOR_SELECTED_NTS;
+                        }
+                    }
+                }
+                _ => ()
             }
 
             // todo: We have inconsistencies in how we index across the board.
