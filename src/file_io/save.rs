@@ -24,7 +24,7 @@ use crate::{
     PcrUi, Selection, SeqVisibility, State, StateUi,
 };
 
-pub const DEFAULT_SAVE_FILE: &str = "plasmid.pcad";
+pub const DEFAULT_SAVE_FILE: &str = "quicksave.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";
 
 pub const DEFAULT_FASTA_FILE: &str = "export.fasta";

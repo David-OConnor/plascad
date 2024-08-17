@@ -81,6 +81,7 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
             });
 
             state.ui.text_selection = None;
+            state.ui.quick_feature_add_name = String::new();
         }
 
         ui.label("Name:");
