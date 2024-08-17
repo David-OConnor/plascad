@@ -309,6 +309,7 @@ struct StateUi {
     dragging: bool,
     /// 1-based indexing.
     text_selection: Option<RangeIncl>,
+    quick_feature_add_name: String,
 }
 
 impl Default for StateUi {
@@ -340,6 +341,7 @@ impl Default for StateUi {
             search_active: Default::default(),
             dragging: Default::default(),
             text_selection: Default::default(),
+            quick_feature_add_name: Default::default(),
         }
     }
 }

@@ -67,10 +67,44 @@ fn feature_text(feature: &Option<usize>, features: &[Feature], ui: &mut Ui) {
     }
 }
 
+/// Add a toolbar to create a feature from selection, if appropriate.
+fn feature_from_sel(state: &mut State, ui: &mut Ui) {
+    if let Some(text_sel) = state.ui.text_selection {
+        if ui
+            .button(RichText::new("➕ Add feature from selection").color(Color32::GOLD))
+            .clicked()
+        {
+            state.generic.features.push(Feature {
+                range: text_sel,
+                label: state.ui.quick_feature_add_name.clone(),
+                ..Default::default()
+            });
+
+            state.ui.text_selection = None;
+        }
+
+        ui.label("Name:");
+        if ui
+            .add(TextEdit::singleline(&mut state.ui.quick_feature_add_name).desired_width(80.))
+            .gained_focus()
+        {
+            // Disable character entries in the sequence.
+            // state.ui.search_active = true;
+            state.ui.text_cursor_i = None;
+        }
+
+        ui.add_space(COL_SPACING)
+    }
+}
+
 /// Component for the sequence page.
 pub fn seq_page(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         page_seq_top_selector(state, ui);
+
+        ui.add_space(COL_SPACING);
+
+        feature_from_sel(state, ui);
 
         // Sliders to edit the feature.
         feature_range_sliders(state, ui);

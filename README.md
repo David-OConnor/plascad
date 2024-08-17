@@ -52,12 +52,14 @@ move the cursor with arrow keys, type the letters *A*, *C*, *T*, and *G* to inse
 #### Notes:
 - Double-click to select a feature.
 - Ctrl + F to search for a sequence.
-- Ctrl+C and Ctrl+V to copy and paste sequences.
+- Ctrl + C and Ctrl+V to copy and paste sequences.
 - Click and drag to select text.
 - Use the keyboard to insert nucleotides, move the cursor etc.
 - When a feature or primer is selected, that's what's copied, vice the selection.
 - The feature and primer editor tables is availabe to be displayed above the map.
 - Use the Escape key to remove selections and the cursor.
+- You can use the sliders and inputs at the top to change the selected feature range.
+- You can quickly create a feature from a cursor selection using the button at the top.
 
 
 ### Circular map
