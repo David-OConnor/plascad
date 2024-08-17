@@ -1,7 +1,8 @@
 # PlasCAD
 
 [![Crate](https://img.shields.io/crates/v/plascad.svg)](https://crates.io/crates/plascad)
-[![Docs](https://docs.rs/plascad/badge.svg)](https://docs.rs/plascad)
+
+[//]: # ([![Docs]&#40;https://docs.rs/plascad/badge.svg&#41;]&#40;https://docs.rs/plascad&#41;)
 
 Design software for plasmid and primer creation and validation.
 
@@ -89,6 +90,8 @@ melting temperature, polymerase type, and other parameters.
 Can read and write FASTA, GenBank, and SnapGene .dna files. FASTA files store sequence data only, while GenBank, SnapGene, and PlasCAD's own format store sequence data, features, primers, and metadata. We use the [gb_io](https://docs.rs/gb-io/latest/gb_io/) library
 to handle GenBank parsing and writing.
 
+To open files, you can either use the *Load/Import* button at the top, or drag a file into the window.
+
 
 ### When to use each file format
 If you don't have interoperability requirements, you can use PlasCAD's own file format (.pcad extension) using the *Save* and *Load* buttons. This is a binary format that results in smaller file sizes (eg 4-10x smaller) than the others, due to using 2-bits to store each nucelotide, and a compact format in general.
@@ -113,9 +116,9 @@ system, as PlasCAD does not have an installer. Example on Windows: *Right-click 
 
 
 ## Why another plasmid editor
-We believe that the more tools available for scientists, the better. In particular, my goal is to make
-a fast, lightweight program that's as easy to use as possible, without sacrificing functionality. We also added
-some functionality we didn't see elsewhere, like automatic primer tuning, and primer generation for SLIC and FastCloning.
+The more tools available for scientists, the better. In particular, my goal is to make
+a fast, lightweight program that's as easy to use as possible, without sacrificing functionality. I also added
+functionality I didn't see elsewhere, like automatic primer tuning, and primer generation for SLIC and FastCloning.
 
 Also of note, the native file format this program uses is more compact, including for DNA sequences, where each nucleotide only takes up 2 bits, as opposed to 8 in common formats.
 
@@ -137,6 +140,10 @@ primer Molar concentration:
 $$ (1000 * ΔH) / (ΔS + R \times ln(\frac{C_T}{4})) - 273.15 $$
 
 The calculation also includes salt correction, derived from BioPython, using concentrations of $K^+$, $Na^+$, $Mg^{2+}$, and dntp concentration. These are provided by the user, or initiated with defaults.
+
+We score primer length compared to an ideal of 18-24 nucleotides. Note that for *glue* cloning primers, we
+length is scored for both ends in relation to the anchor (The point the two sequences are joined at, towards the middle
+of the primer.)
 
 We calculate the following categories of nucleotide repeats:
 - Single nucleotides repeated 4 or more times in a row
