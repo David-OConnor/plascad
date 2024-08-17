@@ -67,7 +67,7 @@ fn main() {
                     FeatureMapItem {
                         name: feature.name.clone(),
                         feature_type: feature.feature_type,
-                        seq: data.seq[feature.index_range.0 - 1..feature.index_range.1],
+                        seq: data.seq[feature.range.0 - 1..feature.range.1],
                     }
                 })
             }

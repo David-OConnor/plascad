@@ -59,14 +59,14 @@ fn handle_text_selection(state_ui: &mut StateUi, dragging: bool) {
             state_ui.dragging = true;
             println!("Drag start");
             if let Some(i) = &state_ui.cursor_seq_i {
-                state_ui.text_selection = Some((*i + 1, *i + 2)); // 1-based indexing. Second value is a placeholder.
+                state_ui.text_selection = Some((*i, *i + 1)); // 1-based indexing. Second value is a placeholder.
             }
         } else {
             // The drag is in progress; continually update the selection, for visual feedback.
 
             if let Some(i) = &state_ui.cursor_seq_i {
                 if let Some((start, end)) = &mut state_ui.text_selection {
-                    *end = *i + 2; // 1-based indexing.
+                    *end = *i + 1; // 1-based indexing.
                     if start > end {
                         mem::swap(start, end);
                     }

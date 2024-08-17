@@ -148,20 +148,20 @@ fn parse_features_primers(
 
         let mut index_range = match &feature.location {
             // gb_io seems to list the start of the range as 1 too early; compensate.
-            Location::Range(start, end) => (start.0 as usize + 1, end.0 as usize),
+            Location::Range(start, end) => start.0 as usize + 1..=end.0 as usize,
             Location::Complement(inner) => match **inner {
                 Location::Range(start, end) => {
                     direction = FeatureDirection::Reverse;
-                    (start.0 as usize + 1, end.0 as usize)
+                    start.0 as usize + 1..=end.0 as usize
                 }
                 _ => {
                     eprintln!("Unexpected gb_io compl range type: {:?}", feature.location);
-                    (0, 0)
+                    1..=1
                 }
             },
             _ => {
                 eprintln!("Unexpected gb_io range type: {:?}", feature.location);
-                (0, 0)
+                1..=1
             }
         };
 
@@ -201,16 +201,16 @@ fn parse_features_primers(
         // Infer the sequence using the bind indices, and the main sequence.
         if feature_type == FeatureType::Primer {
             // See other notes on start range index being odd.
-            if index_range.1 <= index_range.0 {
-                mem::swap(&mut index_range.1, &mut index_range.0);
+            if index_range.start() <= index_range.end() {
+                mem::swap(&mut index_range.start(), &mut index_range.end());
             }
 
             let sequence = match direction {
                 FeatureDirection::Reverse => {
                     let compl = seq_complement(seq);
-                    compl[seq.len() - (index_range.1 - 1)..seq.len() - (index_range.0)].to_vec()
+                    compl[seq.len() - (index_range.start() - 1)..=seq.len() - (index_range.end())].to_vec()
                 }
-                _ => seq[index_range.0 - 1..index_range.1].to_vec(),
+                _ => seq[*index_range.start() - 1..=*index_range.end()].to_vec(),
             };
 
             let volatile = PrimerData::new(&sequence);
@@ -237,7 +237,7 @@ fn parse_features_primers(
         }
 
         result_ft.push(Feature {
-            index_range,
+            range: index_range,
             feature_type,
             direction,
             label,
@@ -284,8 +284,8 @@ pub fn export_genbank(
             _ => (),
         }
 
-        let start: i64 = feature.index_range.0.try_into().unwrap();
-        let end: i64 = feature.index_range.1.try_into().unwrap();
+        let start: i64 = (*feature.range.start()).try_into().unwrap();
+        let end: i64 = (*feature.range.end()).try_into().unwrap();
 
         let location = match feature.direction {
             FeatureDirection::Reverse => Location::Complement(Box::new(Location::Range(
@@ -294,7 +294,7 @@ pub fn export_genbank(
             ))),
             _ => Location::Range(
                 (start - 1, Before(false)),
-                (feature.index_range.1.try_into().unwrap(), After(false)),
+                ((*feature.range.end()).try_into().unwrap(), After(false)),
             ),
         };
 

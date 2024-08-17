@@ -171,10 +171,8 @@ pub fn change_origin(state: &mut State) {
     for feature in &mut state.generic.features {
         // Convert to i32 to prevent an underflow on crash if we wrap. Use `rem_euclid`,
         // as Rust has unexpected behavior when using modulus on negatives.
-        feature.index_range.0 =
-            (feature.index_range.0 as i32 + 1 - *origin as i32).rem_euclid(seq_len as i32) as usize;
-        feature.index_range.1 =
-            (feature.index_range.1 as i32 + 1 - *origin as i32).rem_euclid(seq_len as i32) as usize;
+        feature.range = (*feature.range.start() as i32 + 1 - *origin as i32).rem_euclid(seq_len as i32) as usize..=
+            (*feature.range.end() as i32 + 1 - *origin as i32).rem_euclid(seq_len as i32) as usize
     }
 
     // todo: What else to update?

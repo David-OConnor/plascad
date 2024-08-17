@@ -411,8 +411,8 @@ fn draw_features(
 
         let stroke = Stroke::new(feature_stroke_width, stroke_color);
 
-        let angle_start = seq_i_to_angle(feature.index_range.0, data.seq_len);
-        let angle_end = seq_i_to_angle(feature.index_range.1, data.seq_len);
+        let angle_start = seq_i_to_angle(*feature.range.start(), data.seq_len);
+        let angle_end = seq_i_to_angle(*feature.range.end(), data.seq_len);
 
         // We subtract parts from the start or end angle for the arrow tip, if present.
         let angle = match feature.direction {
@@ -630,10 +630,13 @@ fn top_details(state: &mut State, ui: &mut Ui) {
             // todo: Handle wraps.
             ui.label("Start:");
             // let start = feature.index_range.0; // Avoids a borrow error.
-            ui.add(Slider::new(
-                &mut feature.index_range.0,
+            let mut start = *feature.range.start();
+            if ui.add(Slider::new(
+                &mut start,
                 0..=state.generic.seq.len(),
-            ));
+            )).changed() {
+                feature.range = start..=feature.range.end().clone();
+            };
             // ui.add(
             //     Slider::from_get_set(0.0..=state.generic.seq.len() as f32, |v| {
             //     // Slider::new(&mut 0, 0..=state.generic.seq.len(), |v| {
@@ -645,14 +648,18 @@ fn top_details(state: &mut State, ui: &mut Ui) {
 
             ui.add_space(COL_SPACING);
             ui.label("End:");
-            ui.add(Slider::new(
-                &mut feature.index_range.1,
+
+            let mut end = *feature.range.end();
+            if ui.add(Slider::new(
+                &mut end,
                 0..=state.generic.seq.len(),
-            ));
+            )).changed() {
+                feature.range = feature.range.end().clone()..=end;
+            };
 
             // todo: Don't let end be before start.
-            if feature.index_range.0 > feature.index_range.1 {
-                feature.index_range.1 = feature.index_range.0 + 1;
+            if feature.range.start() > feature.range.end() {
+                feature.range = *feature.range.start()..=feature.range.start() + 1;
             }
         }
     }

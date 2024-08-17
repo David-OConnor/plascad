@@ -1,8 +1,7 @@
-use std::{collections::HashMap, fmt::Display, io, ops::RangeInclusive};
+use std::{fmt::Display, io, ops::RangeInclusive};
 
 use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;
-
 use crate::{
     primer::PrimerDirection,
     sequence::Nucleotide::{A, C, G, T},
@@ -258,10 +257,11 @@ impl FeatureDirection {
     }
 }
 
-#[derive(Clone, Default, Encode, Decode)]
+#[derive(Clone, Encode, Decode)]
 pub struct Feature {
+    // pub range: (usize, usize),
     /// 1-based indexing, inclusive. (Note: Could also use the builtin RangeInclusive.)
-    pub index_range: (usize, usize),
+    pub range: RangeInclusive<usize>,
     pub feature_type: FeatureType,
     pub direction: FeatureDirection,
     pub label: String,
@@ -270,6 +270,19 @@ pub struct Feature {
     pub color_override: Option<Color>,
     // pub notes: HashMap<String, String>,
     pub notes: Vec<(String, String)>,
+}
+
+impl Default for Feature {
+    fn default() -> Self {
+        Self {
+            range: 1..=1,
+            feature_type: Default::default(),
+            direction: Default::default(),
+            label: Default::default(),
+            color_override: Default::default(),
+            notes: Default::default(),
+        }
+    }
 }
 
 impl Feature {
@@ -283,15 +296,15 @@ impl Feature {
 
     /// Get the feature len, in usize.
     pub fn len(&self) -> usize {
-        self.index_range.1 - self.index_range.0 + 1 // +1 since it's inclusive.
+        self.range.end() - self.range.start() - 1
     }
 
     /// Formats the indexes, and size of this feature.
     pub fn location_descrip(&self) -> String {
         format!(
             "{}..{}  {} bp",
-            self.index_range.0,
-            self.index_range.1,
+            self.range.start(),
+            self.range.end(),
             self.len()
         )
     }

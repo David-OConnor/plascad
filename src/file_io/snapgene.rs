@@ -14,7 +14,7 @@ use std::{
     path::Path,
     str,
 };
-
+use std::ops::RangeInclusive;
 use num_enum::TryFromPrimitive;
 use quick_xml::{de::from_str, se::to_string};
 
@@ -409,13 +409,13 @@ fn parse_features(payload: &[u8]) -> io::Result<Vec<Feature>> {
                 None => None,
             };
 
-            let index_range = match &segment.range {
-                Some(r) => range_from_str(r).unwrap_or((1, 1)),
-                None => (1, 1),
+            let range = match &segment.range {
+                Some(r) => range_from_str(r).unwrap_or(1..=1),
+                None => 1..=1,
             };
 
             result.push(Feature {
-                index_range,
+                range,
                 feature_type,
                 direction,
                 label: name.clone(),
@@ -490,7 +490,7 @@ fn parse_notes(payload: &[u8]) -> io::Result<Notes> {
     Ok(result)
 }
 
-fn range_from_str(range: &str) -> Result<(usize, usize), &'static str> {
+fn range_from_str(range: &str) -> Result<RangeInclusive<usize>, &'static str> {
     let parts: Vec<&str> = range.split('-').collect();
     if parts.len() != 2 {
         return Err("Invalid range format");
@@ -503,7 +503,7 @@ fn range_from_str(range: &str) -> Result<(usize, usize), &'static str> {
         .parse::<usize>()
         .map_err(|_| "Invalid number in range")?;
 
-    Ok((start, end))
+    Ok(start..=end)
 }
 
 /// Add feature data to the buffer.
@@ -520,7 +520,7 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
             segment_type: None,
             range: Some(format!(
                 "{}-{}",
-                feature.index_range.0, feature.index_range.1
+                feature.range.start(), feature.range.end()
             )),
             name: None,
             color: feature.color_override.map(color_to_hex),

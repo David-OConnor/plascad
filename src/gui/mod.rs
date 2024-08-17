@@ -169,8 +169,8 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
                 continue; // From GenBank; generally the whole seq.
             }
 
-            if *seq_i > feature.index_range.0 && *seq_i < feature.index_range.1 {
-                let feature_size = feature.index_range.1 - feature.index_range.0;
+            if seq_i > feature.range.start() && seq_i < feature.range.end() {
+                let feature_size = feature.range.end() - feature.range.start() - 1;
                 if feature_size < smallest_feature_size {
                     smallest_feature = i;
                     smallest_feature_size = feature_size;

@@ -96,9 +96,9 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
             .inner_margin(border_width)
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    // todo: This may be confoudning your 0 vs 1.
-                    int_field(&mut feature.index_range.0, "Start:", ui);
-                    int_field(&mut feature.index_range.1, "End:", ui);
+                    // todo: PUt this back!
+                    // int_field(&mut feature.range.start(), "Start:", ui);
+                    // int_field(&mut feature.range.end(), "End:", ui);
 
                     ui.label("Label:");
                     ui.add(
@@ -187,10 +187,10 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
             }
 
             state.generic.features.push(Feature {
-                index_range: (
-                    state.ui.feature_add.start_posit,
-                    state.ui.feature_add.end_posit,
-                ),
+                range:
+                    state.ui.feature_add.start_posit..=
+                    state.ui.feature_add.end_posit
+                ,
                 feature_type: FeatureType::Generic,
                 direction: FeatureDirection::None,
                 label: state.ui.feature_add.label.clone(),

@@ -481,12 +481,12 @@ impl State {
             //     feature.index_range.1 = insert_loc - 1;
             // }
 
-            if feature.index_range.0 > insert_loc {
-                feature.index_range.0 += insert.len();
+            if *feature.range.start() > insert_loc {
+                feature.range = feature.range.start() + insert.len()..=*feature.range.end();
             }
 
-            if feature.index_range.1 > insert_loc {
-                feature.index_range.1 += insert.len();
+            if *feature.range.end() > insert_loc {
+                feature.range = *feature.range.start()..=feature.range.end() + insert.len();
             }
         }
 
@@ -506,11 +506,11 @@ impl State {
 
         // Now, you have to update features affected by this insertion, shifting them left A/R.
         for feature in &mut self.generic.features {
-            if feature.index_range.0 > *range.end() {
-                feature.index_range.0 -= count;
+            if feature.range.start() > range.end() {
+                feature.range = feature.range.start() - count..=*feature.range.end()
             }
-            if feature.index_range.1 > *range.end() {
-                feature.index_range.1 -= count;
+            if feature.range.end() > range.end() {
+                feature.range = *feature.range.start()..=feature.range.end() - count
             }
         }
 
@@ -565,7 +565,7 @@ impl State {
         match self.ui.selected_item {
             Selection::Feature(i) => {
                 let feature = &self.generic.features[i];
-                let seq = &self.generic.seq[feature.index_range.0 - 1..feature.index_range.1];
+                let seq = &self.generic.seq[feature.range.start() - 1..=feature.range.end() - 1];
 
                 let mut ctx = ClipboardContext::new().unwrap();
                 ctx.set_contents(seq_to_str(seq)).unwrap();

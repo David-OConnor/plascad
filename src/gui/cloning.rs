@@ -41,9 +41,9 @@ fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
                     if ui.button("Select").clicked {
                         data.feature_selected = Some(i);
 
-                        if feature.index_range.0 > 0 && feature.index_range.1 > 1 {
+                        if *feature.range.start() > 0 && *feature.range.end() > 1 {
                             let seq_this_ft =
-                                &data.seq_loaded[feature.index_range.0 - 1..feature.index_range.1];
+                                &data.seq_loaded[feature.range.start() - 1..=feature.range.end() - 1];
 
                             data.seq_insert = seq_this_ft.to_owned();
                             seq_this_ft.clone_into(&mut data.seq_insert);
@@ -170,7 +170,7 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
                     let feature = &state.ui.cloning_insert.features_loaded[feat_i];
 
                     let seq_this_ft = state.ui.cloning_insert.seq_loaded
-                        [feature.index_range.0 - 1..feature.index_range.1]
+                        [feature.range.start() - 1..=feature.range.end() - 1]
                         .to_vec();
 
                     state.ui.cloning_insert.feature_selected = best;
@@ -200,10 +200,10 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             // todo: Eventually, we'll likely be pulling in sequences already associated with a feature;
             // todo: Use the already existing data instead.
             state.generic.features.push(Feature {
-                index_range: (
-                    state.cloning_insert_loc + 1,
-                    state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len(),
-                ),
+                range:
+                    state.cloning_insert_loc + 1..=
+                    state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len()
+                ,
                 label,
                 feature_type: FeatureType::CodingRegion,
                 direction: FeatureDirection::Forward,

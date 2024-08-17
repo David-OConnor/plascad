@@ -76,7 +76,7 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
             continue;
         }
 
-        if feature.index_range.0 < 1 {
+        if *feature.range.start() < 1 {
             eprintln!("Invalid sequence index");
             continue; // 0 is invalid, in 1-based indexing, and will underflow.
         }
@@ -84,7 +84,7 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
         // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
         // todo in this way.
         let feature_ranges = get_feature_ranges(
-            &(feature.index_range.0 - 1..=feature.index_range.1 - 1),
+            &(feature.range.start() - 1..=feature.range.end() - 1),
             &data.row_ranges,
         );
 
