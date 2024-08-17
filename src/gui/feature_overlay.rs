@@ -2,7 +2,7 @@
 
 // todo: Abstract out diffs between this and the primer arrow; avoid repeated code.
 
-use std::ops::Range;
+use std::ops::{Range, RangeInclusive};
 
 use eframe::{
     egui::{pos2, Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui},
@@ -27,10 +27,10 @@ const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?
 
 /// We include this in this module because visually, it is very similar to the overlay.
 /// Note: At least for now, selection uses 1-based indexing.
-pub fn draw_selection(selection: &(usize, usize), data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
+pub fn draw_selection(selection: &RangeInclusive<usize>, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    if selection.0 < 1 || selection.1 > data.seq_len {
+    if *selection.start() < 1 || selection.end() + 1 > data.seq_len {
         eprintln!("Invalid sequence index");
         return result;
     }
@@ -38,8 +38,7 @@ pub fn draw_selection(selection: &(usize, usize), data: &SeqViewData, ui: &mut U
     // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
     // todo in this way.
     let selection_ranges = get_feature_ranges(
-        // todo: QC off-by-one.
-        &(selection.0 - 1..=selection.1),
+        selection,
         &data.row_ranges,
     );
 
@@ -47,8 +46,8 @@ pub fn draw_selection(selection: &(usize, usize), data: &SeqViewData, ui: &mut U
         .iter()
         .map(|r| {
             (
-                data.seq_i_to_px_rel(r.start() - 0),
-                data.seq_i_to_px_rel(r.end() - 1),
+                data.seq_i_to_px_rel(*r.start()),
+                data.seq_i_to_px_rel(*r.end()),
             )
         })
         .collect();
@@ -84,7 +83,7 @@ pub fn draw_features(features: &[Feature], data: &SeqViewData, ui: &mut Ui) -> V
         // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
         // todo in this way.
         let feature_ranges = get_feature_ranges(
-            &(feature.range.start() - 1..=feature.range.end() - 1),
+            &feature.range,
             &data.row_ranges,
         );
 

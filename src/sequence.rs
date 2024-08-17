@@ -109,7 +109,7 @@ pub struct ReadingFrameMatch {
     pub frame: ReadingFrame,
     /// 1-based indexing.
     /// Indices are respective to the non-complementary seq, for both forward and reverse reading frames.
-    pub range: (usize, usize),
+    pub range: RangeInclusive<usize>,
 }
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
@@ -403,12 +403,12 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
             // the non-complementary seq, for both forward and reverse reading frames.
             let range = match orf {
                 ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => {
-                    (frame_open.unwrap() + 1 + offset, i + 3 + offset)
+                    frame_open.unwrap() + 1 + offset..= i + 2 + offset
                 }
-                _ => (
-                    seq_len_full - (i + 2 + offset),
-                    seq_len_full - (frame_open.unwrap() + offset),
-                ),
+                _ =>
+                    seq_len_full - (i + 2 + offset)..=
+                    seq_len_full - (frame_open.unwrap() + offset) - 1,
+
             };
 
             result.push(ReadingFrameMatch { frame: orf, range });

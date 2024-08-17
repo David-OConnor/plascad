@@ -17,7 +17,7 @@ use std::{
     str::FromStr,
     sync::Arc,
 };
-
+use std::ops::Range;
 use bincode::{Decode, Encode};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{self, egui, egui::Context};
@@ -305,7 +305,8 @@ struct StateUi {
     /// This is used for selecting nucleotides on the sequence viewer.
     dragging: bool,
     /// 1-based indexing.
-    text_selection: Option<(usize, usize)>,
+    // text_selection: Option<(usize, usize)>,
+    text_selection: Option<RangeInclusive<usize>>,
 }
 
 impl Default for StateUi {
@@ -555,8 +556,8 @@ impl State {
     /// Copy the sequence of the selected text selection, feature or primer to the clipboard, if applicable.
     pub fn copy_feature(&self) {
         // Text selection takes priority.
-        if let Some((start, end)) = self.ui.text_selection {
-            let seq = &self.generic.seq[start - 1..end - 1];
+        if let Some(selection) = &self.ui.text_selection {
+            let seq = &self.generic.seq[selection.start() - 1..=selection.end()- 1];
 
             let mut ctx = ClipboardContext::new().unwrap();
             ctx.set_contents(seq_to_str(seq)).unwrap();

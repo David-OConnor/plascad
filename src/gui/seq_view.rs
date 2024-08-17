@@ -151,8 +151,7 @@ fn draw_seq_indexes(data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
         let mut pos = data.seq_i_to_px_rel(*range.start());
         pos.x -= VIEW_AREA_PAD_LEFT;
 
-        // 1-based indexing.
-        let text = range.start() + 1; // tood: 1k etc?
+        let text = range.start();
 
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
@@ -160,7 +159,6 @@ fn draw_seq_indexes(data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                 pos,
                 Align2::LEFT_TOP,
                 text,
-                // Note: Monospace is important for sequences.
                 FontId::new(FONT_SIZE_SEQ, FontFamily::Proportional),
                 Color32::WHITE,
             )
@@ -190,8 +188,8 @@ fn orf_selector(state: &mut State, ui: &mut Ui) {
 }
 
 /// Find the sequence index under the cursor, if it is over the sequence.
-/// 0-based indexing.
 fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &SeqViewData) -> Option<usize> {
+    // println!("ROW RANGES: {:?}", data.row_ranges);
     match cursor_pos {
         Some(p) => {
             // We've had issues where cursor above the seq would be treated as first row.
@@ -220,9 +218,10 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             let mut highlighted = false;
             if state.ui.seq_visibility.show_reading_frame {
                 for rf in &state.volatile.reading_frame_matches {
-                    let (start, end) = rf.range;
-                    let i_ = i + 1; // 1-based indexing
-                    if start <= i_ && i_ <= end {
+                    // let (start, end) = rf.range;
+                    // let i_ = i + 1; // 1-based indexing
+                    if rf.range.contains(&i) {
+                    // if start <= i_ && i_ <= end {
                         r = COLOR_CODING_REGION;
                         highlighted = true;
                     }
@@ -232,9 +231,8 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             // todo: We have inconsistencies in how we index across the board.
             // todo: Try resolving using the inclusive range type, and standardizing to 1-based.
             // todo: Resolve this one field at a time, from a working state.
-            if let Some((start, end)) = state.ui.text_selection {
-                let i_ = i + 1;
-                if start <= i_ && i_ < end {
+            if let Some(sel_range) = &state.ui.text_selection {
+                if sel_range.contains(&i) {
                     r = COLOR_SELECTED_NTS;
                 }
             }

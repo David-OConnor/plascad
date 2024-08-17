@@ -96,9 +96,26 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
             .inner_margin(border_width)
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    // todo: PUt this back!
                     // int_field(&mut feature.range.start(), "Start:", ui);
                     // int_field(&mut feature.range.end(), "End:", ui);
+
+                    ui.label("Start:");
+                    let mut entry = feature.range.start().to_string();
+                    if ui
+                        .add(TextEdit::singleline(&mut entry).desired_width(40.))
+                        .changed()
+                    {
+                        feature.range = entry.parse().unwrap_or(1)..=*feature.range.end()
+                    }
+
+                    ui.label("End:");
+                    let mut entry = feature.range.end().to_string();
+                    if ui
+                        .add(TextEdit::singleline(&mut entry).desired_width(40.))
+                        .changed()
+                    {
+                        feature.range = *feature.range.start()..=entry.parse().unwrap_or(1)
+                    }
 
                     ui.label("Label:");
                     ui.add(

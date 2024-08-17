@@ -23,6 +23,7 @@ pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 
 }
 
 /// We use this for dividing a nucleotied sequence into rows, for display in a canvas UI.
+/// Each range is a nucleotide index, using our 1-based system.
 pub fn get_row_ranges(len: usize, chars_per_row: usize) -> Vec<RangeInclusive<usize>> {
     let mut result = Vec::new();
 
@@ -31,8 +32,11 @@ pub fn get_row_ranges(len: usize, chars_per_row: usize) -> Vec<RangeInclusive<us
 
     for row_i in 0..num_rows {
         let end = row_i * chars_per_row + chars_per_row;
-        let end = min(end, len + 1);
-        result.push(row_i * chars_per_row..=end);
+        // let end = min(end, len + 1);
+        let end = min(end, len);
+
+        // Adjustments are per our 1-based indexing system.
+        result.push(row_i * chars_per_row + 1..=end);
     }
 
     result
@@ -74,7 +78,7 @@ pub fn pixel_to_seq_i(pixel: Pos2, row_ranges: &[RangeInclusive<usize>]) -> Opti
     // todo: Index vice loop?
     for (row_, range) in row_ranges.iter().enumerate() {
         if row_ == row {
-            return Some(range.start() + col);
+            return Some(range.start() + col - 1);
         }
     }
 
@@ -98,7 +102,7 @@ pub fn get_feature_ranges(
 ) -> Vec<RangeInclusive<usize>> {
     let mut result = Vec::new();
 
-    if feature_rng.end() <= feature_rng.start() || *feature_rng.end() == 0 {
+    if feature_rng.end() < feature_rng.start() || *feature_rng.end() == 0 {
         eprintln!(
             "Error with feature ranges; start after end. Start: {}, end: {}",
             feature_rng.start(),
@@ -128,7 +132,7 @@ pub fn get_feature_ranges(
             result.push(*range.start()..=*feature_rng.end());
         } else if feature_rng.start() < range.start() && feature_rng.end() > range.end() {
             // Include this entire row
-            result.push(*range.start()..=*range.end() - 1);
+            result.push(*range.start()..=*range.end());
         }
         // If none of the above, this row doesn't contain any of the sequence of interest.
     }
