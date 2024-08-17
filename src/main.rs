@@ -564,6 +564,7 @@ impl State {
                 let mut ctx = ClipboardContext::new().unwrap();
                 ctx.set_contents(seq_to_str(seq)).unwrap();
             }
+            return;
         }
 
         match self.ui.selected_item {
