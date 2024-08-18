@@ -10,7 +10,7 @@ use crate::{
         Nucleotide::{C, G},
         Seq,
     },
-    util::RangeIncl,
+    util::{match_subseq, RangeIncl},
     State,
 };
 
@@ -66,26 +66,13 @@ impl Primer {
             return result;
         }
 
-        // todo: Partial matches as well.
-        let seq_len = seq.len();
-        let primer_len = self.sequence.len();
-        let complement = seq_complement(seq);
+        let (matches_fwd, matches_rev) = match_subseq(&self.sequence, seq);
 
-        for seq_start in 0..seq_len {
-            // Note: This approach handles sequence wraps, eg [circular] plasmids.
-            let seq_iter = seq.iter().cycle().skip(seq_start).take(primer_len);
-            if self.sequence.iter().eq(seq_iter) {
-                let seq_end = (seq_start + primer_len) % seq_len;
-                result.push((PrimerDirection::Forward, RangeIncl::new(seq_start, seq_end)));
-            }
+        for range in matches_fwd {
+            result.push((PrimerDirection::Forward, range));
         }
-
-        for seq_start in 0..seq_len {
-            let seq_iter = complement.iter().cycle().skip(seq_start).take(primer_len);
-            if self.sequence.iter().eq(seq_iter) {
-                let seq_end = (seq_start + primer_len) % seq_len;
-                result.push((PrimerDirection::Reverse, RangeIncl::new(seq_start, seq_end)));
-            }
+        for range in matches_rev {
+            result.push((PrimerDirection::Reverse, range));
         }
 
         result

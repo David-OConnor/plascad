@@ -21,11 +21,11 @@ use crate::file_io::genbank;
 
 const SOURCE_DIR: &str = "data";
 
-struct FeatureMapItem {
-    feature_name: String,
-    feature_type: FeatureType,
-    seq: Seq,
-}
+// struct FeatureMapItem {
+//     feature_name: String,
+//     feature_type: FeatureType,
+//     seq: Seq,
+// }
 
 fn collect_files_in_directory(dir: &Path) -> Vec<PathBuf> {
     let mut files = Vec::new();

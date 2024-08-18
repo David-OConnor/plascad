@@ -10,7 +10,7 @@ use crate::{
     Color,
 };
 
-pub const MIN_SEARCH_LEN: usize = 4;
+pub const MIN_SEARCH_LEN: usize = 3;
 
 // Index 0: 5' end.
 pub type Seq = Vec<Nucleotide>;
@@ -136,6 +136,9 @@ pub enum FeatureType {
     Transcript,
     /// Like Primer, this is not a real feature; we use it to draw the selection highlighted area.
     Selection,
+    /// Ie operators.
+    ProteinBind,
+    Terminator,
 }
 
 impl Default for FeatureType {
@@ -161,6 +164,8 @@ impl FeatureType {
             Self::Exon => "Exon",
             Self::Transcript => "Transcript",
             Self::Selection => "",
+            Self::ProteinBind => "Operator",
+            Self::Terminator => "Terminator",
         }
         .to_owned()
     }
@@ -180,6 +185,8 @@ impl FeatureType {
             Self::Exon => (255, 255, 180),
             Self::Transcript => (180, 255, 180),
             Self::Selection => (255, 255, 0),
+            Self::ProteinBind => (128, 110, 150),
+            Self::Terminator => (255, 110, 150),
         }
     }
 
@@ -200,6 +207,8 @@ impl FeatureType {
             "source" => Self::Source,
             "exon" => Self::Exon,
             "transcript" => Self::Transcript,
+            "protein_bind" => Self::ProteinBind,
+            "terminator" => Self::Terminator,
             _ => Self::Generic,
         }
     }
@@ -221,6 +230,8 @@ impl FeatureType {
             Self::Exon => "exon",
             Self::Transcript => "transcript",
             Self::Selection => "",
+            Self::ProteinBind => "protein_bind",
+            Self::Terminator => "terminator",
         }
         .to_string()
     }
@@ -378,6 +389,10 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
     let mut offset = orf.offset();
 
     let seq_len_full = seq.len();
+
+    if seq_len_full < 3 {
+        return result;
+    }
 
     let seq = &match orf {
         ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => seq.to_vec(),

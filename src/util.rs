@@ -11,12 +11,13 @@ use eframe::egui::{pos2, Pos2};
 
 use crate::{
     gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
+    sequence::{seq_complement, Nucleotide},
     Color, State,
 };
 
 /// A replacement for std::RangeInclusive, but copy type, and directly-accessible (mutable) fields.
 /// An official replacement is eventually coming, but not for a while likely.
-#[derive(Clone, Copy, Debug, Encode, Decode)]
+#[derive(Clone, Copy, Debug, PartialEq, Encode, Decode)]
 pub struct RangeIncl {
     pub start: usize,
     pub end: usize,
@@ -219,6 +220,37 @@ pub fn change_origin(state: &mut State) {
 
     // todo: What else to update?
     state.sync_seq_related(None);
+}
+
+/// Find indexes where a subsequence matches a larger one, in both directions. Can be used to match primers,
+/// known sequences etc.
+/// Note: the reverse indices are reversed.
+///         // todo: Partial matches as well.
+pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl>, Vec<RangeIncl>) {
+    let mut result = (Vec::new(), Vec::new()); // Forward, reverse
+
+    let seq_len = seq.len();
+    let subseq_len = subseq.len();
+    let complement = seq_complement(seq);
+
+    for seq_start in 0..seq_len {
+        // Note: This approach handles sequence wraps, eg [circular] plasmids.
+        let seq_iter = seq.iter().cycle().skip(seq_start).take(subseq_len);
+        if subseq.iter().eq(seq_iter) {
+            let seq_end = (seq_start + subseq_len) % seq_len;
+            result.0.push(RangeIncl::new(seq_start, seq_end));
+        }
+    }
+
+    for seq_start in 0..seq_len {
+        let seq_iter = complement.iter().cycle().skip(seq_start).take(subseq_len);
+        if subseq.iter().eq(seq_iter) {
+            let seq_end = (seq_start + subseq_len) % seq_len;
+            result.1.push(RangeIncl::new(seq_start, seq_end));
+        }
+    }
+
+    result
 }
 
 // use std::env::current_exe;
