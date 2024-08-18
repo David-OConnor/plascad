@@ -60,11 +60,11 @@ fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
                     );
                     ui.add_space(COL_SPACING);
 
-                    ui.label(feature.location_descrip());
+                    ui.label(feature.location_descrip(data.seq_loaded.len()));
                     ui.add_space(COL_SPACING);
 
                     // +1 because it's inclusive.
-                    ui.label(feature.location_descrip());
+                    ui.label(feature.location_descrip(data.seq_loaded.len()));
                 });
             });
     }
@@ -154,7 +154,7 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
                 let mut best = None;
                 let mut best_len = 0;
                 for (i, feature) in state.ui.cloning_insert.features_loaded.iter().enumerate() {
-                    let len = feature.len();
+                    let len = feature.len(state.generic.seq.len());
                     if (feature.feature_type == FeatureType::CodingRegion
                         || feature.feature_type == FeatureType::Gene)
                         && len > best_len

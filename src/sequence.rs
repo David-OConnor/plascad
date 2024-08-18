@@ -308,17 +308,22 @@ impl Feature {
     }
 
     /// Get the feature len, in usize.
-    pub fn len(&self) -> usize {
-        self.range.end - self.range.start + 1
+    pub fn len(&self, seq_len: usize) -> usize {
+        if self.range.end > self.range.start {
+            self.range.end - self.range.start + 1
+        } else {
+            // ie a wrap through the origin
+            self.range.end + seq_len - self.range.start + 1
+        }
     }
 
     /// Formats the indexes, and size of this feature.
-    pub fn location_descrip(&self) -> String {
+    pub fn location_descrip(&self, seq_len: usize) -> String {
         format!(
             "{}..{}  {} bp",
             self.range.start,
             self.range.end,
-            self.len()
+            self.len(seq_len)
         )
     }
 }

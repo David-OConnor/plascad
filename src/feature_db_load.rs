@@ -3,7 +3,11 @@
 //! and is stored in memory.
 
 use crate::{
-    sequence::{seq_from_str, Feature, FeatureType::{self, ProteinBind, Promoter, AntibioticResistance, Ori, Terminator}, Nucleotide, Seq},
+    sequence::{
+        seq_from_str, Feature,
+        FeatureType::{self, AntibioticResistance, Ori, Promoter, ProteinBind, Terminator},
+        Nucleotide, Seq,
+    },
     util::{match_subseq, RangeIncl},
 };
 

@@ -10,6 +10,7 @@ use eframe::egui::Ui;
 use egui_file_dialog::FileDialog;
 
 use crate::{
+    feature_db_load::find_features,
     file_io::{
         genbank::{export_genbank, import_genbank},
         save::{
@@ -20,6 +21,7 @@ use crate::{
     },
     gui::set_window_title,
     sequence::seq_to_str,
+    util::merge_feature_sets,
     State,
 };
 
@@ -214,6 +216,12 @@ pub fn load_import(state: &mut State, path: &Path) {
                     state.generic.metadata.comments = vec![description];
                     // FASTA is seq-only data, so don't attempt to save over it.
                     state.path_loaded = None;
+
+                    // Automatically annotate FASTA files.
+                    merge_feature_sets(
+                        &mut state.generic.features,
+                        &find_features(&state.generic.seq),
+                    )
                 }
             }
             "dna" => {

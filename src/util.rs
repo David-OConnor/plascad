@@ -1,6 +1,7 @@
 use std::{
     cmp::{min, PartialOrd},
     collections::HashSet,
+    f32::consts::TAU,
     fmt, io,
     io::ErrorKind,
     ops::RangeInclusive,
@@ -11,9 +12,11 @@ use eframe::egui::{pos2, Pos2};
 
 use crate::{
     gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
-    sequence::{seq_complement, Nucleotide},
+    sequence::{seq_complement, Feature, Nucleotide},
     Color, State,
 };
+
+const FEATURE_ANNOTATION_MATCH_THRESH: f32 = 0.95;
 
 /// A replacement for std::RangeInclusive, but copy type, and directly-accessible (mutable) fields.
 /// An official replacement is eventually coming, but not for a while likely.
@@ -136,25 +139,19 @@ pub fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
 /// Given an index range of a feature, return sequence ranges for each row the feature occupies, that
 /// contain the sequence. This, after converting to pixels, corresponds to how we draw features and primers.
 /// This is used to draw overlays over the sequence that line up with a given index range.
-/// todo: This should be RangeInclusive.
 pub fn get_feature_ranges(feature_rng: &RangeIncl, all_ranges: &[RangeIncl]) -> Vec<RangeIncl> {
     let mut result = Vec::new();
 
     if feature_rng.end < feature_rng.start || feature_rng.end == 0 {
-        eprintln!(
-            "Error with feature ranges; start after end. Start: {}, end: {}",
-            feature_rng.start, feature_rng.end
-        );
+        // feature_rng.start += TAU;
+        // todo: Handle wraps.
         return result;
     }
 
     for range in all_ranges {
         if range.end < range.start || range.end == 0 {
-            // eprintln!(
-            //     "Error with ranges; start after end. Start: {}, end: {}",
-            //     range.start,
-            //     range.end
-            // );
+            // range.end += TAU;
+            // todo: Handle wraps.
             return result;
         }
 
@@ -236,6 +233,16 @@ pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl
     for seq_start in 0..seq_len {
         // Note: This approach handles sequence wraps, eg [circular] plasmids.
         let seq_iter = seq.iter().cycle().skip(seq_start).take(subseq_len);
+        // let seq_iter: Vec<Nucleotide> = seq.iter().cycle().skip(seq_start).take(subseq_len).map(|nt| *nt).collect();
+
+        // let similarity = seq_similarity(&seq_iter, subseq);
+        // if similarity > FEATURE_ANNOTATION_MATCH_THRESH {
+        //     let seq_end = (seq_start + subseq_len) % seq_len;
+        //     result.0.push(RangeIncl::new(seq_start, seq_end));
+        // }
+
+        // println!("Similarity: {:?}", similarity);
+
         if subseq.iter().eq(seq_iter) {
             let seq_end = (seq_start + subseq_len) % seq_len;
             result.0.push(RangeIncl::new(seq_start, seq_end));
@@ -244,6 +251,14 @@ pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl
 
     for seq_start in 0..seq_len {
         let seq_iter = complement.iter().cycle().skip(seq_start).take(subseq_len);
+        // let seq_iter: Vec<Nucleotide> = complement.iter().cycle().skip(seq_start).take(subseq_len).map(|nt| *nt).collect();
+
+        // let similarity = seq_similarity(&seq_iter, subseq);
+        // if similarity > FEATURE_ANNOTATION_MATCH_THRESH {
+        //     let seq_end = (seq_start + subseq_len) % seq_len;
+        //     result.0.push(RangeIncl::new(seq_start, seq_end));
+        // }
+        //
         if subseq.iter().eq(seq_iter) {
             let seq_end = (seq_start + subseq_len) % seq_len;
             result.1.push(RangeIncl::new(seq_start, seq_end));
@@ -251,6 +266,35 @@ pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl
     }
 
     result
+}
+
+/// Find the similarity between the two sequences, on a scale of 0 to 1. Assumes same direction.
+/// Note: This does not have a good way of handling length mismatches.
+pub fn seq_similarity(seq_a: &[Nucleotide], seq_b: &[Nucleotide]) -> f32 {
+    // Using seq_a's len has consequences
+    let mut matches = 0;
+    for i in 0..seq_a.len() {
+        if seq_a[i] == seq_b[1] {
+            matches += 1;
+        }
+    }
+
+    matches as f32 / seq_a.len() as f32
+}
+
+/// Merge a new set into an existing one. Don't add duplicates.
+pub fn merge_feature_sets(existing: &mut Vec<Feature>, new: &[Feature]) {
+    for feature_new in new {
+        let mut exists = false;
+        for feature_existing in &mut *existing {
+            if feature_new.range == feature_existing.range {
+                exists = true;
+            }
+        }
+        if !exists {
+            existing.push(feature_new.clone());
+        }
+    }
 }
 
 // use std::env::current_exe;

@@ -12,12 +12,14 @@ use navigation::Page;
 use url::Url;
 
 use crate::{
+    feature_db_load::find_features,
     file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
     gui::{input::handle_input, primer_qc::primer_details, save::load_import},
     sequence::{seq_from_str, seq_to_str, Feature, FeatureType, Nucleotide},
-    util, Selection, State,
+    util,
+    util::merge_feature_sets,
+    Selection, State,
 };
-use crate::feature_db_load::find_features;
 
 mod circle;
 mod cloning;
@@ -275,17 +277,10 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             if ui.button("Annotate").clicked() {
                 // Don't add duplicates.
-                for feature_new in &find_features(&state.generic.seq) {
-                    let mut exists = false;
-                    for feature_existing in &state.generic.features {
-                        if feature_new.range == feature_existing.range {
-                            exists = true;
-                        }
-                    }
-                    if !exists {
-                        state.generic.features.push(feature_new.clone());
-                    }
-                }
+                merge_feature_sets(
+                    &mut state.generic.features,
+                    &find_features(&state.generic.seq),
+                )
             }
 
             origin_change(state, ui);

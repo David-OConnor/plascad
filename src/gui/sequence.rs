@@ -42,7 +42,7 @@ fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
 }
 
 /// Displays text of the feature under the cursor, or selected, as required.
-fn feature_text(feature: &Option<usize>, features: &[Feature], ui: &mut Ui) {
+fn feature_text(feature: &Option<usize>, features: &[Feature], seq_len: usize, ui: &mut Ui) {
     match feature {
         Some(i) => {
             if features.len() < *i + 1 {
@@ -52,7 +52,7 @@ fn feature_text(feature: &Option<usize>, features: &[Feature], ui: &mut Ui) {
             let feature = &features[*i];
 
             ui.label(&feature.label); // todo: IDeally heading here, but it is currnetly causing display jumping.
-            ui.label(feature.location_descrip());
+            ui.label(feature.location_descrip(seq_len));
             let (r, g, b) = feature.color();
             ui.label(
                 RichText::new(feature.feature_type.to_string()).color(Color32::from_rgb(r, g, b)),
@@ -193,7 +193,12 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             feature_to_disp = Some(state.ui.feature_hover.unwrap());
         }
 
-        feature_text(&feature_to_disp, &state.generic.features, ui);
+        feature_text(
+            &feature_to_disp,
+            &state.generic.features,
+            state.generic.seq.len(),
+            ui,
+        );
     });
 
     ui.add_space(ROW_SPACING / 2.);

@@ -290,7 +290,8 @@ fn draw_filled_arc(
 
     // Draw filled segments. It appears the limitation is based on segment absolute size, vice angular size.
     // No segment will be larger than our threshold.
-    let circum_segment = data.radius * (angle.1 - angle.0);
+
+    // let circum_segment = data.radius * (angle.1 - angle.0);
     // let num_segments = (MAX_ARC_FILL / circum_segment) as usize + 1;
     // let segment_ang_dist = (angle.1 - angle.0) / num_segments as f32;
     //
@@ -330,7 +331,7 @@ fn draw_filled_arc(
 
     // Note: We may need to put something like this back, if we use multiple feature widths, feature layers etc.\
     // todo: Perhaps instead of drawing a pie, we draw slimmer slices.
-    let mut points_patch = arc_points(
+    let points_patch = arc_points(
         data.center_rel,
         data.radius - width / 2. - stroke.width / 2.,
         angle.0,
@@ -341,8 +342,6 @@ fn draw_filled_arc(
     result.push(Shape::convex_polygon(
         points_patch,
         BACKGROUND_COLOR,
-        // Color32::YELLOW, // todo: Troubleshooting an artifact
-        // Stroke::new(2., Color32::GREEN),
         Stroke::NONE,
     ));
 
@@ -413,7 +412,12 @@ fn draw_features(
         let stroke = Stroke::new(feature_stroke_width, stroke_color);
 
         let angle_start = seq_i_to_angle(feature.range.start, data.seq_len);
-        let angle_end = seq_i_to_angle(feature.range.end, data.seq_len);
+        let mut angle_end = seq_i_to_angle(feature.range.end, data.seq_len);
+
+        // This allows for wraps around the origin, without changing other code.
+        if angle_end < angle_start {
+            angle_end += TAU;
+        }
 
         // We subtract parts from the start or end angle for the arrow tip, if present.
         let angle = match feature.direction {
@@ -628,9 +632,9 @@ pub fn feature_range_sliders(state: &mut State, ui: &mut Ui) {
             ));
 
             // todo: Don't let end be before start.
-            if feature.range.start > feature.range.end {
-                feature.range.end = feature.range.start + 1;
-            }
+            // if feature.range.start > feature.range.end {
+            //     feature.range.end = feature.range.start + 1;
+            // }
         }
     }
 }
@@ -753,7 +757,7 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
 
     let labels = vec![
         feature.label.clone(),
-        feature.location_descrip(),
+        feature.location_descrip(data.seq_len),
         feature.feature_type.to_string(),
     ];
 
