@@ -99,6 +99,7 @@ to handle GenBank parsing and writing.
 - To open files, you can either use the *Load/Import* button at the top, or drag a file into the window.
 - When clicking *Save* (Ctrl+S), the file saved to is named in the tilebar (Very top of the window). This program will save over PCAD and GB files, but not SnapGene/DNA or FASTA files. (See details below re why). To save in those formats, use the appropriate *Export* button.
 - If no file is open, *Save* will be replaced with *Quicksave*; this saves to a temporary file, in the same location as the program.
+- When importing FASTA files, common features are automatically annotated from the sequence.
 
 
 ### When to use each file format

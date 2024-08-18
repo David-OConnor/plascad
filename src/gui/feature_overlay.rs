@@ -37,7 +37,7 @@ pub fn draw_selection(selection: RangeIncl, data: &SeqViewData, ui: &mut Ui) -> 
 
     // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
     // todo in this way.
-    let selection_ranges = get_feature_ranges(&selection, &data.row_ranges);
+    let selection_ranges = get_feature_ranges(&selection, &data.row_ranges, data.seq_len);
 
     let selection_ranges_px: Vec<(Pos2, Pos2)> = selection_ranges
         .iter()
@@ -80,7 +80,7 @@ pub fn draw_features(
 
         // Todo: Cache this, and only update it if row_ranges change. See what else you can optimize
         // todo in this way.
-        let feature_ranges = get_feature_ranges(&feature.range, &data.row_ranges);
+        let feature_ranges = get_feature_ranges(&feature.range, &data.row_ranges, data.seq_len);
 
         let feature_ranges_px: Vec<(Pos2, Pos2)> = feature_ranges
             .iter()

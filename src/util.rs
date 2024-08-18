@@ -136,39 +136,42 @@ pub fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
     vec
 }
 
-/// Given an index range of a feature, return sequence ranges for each row the feature occupies, that
+//
+/// For the sequence editor. Given an index range of a feature, return sequence ranges for each row the feature occupies, that
 /// contain the sequence. This, after converting to pixels, corresponds to how we draw features and primers.
 /// This is used to draw overlays over the sequence that line up with a given index range.
-pub fn get_feature_ranges(feature_rng: &RangeIncl, all_ranges: &[RangeIncl]) -> Vec<RangeIncl> {
+pub fn get_feature_ranges(feature_rng: &RangeIncl, all_ranges: &[RangeIncl], seq_len: usize) -> Vec<RangeIncl> {
     let mut result = Vec::new();
 
-    if feature_rng.end < feature_rng.start || feature_rng.end == 0 {
-        // feature_rng.start += TAU;
-        // todo: Handle wraps.
-        return result;
-    }
+    // If the feature range wraps the origin, divide it into two ranges, and match both.
+    let feature_ranges = if feature_rng.end < feature_rng.start {
+        vec![RangeIncl::new(1, feature_rng.end), RangeIncl::new(feature_rng.start, seq_len)]
+    } else {
+        vec![*feature_rng]
+    };
 
-    for range in all_ranges {
-        if range.end < range.start || range.end == 0 {
-            // range.end += TAU;
-            // todo: Handle wraps.
-            return result;
+    for ft_rng in &feature_ranges {
+        for range in all_ranges {
+            if range.end < range.start || range.end == 0 {
+                eprintln!("Error with all ranges when finding a feature range: {range}");
+                return result;
+            }
+
+            if range.contains(ft_rng.start) {
+                // Contains start only, or start and end.
+                let end = min(range.end, ft_rng.end);
+
+                // result.push(ft_rng.start..end - 1);
+                result.push(RangeIncl::new(ft_rng.start, end));
+            } else if range.contains(ft_rng.end) {
+                // Contains end only.
+                result.push(RangeIncl::new(range.start, ft_rng.end));
+            } else if ft_rng.start < range.start && ft_rng.end > range.end {
+                // Include this entire row
+                result.push(RangeIncl::new(range.start, range.end));
+            }
+            // If none of the above, this row doesn't contain any of the sequence of interest.
         }
-
-        if range.contains(feature_rng.start) {
-            // Contains start only, or start and end.
-            let end = min(range.end, feature_rng.end);
-
-            // result.push(feature_rng.start..end - 1);
-            result.push(RangeIncl::new(feature_rng.start, end));
-        } else if range.contains(feature_rng.end) {
-            // Contains end only.
-            result.push(RangeIncl::new(range.start, feature_rng.end));
-        } else if feature_rng.start < range.start && feature_rng.end > range.end {
-            // Include this entire row
-            result.push(RangeIncl::new(range.start, range.end));
-        }
-        // If none of the above, this row doesn't contain any of the sequence of interest.
     }
 
     result

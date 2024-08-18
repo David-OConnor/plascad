@@ -218,10 +218,7 @@ pub fn load_import(state: &mut State, path: &Path) {
                     state.path_loaded = None;
 
                     // Automatically annotate FASTA files.
-                    merge_feature_sets(
-                        &mut state.generic.features,
-                        &find_features(&state.generic.seq),
-                    )
+                    state.generic.features = find_features(&state.generic.seq);
                 }
             }
             "dna" => {

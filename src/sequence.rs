@@ -9,6 +9,7 @@ use crate::{
     util::RangeIncl,
     Color,
 };
+use crate::util::match_subseq;
 
 pub const MIN_SEARCH_LEN: usize = 3;
 
@@ -477,40 +478,10 @@ pub struct SearchMatch {
 
 /// Find exact matches in the target sequence of our search nucleotides.
 /// todo: Optionally support partial matches.
+/// todo:
 pub fn find_search_matches(seq: &[Nucleotide], search_seq: &[Nucleotide]) -> Vec<SearchMatch> {
-    let mut result = Vec::new();
-    let search_len = search_seq.len();
-    let seq_len = seq.len();
+    let (mut fwd, mut rev) = match_subseq(search_seq, seq);
 
-    // todo: Handle wraps around the edge for circular plasmids.
-
-    for i in 0..seq_len {
-        let end = i + search_len; // for inclusive
-        if end > seq.len() {
-            break;
-        }
-
-        if &seq[i..end] == search_seq {
-            result.push(SearchMatch {
-                range: RangeIncl::new(i, end),
-            });
-        }
-    }
-
-    let compl = seq_complement(seq);
-    // todo: DRY.
-    for i in 0..seq_len {
-        let end = i + search_len; // for inclusive
-        if end > seq.len() {
-            break;
-        }
-
-        if &compl[i..end] == search_seq {
-            result.push(SearchMatch {
-                range: RangeIncl::new(seq_len - (end + 0), seq_len - (i + 1)),
-            });
-        }
-    }
-
-    result
+    fwd.append(&mut rev);
+    fwd.into_iter().map(|range| SearchMatch{ range }).collect()
 }
