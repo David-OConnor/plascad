@@ -5,14 +5,19 @@
 //! Some common genes: https://en.vectorbuilder.com/search/gene.html
 
 use crate::{
+    amino_acids::AminoAcid,
     sequence::{
-        seq_from_str, Feature,
-        FeatureType::{self, AntibioticResistance, Ori, Promoter, ProteinBind, Terminator},
-        Nucleotide, Seq,
+        seq_complement, seq_from_str, Feature,
+        FeatureType::{
+            self, AntibioticResistance, CodingRegion, Ori, Promoter, ProteinBind, RibosomeBindSite,
+            Terminator,
+        },
+        Nucleotide,
+        Nucleotide::{A, G, T},
+        ReadingFrame, ReadingFrameMatch, Seq,
     },
     util::{match_subseq, RangeIncl},
 };
-use crate::sequence::FeatureType::{CodingRegion, RibosomeBindSite};
 
 struct FeatureMapItem {
     name: String,
@@ -30,14 +35,76 @@ impl FeatureMapItem {
     }
 }
 
-/// todo: Abstract this out later, if it makes sense.
-fn find_his_tags(seq: &[Nucleotide]) -> Vec<Feature> {
+/// Find 6x+ HIS tags in a sequence
+/// todo: Currently very similar to find_reading_frame_matches
+pub fn find_his_tags(seq: &[Nucleotide]) -> Vec<Feature> {
     let mut result = Vec::new();
 
+    let seq_len_full = seq.len();
+    if seq_len_full < 3 {
+        return result;
+    }
+
+    for orf in [
+        ReadingFrame::Fwd0,
+        ReadingFrame::Fwd1,
+        ReadingFrame::Fwd2,
+        ReadingFrame::Rev0,
+        ReadingFrame::Rev1,
+        ReadingFrame::Rev2,
+    ] {
+        let mut offset = orf.offset();
+
+        let seq_ = &match orf {
+            ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => seq.to_vec(),
+            _ => seq_complement(seq),
+        }[offset..];
+
+        let len = seq_.len();
+
+        let mut tag_open = None; // Inner: Start index.
+
+        for i_ in 0..len / 3 {
+            let i = i_ * 3; // The actual sequence index.
+
+            let nts = &seq_[i..i + 3];
+
+            let mut matched = false;
+            if let Some(aa) = AminoAcid::from_codons(nts.try_into().unwrap()) {
+                if aa == AminoAcid::His {
+                    matched = true;
+                }
+            }
+
+            if tag_open.is_none() && matched {
+                tag_open = Some(i);
+            } else if tag_open.is_some() && !matched {
+                let his_len = (i - tag_open.unwrap()) / 3;
+
+                if his_len >= 6 {
+                    let range = match orf {
+                        ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => {
+                            RangeIncl::new(tag_open.unwrap() + 1 + offset, i + 2 + offset)
+                        }
+                        _ => RangeIncl::new(
+                            seq_len_full - (i + 2 + offset),
+                            seq_len_full - (tag_open.unwrap() + offset) - 1,
+                        ),
+                    };
+
+                    result.push(Feature {
+                        range,
+                        feature_type: CodingRegion,
+                        label: format!("{his_len}×His"),
+                        ..Default::default()
+                    });
+                }
+                tag_open = None;
+            }
+        }
+    }
     result
 }
-
-// todo: Consider longer common sequences like
 
 /// Find common promoters and Oris.
 fn find_promoters(seq: &[Nucleotide]) -> Vec<Feature> {

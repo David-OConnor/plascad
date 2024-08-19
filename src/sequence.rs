@@ -6,10 +6,9 @@ use num_enum::TryFromPrimitive;
 use crate::{
     primer::PrimerDirection,
     sequence::Nucleotide::{A, C, G, T},
-    util::RangeIncl,
+    util::{match_subseq, RangeIncl},
     Color,
 };
-use crate::util::match_subseq;
 
 pub const MIN_SEARCH_LEN: usize = 3;
 
@@ -400,27 +399,23 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
         return result;
     }
 
-    let seq = &match orf {
+    let seq_ = &match orf {
         ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => seq.to_vec(),
         _ => seq_complement(seq),
     }[offset..];
 
-    let len = seq.len();
+    let len = seq_.len();
 
     let mut frame_open = None; // Inner: Start index.
 
     for i_ in 0..len / 3 {
         let i = i_ * 3; // The actual sequence index.
 
-        let nts = &seq[i..i + 3];
+        let nts = &seq_[i..i + 3];
 
         if frame_open.is_none() && nts == START_CODON {
             frame_open = Some(i);
-
-            // println!("Frame open: {:?}", i);
         } else if frame_open.is_some() && stop_codons.contains(nts.try_into().unwrap()) {
-            // println!("Frame cl: {:?}", i);
-
             // + 1 for our 1-based seq name convention.
             // This section's a bit hairy; worked by trial and error. Final indices are respective to
             // the non-complementary seq, for both forward and reverse reading frames.
@@ -483,5 +478,5 @@ pub fn find_search_matches(seq: &[Nucleotide], search_seq: &[Nucleotide]) -> Vec
     let (mut fwd, mut rev) = match_subseq(search_seq, seq);
 
     fwd.append(&mut rev);
-    fwd.into_iter().map(|range| SearchMatch{ range }).collect()
+    fwd.into_iter().map(|range| SearchMatch { range }).collect()
 }

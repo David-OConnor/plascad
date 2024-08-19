@@ -35,7 +35,8 @@ pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<
                 }
             };
 
-            let feature_ranges = util::get_feature_ranges(&seq_range, &data.row_ranges, data.seq_len);
+            let feature_ranges =
+                util::get_feature_ranges(&seq_range, &data.row_ranges, data.seq_len);
 
             let feature_ranges_px: Vec<(Pos2, Pos2)> = feature_ranges
                 .iter()

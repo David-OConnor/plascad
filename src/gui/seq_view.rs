@@ -257,10 +257,11 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
 
             // This overrides reading frame matches and text selection.
             for search_result in &state.volatile.search_matches {
-
                 // Origin wrap.
                 if search_result.range.end < search_result.range.start {
-                    if RangeIncl::new(0, search_result.range.end).contains(i) || RangeIncl::new(search_result.range.start, data.seq_len).contains(i) {
+                    if RangeIncl::new(0, search_result.range.end).contains(i)
+                        || RangeIncl::new(search_result.range.start, data.seq_len).contains(i)
+                    {
                         r = COLOR_SEARCH_RESULTS;
                         highlighted = true;
                     }

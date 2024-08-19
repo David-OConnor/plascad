@@ -5,7 +5,7 @@ use quick_xml::escape::unescape;
 use crate::sequence::{Nucleotide, Nucleotide::*};
 
 /// This struct and its method is largely copied from the `peptide` project.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum AminoAcid {
     Arg,
     His,
@@ -101,8 +101,8 @@ impl AminoAcid {
             [T, G, A] => None,
             [T, G, C] => Some(Self::Cys),
             [T, G, T] => Some(Self::Cys),
-            [T, A, C] => None,
-            [T, A, C] => None,
+            [T, A, G] => None,
+            [T, A, A] => None,
             [T, A, C] => Some(Self::Tyr),
             [T, A, T] => Some(Self::Tyr),
             [T, T, G] => Some(Self::Leu),

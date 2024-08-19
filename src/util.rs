@@ -140,12 +140,19 @@ pub fn remove_duplicates<T: Eq + std::hash::Hash>(vec: Vec<T>) -> Vec<T> {
 /// For the sequence editor. Given an index range of a feature, return sequence ranges for each row the feature occupies, that
 /// contain the sequence. This, after converting to pixels, corresponds to how we draw features and primers.
 /// This is used to draw overlays over the sequence that line up with a given index range.
-pub fn get_feature_ranges(feature_rng: &RangeIncl, all_ranges: &[RangeIncl], seq_len: usize) -> Vec<RangeIncl> {
+pub fn get_feature_ranges(
+    feature_rng: &RangeIncl,
+    all_ranges: &[RangeIncl],
+    seq_len: usize,
+) -> Vec<RangeIncl> {
     let mut result = Vec::new();
 
     // If the feature range wraps the origin, divide it into two ranges, and match both.
     let feature_ranges = if feature_rng.end < feature_rng.start {
-        vec![RangeIncl::new(1, feature_rng.end), RangeIncl::new(feature_rng.start, seq_len)]
+        vec![
+            RangeIncl::new(1, feature_rng.end),
+            RangeIncl::new(feature_rng.start, seq_len),
+        ]
     } else {
         vec![*feature_rng]
     };
