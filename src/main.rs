@@ -12,7 +12,6 @@
 // Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
 use std::{
     env, io,
-    ops::{Range, RangeInclusive},
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
@@ -35,7 +34,7 @@ use crate::{
         },
         GenericData,
     },
-    gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
+    gui::{navigation::PageSeqTop, save::load_import, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
     primer::{TuneSetting, TM_TARGET},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
@@ -46,6 +45,7 @@ use crate::{
     tags::TagMatch,
     util::RangeIncl,
 };
+use crate::file_io::save::save;
 
 mod amino_acids;
 mod feature_db_load;
@@ -95,8 +95,11 @@ struct PcrUi {
     pub product_len: usize,
     pub polymerase_type: PolymeraseType,
     pub num_cycles: u16,
-    /// index from primer data. For storing dropdown state.
+    /// Index from primer data for the load-from-primer system. For storing dropdown state.
     pub primer_selected: usize,
+    /// These are for the PCR product generation
+    pub primer_fwd: usize,
+    pub primer_rev: usize,
 }
 
 impl Default for PcrUi {
@@ -107,6 +110,9 @@ impl Default for PcrUi {
             polymerase_type: Default::default(),
             num_cycles: 30,
             primer_selected: 0,
+            primer_fwd: 0,
+            primer_rev: 0,
+
         }
     }
 }
@@ -310,6 +316,7 @@ struct StateUi {
     /// 1-based indexing.
     text_selection: Option<RangeIncl>,
     quick_feature_add_name: String,
+    quick_feature_add_dir: FeatureDirection,
 }
 
 impl Default for StateUi {
@@ -330,7 +337,6 @@ impl Default for StateUi {
             file_dialogs: Default::default(),
             show_origin_change: Default::default(),
             new_origin: Default::default(),
-            // text_cursor_i: Default::default(),
             text_cursor_i: Some(0),
             click_pending_handle: Default::default(),
             dblclick_pending_handle: Default::default(),
@@ -342,6 +348,7 @@ impl Default for StateUi {
             dragging: Default::default(),
             text_selection: Default::default(),
             quick_feature_add_name: Default::default(),
+            quick_feature_add_dir: Default::default(),
         }
     }
 }
@@ -396,6 +403,24 @@ impl State {
         self.ui.cursor_seq_i = None;
         self.ui.text_cursor_i = Some(0); // todo: For now; having trouble with cursor on empty seq
         self.ui.seq_input = String::new();
+    }
+
+    /// Load UI and related data not related to a specific sequence.
+    pub fn load_prefs(&mut self, path: &Path) {
+        let ui_loaded: io::Result<StateUiToSave> = load(path);
+
+        if let Ok(ui) = ui_loaded {
+            self.ui = ui.to_state();
+        }
+    }
+
+    pub fn save_prefs(&self) {
+        if let Err(e) = save(
+            &PathBuf::from(DEFAULT_PREFS_FILE),
+            &StateUiToSave::from_state(&self.ui),
+        ) {
+            eprintln!("Error saving prefs: {e}");
+        }
     }
 
     /// Runs the match serach between primers and sequences. Run this when primers and sequences change.
@@ -538,12 +563,7 @@ impl State {
             Err(_) => Default::default(),
         };
 
-        let ui_loaded: io::Result<StateUiToSave> = load(prefs_path);
-
-        result.ui = match ui_loaded {
-            Ok(s) => s.to_state(),
-            Err(_) => Default::default(),
-        };
+        result.load_prefs(prefs_path);
 
         result.restriction_enzyme_lib = load_re_library();
 
@@ -588,8 +608,8 @@ impl State {
 
 fn main() {
     let mut window_title_initial = WINDOW_TITLE.to_owned();
-    let file_path = {
-        let mut r = DEFAULT_SAVE_FILE;
+    let path = {
+        let mut r = PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap();
 
         // Windows and possibly other operating systems, if attempting to use your program to natively
         // open a file type, will use command line argumentse to indicate this. Determine if the program
@@ -597,15 +617,24 @@ fn main() {
         let args: Vec<String> = env::args().collect();
         if args.len() > 1 {
             let temp = &args[1];
-            r = temp;
-            window_title_initial = r.to_owned();
+            r = PathBuf::from_str(&temp).unwrap();
+
+            // Just the filename and extension.
+            window_title_initial = r
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .map(|name_str| name_str.to_string())
+                    .unwrap();
         }
 
-        r.to_owned()
+        r
     };
 
-    let path = PathBuf::from_str(&file_path).unwrap();
-    let mut state = State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+    let mut state = State::default();
+    load_import(&mut state, &path);
+
+    state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+
 
     if window_title_initial != WINDOW_TITLE {
         state.path_loaded = Some(path);

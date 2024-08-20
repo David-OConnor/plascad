@@ -2,27 +2,23 @@
 //!
 //! Todo: Break into packets. This may require further ejecting from bincode, at least at the top level[s].
 
-use std::{
-    fs::File,
-    io,
-    io::{ErrorKind, Read, Write},
-    path::Path,
-};
+use std::{env, fs::File, io, io::{ErrorKind, Read, Write}, path::Path};
 
 use bincode::{
     config,
-    error::{DecodeError, EncodeError},
-    Decode, Encode,
+    Decode,
+    Encode, error::{DecodeError, EncodeError},
 };
 use bio::io::fasta;
-
+use eframe::egui::Ui;
 use crate::{
     file_io::GenericData,
     gui::navigation::{Page, PageSeq, PageSeqTop},
+    PcrUi,
     primer::{IonConcentrations, Primer},
-    sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Seq, SeqTopology},
-    PcrUi, Selection, SeqVisibility, State, StateUi,
+    Selection, sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Seq, SeqTopology}, SeqVisibility, State, StateUi,
 };
+use crate::gui::set_window_title;
 
 pub const DEFAULT_SAVE_FILE: &str = "quicksave.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";
@@ -287,4 +283,39 @@ pub fn deser_seq_bin(data: &[u8]) -> io::Result<Seq> {
     }
 
     Ok(result)
+}
+
+// todo: Move to file_io A/R
+/// Save a new file, eg a cloning or PCR product.
+pub fn save_new_product(name: &str, state: &mut State, ui: &mut Ui) {
+    name.clone_into(&mut state.generic.metadata.plasmid_name);
+
+    // todo: Option for GenBank and SnapGene formats here?
+    let mut save_path = env::current_dir().unwrap();
+    let filename = {
+        let name = state
+            .generic
+            .metadata
+            .plasmid_name
+            .to_lowercase()
+            .replace(' ', "_");
+        format!("{name}.pcad")
+    };
+    save_path.push(Path::new(&filename));
+
+    state.ui.file_dialogs.save.config_mut().default_file_name = filename.to_string();
+    state.ui.file_dialogs.save.save_file();
+
+    if let Some(path) = state.ui.file_dialogs.save.take_selected() {
+        match save(&path, &StateToSave::from_state(state)) {
+            Ok(_) => {
+                state.path_loaded = Some(path.to_owned());
+                set_window_title(&state.path_loaded, ui);
+            }
+            Err(e) => eprintln!(
+                "Error saving cloning product in the PlasCAD format: {:?}",
+                e
+            ),
+        };
+    }
 }

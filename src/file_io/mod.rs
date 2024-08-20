@@ -2,13 +2,7 @@
 
 use std::path::Path;
 
-use eframe::egui::accesskit::ListStyle::Numeric;
-
-use crate::{
-    primer::Primer,
-    sequence::{Feature, Metadata, Nucleotide, Seq, SeqTopology},
-};
-
+use crate::{primer::Primer, sequence::{Feature, Metadata, Seq, SeqTopology}};
 pub mod genbank;
 pub mod save;
 pub mod snapgene;
@@ -35,3 +29,4 @@ fn get_filename(path: &Path) -> String {
         String::new()
     }
 }
+

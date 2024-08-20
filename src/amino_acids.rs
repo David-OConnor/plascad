@@ -58,6 +58,33 @@ impl AminoAcid {
         .to_owned()
     }
 
+    pub fn ident_3_letter(&self) -> String {
+        match self {
+            Self::Arg => "Arg",
+            Self::His => "His",
+            Self::Lys => "Lys",
+            Self::Asp => "Asp",
+            Self::Glu => "Glu",
+            Self::Ser => "Ser",
+            Self::Thr => "Thr",
+            Self::Asn => "Asn",
+            Self::Gln => "Gln",
+            Self::Cys => "Cys",
+            Self::Sec => "Sec",
+            Self::Gly => "Gly",
+            Self::Pro => "Pro",
+            Self::Ala => "Ala",
+            Self::Val => "Val",
+            Self::Ile => "Ile",
+            Self::Leu => "Leu",
+            Self::Met => "Met",
+            Self::Phe => "Phe",
+            Self::Tyr => "Tyr",
+            Self::Trp => "Trp",
+        }
+        .to_owned()
+    }
+
     /// https://en.wikipedia.org/wiki/DNA_and_RNA_codon_tables#/media/File:Aminoacids_table.svg
     /// If a codon has less than 3 nucleotides, it means the third can be any; this may have both conciseness,
     /// and performance advantages.

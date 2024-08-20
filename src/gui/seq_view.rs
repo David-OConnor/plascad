@@ -1,7 +1,5 @@
 //! This module contains GUI code related to the sequence visulization.
 
-use std::ops::{Range, RangeInclusive};
-
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
@@ -12,12 +10,13 @@ use eframe::{
 };
 
 use crate::{
+    amino_acids::AminoAcid,
     gui::{
         feature_from_index,
         feature_overlay::{draw_features, draw_selection},
         get_cursor_text,
         navigation::page_button,
-        primer_arrow, select_feature, COL_SPACING, ROW_SPACING,
+        primer_arrow, select_feature, COL_SPACING,
     },
     sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl},
@@ -219,6 +218,38 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
         let i = i + 1; // 1-based indexing.
         let pos = data.seq_i_to_px_rel(i);
 
+        let mut in_rf = false;
+        if state.ui.seq_visibility.show_reading_frame {
+            for orf_match in &state.volatile.reading_frame_matches {
+                if orf_match.range.contains(i) {
+                    // todo: This only works for forward reading frames.
+
+                    let i_orf = i - 1; // Back to 0-based indexing for this.
+                    if (i_orf - orf_match.frame.offset()) % 3 == 0 {
+                        if let Some(aa) = AminoAcid::from_codons(
+                            state.generic.seq[i_orf..i_orf + 3].try_into().unwrap(),
+                        ) {
+                            result.push(ui.ctx().fonts(|fonts| {
+                                Shape::text(
+                                    fonts,
+                                    pos,
+                                    Align2::LEFT_TOP,
+                                    aa.ident_3_letter(),
+                                    // Note: Monospace is important for sequences.
+                                    FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
+                                    COLOR_CODING_REGION,
+                                )
+                            }));
+                        }
+                    }
+                    in_rf = true;
+                }
+            }
+            if in_rf {
+                continue;
+            }
+        }
+
         let letter_color = {
             let mut r = COLOR_SEQ;
 
@@ -344,7 +375,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
         ui.label("Mouse:");
         ui.heading(mouse_posit_lbl);
 
-        ui.label("Selection: ");
+        ui.label("Selection:");
         if let Some(selection) = state.ui.text_selection {
             ui.heading(format!("{selection}"));
         }

@@ -61,7 +61,7 @@ move the cursor with arrow keys, type the letters *A*, *C*, *T*, and *G* to inse
 - When a feature or primer is selected, that's what's copied, vice the selection.
 - Feature and primer editor tables are availabe to be displayed above the sequence.
 - You can use the sliders and inputs at the top to change the selected feature range.
-- You can quickly create a feature from a cursor selection using the button at the top.
+- You can quickly create a feature or primer from the cursor selection using the buttons at the top.
 - Press the *Escape* key to remove selections and the cursor.
 
 
@@ -86,7 +86,9 @@ Can create, edit, and load features and primers. We define a *feature* as matchi
 Automatically identies and marks common restriction enzyme sites, and tags, such as the 6x or 8x HIS tag.
 
 
-### PCR parameter generation
+### PCR product generation and parameter generation
+Generates a PCR product using the opened sequence, and any primer pair.
+
 Generates PCR parameters (eg temperature and time for specific steps), based on product length, primer
 melting temperature, polymerase type, and other parameters.
 
@@ -117,6 +119,14 @@ If you wish to associate a file type (eg the native .pcad format) with PlasCAD, 
 (Select where you saved the program) → Always.*
 
 
+### Automatic annotation
+Annotate the common features from sequences; this includes promoters, origins of replication, affinity binding tags,  and antibiotic resistance
+genes.
+
+
+### Displays amino acid sequences for coding regions
+
+
 ## Why another plasmid editor
 The more tools available for scientists, the better. In particular, my goal is to make
 a fast, lightweight program that's as easy to use as possible, without sacrificing functionality. I also added functionality I didn't see elsewhere, like automatic primer tuning, and primer generation for SLIC and FastCloning.
@@ -130,7 +140,7 @@ Also of note, the native file format this program uses is more compact, includin
 - Identifying secondary structures, hairpins etc
 - Utility features for specific applications
 - Better display of overlapping features
-- An automatic annotation system (Will likely use in-memory data for short and common sequences, and a web database for specific genes)
+- An automatic annotation system for genes
 
 
 ## Calculations used 

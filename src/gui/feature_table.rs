@@ -42,7 +42,7 @@ fn color_picker(val: &mut Option<Color>, feature_color: Color, ui: &mut Ui) {
 
 /// A selector for use with feature addition and editing.
 /// todo: Generic selector creator?
-fn direction_picker(val: &mut FeatureDirection, id: usize, ui: &mut Ui) {
+pub fn direction_picker(val: &mut FeatureDirection, id: usize, ui: &mut Ui) {
     ComboBox::from_id_source(id)
         .width(74.)
         .selected_text(val.to_string())

@@ -13,9 +13,8 @@ use url::Url;
 
 use crate::{
     feature_db_load::find_features,
-    file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
-    gui::{input::handle_input, primer_qc::primer_details, save::load_import},
-    sequence::{seq_from_str, seq_to_str, Feature, FeatureType, Nucleotide},
+    gui::{input::handle_input, primer_qc::primer_details},
+    sequence::{Feature, FeatureType, Nucleotide},
     util,
     util::merge_feature_sets,
     Selection, State,
@@ -32,7 +31,7 @@ mod pcr;
 mod portions;
 mod primer_arrow;
 pub mod primer_qc;
-mod save;
+pub mod save;
 pub mod seq_view;
 pub mod sequence;
 // pub for a few consts
@@ -282,8 +281,6 @@ pub fn draw(state: &mut State, ctx: &Context) {
                     &find_features(&state.generic.seq),
                 )
             }
-
-            origin_change(state, ui);
 
             let mut selection_avail = false;
             if state.ui.text_selection.is_some() {

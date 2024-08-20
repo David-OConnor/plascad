@@ -89,7 +89,7 @@ fn handle_text_selection(state_ui: &mut StateUi, dragging: bool) {
         if state_ui.dragging {
             state_ui.dragging = false;
 
-            println!("Drag end. Selection: {:?}", state_ui.text_selection);
+            // println!("Drag end. Selection: {:?}", state_ui.text_selection);
         }
     }
 }

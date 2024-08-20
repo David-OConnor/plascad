@@ -1,21 +1,12 @@
-use std::{
-    cmp::{min, PartialOrd},
-    collections::HashSet,
-    f32::consts::TAU,
-    fmt, io,
-    io::ErrorKind,
-    ops::RangeInclusive,
-};
-
+use std::{cmp::min, collections::HashSet, fmt, io, io::ErrorKind};
 use bincode::{Decode, Encode};
 use eframe::egui::{pos2, Pos2};
 
 use crate::{
+    Color,
     gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
-    sequence::{seq_complement, Feature, Nucleotide},
-    Color, State,
+    sequence::{Feature, Nucleotide, seq_complement}, State,
 };
-
 const FEATURE_ANNOTATION_MATCH_THRESH: f32 = 0.95;
 
 /// A replacement for std::RangeInclusive, but copy type, and directly-accessible (mutable) fields.
@@ -51,7 +42,7 @@ impl RangeIncl {
 
 impl fmt::Display for RangeIncl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}..{}", self.start, self.end)
+        write!(f, "{}..{} {}bp", self.start, self.end, self.len())
     }
 }
 
@@ -255,7 +246,7 @@ pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl
 
         if subseq.iter().eq(seq_iter) {
             let seq_end = (seq_start + subseq_len) % seq_len;
-            result.0.push(RangeIncl::new(seq_start, seq_end));
+            result.0.push(RangeIncl::new(seq_start + 1, seq_end));
         }
     }
 
@@ -271,7 +262,7 @@ pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl
         //
         if subseq.iter().eq(seq_iter) {
             let seq_end = (seq_start + subseq_len) % seq_len;
-            result.1.push(RangeIncl::new(seq_start, seq_end));
+            result.1.push(RangeIncl::new(seq_start + 1, seq_end - 1));
         }
     }
 
@@ -328,3 +319,5 @@ pub fn merge_feature_sets(existing: &mut Vec<Feature>, new: &[Feature]) {
 //
 //     Ok(())
 // }
+
+

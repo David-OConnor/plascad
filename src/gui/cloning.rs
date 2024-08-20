@@ -23,6 +23,7 @@ use crate::{
     util::RangeIncl,
     CloningInsertData, Selection, State,
 };
+use crate::file_io::save::save_new_product;
 
 /// Draw a selector for the insert, based on loading from a file.
 fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
@@ -178,68 +179,41 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             }
         }
 
-        if ui.button("Clone").clicked() {
-            // Save this vector; this file or quicksave instance will be turned into the cloning
-            // product.
-            save_current_file(state);
+        if state.ui.cloning_insert.seq_insert.len() > 6 {
+            if ui.button(RichText::new("Clone").color(Color32::GOLD)).clicked() {
+                // Save this vector; this file or quicksave instance will be turned into the cloning
+                // product.
+                save_current_file(state);
 
-            // Make sure to create cloning primers before performing the insert, or the result will be wrong.
-            make_cloning_primers(state);
+                // Make sure to create cloning primers before performing the insert, or the result will be wrong.
+                make_cloning_primers(state);
 
-            // todo: Unecessary clone
-            let insert = state.ui.cloning_insert.seq_insert.clone();
-            state.insert_nucleotides(&insert, state.cloning_insert_loc);
+                // todo: Unecessary clone
+                let insert = state.ui.cloning_insert.seq_insert.clone();
+                state.insert_nucleotides(&insert, state.cloning_insert_loc);
 
-            let label = match state.ui.cloning_insert.feature_selected {
-                Some(i) => state.ui.cloning_insert.features_loaded[i].label.clone(),
-                None => "Cloning insert".to_owned(),
-            };
-
-            // todo: Eventually, we'll likely be pulling in sequences already associated with a feature;
-            // todo: Use the already existing data instead.
-            state.generic.features.push(Feature {
-                range: RangeIncl::new(
-                    state.cloning_insert_loc + 1,
-                    state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len(),
-                ),
-                label,
-                feature_type: FeatureType::CodingRegion,
-                direction: FeatureDirection::Forward,
-                ..Default::default()
-            });
-
-            state.ui.page_seq = PageSeq::View;
-            state.ui.selected_item = Selection::Feature(state.generic.features.len() - 1);
-
-            "SLIC cloning product".clone_into(&mut state.generic.metadata.plasmid_name);
-
-            // todo: Option for GenBank and SnapGene formats here?
-            let mut save_path = env::current_dir().unwrap();
-            let filename = {
-                let name = state
-                    .generic
-                    .metadata
-                    .plasmid_name
-                    .to_lowercase()
-                    .replace(' ', "_");
-                format!("{name}.pcad")
-            };
-            save_path.push(Path::new(&filename));
-
-            state.ui.file_dialogs.save.config_mut().default_file_name = filename.to_string();
-            state.ui.file_dialogs.save.save_file();
-
-            if let Some(path) = state.ui.file_dialogs.save.take_selected() {
-                match save(&path, &StateToSave::from_state(state)) {
-                    Ok(_) => {
-                        state.path_loaded = Some(path.to_owned());
-                        set_window_title(&state.path_loaded, ui);
-                    }
-                    Err(e) => eprintln!(
-                        "Error saving cloning product in the PlasCAD format: {:?}",
-                        e
-                    ),
+                let label = match state.ui.cloning_insert.feature_selected {
+                    Some(i) => state.ui.cloning_insert.features_loaded[i].label.clone(),
+                    None => "Cloning insert".to_owned(),
                 };
+
+                // todo: Eventually, we'll likely be pulling in sequences already associated with a feature;
+                // todo: Use the already existing data instead.
+                state.generic.features.push(Feature {
+                    range: RangeIncl::new(
+                        state.cloning_insert_loc + 1,
+                        state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len(),
+                    ),
+                    label,
+                    feature_type: FeatureType::CodingRegion,
+                    direction: FeatureDirection::Forward,
+                    ..Default::default()
+                });
+
+                state.ui.page_seq = PageSeq::View;
+                state.ui.selected_item = Selection::Feature(state.generic.features.len() - 1);
+
+                save_new_product("SLIC cloning product", state, ui);
             }
         }
     });

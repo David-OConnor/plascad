@@ -10,7 +10,6 @@ use eframe::{
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
 };
-
 use crate::{
     gui::{
         feature_from_index,
@@ -18,7 +17,7 @@ use crate::{
         get_cursor_text,
         navigation::NAV_BUTTON_COLOR,
         select_feature,
-        seq_view::{SeqViewData, COLOR_RE, COLOR_SEQ},
+        seq_view::{COLOR_RE, COLOR_SEQ},
         COL_SPACING, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
     },
     primer::{Primer, PrimerDirection},
@@ -40,7 +39,7 @@ const TICK_SPACING: usize = 500; // Nucleotides between ticks
 
 const TICK_LEN: f32 = 90.; // in pixels.
 const TICK_LEN_DIV_2: f32 = TICK_LEN / 2.;
-const TICK_LABEL_OFFSET: f32 = 10.;
+const TICK_LABEL_OFFSET: f32 = 12.;
 
 const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
 // const FEATURE_OUTLINE_HIGHLIGHTED: Color32 = Color32::from_rgb(200, 200, 255);
@@ -458,7 +457,7 @@ fn draw_features(
         let point_mid_outer =
             angle_to_pixel(angle_mid, data.radius + feature_width / 2.) + data.center.to_vec2();
 
-        let (label_pt, label_align) = if angle_mid > TAU / 2. {
+        let (mut label_pt, label_align) = if angle_mid > TAU / 2. {
             (
                 point_mid_outer + vec2(-TICK_LABEL_OFFSET, 0.),
                 Align2::RIGHT_CENTER,
@@ -470,19 +469,33 @@ fn draw_features(
             )
         };
 
+        // If towards the very top of bottom, offset the label vertically.
+        if angle_mid < TAU/16. || angle_mid > 15. * TAU / 16. {
+            label_pt += vec2(0., -TICK_LABEL_OFFSET);
+        } else if angle_mid > 7. * TAU /16. && angle_mid < 9. * TAU / 16. {
+            label_pt += vec2(0., TICK_LABEL_OFFSET);
+        }
+
+
         let label = if feature.label.is_empty() {
             &feature.feature_type.to_string()
         } else {
             &feature.label
         };
 
+        // todo: Rotate, and place the label inside the arc segment. Unfortunately, rotating text
+        // todo is currently difficult with EGUI.
+
+        // "At the moment this is somewhat tricky; you will need to first produce a ClippedShape with the
+        // text you want in it. Then you can use ctx.tesselate() to turn this into a Mesh. Use the
+        // rotate method on that mesh. Then you can draw that with the Painter"
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
                 fonts,
                 data.to_screen * label_pt,
                 label_align,
                 label,
-                FontId::new(16., FontFamily::Proportional),
+                FontId::new(14., FontFamily::Proportional),
                 stroke.color,
             )
         }));
@@ -596,7 +609,7 @@ fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape
                     data.to_screen * label_pt,
                     label_align,
                     &primer.name,
-                    FontId::new(16., FontFamily::Proportional),
+                    FontId::new(14., FontFamily::Proportional),
                     stroke.color,
                 )
             }));

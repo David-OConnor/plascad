@@ -8,6 +8,9 @@ use crate::{
     primer::TM_TARGET,
     PcrUi, State,
 };
+use crate::file_io::save::save_new_product;
+use crate::gui::save::save_current_file;
+use crate::primer::Primer;
 
 fn temp_time_disp(tt: &TempTime, label: &str, ui: &mut Ui) {
     ui.label(&format!("{label}:"));
@@ -37,7 +40,73 @@ where
     changed
 }
 
+fn primer_dropdown(val: &mut usize, primers: &[Primer], id: usize, ui: &mut Ui) {
+    // Reset primer selected if an invalid one is set.
+    if *val > primers.len() {
+        *val = 0;
+    }
+
+    let primer = &primers[*val];
+
+    ComboBox::from_id_source(id)
+        .width(80.)
+        .selected_text(&primer.name)
+        .show_ui(ui, |ui| {
+            for (i, primer) in primers.iter().enumerate() {
+                ui.selectable_value(val, i, &primer.name);
+            }
+        });
+}
+
+fn pcr_sim(state: &mut State, ui: &mut Ui) {
+    let primers = &state.generic.primers; // Code shortener.
+    let num_primers = primers.len();
+
+    if state.ui.pcr.primer_fwd + 1 >= num_primers || state.ui.pcr.primer_rev + 1 >= num_primers {
+        state.ui.pcr.primer_fwd = 0;
+        state.ui.pcr.primer_rev = 0;
+    }
+
+    if num_primers >= 2 {
+        ui.horizontal(|ui| {
+            ui.label("Fwd:");
+            primer_dropdown(&mut state.ui.pcr.primer_fwd, primers, 2, ui);
+            ui.label("Rev:");
+            primer_dropdown(&mut state.ui.pcr.primer_rev, primers, 3, ui);
+
+            ui.add_space(COL_SPACING);
+
+            if ui.button(RichText::new("Simulate PCR").color(Color32::GOLD)).clicked() {
+                // Save this vector; this file or quicksave instance will be turned into the PCR
+                // product.
+                save_current_file(state);
+
+                let fwd_primer = &primers[state.ui.pcr.primer_fwd];
+                let rev_primer = &primers[state.ui.pcr.primer_rev];
+
+                for (dir, range) in &fwd_primer.volatile.matches_seq {
+
+                }
+
+                for (dir, range) in &rev_primer.volatile.matches_seq {
+
+                }
+
+                save_new_product("PCR product", state, ui);
+            }
+        });
+    } else {
+        ui.label("(Add at least 2 primers to generate a PCR product)");
+    }
+}
+
 pub fn pcr_page(state: &mut State, ui: &mut Ui) {
+    ui.add_space(ROW_SPACING);
+
+
+        pcr_sim(state, ui);
+        ui.add_space(ROW_SPACING);
+
     ui.horizontal(|ui| {
         ui.heading("PCR parameters");
         if !state.generic.primers.is_empty() {
@@ -57,21 +126,7 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
                 state.sync_pcr();
             }
 
-            // Reset primer selected if an invalid one is set.
-            if state.ui.pcr.primer_selected > state.generic.primers.len() {
-                state.ui.pcr.primer_selected = 0;
-            }
-
-            let primer = &state.generic.primers[state.ui.pcr.primer_selected];
-
-            ComboBox::from_id_source(0)
-                .width(80.)
-                .selected_text(&primer.name)
-                .show_ui(ui, |ui| {
-                    for (i, primer) in state.generic.primers.iter().enumerate() {
-                        ui.selectable_value(&mut state.ui.pcr.primer_selected, i, &primer.name);
-                    }
-                });
+            primer_dropdown(&mut state.ui.pcr.primer_selected, &state.generic.primers, 1, ui);
         }
     });
 
@@ -104,7 +159,7 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
 
         ui.label("Polymerase:");
         let prev_poly = state.ui.pcr.polymerase_type;
-        ComboBox::from_id_source(1)
+        ComboBox::from_id_source(10)
             .width(80.)
             .selected_text(state.ui.pcr.polymerase_type.to_str())
             .show_ui(ui, |ui| {

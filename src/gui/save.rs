@@ -79,14 +79,6 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         .clicked()
     {
         save_current_file(state);
-
-        // todo: You will likely more this to an automatic one.
-        if let Err(e) = save(
-            &PathBuf::from(DEFAULT_PREFS_FILE),
-            &StateUiToSave::from_state(&state.ui),
-        ) {
-            eprintln!("Error saving prefs: {e}");
-        }
     }
 
     save_button(
@@ -298,4 +290,6 @@ pub fn save_current_file(state: &State) {
             }
         }
     }
+    // todo: You will likely more this to an automatic one.
+    state.save_prefs()
 }

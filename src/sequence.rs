@@ -174,9 +174,9 @@ impl FeatureType {
         match self {
             Self::Generic => (255, 0, 255),
             Self::Gene => (255, 128, 128),
-            Self::Ori => (40, 128, 128),
+            Self::Ori => (40, 200, 128),
             Self::RibosomeBindSite => (255, 204, 252),
-            Self::Promoter => (120, 120, 70),
+            Self::Promoter => (240, 190, 70),
             Self::AntibioticResistance => (0, 200, 110),
             Self::Primer => (0, 0, 0),             // N/A for now at least.
             Self::CodingRegion => (100, 200, 255), // N/A for now at least.

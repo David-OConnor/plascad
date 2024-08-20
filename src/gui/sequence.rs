@@ -7,7 +7,7 @@ use eframe::egui::{
 };
 
 // todo: monospace font for all seqs.
-use crate::sequence::{seq_from_str, seq_to_str, Feature, MIN_SEARCH_LEN};
+use crate::sequence::{seq_from_str, seq_to_str, Feature, MIN_SEARCH_LEN, FeatureDirection, seq_complement};
 use crate::{
     gui::{
         circle::feature_range_sliders,
@@ -24,6 +24,9 @@ use crate::{
     gui::{COL_SPACING, ROW_SPACING},
     State,
 };
+use crate::gui::feature_table::direction_picker;
+use crate::primer::{Primer, PrimerData};
+use crate::util::RangeIncl;
 
 fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
@@ -71,18 +74,52 @@ fn feature_text(feature: &Option<usize>, features: &[Feature], seq_len: usize, u
 fn feature_from_sel(state: &mut State, ui: &mut Ui) {
     if let Some(text_sel) = state.ui.text_selection {
         if ui
-            .button(RichText::new("➕ Add feature from selection").color(Color32::GOLD))
+            .button(RichText::new("➕ Add feature from sel").color(Color32::GOLD))
             .clicked()
         {
             state.generic.features.push(Feature {
                 range: text_sel,
                 label: state.ui.quick_feature_add_name.clone(),
+                direction: state.ui.quick_feature_add_dir,
                 ..Default::default()
             });
 
             state.ui.text_selection = None;
             state.ui.quick_feature_add_name = String::new();
         }
+
+        if ui
+            .button(RichText::new("➕ Add primer from sel").color(Color32::GOLD))
+            .clicked()
+        {
+
+            // todo: DRY with genbank parsing; common fn A/R.
+            let seq = &state.generic.seq;
+            let compl = &seq_complement(seq);
+            let seq_primer =  match state.ui.quick_feature_add_dir {
+            FeatureDirection::Reverse => {
+                let range = RangeIncl::new(seq.len() - (text_sel.end), seq.len() - (text_sel.start));
+
+                range.index_seq(&compl).unwrap_or_default()
+            }
+            _ => text_sel.index_seq(&seq).unwrap_or_default(),
+        }
+            .to_vec();
+
+            let volatile = PrimerData::new(&seq_primer);
+
+            state.generic.primers.push(Primer {
+                sequence: seq_primer,
+                name: state.ui.quick_feature_add_name.clone(),
+                description: None,
+                volatile,
+            });
+
+            state.ui.quick_feature_add_name = String::new();
+            state.sync_primer_matches(None);
+        }
+
+        direction_picker(&mut state.ui.quick_feature_add_dir, 200, ui);
 
         ui.label("Name:");
         if ui
