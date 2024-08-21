@@ -23,15 +23,21 @@ pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<
     let mut shapes = Vec::new();
 
     for primer in primers {
-        let primer_matches = &primer.volatile.matches_seq;
+        let primer_matches = &primer.volatile.matches;
 
         // todo: Do not run these calcs each time. Cache.
-        for (direction, seq_range) in primer_matches {
+        for prim_match in primer_matches {
             // We currently index primers relative to the end they started.
-            let seq_range = match direction {
-                PrimerDirection::Forward => seq_range.clone(),
+
+            // Note: Because if we're displaying above the seq and below, the base of the arrow must match,
+            // hence the offset.
+            let seq_range = match prim_match.direction {
+                PrimerDirection::Forward => {
+                    RangeIncl::new(prim_match.range.start, prim_match.range.end - 1)
+                }
+
                 PrimerDirection::Reverse => {
-                    RangeIncl::new(data.seq_len - seq_range.end, data.seq_len - seq_range.start)
+                    RangeIncl::new(prim_match.range.start + 1, prim_match.range.end)
                 }
             };
 
@@ -43,7 +49,7 @@ pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<
                 .map(|r| (data.seq_i_to_px_rel(r.start), data.seq_i_to_px_rel(r.end)))
                 .collect();
 
-            let color = match direction {
+            let color = match prim_match.direction {
                 PrimerDirection::Forward => (255, 0, 255),
                 PrimerDirection::Reverse => (0, 255, 0),
             };
@@ -54,7 +60,7 @@ pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<
                 FeatureType::Primer,
                 color,
                 VERTICAL_OFFSET_PRIMER,
-                (*direction).into(),
+                (prim_match.direction).into(),
                 &primer.name,
                 false,
                 ui,

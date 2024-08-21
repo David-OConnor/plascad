@@ -200,7 +200,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                     row.col(|ui| {
                         // todo: Cache this?
                         // let num_matches = data.matches_seq.len() + data.matches_vector_with_insert.len();
-                        let num_matches = primer.volatile.matches_seq.len();
+                        let num_matches = primer.volatile.matches.len();
                         ui.label(num_matches.to_string());
                     });
 

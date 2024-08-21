@@ -1,11 +1,12 @@
 use std::{cmp::min, collections::HashSet, fmt, io, io::ErrorKind};
+
 use bincode::{Decode, Encode};
 use eframe::egui::{pos2, Pos2};
 
 use crate::{
-    Color,
     gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
-    sequence::{Feature, Nucleotide, seq_complement}, State,
+    sequence::{seq_complement, Feature, Nucleotide},
+    Color, State,
 };
 const FEATURE_ANNOTATION_MATCH_THRESH: f32 = 0.95;
 
@@ -28,7 +29,7 @@ impl RangeIncl {
     /// This function handles both the +1 nature of our range indexing,
     /// and error handling for out of bounds. (The latter of which panics at runtime)
     pub fn index_seq<'a, T>(&self, seq: &'a [T]) -> Option<&'a [T]> {
-        if self.start < 1 || self.end + 1 > seq.len() {
+        if self.start < 1 || self.end + 1 > seq.len() || self.start > self.end {
             return None;
         }
 
@@ -36,6 +37,9 @@ impl RangeIncl {
     }
 
     pub fn len(&self) -> usize {
+        if self.end < self.start {
+            return 0;
+        }
         self.end - self.start + 1
     }
 }
@@ -222,8 +226,7 @@ pub fn change_origin(state: &mut State) {
 
 /// Find indexes where a subsequence matches a larger one, in both directions. Can be used to match primers,
 /// known sequences etc.
-/// Note: the reverse indices are reversed.
-///         // todo: Partial matches as well.
+/// todo: Partial matches as well.
 pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl>, Vec<RangeIncl>) {
     let mut result = (Vec::new(), Vec::new()); // Forward, reverse
 
@@ -234,6 +237,7 @@ pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl
     for seq_start in 0..seq_len {
         // Note: This approach handles sequence wraps, eg [circular] plasmids.
         let seq_iter = seq.iter().cycle().skip(seq_start).take(subseq_len);
+
         // let seq_iter: Vec<Nucleotide> = seq.iter().cycle().skip(seq_start).take(subseq_len).map(|nt| *nt).collect();
 
         // let similarity = seq_similarity(&seq_iter, subseq);
@@ -260,9 +264,16 @@ pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl
         //     result.0.push(RangeIncl::new(seq_start, seq_end));
         // }
         //
+
         if subseq.iter().eq(seq_iter) {
             let seq_end = (seq_start + subseq_len) % seq_len;
-            result.1.push(RangeIncl::new(seq_start + 1, seq_end - 1));
+            if seq_end < 1 {
+                continue;
+            }
+
+            result
+                .1
+                .push(RangeIncl::new(seq_len - seq_end + 1, seq_len - seq_start));
         }
     }
 
@@ -319,5 +330,3 @@ pub fn merge_feature_sets(existing: &mut Vec<Feature>, new: &[Feature]) {
 //
 //     Ok(())
 // }
-
-

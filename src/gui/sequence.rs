@@ -1,22 +1,22 @@
 //! This module contains GUI code related to the sequence view.
 
-use std::process::id;
-
-use eframe::egui::{
-    text::CursorRange, Color32, Frame, RichText, ScrollArea, TextBuffer, TextEdit, Ui,
-};
+use eframe::egui::{text::CursorRange, Color32, Frame, RichText, ScrollArea, TextEdit, Ui};
 
 // todo: monospace font for all seqs.
-use crate::sequence::{seq_from_str, seq_to_str, Feature, MIN_SEARCH_LEN, FeatureDirection, seq_complement};
+use crate::sequence::{
+    seq_complement, seq_from_str, seq_to_str, Feature, FeatureDirection, MIN_SEARCH_LEN,
+};
 use crate::{
     gui::{
         circle::feature_range_sliders,
-        feature_table::feature_table,
+        feature_table::{direction_picker, feature_table},
         navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
         primer_qc::primer_details,
         seq_view::sequence_vis,
         SPLIT_SCREEN_MAX_HEIGHT,
     },
+    primer::{Primer, PrimerData},
+    util::RangeIncl,
     Selection,
 };
 // todo: monospace font for all seqs.
@@ -24,9 +24,6 @@ use crate::{
     gui::{COL_SPACING, ROW_SPACING},
     State,
 };
-use crate::gui::feature_table::direction_picker;
-use crate::primer::{Primer, PrimerData};
-use crate::util::RangeIncl;
 
 fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
@@ -92,18 +89,20 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
             .button(RichText::new("➕ Add primer from sel").color(Color32::GOLD))
             .clicked()
         {
-
             // todo: DRY with genbank parsing; common fn A/R.
             let seq = &state.generic.seq;
             let compl = &seq_complement(seq);
-            let seq_primer =  match state.ui.quick_feature_add_dir {
-            FeatureDirection::Reverse => {
-                let range = RangeIncl::new(seq.len() - (text_sel.end), seq.len() - (text_sel.start));
+            let seq_primer = match state.ui.quick_feature_add_dir {
+                FeatureDirection::Reverse => {
+                    let range = RangeIncl::new(
+                        seq.len() - text_sel.end + 1,
+                        seq.len() - text_sel.start + 1,
+                    );
 
-                range.index_seq(&compl).unwrap_or_default()
+                    range.index_seq(&compl).unwrap_or_default()
+                }
+                _ => text_sel.index_seq(&seq).unwrap_or_default(),
             }
-            _ => text_sel.index_seq(&seq).unwrap_or_default(),
-        }
             .to_vec();
 
             let volatile = PrimerData::new(&seq_primer);
@@ -128,7 +127,8 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
         {
             // Disable character entries in the sequence.
             // state.ui.search_active = true;
-            state.ui.text_cursor_i = None;
+            // state.ui.text_cursor_i = None;
+            state.ui.text_edit_active = true; // Disable character entries in the sequence.
         }
 
         ui.add_space(COL_SPACING)
@@ -199,7 +199,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         }
 
         if response.gained_focus() {
-            state.ui.search_active = true; // Disable character entries in the sequence.
+            state.ui.text_edit_active = true; // Disable character entries in the sequence.
         }
 
         if response.changed {

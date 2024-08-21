@@ -6,7 +6,7 @@
 
 use std::{
     fs::File,
-    io::{self, ErrorKind, Write},
+    io::{self, ErrorKind},
     path::Path,
 };
 
@@ -19,7 +19,7 @@ use gb_io::{
 
 use crate::{
     file_io::{get_filename, GenericData},
-    primer::{Primer, PrimerData, PrimerDirection},
+    primer::{Primer, PrimerData, PrimerDirection, PrimerMatch},
     sequence::{
         seq_complement, Feature, FeatureDirection, FeatureType, Metadata, Nucleotide, Reference,
         SeqTopology,
@@ -153,7 +153,7 @@ fn parse_features_primers(
             Location::Complement(inner) => match **inner {
                 Location::Range(start, end) => {
                     direction = FeatureDirection::Reverse;
-                    RangeIncl::new(start.0 as usize, end.0 as usize)
+                    RangeIncl::new(start.0 as usize + 1, end.0 as usize)
                 }
                 _ => {
                     eprintln!("Unexpected gb_io compl range type: {:?}", feature.location);
@@ -208,7 +208,8 @@ fn parse_features_primers(
         if feature_type == FeatureType::Primer {
             let sequence = match direction {
                 FeatureDirection::Reverse => {
-                    let range = RangeIncl::new(seq.len() - (range.end), seq.len() - (range.start));
+                    let range =
+                        RangeIncl::new(seq.len() - (range.end) + 1, seq.len() - (range.start));
 
                     range.index_seq(&compl).unwrap_or_default()
                 }
@@ -255,7 +256,7 @@ fn parse_features_primers(
 /// Export our local state into the GenBank format. This includes sequence, features, and primers.
 pub fn export_genbank(
     data: &GenericData,
-    primer_matches: &[(PrimerDirection, RangeIncl, String)],
+    primer_matches: &[(PrimerMatch, String)],
     path: &Path,
 ) -> io::Result<()> {
     let file = File::create(path)?;
@@ -292,8 +293,8 @@ pub fn export_genbank(
 
         let location = match feature.direction {
             FeatureDirection::Reverse => Location::Complement(Box::new(Location::Range(
-                (end + 1, Before(false)),
-                (start, After(false)), // todo: Offset on end. Whhy?
+                (start - 1, Before(false)),
+                (end, After(false)),
             ))),
             _ => Location::Range(
                 (start - 1, Before(false)),
@@ -308,19 +309,18 @@ pub fn export_genbank(
         });
     }
 
-    for (dir, indexes, name) in primer_matches {
+    for (prim_match, name) in primer_matches {
         // todo: Location code is DRY with features.
-        let start: i64 = indexes.start.try_into().unwrap();
-        let end: i64 = indexes.end.try_into().unwrap();
+        let start: i64 = prim_match.range.start.try_into().unwrap();
 
-        let location = match dir {
+        let location = match prim_match.direction {
             PrimerDirection::Forward => Location::Range(
-                (start, Before(false)),
-                (indexes.end.try_into().unwrap(), After(false)),
+                (start - 1, Before(false)),
+                (prim_match.range.end.try_into().unwrap(), After(false)),
             ),
             PrimerDirection::Reverse => Location::Complement(Box::new(Location::Range(
-                (data.seq.len() as i64 - (end + 1), Before(false)),
-                (data.seq.len() as i64 - (start - 1), After(false)), // todo: Offset on end. Whhy?
+                (start - 1, Before(false)),
+                (prim_match.range.end.try_into().unwrap(), After(false)),
             ))),
         };
 

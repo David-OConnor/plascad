@@ -1,8 +1,4 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
+use std::{path::PathBuf, str::FromStr};
 
 use eframe::{
     egui::{Frame, RichText, Stroke, TextEdit, Ui},
@@ -12,18 +8,15 @@ use eframe::{
 use crate::{
     file_io::{
         genbank::import_genbank,
-        save::{import_fasta, save, StateToSave, DEFAULT_PREFS_FILE, DEFAULT_SAVE_FILE},
+        save::{import_fasta, save_new_product, DEFAULT_PREFS_FILE},
         snapgene::import_snapgene,
     },
-    gui::{
-        navigation::PageSeq, save::save_current_file, set_window_title, COL_SPACING, ROW_SPACING,
-    },
+    gui::{navigation::PageSeq, save::save_current_file, COL_SPACING, ROW_SPACING},
     primer::make_cloning_primers,
     sequence::{seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType},
     util::RangeIncl,
     CloningInsertData, Selection, State,
 };
-use crate::file_io::save::save_new_product;
 
 /// Draw a selector for the insert, based on loading from a file.
 fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
@@ -180,7 +173,10 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
         }
 
         if state.ui.cloning_insert.seq_insert.len() > 6 {
-            if ui.button(RichText::new("Clone").color(Color32::GOLD)).clicked() {
+            if ui
+                .button(RichText::new("Clone").color(Color32::GOLD))
+                .clicked()
+            {
                 // Save this vector; this file or quicksave instance will be turned into the cloning
                 // product.
                 save_current_file(state);

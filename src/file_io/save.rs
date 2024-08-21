@@ -2,23 +2,32 @@
 //!
 //! Todo: Break into packets. This may require further ejecting from bincode, at least at the top level[s].
 
-use std::{env, fs::File, io, io::{ErrorKind, Read, Write}, path::Path};
+use std::{
+    env,
+    fs::File,
+    io,
+    io::{ErrorKind, Read, Write},
+    path::Path,
+};
 
 use bincode::{
     config,
-    Decode,
-    Encode, error::{DecodeError, EncodeError},
+    error::{DecodeError, EncodeError},
+    Decode, Encode,
 };
 use bio::io::fasta;
 use eframe::egui::Ui;
+
 use crate::{
     file_io::GenericData,
-    gui::navigation::{Page, PageSeq, PageSeqTop},
-    PcrUi,
+    gui::{
+        navigation::{Page, PageSeq, PageSeqTop},
+        set_window_title,
+    },
     primer::{IonConcentrations, Primer},
-    Selection, sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Seq, SeqTopology}, SeqVisibility, State, StateUi,
+    sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Seq, SeqTopology},
+    PcrUi, Selection, SeqVisibility, State, StateUi,
 };
-use crate::gui::set_window_title;
 
 pub const DEFAULT_SAVE_FILE: &str = "quicksave.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";

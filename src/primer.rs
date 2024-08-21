@@ -25,6 +25,13 @@ const UNTRIMMED_LEN_VECTOR: usize = 32;
 
 // todo: Sort out your types.
 
+#[derive(Clone, Debug, Encode, Decode)]
+pub struct PrimerMatch {
+    pub direction: PrimerDirection,
+    /// This range is in the forward direction for both primers.
+    pub range: RangeIncl,
+}
+
 /// These are also relevant for FastCloning.
 pub struct SlicPrimers {
     pub vector_fwd: Primer,
@@ -58,7 +65,7 @@ impl Primer {
     /// Match this primer to a sequence. Check both directions.
     /// Returns direction, and start and end indexes of the sequence. If direction is reversed,
     /// the indexs matches to the reversed index.
-    pub fn match_to_seq(&self, seq: &[Nucleotide]) -> Vec<(PrimerDirection, RangeIncl)> {
+    pub fn match_to_seq(&self, seq: &[Nucleotide]) -> Vec<PrimerMatch> {
         let mut result = Vec::new();
 
         // This check prevents spurious small-sequence matches, which may be numerous otherwise.
@@ -69,10 +76,16 @@ impl Primer {
         let (matches_fwd, matches_rev) = match_subseq(&self.sequence, seq);
 
         for range in matches_fwd {
-            result.push((PrimerDirection::Forward, range));
+            result.push(PrimerMatch {
+                direction: PrimerDirection::Forward,
+                range,
+            });
         }
         for range in matches_rev {
-            result.push((PrimerDirection::Reverse, range));
+            result.push(PrimerMatch {
+                direction: PrimerDirection::Reverse,
+                range,
+            });
         }
 
         result
@@ -378,7 +391,7 @@ pub struct PrimerData {
     pub seq_removed_5p: String,
     pub seq_removed_3p: String,
     /// todo: Which direction is the range, if the direction is reverse?
-    pub matches_seq: Vec<(PrimerDirection, RangeIncl)>,
+    pub matches: Vec<PrimerMatch>,
 }
 
 impl PrimerData {

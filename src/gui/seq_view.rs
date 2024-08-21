@@ -435,7 +435,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     if state.ui.cursor_seq_i.is_some() {
                         state.ui.text_cursor_i = state.ui.cursor_seq_i;
                         // println!("Text cursor: {:?}", state.ui.text_cursor_i);
-                        state.ui.search_active = false;
+                        state.ui.text_edit_active = false;
                         state.ui.text_selection = None;
                     }
                     state.ui.click_pending_handle = false;

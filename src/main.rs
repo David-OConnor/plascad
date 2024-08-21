@@ -29,14 +29,14 @@ use sequence::Seq;
 use crate::{
     file_io::{
         save::{
-            StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
+            save, StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
             DEFAULT_PREFS_FILE,
         },
         GenericData,
     },
     gui::{navigation::PageSeqTop, save::load_import, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
-    primer::{TM_TARGET},
+    primer::TM_TARGET,
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
         find_orf_matches, find_search_matches, seq_to_str, Feature, FeatureDirection, FeatureType,
@@ -45,7 +45,6 @@ use crate::{
     tags::TagMatch,
     util::RangeIncl,
 };
-use crate::file_io::save::save;
 
 mod amino_acids;
 mod feature_db_load;
@@ -112,7 +111,6 @@ impl Default for PcrUi {
             primer_selected: 0,
             primer_fwd: 0,
             primer_rev: 0,
-
         }
     }
 }
@@ -310,7 +308,7 @@ struct StateUi {
     /// Used to trigger a search focus on hitting ctrl+f
     highlight_search_input: bool,
     /// Activated when the user selects the search box; disables character insertion.
-    search_active: bool,
+    text_edit_active: bool,
     /// This is used for selecting nucleotides on the sequence viewer.
     dragging: bool,
     /// 1-based indexing.
@@ -344,7 +342,7 @@ impl Default for StateUi {
             nt_chars_per_row: Default::default(),
             search_input: Default::default(),
             highlight_search_input: Default::default(),
-            search_active: Default::default(),
+            text_edit_active: Default::default(),
             dragging: Default::default(),
             text_selection: Default::default(),
             quick_feature_add_name: Default::default(),
@@ -431,7 +429,7 @@ impl State {
         };
 
         for primer in primers {
-            primer.volatile.matches_seq = primer.match_to_seq(&self.generic.seq);
+            primer.volatile.matches = primer.match_to_seq(&self.generic.seq);
         }
     }
 
@@ -621,10 +619,10 @@ fn main() {
 
             // Just the filename and extension.
             window_title_initial = r
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .map(|name_str| name_str.to_string())
-                    .unwrap();
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(|name_str| name_str.to_string())
+                .unwrap();
         }
 
         r
@@ -634,7 +632,6 @@ fn main() {
     load_import(&mut state, &path);
 
     state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
-
 
     if window_title_initial != WINDOW_TITLE {
         state.path_loaded = Some(path);

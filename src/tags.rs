@@ -2,11 +2,7 @@
 
 use std::ops::RangeInclusive;
 
-use crate::sequence::{
-    Nucleotide,
-    Nucleotide::{A, C, G, T},
-    Seq,
-};
+use crate::sequence::Nucleotide;
 
 pub struct TagMatch {
     pub lib_index: usize,

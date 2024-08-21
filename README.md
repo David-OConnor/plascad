@@ -113,6 +113,10 @@ PlasCAD currently cannot process all data in the DNA format, nor can it produce 
 
 FASTA files contain only sequence data, so exporting to this format will result in the loss of feature and primer data, and metadata.
 
+Note that GenBank does not retain primer sequences directly; it stores them as features with fixed binding sites. We are able to convert bewteen the two
+when saving and loading, but this is not ideal. The PlasCAD and SnapGene formats store primers as sequences, with binding
+sites determined dynamically.
+
 
 #### Associating files with PlasCAD
 If you wish to associate a file type (eg the native .pcad format) with PlasCAD, you must set it up manually with your operating system, as PlasCAD does not have an installer. Example on Windows: *Right-click a file → Open With → Choose another app → 

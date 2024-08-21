@@ -1,4 +1,4 @@
-use std::{fmt::Display, io, ops::RangeInclusive};
+use std::{fmt::Display, io};
 
 use bincode::{Decode, Encode};
 use num_enum::TryFromPrimitive;

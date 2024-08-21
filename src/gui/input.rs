@@ -159,29 +159,27 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                     i = 0; // todo?? Having an overflow when backspacing near origin.
                 }
 
-                let mut i = i + 1; // Insert after this nucleotide; not before.
-                                   // Don't allow accidental nt insertion when the user is entering into the search bar.
+                let i = i + 1; // Insert after this nucleotide; not before.
+                               // Don't allow accidental nt insertion when the user is entering into the search bar.
 
-                if !state.ui.search_active {
-                    // Add NTs.
-                    if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
-                        state.insert_nucleotides(&[Nucleotide::A], i);
-                    }
-                    if ip.key_pressed(Key::T) {
-                        state.insert_nucleotides(&[Nucleotide::T], i);
-                    }
-                    if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
-                        state.insert_nucleotides(&[Nucleotide::C], i);
-                    }
-                    if ip.key_pressed(Key::G) {
-                        state.insert_nucleotides(&[Nucleotide::G], i);
-                    }
-                    if ip.key_pressed(Key::Backspace) && i > 1 {
-                        state.remove_nucleotides(RangeIncl::new(i - 1, i - 1));
-                    }
-                    if ip.key_pressed(Key::Delete) {
-                        state.remove_nucleotides(RangeIncl::new(i, i));
-                    }
+                // Add NTs.
+                if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
+                    state.insert_nucleotides(&[Nucleotide::A], i);
+                }
+                if ip.key_pressed(Key::T) {
+                    state.insert_nucleotides(&[Nucleotide::T], i);
+                }
+                if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
+                    state.insert_nucleotides(&[Nucleotide::C], i);
+                }
+                if ip.key_pressed(Key::G) {
+                    state.insert_nucleotides(&[Nucleotide::G], i);
+                }
+                if ip.key_pressed(Key::Backspace) && i > 1 {
+                    state.remove_nucleotides(RangeIncl::new(i - 1, i - 1));
+                }
+                if ip.key_pressed(Key::Delete) {
+                    state.remove_nucleotides(RangeIncl::new(i, i));
                 }
 
                 // Paste nucleotides
@@ -193,8 +191,10 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                         }
                         Event::Copy => {}
                         Event::Paste(pasted_text) => {
-                            state.insert_nucleotides(&seq_from_str(&pasted_text), i);
-                            move_cursor = Some(pasted_text.len() as i32);
+                            if !state.ui.text_edit_active {
+                                state.insert_nucleotides(&seq_from_str(&pasted_text), i);
+                                move_cursor = Some(pasted_text.len() as i32);
+                            }
                         }
                         _ => (),
                     }
@@ -218,12 +218,16 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                 move_cursor = Some(-1);
             }
 
-            if let Some(i) = &mut state.ui.text_cursor_i {
-                if let Some(amt) = move_cursor {
-                    let new_posit = (*i as i32 + amt) as usize;
-                    // println!("NEW POSIT: {new_posit}");
-                    if new_posit + 1 <= state.generic.seq.len() {
-                        *i = new_posit;
+            if !state.ui.text_edit_active {
+                if let Some(i) = &mut state.ui.text_cursor_i {
+                    if let Some(amt) = move_cursor {
+                        let val = *i as i32 + amt;
+                        if val >= 1 {
+                            let new_posit = val as usize;
+                            if new_posit + 1 <= state.generic.seq.len() {
+                                *i = new_posit;
+                            }
+                        }
                     }
                 }
             }

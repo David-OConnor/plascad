@@ -1,11 +1,8 @@
-use std::{mem, path::PathBuf, str::FromStr};
+use std::{path::PathBuf, str::FromStr};
 
 use eframe::{
     egui,
-    egui::{
-        pos2, Color32, Context, Event, Key, PointerButton, ScrollArea, TextEdit, Ui,
-        ViewportCommand,
-    },
+    egui::{pos2, Color32, Context, TextEdit, Ui, ViewportCommand},
     emath::RectTransform,
 };
 use navigation::Page;

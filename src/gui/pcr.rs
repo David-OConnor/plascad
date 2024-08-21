@@ -3,15 +3,13 @@ use std::str::FromStr;
 use eframe::egui::{Color32, ComboBox, Grid, RichText, TextEdit, Ui, Vec2};
 
 use crate::{
-    gui::{COL_SPACING, ROW_SPACING},
+    file_io::save::save_new_product,
+    gui::{save::save_current_file, COL_SPACING, ROW_SPACING},
     pcr::{PolymeraseType, TempTime},
-    primer::TM_TARGET,
+    primer::{Primer, TM_TARGET},
+    util::RangeIncl,
     PcrUi, State,
 };
-use crate::file_io::save::save_new_product;
-use crate::gui::save::save_current_file;
-use crate::primer::Primer;
-use crate::util::RangeIncl;
 
 fn temp_time_disp(tt: &TempTime, label: &str, ui: &mut Ui) {
     ui.label(&format!("{label}:"));
@@ -86,8 +84,13 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
 
             if state.ui.pcr.primer_fwd == state.ui.pcr.primer_rev {
                 ui.label("Select two different primers");
-            } else if  fwd_primer.volatile.matches_seq.len() == 1 && rev_primer.volatile.matches_seq.len() == 1 {
-                if ui.button(RichText::new("Simulate PCR").color(Color32::GOLD)).clicked() {
+            } else if fwd_primer.volatile.matches.len() == 1
+                && rev_primer.volatile.matches.len() == 1
+            {
+                if ui
+                    .button(RichText::new("Simulate PCR").color(Color32::GOLD))
+                    .clicked()
+                {
                     // Save this vector; this file or quicksave instance will be turned into the PCR
                     // product.
                     save_current_file(state);
@@ -96,19 +99,15 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
                     let rev_primer = &state.generic.primers[state.ui.pcr.primer_rev];
 
                     // todo: Make the the directions are correct.
-                    let range_fwd = fwd_primer.volatile.matches_seq[0].1;
-                    let range_rev = rev_primer.volatile.matches_seq[0].1;
+                    let range_fwd = fwd_primer.volatile.matches[0].range;
+                    let range_rev = rev_primer.volatile.matches[0].range;
 
-                    let range_combined = RangeIncl::new(range_fwd.start, state.generic.seq.len() - range_rev.start);
-
-                    println!("RANGE FWD: {:?}", range_fwd);
-                    println!("RANGE REF: {:?}", range_rev);
-                    println!("RANGE COMBINED: {:?}", range_combined);
+                    let range_combined = RangeIncl::new(range_fwd.start, range_rev.end);
 
                     if let Some(seq) = range_combined.index_seq(&state.generic.seq) {
                         state.generic.seq = seq.to_vec();
                         state.generic.features = Vec::new(); // todo: Temp
-                        // state.generic.primers = Vec::new(); // todo temp.
+                                                             // state.generic.primers = Vec::new(); // todo temp.
 
                         state.sync_seq_related(None);
 
@@ -128,7 +127,6 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
 
 pub fn pcr_page(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
-
 
     pcr_sim(state, ui);
     ui.add_space(ROW_SPACING);
@@ -152,7 +150,12 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
                 state.sync_pcr();
             }
 
-            primer_dropdown(&mut state.ui.pcr.primer_selected, &state.generic.primers, 1, ui);
+            primer_dropdown(
+                &mut state.ui.pcr.primer_selected,
+                &state.generic.primers,
+                1,
+                ui,
+            );
         }
     });
 

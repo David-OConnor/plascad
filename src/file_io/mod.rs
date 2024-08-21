@@ -2,7 +2,10 @@
 
 use std::path::Path;
 
-use crate::{primer::Primer, sequence::{Feature, Metadata, Seq, SeqTopology}};
+use crate::{
+    primer::Primer,
+    sequence::{Feature, Metadata, Seq, SeqTopology},
+};
 pub mod genbank;
 pub mod save;
 pub mod snapgene;
@@ -29,4 +32,3 @@ fn get_filename(path: &Path) -> String {
         String::new()
     }
 }
-

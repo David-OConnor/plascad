@@ -10,6 +10,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
 };
+
 use crate::{
     gui::{
         feature_from_index,
@@ -470,12 +471,11 @@ fn draw_features(
         };
 
         // If towards the very top of bottom, offset the label vertically.
-        if angle_mid < TAU/16. || angle_mid > 15. * TAU / 16. {
+        if angle_mid < TAU / 16. || angle_mid > 15. * TAU / 16. {
             label_pt += vec2(0., -TICK_LABEL_OFFSET);
-        } else if angle_mid > 7. * TAU /16. && angle_mid < 9. * TAU / 16. {
+        } else if angle_mid > 7. * TAU / 16. && angle_mid < 9. * TAU / 16. {
             label_pt += vec2(0., TICK_LABEL_OFFSET);
         }
-
 
         let label = if feature.label.is_empty() {
             &feature.feature_type.to_string()
@@ -529,16 +529,17 @@ fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape
     let radius_inner = data.radius - PRIMER_WIDTH / 2.;
 
     for primer in primers {
-        let primer_matches = &primer.volatile.matches_seq;
+        let primer_matches = &primer.volatile.matches;
 
         // todo: Do not run these calcs each time. Cache.
-        for (direction, seq_range) in primer_matches {
+        for prim_match in primer_matches {
             // We currently index primers relative to the end they started.
-            let seq_range = match direction {
-                PrimerDirection::Forward => seq_range.clone(),
-                PrimerDirection::Reverse => {
-                    RangeIncl::new(data.seq_len - seq_range.end, data.seq_len - seq_range.start)
-                }
+            let seq_range = match prim_match.direction {
+                PrimerDirection::Forward => prim_match.range.clone(),
+                PrimerDirection::Reverse => RangeIncl::new(
+                    data.seq_len - prim_match.range.end,
+                    data.seq_len - prim_match.range.start,
+                ),
             };
 
             let angle_start = seq_i_to_angle(seq_range.start, data.seq_len);
@@ -556,7 +557,7 @@ fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape
             let point_mid_outer = angle_to_pixel(angle_mid, radius_outer) + data.center.to_vec2();
 
             // todo: This color code is DRY from primer_arrow. Consolidate.
-            let outline_color = match direction {
+            let outline_color = match prim_match.direction {
                 PrimerDirection::Forward => Color32::from_rgb(255, 0, 255),
                 PrimerDirection::Reverse => Color32::LIGHT_YELLOW,
                 // FeatureDirection::None => Color32::GOLD,

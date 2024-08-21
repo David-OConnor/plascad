@@ -8,10 +8,8 @@
 //! - The payload
 
 use std::{
-    collections::HashMap,
     fs::File,
     io::{self, ErrorKind, Read, Write},
-    ops::RangeInclusive,
     path::Path,
     str,
 };

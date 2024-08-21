@@ -2,8 +2,6 @@
 
 // todo: Abstract out diffs between this and the primer arrow; avoid repeated code.
 
-use std::ops::{Range, RangeInclusive};
-
 use eframe::{
     egui::{pos2, Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui},
     epaint::PathShape,

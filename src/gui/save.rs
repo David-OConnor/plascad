@@ -14,14 +14,11 @@ use crate::{
     file_io::{
         genbank::{export_genbank, import_genbank},
         save::{
-            export_fasta, import_fasta, save, StateToSave, StateUiToSave, DEFAULT_PREFS_FILE,
-            DEFAULT_SAVE_FILE,
+            export_fasta, import_fasta, save, StateToSave, DEFAULT_PREFS_FILE, DEFAULT_SAVE_FILE,
         },
         snapgene::{export_snapgene, import_snapgene},
     },
     gui::set_window_title,
-    sequence::seq_to_str,
-    util::merge_feature_sets,
     State,
 };
 
@@ -161,8 +158,8 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     } else if let Some(path) = state.ui.file_dialogs.export_genbank.take_selected() {
         let mut primer_matches = Vec::new();
         for primer in &state.generic.primers {
-            for (dir, range) in &primer.volatile.matches_seq {
-                primer_matches.push((*dir, range.clone(), primer.name.clone()));
+            for prim_match in &primer.volatile.matches {
+                primer_matches.push((prim_match.clone(), primer.name.clone()));
             }
         }
 
@@ -265,8 +262,8 @@ pub fn save_current_file(state: &State) {
                     "gb" | "gbk" => {
                         let mut primer_matches = Vec::new();
                         for primer in &state.generic.primers {
-                            for (dir, range) in &primer.volatile.matches_seq {
-                                primer_matches.push((*dir, range.clone(), primer.name.clone()));
+                            for prim_match in &primer.volatile.matches {
+                                primer_matches.push((prim_match.clone(), primer.name.clone()));
                             }
                         }
 
