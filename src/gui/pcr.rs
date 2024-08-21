@@ -11,6 +11,7 @@ use crate::{
 use crate::file_io::save::save_new_product;
 use crate::gui::save::save_current_file;
 use crate::primer::Primer;
+use crate::util::RangeIncl;
 
 fn temp_time_disp(tt: &TempTime, label: &str, ui: &mut Ui) {
     ui.label(&format!("{label}:"));
@@ -59,40 +60,65 @@ fn primer_dropdown(val: &mut usize, primers: &[Primer], id: usize, ui: &mut Ui) 
 }
 
 fn pcr_sim(state: &mut State, ui: &mut Ui) {
-    let primers = &state.generic.primers; // Code shortener.
-    let num_primers = primers.len();
+    let num_primers = state.generic.primers.len();
 
-    if state.ui.pcr.primer_fwd + 1 >= num_primers || state.ui.pcr.primer_rev + 1 >= num_primers {
+    if state.ui.pcr.primer_fwd >= num_primers || state.ui.pcr.primer_rev >= num_primers {
         state.ui.pcr.primer_fwd = 0;
         state.ui.pcr.primer_rev = 0;
     }
 
+    ui.heading("PCR product generation");
+
     if num_primers >= 2 {
         ui.horizontal(|ui| {
             ui.label("Fwd:");
-            primer_dropdown(&mut state.ui.pcr.primer_fwd, primers, 2, ui);
-            ui.label("Rev:");
-            primer_dropdown(&mut state.ui.pcr.primer_rev, primers, 3, ui);
+            primer_dropdown(&mut state.ui.pcr.primer_fwd, &state.generic.primers, 2, ui);
 
             ui.add_space(COL_SPACING);
 
-            if ui.button(RichText::new("Simulate PCR").color(Color32::GOLD)).clicked() {
-                // Save this vector; this file or quicksave instance will be turned into the PCR
-                // product.
-                save_current_file(state);
+            ui.label("Rev:");
+            primer_dropdown(&mut state.ui.pcr.primer_rev, &state.generic.primers, 3, ui);
 
-                let fwd_primer = &primers[state.ui.pcr.primer_fwd];
-                let rev_primer = &primers[state.ui.pcr.primer_rev];
+            ui.add_space(COL_SPACING);
 
-                for (dir, range) in &fwd_primer.volatile.matches_seq {
+            let fwd_primer = &state.generic.primers[state.ui.pcr.primer_fwd];
+            let rev_primer = &state.generic.primers[state.ui.pcr.primer_rev];
 
+            if state.ui.pcr.primer_fwd == state.ui.pcr.primer_rev {
+                ui.label("Select two different primers");
+            } else if  fwd_primer.volatile.matches_seq.len() == 1 && rev_primer.volatile.matches_seq.len() == 1 {
+                if ui.button(RichText::new("Simulate PCR").color(Color32::GOLD)).clicked() {
+                    // Save this vector; this file or quicksave instance will be turned into the PCR
+                    // product.
+                    save_current_file(state);
+
+                    let fwd_primer = &state.generic.primers[state.ui.pcr.primer_fwd];
+                    let rev_primer = &state.generic.primers[state.ui.pcr.primer_rev];
+
+                    // todo: Make the the directions are correct.
+                    let range_fwd = fwd_primer.volatile.matches_seq[0].1;
+                    let range_rev = rev_primer.volatile.matches_seq[0].1;
+
+                    let range_combined = RangeIncl::new(range_fwd.start, state.generic.seq.len() - range_rev.start);
+
+                    println!("RANGE FWD: {:?}", range_fwd);
+                    println!("RANGE REF: {:?}", range_rev);
+                    println!("RANGE COMBINED: {:?}", range_combined);
+
+                    if let Some(seq) = range_combined.index_seq(&state.generic.seq) {
+                        state.generic.seq = seq.to_vec();
+                        state.generic.features = Vec::new(); // todo: Temp
+                        // state.generic.primers = Vec::new(); // todo temp.
+
+                        state.sync_seq_related(None);
+
+                        // todo: Remove all features not included in the range.
+
+                        save_new_product("PCR product", state, ui);
+                    }
                 }
-
-                for (dir, range) in &rev_primer.volatile.matches_seq {
-
-                }
-
-                save_new_product("PCR product", state, ui);
+            } else {
+                ui.label("There must be exactly one match for each primer");
             }
         });
     } else {
@@ -104,8 +130,8 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
 
-        pcr_sim(state, ui);
-        ui.add_space(ROW_SPACING);
+    pcr_sim(state, ui);
+    ui.add_space(ROW_SPACING);
 
     ui.horizontal(|ui| {
         ui.heading("PCR parameters");

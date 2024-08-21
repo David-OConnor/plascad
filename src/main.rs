@@ -36,7 +36,7 @@ use crate::{
     },
     gui::{navigation::PageSeqTop, save::load_import, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
-    primer::{TuneSetting, TM_TARGET},
+    primer::{TM_TARGET},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
         find_orf_matches, find_search_matches, seq_to_str, Feature, FeatureDirection, FeatureType,
@@ -426,7 +426,7 @@ impl State {
     /// Runs the match serach between primers and sequences. Run this when primers and sequences change.
     pub fn sync_primer_matches(&mut self, primer_i: Option<usize>) {
         let primers = match primer_i {
-            Some(i) => &mut self.generic.primers[i..i + 1],
+            Some(i) => &mut self.generic.primers[i..=i],
             None => &mut self.generic.primers,
         };
 

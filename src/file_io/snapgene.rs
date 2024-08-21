@@ -472,21 +472,13 @@ fn parse_notes(payload: &[u8]) -> io::Result<Notes> {
 
     // todo: Is this a strict format, or arbitary notes?
 
-    let notes: feature_xml::Notes = from_str(payload_str).map_err(|e| {
+    let notes: Notes = from_str(payload_str).map_err(|e| {
         io::Error::new(
             ErrorKind::InvalidData,
             format!("Unable to parse notes: {e}"),
         )
     })?;
     let result = notes;
-
-    // let mut result = Vec::new();
-    // for note in &notes.inner {
-    // result.push(Primer {
-    //     sequence: seq_from_str(&primer_sg.sequence),
-    //     description: primer_sg.name.clone(),
-    // });
-    // }
 
     Ok(result)
 }
