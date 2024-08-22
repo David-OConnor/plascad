@@ -184,6 +184,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         state.sync_pcr();
         state.sync_primer_metrics();
         state.sync_seq_related(None);
+        state.sync_portions();
 
         set_window_title(&state.path_loaded, ui);
     }

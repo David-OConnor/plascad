@@ -58,7 +58,7 @@ pub fn page_selector(state: &mut State, ui: &mut Ui) {
         page_button(&mut state.ui.page, Page::Cloning, ui, true);
         page_button(&mut state.ui.page, Page::Pcr, ui, true);
         page_button(&mut state.ui.page, Page::Metadata, ui, true);
-        // page_button(&mut state.ui.page, Page::Portions, ui);
+        page_button(&mut state.ui.page, Page::Portions, ui, true);
     });
 }
 

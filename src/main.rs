@@ -18,6 +18,7 @@ use std::{
 };
 
 use bincode::{Decode, Encode};
+use cloning::CloningInsertData;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::{FileDialog, FileDialogConfig};
@@ -36,10 +37,11 @@ use crate::{
     },
     gui::{navigation::PageSeqTop, save::load_import, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
+    portions::PortionsState,
     primer::TM_TARGET,
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        find_orf_matches, find_search_matches, seq_to_str, Feature, FeatureDirection, FeatureType,
+        find_orf_matches, find_search_matches, seq_to_str, FeatureDirection, FeatureType,
         Nucleotide, ReadingFrame, ReadingFrameMatch, SearchMatch, MIN_SEARCH_LEN,
     },
     tags::TagMatch,
@@ -47,11 +49,13 @@ use crate::{
 };
 
 mod amino_acids;
+mod cloning;
 mod feature_db_load;
 mod file_io;
 mod gui;
 mod melting_temp_calcs;
 mod pcr;
+mod portions;
 mod primer;
 mod primer_metrics;
 mod restriction_enzyme;
@@ -259,17 +263,6 @@ impl Default for FileDialogs {
     }
 }
 
-#[derive(Default)]
-struct CloningInsertData {
-    /// We use this list to store a list of features to clone an insert from, loaded from a file.
-    pub features_loaded: Vec<Feature>,
-    /// `cloning_ins_features_loaded` indexes reference this sequence.
-    pub seq_loaded: Seq,
-    pub feature_selected: Option<usize>,
-    pub seq_insert: Seq,
-    pub seq_input: String,
-}
-
 /// Values defined here generally aren't worth saving to file etc.
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
@@ -389,6 +382,7 @@ struct State {
     /// Used to determine how the save function works, among other things.
     path_loaded: Option<PathBuf>,
     search_seq: Seq,
+    portions: PortionsState,
 }
 
 impl State {
@@ -464,6 +458,12 @@ impl State {
             self.volatile.search_matches = find_search_matches(&self.generic.seq, &self.search_seq);
         } else {
             self.volatile.search_matches = Vec::new();
+        }
+    }
+
+    pub fn sync_portions(&mut self) {
+        for sol in &mut self.portions.solutions {
+            sol.calc_amounts();
         }
     }
 
@@ -569,6 +569,7 @@ impl State {
         result.sync_primer_metrics();
         result.sync_seq_related(None);
         result.ui.seq_input = seq_to_str(&result.generic.seq);
+        result.sync_portions();
 
         result
     }

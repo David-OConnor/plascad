@@ -315,8 +315,8 @@ pub fn draw(state: &mut State, ctx: &Context) {
             }
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Metadata => metadata::metadata_page(&mut state.generic.metadata, ui),
+            Page::Portions => portions::portions_page(&mut state.portions, ui),
             _ => (),
-            // Page::Portions => portions::portions_page(state, ui),
             // });
         }
     });

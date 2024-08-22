@@ -6,6 +6,7 @@ use eframe::{
 };
 
 use crate::{
+    cloning::CloningInsertData,
     file_io::{
         genbank::import_genbank,
         save::{import_fasta, save_new_product, DEFAULT_PREFS_FILE},
@@ -15,7 +16,7 @@ use crate::{
     primer::make_cloning_primers,
     sequence::{seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType},
     util::RangeIncl,
-    CloningInsertData, Selection, State,
+    Selection, State,
 };
 
 /// Draw a selector for the insert, based on loading from a file.

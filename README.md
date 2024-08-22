@@ -131,6 +131,10 @@ genes.
 ### Displays amino acid sequences for coding regions
 
 
+## Mixing portions assistant
+Given a designed solution with molarity concentrations, calculates the mass and volumes required to make the solution. Includes the molecular weights of common reagents. Can set up solutions mixed from custom precursor solutions.
+
+
 ## Why another plasmid editor
 The more tools available for scientists, the better. In particular, my goal is to make
 a fast, lightweight program that's as easy to use as possible, without sacrificing functionality. I also added functionality I didn't see elsewhere, like automatic primer tuning, and primer generation for SLIC and FastCloning.

@@ -24,6 +24,7 @@ use crate::{
         navigation::{Page, PageSeq, PageSeqTop},
         set_window_title,
     },
+    portions::PortionsState,
     primer::{IonConcentrations, Primer},
     sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Seq, SeqTopology},
     PcrUi, Selection, SeqVisibility, State, StateUi,
@@ -42,6 +43,7 @@ pub struct StateToSave {
     insert_loc: usize,
     ion_concentrations: IonConcentrations,
     reading_frame: ReadingFrame,
+    portions: PortionsState,
 }
 
 impl Encode for StateToSave {
@@ -51,6 +53,7 @@ impl Encode for StateToSave {
         self.insert_loc.encode(encoder)?;
         self.ion_concentrations.encode(encoder)?;
         self.reading_frame.encode(encoder)?;
+        self.portions.encode(encoder)?;
 
         Ok(())
     }
@@ -63,12 +66,14 @@ impl Decode for StateToSave {
         let insert_loc = usize::decode(decoder)?;
         let ion_concentrations = IonConcentrations::decode(decoder)?;
         let reading_frame = ReadingFrame::decode(decoder)?;
+        let portions = PortionsState::decode(decoder)?;
 
         Ok(Self {
             generic,
             insert_loc,
             ion_concentrations,
             reading_frame,
+            portions,
         })
     }
 }
@@ -119,6 +124,7 @@ impl StateToSave {
             insert_loc: state.cloning_insert_loc,
             ion_concentrations: state.ion_concentrations.clone(),
             reading_frame: state.reading_frame,
+            portions: state.portions.clone(),
         }
     }
 
@@ -129,6 +135,7 @@ impl StateToSave {
             cloning_insert_loc: self.insert_loc,
             ion_concentrations: self.ion_concentrations,
             reading_frame: self.reading_frame,
+            portions: self.portions,
             ..Default::default()
         }
     }
