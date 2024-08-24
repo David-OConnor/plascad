@@ -2,7 +2,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use eframe::{
     egui,
-    egui::{pos2, Color32, Context, TextEdit, Ui, ViewportCommand},
+    egui::{pos2, Color32, Context, RichText, TextEdit, Ui, ViewportCommand},
     emath::RectTransform,
 };
 use navigation::Page;
@@ -11,7 +11,7 @@ use url::Url;
 use crate::{
     feature_db_load::find_features,
     gui::{input::handle_input, primer_qc::primer_details},
-    sequence::{Feature, FeatureType, Nucleotide},
+    sequence::{seq_to_str, Feature, FeatureType, Nucleotide},
     util,
     util::merge_feature_sets,
     Selection, State,
@@ -47,6 +47,50 @@ pub const SPLIT_SCREEN_MAX_HEIGHT: f32 = 3.5;
 
 // todo: Move this BLAST stuff A/R.
 const NCBI_BLAST_URL: &str = "https://blast.ncbi.nlm.nih.gov/Blast.cgi";
+
+/// Blast the selected Feature, primer, or selection. Prioritize the selection.
+pub fn blast(state: &State) {
+    let val = match state.ui.text_selection {
+        Some(sel) => {
+            // Don't format sel directly, as we insert the bp count downstream for use with feature selections.
+            Some((
+                sel.index_seq(&state.generic.seq),
+                format!(
+                    "{}, {}..{}",
+                    state.generic.metadata.plasmid_name, sel.start, sel.end
+                ),
+            ))
+        }
+        None => {
+            match state.ui.selected_item {
+                Selection::Feature(feat_i) => {
+                    if state.generic.features.len() < feat_i + 1 {
+                        eprintln!("Invalid selected feature");
+                        None
+                    } else {
+                        let feature = &state.generic.features[feat_i];
+                        Some((
+                            feature.range.index_seq(&state.generic.seq),
+                            feature.label.clone(),
+                        ))
+                    }
+                }
+                Selection::Primer(p) => {
+                    None // todo
+                }
+                Selection::None => None,
+            }
+        }
+    };
+
+    // todo: Handle reverse.
+
+    if let Some((seq, name)) = val {
+        if let Some(s) = seq {
+            open_blast(s, &name);
+        }
+    }
+}
 
 pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
     ui.label(label);
@@ -90,8 +134,10 @@ pub fn get_cursor_text(cursor_seq_i: Option<usize>, seq_len: usize) -> String {
 /// GATTTTGTGCCAGAGTCCTTCGATAGGGACAAGACAATTGCACTGATCATGAACTCCTCTGGATCTACTGGTCTGCCTAAAGGTGTCGCTCTGCCTCATAGAACT
 /// GCCTGCGTGAGATTCTCGCATGCCAGAGATCCTATTTTTGGCAATCAAATCATTCCGGATACTGCGATTTTAAGTGTTGTTCCATTCCATCACGGTTTTGGAA
 /// TGTTTACTACACTCGGATATTTGATATGTGGATTTCGAGTCGTCTTAATGTATAGAT
-/// todo: Copy to clipboard  for longer seqs?
-fn open_blast(seq: &[Nucleotide]) {
+
+fn open_blast(seq: &[Nucleotide], seq_name: &str) {
+    let text_query = format!(">{seq_name} ({} bp)\n{}", seq.len(), seq_to_str(seq));
+
     let params = vec![
         ("PAGE_TYPE", "BlastSearch"),
         ("CMD", "Web"),
@@ -103,7 +149,7 @@ fn open_blast(seq: &[Nucleotide]) {
         ("FORMAT_TYPE", "HTML"),
         ("NCBI_GI", "on"),
         ("SHOW_OVERVIEW", "on"),
-        ("QUERY", ">ttt  (43 .. 905 = 863 bp)\nACTCACTATAGGGAAATAATTTTGTTTAACTTTAAGAAGGAGATATACCGGTATGACTAGTATGGAAGACGCCAAAAACATAAAGAAAGGCCCGGCGCCATTCTATCCGCTGGAAGATGGAACCGCTGGAGAGCAACTGCATAAGGCTATGAAGAGATACGCCCTGGTTCCTGGAACAATTGCTTTTACAGATGCACATATCGAGGTGGACATCACTTACGCTGAGTACTTCGAAATGTCCGTTCGGTTGGCAGAAGCTATGAAACGATATGGGCTGAATACAAATCACAGAATCGTCGTATGCAGTGAAAACTCTCTTCAATTCTTTATGCCGGTGTTGGGCGCGTTATTTATCGGAGTTGCAGTTGCGCCCGCGAACGACATTTATAATGAACGTGAATTGCTCAACAGTATGGGCATTTCGCAGCCTACCGTGGTGTTCGTTTCCAAAAAGGGGTTGCAAAAAATTTTGAACGTGCAAAAAAAGCTCCCAATCATCCAAAAAATTATTATCATGGATTCTAAAACGGATTACCAGGGATTTCAGTCGATGTACACGTTCGTCACATCTCATCTACCTCCCGGTTTTAATGAATACGATTTTGTGCCAGAGTCCTTCGATAGGGACAAGACAATTGCACTGATCATGAACTCCTCTGGATCTACTGGTCTGCCTAAAGGTGTCGCTCTGCCTCATAGAACTGCCTGCGTGAGATTCTCGCATGCCAGAGATCCTATTTTTGGCAATCAAATCATTCCGGATACTGCGATTTTAAGTGTTGTTCCATTCCATCACGGTTTTGGAATGTTTACTACACTCGGATATTTGATATGTGGATTTCGAGTCGTCTTAATGTATAGAT"),
+        ("QUERY", &text_query),
     ];
 
     let mut url = Url::parse(NCBI_BLAST_URL).unwrap();
@@ -265,11 +311,6 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             ui.add_space(COL_SPACING);
 
-            // todo: YOu will need a better organization method.
-            if ui.button("BLAST").clicked() {
-                open_blast(&state.generic.seq); // todo: Seq A/R
-            }
-
             origin_change(state, ui);
 
             if ui.button("Annotate").clicked() {
@@ -279,6 +320,24 @@ pub fn draw(state: &mut State, ctx: &Context) {
                     &find_features(&state.generic.seq),
                 )
             }
+
+            // todo: YOu will need a better organization method.
+            if state.ui.text_selection.is_some() || state.ui.selected_item != Selection::None {
+                let text = if state.ui.text_selection.is_some() {
+                    "BLAST selection"
+                } else {
+                    "BLAST feature"
+                };
+
+                if ui
+                    .button(RichText::new(text).color(Color32::GOLD))
+                    .clicked()
+                {
+                    blast(&state);
+                }
+            }
+
+            ui.add_space(COL_SPACING);
 
             let mut selection_avail = false;
             if state.ui.text_selection.is_some() {

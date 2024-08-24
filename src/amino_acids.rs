@@ -4,21 +4,6 @@ use bincode::{Decode, Encode};
 
 use crate::sequence::{Nucleotide, Nucleotide::*};
 
-const WATER_WEIGHT: f32 = 18.015; // g/mol. We subtract these when calculating a protein's weight.
-
-/// calculate protein weight in kDa.
-pub fn protein_weight(seq: &[AminoAcid]) -> f32 {
-    if seq.is_empty() {
-        return 0. // Avoids underflow.
-    }
-    let mut result = 0.;
-    for aa in seq {
-        result += aa.weight();
-    }
-    (result - WATER_WEIGHT * (seq.len() - 1) as f32) / 1_000.
-}
-
-
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum AaIdent {
     OneLetter,

@@ -350,7 +350,7 @@ impl Default for StateUi {
     }
 }
 
-#[derive(Clone, Copy, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum Selection {
     Feature(usize), // index
     Primer(usize),

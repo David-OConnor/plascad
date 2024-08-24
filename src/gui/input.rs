@@ -2,6 +2,7 @@
 
 use std::{mem, path::PathBuf};
 
+use bincode::error::AllowedEnumVariants::Range;
 use eframe::egui::{Event, InputState, Key, PointerButton, Ui};
 
 use crate::{
@@ -15,7 +16,9 @@ use crate::{
 /// Handle hotkeys and clicks that affect all pages.
 fn handle_global(state: &mut State, ip: &InputState) {
     if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
-        state.generic.primers.push(Default::default());
+        if !state.generic.seq.is_empty() {
+            state.ui.text_selection = Some(RangeIncl::new(1, state.generic.seq.len() - 1))
+        }
     }
 
     if ip.key_pressed(Key::S) && ip.modifiers.ctrl && !ip.modifiers.shift {

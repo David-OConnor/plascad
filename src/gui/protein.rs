@@ -3,10 +3,10 @@ use eframe::egui::{Color32, FontFamily, FontId, RichText, Ui};
 use crate::{
     amino_acids::{AaIdent, AminoAcid},
     gui::{COL_SPACING, ROW_SPACING},
+    protein::protein_weight,
     sequence::FeatureType,
     State,
 };
-use crate::amino_acids::protein_weight;
 
 const COLOR_PROT_SEQ: Color32 = Color32::from_rgb(255, 100, 200);
 const COLOR_PRE_POST_CODING_SEQ: Color32 = Color32::from_rgb(100, 255, 200);
@@ -73,19 +73,26 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
 
                     // todo: Def cache these weights.
                     let weight = protein_weight(&aa_seq);
-                    let weight_with_pre_post = weight + protein_weight(&aa_seq_precoding) + protein_weight(&aa_seq_postcoding);
+                    let weight_with_pre_post = weight
+                        + protein_weight(&aa_seq_precoding)
+                        + protein_weight(&aa_seq_postcoding);
 
                     ui.horizontal(|ui| {
                         ui.label(format!("Reading frame: {}, Range: {}", om.frame, om.range));
                         ui.add_space(COL_SPACING);
+
+                        if weight != weight_with_pre_post {
+                            // Only show this segment if pre and post-coding sequences exist
+                            ui.label(format!(
+                                "(Coding region only): AA len: {}  Weight: {:.1}kDa",
+                                aa_seq.len(),
+                                weight,
+                            ));
+                            ui.add_space(COL_SPACING);
+                        }
+
                         ui.label(format!(
-                            "(Coding region only): AA len: {} Weight: {:.1}kDa",
-                            aa_seq.len(),
-                            weight,
-                        ));
-                        ui.add_space(COL_SPACING);
-                        ui.label(format!(
-                            "AA len: {} Weight: {:.1}kDa",
+                            "AA len: {}  Weight: {:.1}kDa",
                             aa_seq.len() + aa_seq_precoding.len() + aa_seq_postcoding.len(),
                             weight_with_pre_post,
                         ));
@@ -97,11 +104,13 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
                     let aa_text_postcoding =
                         make_aa_text(&aa_seq_postcoding, state.ui.aa_ident_disp);
 
-                    ui.label(
-                        RichText::new(aa_text_precoding)
-                            .color(COLOR_PRE_POST_CODING_SEQ)
-                            .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
-                    );
+                    if !aa_text_precoding.is_empty() {
+                        ui.label(
+                            RichText::new(aa_text_precoding)
+                                .color(COLOR_PRE_POST_CODING_SEQ)
+                                .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
+                        );
+                    }
 
                     ui.label(
                         RichText::new(aa_text)
@@ -109,11 +118,13 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
                             .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
                     );
 
-                    ui.label(
-                        RichText::new(aa_text_postcoding)
-                            .color(COLOR_PRE_POST_CODING_SEQ)
-                            .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
-                    );
+                    if !aa_text_postcoding.is_empty() {
+                        ui.label(
+                            RichText::new(aa_text_postcoding)
+                                .color(COLOR_PRE_POST_CODING_SEQ)
+                                .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
+                        );
+                    }
                 }
 
                 // let offset = om.frame.offset();
@@ -147,8 +158,16 @@ pub fn protein_page(state: &mut State, ui: &mut Ui) {
             };
         }
     });
-
     ui.add_space(ROW_SPACING);
 
-    draw_proteins(state, ui);
+    if state
+        .generic
+        .features
+        .iter()
+        .any(|f| f.feature_type == FeatureType::CodingRegion)
+    {
+        draw_proteins(state, ui);
+    } else {
+        ui.label("Create one or more Coding Region feature to display proteins here.");
+    }
 }

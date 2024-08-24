@@ -292,7 +292,7 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
         ui.horizontal(|ui| {
             let add_btn = ui
                 .button("➕ Add primer")
-                .on_hover_text("Adds a primer to the list below. Ctrl + A");
+                .on_hover_text("Adds a primer to the list below.");
             if add_btn.clicked() {
                 state.generic.primers.push(Default::default())
             }

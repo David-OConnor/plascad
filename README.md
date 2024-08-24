@@ -56,6 +56,7 @@ move the cursor with arrow keys, type the letters *A*, *C*, *T*, and *G* to inse
 - Ctrl+F to search for a sequence.
 
 - Ctrl+C and Ctrl+V to copy and paste sequences. (Can copy selected nucleotides, features, and primers)
+- Ctrl + A to select all nucleotides.
 - Click and drag to select text.
 - Use the keyboard to insert nucleotides, move the cursor etc.
 - When a feature or primer is selected, that's what's copied, vice the selection.
@@ -129,6 +130,9 @@ genes.
 
 
 ### Displays amino acid sequences for coding regions
+Displays inline with the sequence, and includes a dedicated page which shows amino acid sequences for all coding regions. This
+infers the reading frame based on marked coding region features, finding the best match of the 6 frames. It displays the amino
+acid sequence for each reading frame, with the part marked as a coding region highlighted.
 
 
 ## Mixing portions assistant
@@ -168,3 +172,6 @@ We calculate the following categories of nucleotide repeats:
 - Any sequence of 3 or more nucleotides that occurs more than once in a sequence
 
 *Primer quality* is a fuzzy metric, and is calculated as a weighted average from other metrics. It's the quantity our tuning algorithm optimizes when adjusting primer length.
+
+Protein weight is calculated by summing the individual atomic weights of constituent amino acids, then subtracting 18.05 g/mol
+per link. (number of amino acids - 1).
