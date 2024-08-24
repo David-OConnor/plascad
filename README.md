@@ -129,7 +129,10 @@ Annotate the common features from sequences; this includes promoters, origins of
 genes.
 
 
-### Displays amino acid sequences for coding regions
+### Displays amino acid sequences for coding regions (proteins)
+
+![Protein view screenshot](screenshots/protein_aug_24.png)
+
 Displays inline with the sequence, and includes a dedicated page which shows amino acid sequences for all coding regions. This
 infers the reading frame based on marked coding region features, finding the best match of the 6 frames. It displays the amino
 acid sequence for each reading frame, with the part marked as a coding region highlighted.
