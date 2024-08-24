@@ -29,7 +29,7 @@ impl RangeIncl {
     /// This function handles both the +1 nature of our range indexing,
     /// and error handling for out of bounds. (The latter of which panics at runtime)
     pub fn index_seq<'a, T>(&self, seq: &'a [T]) -> Option<&'a [T]> {
-        if self.start < 1 || self.end + 1 > seq.len() || self.start > self.end {
+        if self.start < 1 || self.end > seq.len() || self.start > self.end {
             return None;
         }
 

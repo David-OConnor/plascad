@@ -28,7 +28,7 @@ const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?
 pub fn draw_selection(selection: RangeIncl, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    if selection.start < 1 || selection.end + 1 > data.seq_len {
+    if selection.start < 1 || selection.end > data.seq_len {
         eprintln!("Invalid sequence index");
         return result;
     }

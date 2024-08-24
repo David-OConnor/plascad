@@ -17,7 +17,7 @@ use crate::{
 fn handle_global(state: &mut State, ip: &InputState) {
     if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
         if !state.generic.seq.is_empty() {
-            state.ui.text_selection = Some(RangeIncl::new(1, state.generic.seq.len() - 1))
+            state.ui.text_selection = Some(RangeIncl::new(1, state.generic.seq.len()))
         }
     }
 
