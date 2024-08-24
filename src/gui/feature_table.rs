@@ -156,7 +156,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
                         ui.add(TextEdit::singleline(key).desired_width(200.));
 
                         ui.label("Value:");
-                        ui.add(TextEdit::singleline(value).desired_width(200.));
+                        ui.add(TextEdit::singleline(value).desired_width(600.));
                     });
                 }
             });

@@ -801,7 +801,8 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
 
         // Don't let a note overflow. Note: Wrapping would be preferred to this cutoff.
         let max_len = (0.2 * data.radius) as usize; // Note: This depends on font size.
-        let text: String = format!("{}: {}", note.0, note.1)
+                                                    // Newlines will interfere with our current line-spacing system.
+        let text: String = format!("{}: {}", note.0, note.1.replace("\n", " "))
             .chars()
             .take(max_len)
             .collect();
@@ -820,14 +821,6 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
                 TICK_COLOR,
             )
         }));
-
-        // result.push(draw_text(
-        //     &format!("{}: {}", note.0, note.1),
-        //
-        //     13.,
-        //     TICK_COLOR,
-        //     ui,
-        // ));
         i += 1;
     }
 

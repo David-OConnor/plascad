@@ -411,19 +411,14 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
 
     let mut result = Vec::new();
 
-    let mut offset = orf.offset();
-
+    let offset = orf.offset();
     let seq_len_full = seq.len();
 
     if seq_len_full < 3 {
         return result;
     }
 
-    let seq_ = &match orf {
-        ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => seq.to_vec(),
-        _ => seq_complement(seq),
-    }[offset..];
-
+    let seq_ = orf.arrange_seq(&seq);
     let len = seq_.len();
 
     let mut frame_open = None; // Inner: Start index.
@@ -439,14 +434,15 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
             // + 1 for our 1-based seq name convention.
             // This section's a bit hairy; worked by trial and error. Final indices are respective to
             // the non-complementary seq, for both forward and reverse reading frames.
-            let range = match orf {
-                ReadingFrame::Fwd0 | ReadingFrame::Fwd1 | ReadingFrame::Fwd2 => {
-                    RangeIncl::new(frame_open.unwrap() + 1 + offset, i + 2 + offset)
-                }
-                _ => RangeIncl::new(
+            let range = if !orf.is_reverse() {
+                // todo: We still have wonkiness here.
+                // RangeIncl::new(frame_open.unwrap() + 1 + offset, i + 2 + offset)
+                RangeIncl::new(frame_open.unwrap() + 1 + offset, i + 3 + offset)
+            } else {
+                RangeIncl::new(
                     seq_len_full - (i + 2 + offset),
                     seq_len_full - (frame_open.unwrap() + offset) - 1,
-                ),
+                )
             };
 
             result.push(ReadingFrameMatch { frame: orf, range });
