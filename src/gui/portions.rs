@@ -15,6 +15,9 @@ use crate::{
 
 // todo: Store solutions. Save to file, and mix solutions from other solutions.
 
+const DEFAULT_REAGENT_MOLARITY: f32 = 1.;
+const DEFAULT_TOTAL_VOLUME: f32 = 1.; // L
+
 pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
     ui.add_space(ROW_SPACING / 2.);
 
@@ -26,7 +29,10 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
             .button(RichText::new("➕ Add solution").color(Color32::GOLD))
             .clicked()
         {
-            portions.solutions.push(Solution::default());
+            portions.solutions.push(Solution {
+                total_volume: DEFAULT_TOTAL_VOLUME,
+                ..Default::default()
+            });
         }
     });
 
@@ -83,13 +89,21 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
                     .selected_text(reagent.type_.to_string())
                     .show_ui(ui, |ui| {
                         for type_ in [
+                            ReagentType::Custom(0.),
                             ReagentType::SodiumChloride,
+                            ReagentType::TrisHcl,
                             ReagentType::SodiumPhosphateMonobasic,
                             ReagentType::SodiumPhosphateDibasic,
                             ReagentType::SodiumPhosphateDibasicHeptahydrate,
-                            ReagentType::TrisHcl,
+                            ReagentType::PotassiumPhosphateMonobasic,
+                            ReagentType::PotassiumPhosphateDibasic,
                             ReagentType::Imidazole,
-                            ReagentType::Custom(0.),
+                            ReagentType::Lysozyme,
+                            ReagentType::Mes,
+                            ReagentType::Bes,
+                            ReagentType::Tes,
+                            ReagentType::CitricAcid,
+                            ReagentType::Edta,
                         ] {
                             ui.selectable_value(&mut reagent.type_, type_, type_.to_string());
                         }
@@ -97,17 +111,31 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
                         // ui.selectable_value(val, Reagent::Custom(_), Reagent::Custom(_).to_string());
                     });
 
-                ui.add_sized(
-                    [80.0, 20.0],
-                    egui::Label::new(format!("{:.2} g/mol", reagent.type_.weight())),
-                );
+                if let ReagentType::Custom(weight) = &mut reagent.type_ {
+                    let mut val = format!("{:.2}", weight);
+                    if ui
+                        .add(TextEdit::singleline(&mut val).desired_width(40.))
+                        .changed
+                    {
+                        // let molarity_int: u32 = val.parse().unwrap_or_default();
+                        *weight = val.parse().unwrap_or_default();
+                        // *v = molarity_int as f32 / 1_000.;
+                        reagent.calc_amount(solution.total_volume);
+                    }
+                    ui.label("g/mol");
+                } else {
+                    ui.add_sized(
+                        [80.0, 20.0],
+                        egui::Label::new(format!("{:.2} g/mol", reagent.type_.weight())),
+                    );
+                }
 
                 let prep_prev = reagent.prep.clone();
                 ComboBox::from_id_source(2000 + i * 100 + j)
                     .width(80.)
                     .selected_text(reagent.prep.to_string())
                     .show_ui(ui, |ui| {
-                        for prep in [ReagentPrep::Mass, ReagentPrep::Volume(0.)] {
+                        for prep in [ReagentPrep::Mass, ReagentPrep::Volume(DEFAULT_REAGENT_MOLARITY)] {
                             ui.selectable_value(&mut reagent.prep, prep, prep.to_string());
                         }
 
@@ -119,7 +147,7 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
 
                 // todo: This effect on water volume added?
                 if let ReagentPrep::Volume(v) = &mut reagent.prep {
-                    ui.label("reagant Molarity (mM)");
+                    ui.label("reagant Molarity (mM):");
                     let mut val = ((*v * 1_000.) as u32).to_string();
                     if ui
                         .add(TextEdit::singleline(&mut val).desired_width(40.))
@@ -150,7 +178,14 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
                 }
 
                 ui.add_space(COL_SPACING / 2.);
-                ui.label("Mass:");
+
+                let result_label = if let ReagentPrep::Volume(_) = reagent.prep {
+                    "Volume"
+                } else {
+                    "Mass"
+                };
+
+                ui.label(result_label);
 
                 ui.add_sized(
                     [80.0, 20.0],

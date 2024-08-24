@@ -1,5 +1,7 @@
 //! Code related to mixing portions. Used for performing quick mixing volume calculations.
 
+// todo: Consider including pKa info, and including tools to balance pH.
+
 use std::fmt::Display;
 
 use bincode::{Decode, Encode};
@@ -17,7 +19,7 @@ pub struct Solution {
     pub reagents: Vec<Reagent>,
     pub sub_solns: Vec<Solution>,
     /// Volatile; not to be added to directly.
-    reagents_sub_solns: Vec<Reagent>,
+    pub reagents_sub_solns: Vec<Reagent>,
 }
 
 impl Solution {
@@ -50,7 +52,7 @@ impl Display for AmountCalculated {
             Self::Mass(v) => {
                 if *v > 1. {
                     format!("{:.2} g", v)
-                } else if *v > 0.001 {
+                } else if *v >= 0.001 {
                     format!("{:.2} mg", v * 1_000.)
                 } else {
                     format!("{:.2} μg", v * 1_000_000.)
@@ -60,7 +62,7 @@ impl Display for AmountCalculated {
             Self::Volume(v) => {
                 if *v > 1. {
                     format!("{:.2} L", v)
-                } else if *v > 0.001 {
+                } else if *v >= 0.001 {
                     format!("{:.2} mL", v * 1_000.)
                 } else {
                     // todo: If you have precision issues, make your base unit mL.
@@ -111,7 +113,12 @@ impl Reagent {
             ReagentPrep::Mass => AmountCalculated::Mass(self.type_.weight() * moles_req),
             // L = mol / mol/L:
             ReagentPrep::Volume(reagent_molarity) => {
-                AmountCalculated::Volume(moles_req / reagent_molarity)
+                if reagent_molarity.abs() < 0.00000001 {
+                    AmountCalculated::Volume(0.)
+                } else {
+                    AmountCalculated::Volume(moles_req / reagent_molarity)
+                }
+
             }
         };
     }
@@ -124,8 +131,16 @@ pub enum ReagentType {
     SodiumPhosphateMonobasic,
     SodiumPhosphateDibasic,
     SodiumPhosphateDibasicHeptahydrate,
+    PotassiumPhosphateMonobasic,
+    PotassiumPhosphateDibasic,
     TrisHcl,
     Imidazole,
+    Lysozyme,
+    Mes,
+    Bes,
+    Tes,
+    CitricAcid,
+    Edta,
     Custom(f32), // Inner: Molecular weight
     /// Index of the solution in state.
     Solution(usize),
@@ -139,8 +154,16 @@ impl ReagentType {
             Self::SodiumPhosphateMonobasic => 119.98,
             Self::SodiumPhosphateDibasic => 141.96,
             Self::SodiumPhosphateDibasicHeptahydrate => 268.10,
+            Self::PotassiumPhosphateMonobasic => 136.08,
+            Self::PotassiumPhosphateDibasic => 174.17,
             Self::TrisHcl => 121.14,
             Self::Imidazole => 68.08,
+            Self::Lysozyme => 14_388.,
+            Self::Mes => 195.24,
+            Self::Bes => 213.25,
+            Self::Tes => 229.25,
+            Self::CitricAcid => 192.12,
+            Self::Edta => 292.24,
             Self::Custom(weight) => *weight,
             Self::Solution(_) => 0., // todo?
         }
@@ -154,9 +177,17 @@ impl Display for ReagentType {
             Self::SodiumPhosphateMonobasic => "NaH₂PO₄ (Mono)".to_owned(),
             Self::SodiumPhosphateDibasic => "Na₂HPO₄ (Di)".to_owned(),
             Self::SodiumPhosphateDibasicHeptahydrate => "Na₂HPO₄·7H₂O".to_owned(),
+            Self::PotassiumPhosphateMonobasic => "H₂KO₄P".to_owned(),
+            Self::PotassiumPhosphateDibasic => "HK₂O₄P".to_owned(),
             Self::TrisHcl => "Tris-HCl".to_owned(),
             Self::Imidazole => "Imidazole".to_owned(),
-            Self::Custom(weight) => format!("Custom. Weight: {weight})"),
+            Self::Lysozyme => "Lysozyme".to_owned(),
+            Self::Mes => "MES".to_owned(),
+            Self::Bes => "BES".to_owned(),
+            Self::Tes => "BES".to_owned(),
+            Self::CitricAcid => "Citric Acid".to_owned(),
+            Self::Edta => "EDTA".to_owned(),
+            Self::Custom(_) => "Custom".to_owned(),
             Self::Solution(_) => format!("Solution").to_owned(), // todo
         };
 
