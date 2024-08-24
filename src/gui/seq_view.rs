@@ -225,6 +225,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                     // todo: This only works for forward reading frames.
 
                     let i_orf = i - 1; // Back to 0-based indexing for this.
+                                       // todo: Cache this; don't run it every update.
                     if (i_orf - orf_match.frame.offset()) % 3 == 0 {
                         if let Some(aa) = AminoAcid::from_codons(
                             state.generic.seq[i_orf..i_orf + 3].try_into().unwrap(),

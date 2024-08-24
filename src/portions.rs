@@ -103,6 +103,17 @@ pub struct Reagent {
     pub amount_calc: AmountCalculated,
 }
 
+impl Default for Reagent {
+    fn default() -> Self {
+        Self {
+            type_: ReagentType::Custom(0.),
+            prep: ReagentPrep::Mass,
+            molarity: 0.,
+            amount_calc: AmountCalculated::Mass(0.),
+        }
+    }
+}
+
 impl Reagent {
     pub fn calc_amount(&mut self, total_volume: f32) {
         // mol = mol/L x L
@@ -118,7 +129,6 @@ impl Reagent {
                 } else {
                     AmountCalculated::Volume(moles_req / reagent_molarity)
                 }
-
             }
         };
     }
@@ -141,6 +151,9 @@ pub enum ReagentType {
     Tes,
     CitricAcid,
     Edta,
+    HydrochloricAcid,
+    // AceticAcid,
+    SodiumHydroxide,
     Custom(f32), // Inner: Molecular weight
     /// Index of the solution in state.
     Solution(usize),
@@ -164,6 +177,8 @@ impl ReagentType {
             Self::Tes => 229.25,
             Self::CitricAcid => 192.12,
             Self::Edta => 292.24,
+            Self::HydrochloricAcid => 36.46,
+            Self::SodiumHydroxide => 40.,
             Self::Custom(weight) => *weight,
             Self::Solution(_) => 0., // todo?
         }
@@ -185,8 +200,10 @@ impl Display for ReagentType {
             Self::Mes => "MES".to_owned(),
             Self::Bes => "BES".to_owned(),
             Self::Tes => "BES".to_owned(),
-            Self::CitricAcid => "Citric Acid".to_owned(),
+            Self::CitricAcid => "Citric acid".to_owned(),
             Self::Edta => "EDTA".to_owned(),
+            Self::HydrochloricAcid => "HCl".to_owned(),
+            Self::SodiumHydroxide => "NaOH".to_owned(),
             Self::Custom(_) => "Custom".to_owned(),
             Self::Solution(_) => format!("Solution").to_owned(), // todo
         };

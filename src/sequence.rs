@@ -82,6 +82,27 @@ impl ReadingFrame {
             Self::Fwd2 | Self::Rev2 => 2,
         }
     }
+
+    pub fn is_reverse(&self) -> bool {
+        // todo: Enum
+        match self {
+            Self::Fwd0 | Self::Fwd1 | Self::Fwd2 => false,
+            _ => true,
+        }
+    }
+
+    /// Get a seqeuence of the full sequence in the appropriate direction, and with the appropriate offset.
+    /// The result will always start in frame. It will be trimmed if offset > 0.
+    /// todo: THis makes a clone. Can we instead do a slice?
+    pub fn arrange_seq(&self, seq: &[Nucleotide]) -> Seq {
+        let mut offset = self.offset();
+
+        if self.is_reverse() {
+            seq_complement(seq)[offset..].to_vec()
+        } else {
+            seq[offset..].to_vec()
+        }
+    }
 }
 
 impl Default for ReadingFrame {
@@ -106,10 +127,9 @@ impl Display for ReadingFrame {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReadingFrameMatch {
     pub frame: ReadingFrame,
-    /// 1-based indexing.
     /// Indices are respective to the non-complementary seq, for both forward and reverse reading frames.
     pub range: RangeIncl,
 }

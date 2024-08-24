@@ -28,6 +28,7 @@ mod pcr;
 mod portions;
 mod primer_arrow;
 pub mod primer_qc;
+mod protein;
 pub mod save;
 pub mod seq_view;
 pub mod sequence;
@@ -313,6 +314,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Cloning => {
                 cloning::seq_editor_slic(state, ui);
             }
+            Page::Proteins => protein::protein_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Metadata => metadata::metadata_page(&mut state.generic.metadata, ui),
             Page::Portions => portions::portions_page(&mut state.portions, ui),

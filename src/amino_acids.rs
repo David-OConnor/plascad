@@ -1,11 +1,17 @@
 use std::fmt;
 
-use quick_xml::escape::unescape;
+use bincode::{Decode, Encode};
 
 use crate::sequence::{Nucleotide, Nucleotide::*};
 
-/// This struct and its method is largely copied from the `peptide` project.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+pub enum AaIdent {
+    OneLetter,
+    ThreeLetters,
+}
+
+/// This struct and its methods are largely copied from the `peptide` project.
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum AminoAcid {
     Arg,
     His,

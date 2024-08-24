@@ -25,9 +25,11 @@ use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
+use protein::Protein;
 use sequence::Seq;
 
 use crate::{
+    amino_acids::AaIdent,
     file_io::{
         save::{
             save, StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
@@ -39,6 +41,7 @@ use crate::{
     pcr::{PcrParams, PolymeraseType},
     portions::PortionsState,
     primer::TM_TARGET,
+    protein::sync_cr_orf_matches,
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
         find_orf_matches, find_search_matches, seq_to_str, FeatureDirection, FeatureType,
@@ -58,6 +61,7 @@ mod pcr;
 mod portions;
 mod primer;
 mod primer_metrics;
+mod protein;
 mod restriction_enzyme;
 mod save_compat;
 mod sequence;
@@ -308,6 +312,7 @@ struct StateUi {
     text_selection: Option<RangeIncl>,
     quick_feature_add_name: String,
     quick_feature_add_dir: FeatureDirection,
+    aa_ident_disp: AaIdent,
 }
 
 impl Default for StateUi {
@@ -340,6 +345,7 @@ impl Default for StateUi {
             text_selection: Default::default(),
             quick_feature_add_name: Default::default(),
             quick_feature_add_dir: Default::default(),
+            aa_ident_disp: AaIdent::ThreeLetters,
         }
     }
 }
@@ -365,6 +371,9 @@ struct StateVolatile {
     reading_frame_matches: Vec<ReadingFrameMatch>,
     tag_matches: Vec<TagMatch>,
     search_matches: Vec<SearchMatch>,
+    /// Used for automatically determining which reading frame to use, and the full frame,
+    /// for a given coding-region feature.
+    cr_orf_matches: Vec<(usize, ReadingFrameMatch)>,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
@@ -383,6 +392,7 @@ struct State {
     path_loaded: Option<PathBuf>,
     search_seq: Seq,
     portions: PortionsState,
+    proteins: Vec<Protein>,
 }
 
 impl State {
@@ -549,6 +559,8 @@ impl State {
         self.sync_re_sites();
         self.sync_reading_frame();
         self.sync_search();
+
+        sync_cr_orf_matches(self);
 
         self.ui.seq_input = seq_to_str(&self.generic.seq);
     }

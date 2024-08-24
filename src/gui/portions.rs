@@ -61,12 +61,7 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
                 .button(RichText::new("➕ Add reagent").color(Color32::GOLD))
                 .clicked()
             {
-                solution.reagents.push(Reagent {
-                    type_: ReagentType::SodiumChloride,
-                    prep: ReagentPrep::Mass,
-                    molarity: 0.,
-                    amount_calc: AmountCalculated::Mass(0.),
-                });
+                solution.reagents.push(Reagent::default());
             }
 
             if ui
@@ -104,6 +99,8 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
                             ReagentType::Tes,
                             ReagentType::CitricAcid,
                             ReagentType::Edta,
+                            ReagentType::HydrochloricAcid,
+                            ReagentType::SodiumHydroxide,
                         ] {
                             ui.selectable_value(&mut reagent.type_, type_, type_.to_string());
                         }
@@ -135,7 +132,10 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
                     .width(80.)
                     .selected_text(reagent.prep.to_string())
                     .show_ui(ui, |ui| {
-                        for prep in [ReagentPrep::Mass, ReagentPrep::Volume(DEFAULT_REAGENT_MOLARITY)] {
+                        for prep in [
+                            ReagentPrep::Mass,
+                            ReagentPrep::Volume(DEFAULT_REAGENT_MOLARITY),
+                        ] {
                             ui.selectable_value(&mut reagent.prep, prep, prep.to_string());
                         }
 
