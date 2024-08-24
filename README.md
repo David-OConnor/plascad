@@ -138,7 +138,7 @@ infers the reading frame based on marked coding region features, finding the bes
 acid sequence for each reading frame, with the part marked as a coding region highlighted.
 
 
-## Mixing portions assistant
+### Mixing portions assistant
 Given a designed solution with molarity concentrations, calculates the mass and volumes required to make the solution. Includes the molecular weights of common reagents. Can set up solutions mixed from custom precursor solutions.
 
 
