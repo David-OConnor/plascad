@@ -150,7 +150,7 @@ Also of note, the native file format this program uses is more compact, includin
 
 
 ## Near-term plans
-- QCing plasmids for toxic proteins, and various forms of error
+- QCing plasmids for toxic proteins, hydrophobic regions, and aggregation-prone regions
 - QC primers for problems in context of plasmids. (Eg multiple/partial binding sites)
 - Identifying secondary structures, hairpins etc
 - Utility features for specific applications
