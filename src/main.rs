@@ -350,7 +350,7 @@ impl Default for StateUi {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+#[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
 pub enum Selection {
     Feature(usize), // index
     Primer(usize),
@@ -565,6 +565,11 @@ impl State {
         self.ui.seq_input = seq_to_str(&self.generic.seq);
     }
 
+    pub fn reset_selections(&mut self) {
+        self.ui.text_selection = None;
+        self.ui.selected_item = Selection::None;
+    }
+
     /// Load state from a (our format) file.
     pub fn load(path: &Path, prefs_path: &Path) -> Self {
         let state_loaded: io::Result<StateToSave> = load(path);
@@ -582,6 +587,7 @@ impl State {
         result.sync_seq_related(None);
         result.ui.seq_input = seq_to_str(&result.generic.seq);
         result.sync_portions();
+        result.reset_selections();
 
         result
     }
@@ -645,6 +651,7 @@ fn main() {
     load_import(&mut state, &path);
 
     state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+    state.reset_selections();
 
     if window_title_initial != WINDOW_TITLE {
         state.path_loaded = Some(path);

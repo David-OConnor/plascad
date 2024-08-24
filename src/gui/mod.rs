@@ -61,26 +61,30 @@ pub fn blast(state: &State) {
                 ),
             ))
         }
-        None => {
-            match state.ui.selected_item {
-                Selection::Feature(feat_i) => {
-                    if state.generic.features.len() < feat_i + 1 {
-                        eprintln!("Invalid selected feature");
-                        None
-                    } else {
-                        let feature = &state.generic.features[feat_i];
-                        Some((
-                            feature.range.index_seq(&state.generic.seq),
-                            feature.label.clone(),
-                        ))
-                    }
+        None => match state.ui.selected_item {
+            Selection::Feature(feat_i) => {
+                if state.generic.features.len() < feat_i + 1 {
+                    eprintln!("Invalid selected feature");
+                    None
+                } else {
+                    let feature = &state.generic.features[feat_i];
+                    Some((
+                        feature.range.index_seq(&state.generic.seq),
+                        feature.label.clone(),
+                    ))
                 }
-                Selection::Primer(p) => {
-                    None // todo
-                }
-                Selection::None => None,
             }
-        }
+            Selection::Primer(prim_i) => {
+                if state.generic.primers.len() < prim_i + 1 {
+                    eprintln!("Invalid selected primer");
+                    None
+                } else {
+                    let primer = &state.generic.primers[prim_i];
+                    Some((Some(&primer.sequence[..]), primer.name.clone()))
+                }
+            }
+            Selection::None => None,
+        },
     };
 
     // todo: Handle reverse.
@@ -326,7 +330,11 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 let text = if state.ui.text_selection.is_some() {
                     "BLAST selection"
                 } else {
-                    "BLAST feature"
+                    match state.ui.selected_item {
+                        Selection::Feature(_) => "BLAST feature",
+                        Selection::Primer(_) => "BLAST primer",
+                        Selection::None => unreachable!(),
+                    }
                 };
 
                 if ui
