@@ -6,6 +6,7 @@ use crate::{
     sequence::FeatureType,
     State,
 };
+use crate::amino_acids::protein_weight;
 
 const COLOR_PROT_SEQ: Color32 = Color32::from_rgb(255, 100, 200);
 const COLOR_PRE_POST_CODING_SEQ: Color32 = Color32::from_rgb(100, 255, 200);
@@ -70,19 +71,23 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
                         }
                     }
 
+                    // todo: Def cache these weights.
+                    let weight = protein_weight(&aa_seq);
+                    let weight_with_pre_post = weight + protein_weight(&aa_seq_precoding) + protein_weight(&aa_seq_postcoding);
+
                     ui.horizontal(|ui| {
                         ui.label(format!("Reading frame: {}, Range: {}", om.frame, om.range));
                         ui.add_space(COL_SPACING);
                         ui.label(format!(
-                            "(Coding region only): AA len: {} Weight: {}kDa",
+                            "(Coding region only): AA len: {} Weight: {:.1}kDa",
                             aa_seq.len(),
-                            0.
+                            weight,
                         ));
                         ui.add_space(COL_SPACING);
                         ui.label(format!(
-                            "AA len: {} Weight: {}kDa",
+                            "AA len: {} Weight: {:.1}kDa",
                             aa_seq.len() + aa_seq_precoding.len() + aa_seq_postcoding.len(),
-                            0.
+                            weight_with_pre_post,
                         ));
                     });
                     ui.add_space(ROW_SPACING / 2.);
@@ -129,7 +134,7 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
 
 pub fn protein_page(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        ui.heading("Proteins, from sequence coding regions");
+        ui.heading("Proteins, from coding regions");
 
         ui.add_space(COL_SPACING);
         ui.label("One letter ident:");

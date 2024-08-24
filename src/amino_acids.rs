@@ -4,6 +4,21 @@ use bincode::{Decode, Encode};
 
 use crate::sequence::{Nucleotide, Nucleotide::*};
 
+const WATER_WEIGHT: f32 = 18.015; // g/mol. We subtract these when calculating a protein's weight.
+
+/// calculate protein weight in kDa.
+pub fn protein_weight(seq: &[AminoAcid]) -> f32 {
+    if seq.is_empty() {
+        return 0. // Avoids underflow.
+    }
+    let mut result = 0.;
+    for aa in seq {
+        result += aa.weight();
+    }
+    (result - WATER_WEIGHT * (seq.len() - 1) as f32) / 1_000.
+}
+
+
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum AaIdent {
     OneLetter,
@@ -89,6 +104,35 @@ impl AminoAcid {
             Self::Trp => "Trp",
         }
         .to_owned()
+    }
+
+    /// Return the molecular weight, in Da.
+    /// Source: https://www.promega.com/resources/tools/amino-acid-chart-amino-acid-structure/
+    /// todo: This table is not very precise; consider updating with a better source.
+    pub fn weight(&self) -> f32 {
+        match self {
+            Self::Arg => 174.,
+            Self::His => 155.,
+            Self::Lys => 146.,
+            Self::Asp => 133.,
+            Self::Glu => 147.,
+            Self::Ser => 105.,
+            Self::Thr => 119.,
+            Self::Asn => 132.,
+            Self::Gln => 146.,
+            Self::Cys => 121.,
+            Self::Sec => 168.06,
+            Self::Gly => 75.,
+            Self::Pro => 115.,
+            Self::Ala => 89.,
+            Self::Val => 117.,
+            Self::Ile => 131.,
+            Self::Leu => 131.,
+            Self::Met => 149.,
+            Self::Phe => 165.,
+            Self::Tyr => 181.,
+            Self::Trp => 204.,
+        }
     }
 
     /// https://en.wikipedia.org/wiki/DNA_and_RNA_codon_tables#/media/File:Aminoacids_table.svg
