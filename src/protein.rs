@@ -5,18 +5,145 @@ use bincode::{Decode, Encode};
 
 use crate::{
     amino_acids::AminoAcid,
-    sequence::{find_orf_matches, Feature, FeatureType, ReadingFrame},
+    sequence::{
+        find_orf_matches, Feature, FeatureType, Nucleotide, ReadingFrame, ReadingFrameMatch,
+    },
     State,
 };
 
 const WATER_WEIGHT: f32 = 18.015; // g/mol. We subtract these when calculating a protein's weight.
 
+// todo: Adjust A/R. Ideally, let the user customize it.
+pub const HYDROPATHY_WINDOW_SIZE: usize = 9;
+
 #[derive(Encode, Decode)]
 pub struct Protein {
     pub feature: Feature, // todo: Consider how you want to do this. Index? Only used for creation?
-    pub reading_frame: ReadingFrame,
-    pub seq: Vec<AminoAcid>,
+    pub reading_frame_match: ReadingFrameMatch,
+    pub aa_seq: Vec<AminoAcid>,
+    pub aa_seq_precoding: Vec<AminoAcid>,
+    pub aa_seq_postcoding: Vec<AminoAcid>,
+    pub weight: f32,
+    pub weight_with_prepost: f32,
+    // window center, value.
+    /// This type is for storing graphable data used by egui_plot.
+    // pub hydropath_data: Vec<[f64; 2]>,
+    pub hydropath_data: Vec<(usize, f32)>,
+    // Note: This is more of a UI functionality; here for now.
+    pub show_hydropath: bool,
 }
+
+pub fn proteins_from_seq(
+    seq: &[Nucleotide],
+    features: &[Feature],
+    cr_orf_matches: &[(usize, ReadingFrameMatch)],
+) -> Vec<Protein> {
+    let mut result = Vec::new();
+    for (i, feature) in features.iter().enumerate() {
+        if feature.feature_type != FeatureType::CodingRegion {
+            continue;
+        }
+        for (j, om) in cr_orf_matches {
+            if *j == i {
+                // todo: Consider switching to a canvas-based approach A/R. Text as an MVP.
+                // todo: Breakout into fns, probably in src/protein.
+                if let Some(seq_orf_match_dna) = om.range.index_seq(seq) {
+                    // todo: DRy with feature_db_load.
+                    let len = seq_orf_match_dna.len();
+
+                    let mut aa_seq = Vec::new();
+                    // We also render AAs included in the reading frame, but not specified in the coding region feature.
+                    let mut aa_seq_precoding = Vec::new();
+                    let mut aa_seq_postcoding = Vec::new();
+
+                    for i_ in 0..len / 3 {
+                        let i = i_ * 3; // The ORF-modified sequence index.
+                        let i_actual = i + om.range.start;
+
+                        let nts = &seq_orf_match_dna[i..i + 3];
+
+                        // let mut matched = false;
+                        if let Some(aa) = AminoAcid::from_codons(nts.try_into().unwrap()) {
+                            // todo: Handle unknown AAs; don't just silently ommit as we are currently doing.
+
+                            if i_actual < feature.range.start {
+                                aa_seq_precoding.push(aa);
+                            } else if i_actual > feature.range.end {
+                                aa_seq_postcoding.push(aa);
+                            } else {
+                                aa_seq.push(aa);
+                            }
+                        }
+                    }
+
+                    // todo: Def cache these weights.
+                    let weight = protein_weight(&aa_seq);
+                    let weight_with_prepost = weight
+                        + protein_weight(&aa_seq_precoding)
+                        + protein_weight(&aa_seq_postcoding);
+
+                    let hydropath_data = hydropathy_doolittle(&aa_seq, HYDROPATHY_WINDOW_SIZE);
+                    // Convert to a format accepted by our plotting lib.
+                    // let mut hydropath_data = Vec::new();
+                    // for (i, val) in hydropath_data_ {
+                    //     hydropath_data.push([i as f64, val as f64]);
+                    // }
+
+                    result.push(Protein {
+                        feature: feature.clone(),
+                        reading_frame_match: om.clone(),
+                        aa_seq,
+                        aa_seq_precoding,
+                        aa_seq_postcoding,
+                        hydropath_data,
+                        weight,
+                        weight_with_prepost,
+                        show_hydropath: false,
+                    })
+                }
+            }
+        }
+    }
+    result
+}
+
+/// Calculates the Kyte-Doolittle value of Hydropathy index. Uses per-AA
+/// experimentally-determined hydrophobicity values, averaged over a moving window.
+///
+/// https://web.expasy.org/protscale/
+pub fn hydropathy_doolittle(seq: &[AminoAcid], window_size: usize) -> Vec<(usize, f32)> {
+    if window_size % 2 == 0 {
+        eprintln!("Window size for KD must be odd");
+        return Vec::new();
+    }
+    let mut result = Vec::new();
+
+    let win_div_2 = window_size / 2; // Rounds down.
+
+    // We'll center each window on `i`.
+    for i in win_div_2..seq.len() - win_div_2 - 1 {
+        let aas = &seq[i - win_div_2..i + win_div_2 + 1];
+        let mut val_this_window = 0.;
+        for aa in aas {
+            val_this_window += aa.hydropathicity();
+        }
+        result.push((i, val_this_window / window_size as f32));
+    }
+
+    result
+}
+
+/// The TANGO algorithm predicts beta-sheet formation propensity, which is associated with aggregation.
+/// It considers factors like amino acid sequence, solvent accessibility, and secondary structure.
+pub fn tango_aggregation(seq: &[AminoAcid]) {}
+
+/// Predicts aggregation-prone regionis by calculating an aggregation score for each AA.
+/// todo: Look this up.
+pub fn aggrescan(seq: &[AminoAcid]) {}
+
+// todo: Look up SLIDER aggregation tool as well.
+
+// todo: Visualize hydrophobic and aggreg-prone regions.
 
 // todo: Move this somewhere more appropriate, then store in state_volatile.
 /// Find the most likely reading frame for each coding region.

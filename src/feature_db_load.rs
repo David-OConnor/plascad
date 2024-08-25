@@ -7,14 +7,12 @@
 use crate::{
     amino_acids::AminoAcid,
     sequence::{
-        seq_complement, seq_from_str, Feature,
+        seq_from_str, Feature,
         FeatureType::{
             self, AntibioticResistance, CodingRegion, Ori, Promoter, ProteinBind, RibosomeBindSite,
             Terminator,
         },
-        Nucleotide,
-        Nucleotide::{A, G, T},
-        ReadingFrame, ReadingFrameMatch, Seq,
+        Nucleotide, ReadingFrame, Seq,
     },
     util::{match_subseq, RangeIncl},
 };
@@ -103,6 +101,8 @@ pub fn find_his_tags(seq: &[Nucleotide]) -> Vec<Feature> {
     result
 }
 
+// todo: Map Aa sequences in addition to DNA seqs; more general.
+
 /// Find common promoters and Oris.
 fn find_misc(seq: &[Nucleotide]) -> Vec<Feature> {
     let items = vec![
@@ -118,8 +118,14 @@ fn find_misc(seq: &[Nucleotide]) -> Vec<Feature> {
             "aattaaccctcactaaagg")),
 
         FeatureMapItem::new("lac promoter", Promoter, seq_from_str("tttacactttatgcttccggctcgtatgttg")),
+        FeatureMapItem::new("cat promoter", Promoter, seq_from_str("TGATCGGCACGTAAGAGGKTCCAACTTTCACCATAATGAAATAAGATCACTACCGGGCGTATTTTTTGAGTTRTCGAGATTTTCAGGAGCTAAGGAAGCTAAA")),
+        FeatureMapItem::new("lacl promoter", Promoter, seq_from_str("GACACCATCGAATGGCGCAAAACCTTTCGCGGTATGGCATGATAGCGCCCGGAAGAGAGTCAATTCAGGGTGGTGAAT")),
+        FeatureMapItem::new("tac promoter", Promoter, seq_from_str("TTGACAATTAATCATCGGCTCGTATAATG")),
+        FeatureMapItem::new("trc promoter", Promoter, seq_from_str("TTGACAATTAATCATCCGGCYCGTATAATG")),
+
         FeatureMapItem::new("lac operator", ProteinBind, seq_from_str("ttgtgagcggataacaa")),
 
+        FeatureMapItem::new("T37 promoter", Promoter, seq_from_str("aattaaccctcactaaagg")),
         FeatureMapItem::new("T7 promoter", Promoter, seq_from_str("taatacgactcactatagg")),
         FeatureMapItem::new("RBS", RibosomeBindSite, seq_from_str("tttgtttaactttaagaaggaga")),
         FeatureMapItem::new("T7 terminator", Terminator, seq_from_str("ctagcataaccccttggggcctctaaacgggtcttgaggggttttttg")),
@@ -148,6 +154,13 @@ fn find_misc(seq: &[Nucleotide]) -> Vec<Feature> {
 
         // todo: How general is this?
         FeatureMapItem::new("Ori", Ori, seq_from_str("ttttccataggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaa")),
+
+        FeatureMapItem::new("ROP", CodingRegion, seq_from_str("tcagaggttttcaccgtcatcaccgaaacgcgcgaggcagctgcggtaaagctcatcagcgtggtcgtgaagcgattcacagatgtctgcctgttcatccgcgtccagctcgttgagtttctccagaagcgttaatgtctggcttctgataaagcgggccatgttaagggcggttttttcctgtttggtcac")),
+
+        FeatureMapItem::new("BOM", RibosomeBindSite, seq_from_str("cctgatgcggtattttctccttacgcatctgtgcggtatttcacaccgcaatggtgcactctcagtacaatctgctctgatgccgcatagttaagccagtatacactccgctatcgctacgtgactgggtcatggctgcg")),
+        FeatureMapItem::new("BOM", RibosomeBindSite, seq_from_str("cctgatgcggtattttctccttacgcatctgtgcggtatttcacaccgcactggtgcactctcagtacaatctgctctgatgccgcatagttaagccagtatacactccgctatcgctacgtgactgggtcatggctgcg")),
+
+        FeatureMapItem::new("BOM", RibosomeBindSite, seq_from_str("tttgtttaactttaagaaggaga")),
 
     ];
 

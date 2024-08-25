@@ -353,14 +353,14 @@ To learn about a table column, mouse over it.");
                     return;
                 }
 
-                if ui.button(RichText::new("Up")).clicked() {
+                if ui.button(RichText::new("⏶")).clicked() {
                     // todo: Arrow icons
                     if sel_i != 0 {
                         state.generic.primers.swap(sel_i, sel_i - 1);
                         state.ui.selected_item = Selection::Primer(sel_i - 1);
                     }
                 }
-                if ui.button(RichText::new("Dn")).clicked() && sel_i != state.generic.primers.len() - 1
+                if ui.button(RichText::new("⏷")).clicked() && sel_i != state.generic.primers.len() - 1
                 {
                     state.generic.primers.swap(sel_i, sel_i + 1);
                     state.ui.selected_item = Selection::Primer(sel_i + 1);

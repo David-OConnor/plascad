@@ -4,7 +4,6 @@ use eframe::egui::{Color32, RichText, ScrollArea, TextEdit, Ui};
 
 use crate::{gui::ROW_SPACING, sequence::Metadata};
 
-const LABEL_WIDTH: f32 = 140.; // Helps align the text edits, by forcing a fixed label width.
 const WIDTH_RATIO: f32 = 0.6;
 const ROW_HEIGHT: usize = 1;
 

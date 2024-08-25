@@ -2,7 +2,6 @@
 
 use std::{mem, path::PathBuf};
 
-use bincode::error::AllowedEnumVariants::Range;
 use eframe::egui::{Event, InputState, Key, PointerButton, Ui};
 
 use crate::{

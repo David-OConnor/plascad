@@ -282,7 +282,7 @@ pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl
 
 /// Find the similarity between the two sequences, on a scale of 0 to 1. Assumes same direction.
 /// Note: This does not have a good way of handling length mismatches.
-pub fn seq_similarity(seq_a: &[Nucleotide], seq_b: &[Nucleotide]) -> f32 {
+pub fn _seq_similarity(seq_a: &[Nucleotide], seq_b: &[Nucleotide]) -> f32 {
     // Using seq_a's len has consequences
     let mut matches = 0;
     for i in 0..seq_a.len() {

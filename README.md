@@ -137,6 +137,8 @@ Displays inline with the sequence, and includes a dedicated page which shows ami
 infers the reading frame based on marked coding region features, finding the best match of the 6 frames. It displays the amino
 acid sequence for each reading frame, with the part marked as a coding region highlighted.
 
+Displays a hydropathy chart of each amino acid, showing how hydrophobic each region of the protein is likely to be.
+
 
 ### Mixing portions assistant
 Given a designed solution with molarity concentrations, calculates the mass and volumes required to make the solution. Includes the molecular weights of common reagents. Can set up solutions mixed from custom precursor solutions.
@@ -178,3 +180,7 @@ We calculate the following categories of nucleotide repeats:
 
 Protein weight is calculated by summing the individual atomic weights of constituent amino acids, then subtracting 18.05 g/mol
 per link. (number of amino acids - 1).
+
+Protein hydrophathy is calculated using the [Kyte & Doolittle](https://web.expasy.org/protscale/) method; 
+each amino acid is given a hydropathy index. The result at each amino acid position is from an average of these indexes in a 
+window centered on the position, using uniform weights.

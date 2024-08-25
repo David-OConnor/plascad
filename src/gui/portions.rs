@@ -1,7 +1,5 @@
 //! UI page for mixing portions. (growth media, stock solutions etc)
 
-use std::fmt::Display;
-
 use eframe::{
     egui,
     egui::{Color32, ComboBox, RichText, TextEdit, Ui},

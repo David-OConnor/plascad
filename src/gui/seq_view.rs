@@ -34,7 +34,7 @@ pub const COLOR_CURSOR: Color32 = Color32::from_rgb(255, 255, 0);
 pub const COLOR_SEARCH_RESULTS: Color32 = Color32::from_rgb(255, 255, 130);
 pub const COLOR_SELECTED_NTS: Color32 = Color32::from_rgb(255, 60, 255);
 
-const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
+pub const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
 pub const VIEW_AREA_PAD_LEFT: f32 = 60.; // Bigger to accomodate the index display.
@@ -44,7 +44,6 @@ pub const SEQ_ROW_SPACING_PX: f32 = 40.;
 
 pub const TEXT_X_START: f32 = VIEW_AREA_PAD_LEFT;
 pub const TEXT_Y_START: f32 = TEXT_X_START;
-const MAX_SEQ_AREA_HEIGHT: u16 = 300;
 
 /// These aguments define the circle, and are used in many places in this module.
 pub struct SeqViewData {

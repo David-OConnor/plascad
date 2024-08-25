@@ -1,4 +1,21 @@
-use std::{path::PathBuf, str::FromStr};
+//! GUI entry point
+//!
+//! [Useful emojis supported by EGUI](https://github.com/emilk/egui/blob/9a1e358a144b5d2af9d03a80257c34883f57cf0b/crates/egui/src/lib.rs#L557-L575)
+//! ∞⊗⎗⎘⎙⏏⏴⏵⏶⏷
+//! ⏩⏪⏭⏮⏸⏹⏺■▶📾🔀🔁🔃
+//! ☀☁★☆☐☑☜☝☞☟⛃⛶✔
+//! ↺↻⟲⟳⬅➡⬆⬇⬈⬉⬊⬋⬌⬍⮨⮩⮪⮫
+//! ♡
+//! 📅📆
+//! 📈📉📊
+//! 📋📌📎📤📥🔆
+//! 🔈🔉🔊🔍🔎🔗🔘
+//! 🕓🖧🖩🖮🖱🖴🖵🖼🗀🗁🗋🗐🗑🗙🚫❓
+//!
+//! Also maybe: http://jslegers.github.io/emoji-icon-font/
+//! https://fonts.google.com/noto/specimen/Noto+Emoji
+
+use std::path::PathBuf;
 
 use eframe::{
     egui,
@@ -223,11 +240,10 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
                 if feature_size < smallest_feature_size {
                     smallest_feature = i;
                     smallest_feature_size = feature_size;
-
-                    return Some(i);
                 }
             }
         }
+        return Some(smallest_feature);
     }
     None
 }

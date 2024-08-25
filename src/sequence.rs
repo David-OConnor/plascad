@@ -127,7 +127,7 @@ impl Display for ReadingFrame {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Encode, Decode)]
 pub struct ReadingFrameMatch {
     pub frame: ReadingFrame,
     /// Indices are respective to the non-complementary seq, for both forward and reverse reading frames.

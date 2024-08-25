@@ -1,9 +1,15 @@
-use eframe::egui::{Color32, FontFamily, FontId, RichText, Ui};
+use eframe::{
+    egui::{
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
+        Stroke, Ui,
+    },
+    emath::RectTransform,
+    epaint::PathShape,
+};
 
 use crate::{
     amino_acids::{AaIdent, AminoAcid},
-    gui::{COL_SPACING, ROW_SPACING},
-    protein::protein_weight,
+    gui::{circle::TICK_COLOR, seq_view::BACKGROUND_COLOR, COL_SPACING, ROW_SPACING},
     sequence::FeatureType,
     State,
 };
@@ -11,6 +17,10 @@ use crate::{
 const COLOR_PROT_SEQ: Color32 = Color32::from_rgb(255, 100, 200);
 const COLOR_PRE_POST_CODING_SEQ: Color32 = Color32::from_rgb(100, 255, 200);
 const FONT_SIZE_SEQ: f32 = 14.;
+
+const CHART_HEIGHT: f32 = 200.;
+const CHART_LINE_WIDTH: f32 = 2.;
+const CHART_LINE_COLOR: Color32 = Color32::from_rgb(255, 100, 100);
 
 // todo: Color-code AAs, start/stop codons etc.
 
@@ -30,116 +40,146 @@ fn make_aa_text(seq: &[AminoAcid], aa_ident_disp: AaIdent) -> String {
     result
 }
 
+/// Plot a hydrophobicity line plot.
+fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
+    let stroke = Stroke::new(CHART_LINE_WIDTH, CHART_LINE_COLOR);
+
+    Frame::canvas(ui.style())
+        .fill(BACKGROUND_COLOR)
+        .show(ui, |ui| {
+            let width = ui.available_width();
+            let (response, _painter) = {
+                let desired_size = vec2(width, CHART_HEIGHT);
+                // ui.allocate_painter(desired_size, Sense::click())
+                ui.allocate_painter(desired_size, Sense::click_and_drag())
+            };
+
+            let to_screen = RectTransform::from_to(
+                Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+                response.rect,
+            );
+            // let from_screen = to_screen.inverse();
+
+            const MAX_VAL: f32 = 6.;
+
+            let mut points = Vec::new();
+            let num_pts = data.len() as f32;
+            // todo: Consider cacheing the calculations here instead of running this each time.
+            for pt in data {
+                points.push(
+                    to_screen
+                        * pos2(
+                            pt.0 as f32 / num_pts * width,
+                            // Offset for 0 baseline.
+                            (pt.1 + MAX_VAL / 2.) / MAX_VAL * CHART_HEIGHT,
+                        ),
+                );
+            }
+
+            let line = Shape::Path(PathShape::line(points, stroke));
+
+            let mut x_axis = Vec::new();
+            const NUM_X_TICKS: usize = 12;
+            let data_range = data[data.len() - 1].0 - data[0].0;
+            let dr_nt = data_range / NUM_X_TICKS;
+
+            let x_axis_posit = CHART_HEIGHT - 4.;
+
+            for i in 0..NUM_X_TICKS {
+                let tick_v = data[0].0 + dr_nt * i;
+
+                x_axis.push(ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        to_screen * pos2(i as f32 / NUM_X_TICKS as f32 * width, x_axis_posit),
+                        Align2::CENTER_CENTER,
+                        tick_v.to_string(),
+                        FontId::new(14., FontFamily::Proportional),
+                        TICK_COLOR,
+                    )
+                }));
+            }
+
+            ui.painter().extend([line]);
+            ui.painter().extend(x_axis);
+        });
+}
+
 fn draw_proteins(state: &mut State, ui: &mut Ui) {
-    for (i, feature) in state.generic.features.iter().enumerate() {
-        if feature.feature_type != FeatureType::CodingRegion {
-            continue;
+    for protein in &mut state.volatile.proteins {
+        ui.heading(RichText::new(&protein.feature.label).color(Color32::LIGHT_BLUE));
+
+        ui.horizontal(|ui| {
+            ui.label(format!(
+                "Reading frame: {}, Range: {}",
+                protein.reading_frame_match.frame, protein.reading_frame_match.range
+            ));
+            ui.add_space(COL_SPACING);
+
+            if protein.weight != protein.weight_with_prepost {
+                // Only show this segment if pre and post-coding sequences exist
+                ui.label(format!(
+                    "(Coding region only): AA len: {}  Weight: {:.1}kDa",
+                    protein.aa_seq.len(),
+                    protein.weight,
+                ));
+                ui.add_space(COL_SPACING);
+            }
+
+            ui.label(format!(
+                "AA len: {}  Weight: {:.1}kDa",
+                protein.aa_seq.len()
+                    + protein.aa_seq_precoding.len()
+                    + protein.aa_seq_postcoding.len(),
+                protein.weight_with_prepost,
+            ));
+        });
+        ui.add_space(ROW_SPACING / 2.);
+
+        let aa_text = make_aa_text(&protein.aa_seq, state.ui.aa_ident_disp);
+        let aa_text_precoding = make_aa_text(&protein.aa_seq_precoding, state.ui.aa_ident_disp);
+        let aa_text_postcoding = make_aa_text(&protein.aa_seq_postcoding, state.ui.aa_ident_disp);
+
+        if !aa_text_precoding.is_empty() {
+            ui.label(
+                RichText::new(aa_text_precoding)
+                    .color(COLOR_PRE_POST_CODING_SEQ)
+                    .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
+            );
         }
 
-        for ((j, om)) in &state.volatile.cr_orf_matches {
-            if *j == i {
-                ui.heading(RichText::new(&feature.label).color(Color32::LIGHT_BLUE));
+        ui.label(
+            RichText::new(aa_text)
+                .color(COLOR_PROT_SEQ)
+                .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
+        );
 
-                // todo: Consider switching to a canvas-based approach A/R. Text as an MVP.
-                // todo: Breakout into fns, probably in src/protein.
-                if let Some(seq_orf_match_dna) = om.range.index_seq(&state.generic.seq) {
-                    // todo: DRy with feature_db_load.
-                    let len = seq_orf_match_dna.len();
+        if !aa_text_postcoding.is_empty() {
+            ui.label(
+                RichText::new(aa_text_postcoding)
+                    .color(COLOR_PRE_POST_CODING_SEQ)
+                    .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
+            );
+        }
 
-                    let mut aa_seq = Vec::new();
-                    // We also render AAs included in the reading frame, but not specified in the coding region feature.
-                    let mut aa_seq_precoding = Vec::new();
-                    let mut aa_seq_postcoding = Vec::new();
+        if protein.show_hydropath {
+            ui.horizontal(|ui| {
+                ui.heading("Hydrophobicity");
+                ui.add_space(COL_SPACING);
 
-                    for i_ in 0..len / 3 {
-                        let i = i_ * 3; // The ORF-modified sequence index.
-                        let i_actual = i + om.range.start;
-
-                        let nts = &seq_orf_match_dna[i..i + 3];
-
-                        // let mut matched = false;
-                        if let Some(aa) = AminoAcid::from_codons(nts.try_into().unwrap()) {
-                            // todo: Handle unknown AAs; don't just silently ommit as we are currently doing.
-
-                            if i_actual < feature.range.start {
-                                aa_seq_precoding.push(aa);
-                            } else if i_actual > feature.range.end {
-                                aa_seq_postcoding.push(aa);
-                            } else {
-                                aa_seq.push(aa);
-                            }
-                        }
-                    }
-
-                    // todo: Def cache these weights.
-                    let weight = protein_weight(&aa_seq);
-                    let weight_with_pre_post = weight
-                        + protein_weight(&aa_seq_precoding)
-                        + protein_weight(&aa_seq_postcoding);
-
-                    ui.horizontal(|ui| {
-                        ui.label(format!("Reading frame: {}, Range: {}", om.frame, om.range));
-                        ui.add_space(COL_SPACING);
-
-                        if weight != weight_with_pre_post {
-                            // Only show this segment if pre and post-coding sequences exist
-                            ui.label(format!(
-                                "(Coding region only): AA len: {}  Weight: {:.1}kDa",
-                                aa_seq.len(),
-                                weight,
-                            ));
-                            ui.add_space(COL_SPACING);
-                        }
-
-                        ui.label(format!(
-                            "AA len: {}  Weight: {:.1}kDa",
-                            aa_seq.len() + aa_seq_precoding.len() + aa_seq_postcoding.len(),
-                            weight_with_pre_post,
-                        ));
-                    });
-                    ui.add_space(ROW_SPACING / 2.);
-
-                    let aa_text = make_aa_text(&aa_seq, state.ui.aa_ident_disp);
-                    let aa_text_precoding = make_aa_text(&aa_seq_precoding, state.ui.aa_ident_disp);
-                    let aa_text_postcoding =
-                        make_aa_text(&aa_seq_postcoding, state.ui.aa_ident_disp);
-
-                    if !aa_text_precoding.is_empty() {
-                        ui.label(
-                            RichText::new(aa_text_precoding)
-                                .color(COLOR_PRE_POST_CODING_SEQ)
-                                .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
-                        );
-                    }
-
-                    ui.label(
-                        RichText::new(aa_text)
-                            .color(COLOR_PROT_SEQ)
-                            .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
-                    );
-
-                    if !aa_text_postcoding.is_empty() {
-                        ui.label(
-                            RichText::new(aa_text_postcoding)
-                                .color(COLOR_PRE_POST_CODING_SEQ)
-                                .font(FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace)),
-                        );
-                    }
+                if ui.button("Hide hydrophobicity data").clicked() {
+                    protein.show_hydropath = false;
                 }
+            });
 
-                // let offset = om.frame.offset();
-                // let seq_full = om.frame.arrange_seq(&state.generic.seq);
-                // let len_full = seq_full.len();
-
-                // todo: For now, constructing this dynamically. Cache it in state.volatile.
-                // todo: Handle reverse reading frames.
-                if let Some(seq_dna) = feature.range.index_seq(&state.generic.seq) {
-                    // todo: DRy with feature_db_load.
-                }
-
-                ui.add_space(ROW_SPACING);
+            hydrophobicity_chart(&protein.hydropath_data, ui);
+        } else {
+            if ui.button("Show hydrophobicity data").clicked() {
+                protein.show_hydropath = true;
             }
         }
+
+        ui.add_space(ROW_SPACING);
     }
 }
 

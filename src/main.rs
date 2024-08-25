@@ -41,7 +41,7 @@ use crate::{
     pcr::{PcrParams, PolymeraseType},
     portions::PortionsState,
     primer::TM_TARGET,
-    protein::sync_cr_orf_matches,
+    protein::{proteins_from_seq, sync_cr_orf_matches},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
         find_orf_matches, find_search_matches, seq_to_str, FeatureDirection, FeatureType,
@@ -312,6 +312,7 @@ struct StateUi {
     text_selection: Option<RangeIncl>,
     quick_feature_add_name: String,
     quick_feature_add_dir: FeatureDirection,
+    // todo: Protein ui A/R
     aa_ident_disp: AaIdent,
 }
 
@@ -374,6 +375,7 @@ struct StateVolatile {
     /// Used for automatically determining which reading frame to use, and the full frame,
     /// for a given coding-region feature.
     cr_orf_matches: Vec<(usize, ReadingFrameMatch)>,
+    proteins: Vec<Protein>,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
@@ -392,7 +394,6 @@ struct State {
     path_loaded: Option<PathBuf>,
     search_seq: Seq,
     portions: PortionsState,
-    proteins: Vec<Protein>,
 }
 
 impl State {
@@ -561,6 +562,11 @@ impl State {
         self.sync_search();
 
         sync_cr_orf_matches(self);
+        self.volatile.proteins = proteins_from_seq(
+            &self.generic.seq,
+            &self.generic.features,
+            &self.volatile.cr_orf_matches,
+        );
 
         self.ui.seq_input = seq_to_str(&self.generic.seq);
     }
@@ -606,7 +612,6 @@ impl State {
         match self.ui.selected_item {
             Selection::Feature(i) => {
                 let feature = &self.generic.features[i];
-                // todo: Why -1 not working?
                 if let Some(seq) = feature.range.index_seq(&self.generic.seq) {
                     let mut ctx = ClipboardContext::new().unwrap();
                     ctx.set_contents(seq_to_str(seq)).unwrap();

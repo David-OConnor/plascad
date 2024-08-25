@@ -120,6 +120,34 @@ impl AminoAcid {
         }
     }
 
+    /// Used for determining protein hydropathy.
+    /// [Kyte, Doolittle](https://web.expasy.org/protscale/pscale/Hydropath.Doolittle.html)
+    pub fn hydropathicity(&self) -> f32 {
+        match self {
+            Self::Arg => -4.5,
+            Self::His => -3.2,
+            Self::Lys => -3.9,
+            Self::Asp => -3.5,
+            Self::Glu => -3.5,
+            Self::Ser => -0.8,
+            Self::Thr => -0.7,
+            Self::Asn => -3.5,
+            Self::Gln => -3.5,
+            Self::Cys => 2.5,
+            Self::Sec => 0., // todo?
+            Self::Gly => -0.4,
+            Self::Pro => -1.6,
+            Self::Ala => 1.8,
+            Self::Val => 4.2,
+            Self::Ile => 4.5,
+            Self::Leu => 3.8,
+            Self::Met => 1.9,
+            Self::Phe => 2.8,
+            Self::Tyr => -1.3,
+            Self::Trp => -0.9,
+        }
+    }
+
     /// https://en.wikipedia.org/wiki/DNA_and_RNA_codon_tables#/media/File:Aminoacids_table.svg
     /// If a codon has less than 3 nucleotides, it means the third can be any; this may have both conciseness,
     /// and performance advantages.

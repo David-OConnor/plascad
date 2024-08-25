@@ -33,7 +33,7 @@ const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 const BACKBONE_COLOR: Color32 = Color32::from_rgb(180, 180, 180);
 const BACKBONE_WIDTH: f32 = 10.;
 
-const TICK_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
+pub const TICK_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
 const TICK_WIDTH: f32 = 2.;
 const RE_WIDTH: f32 = 2.;
 const TICK_SPACING: usize = 500; // Nucleotides between ticks
@@ -796,9 +796,6 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
     }
 
     for note in &feature.notes {
-        // We draw these left aligned, offset to the left
-        const NOTES_LEFT_OFFSET: f32 = 200.;
-
         // Don't let a note overflow. Note: Wrapping would be preferred to this cutoff.
         let max_len = (0.2 * data.radius) as usize; // Note: This depends on font size.
                                                     // Newlines will interfere with our current line-spacing system.

@@ -28,6 +28,8 @@ path = "src/main.rs"
 eframe = "^0.28.1"
 egui_extras = "^0.28.1"  # For tables.
 egui-file-dialog = "^0.6.0" #  For file dialogs.
+# todo: Evaluate size etc of this plotting lib.
+#egui_plot = "^0.28.1"
 
 serde = { version = "^1.0.206", features = ["derive"] }
 num_enum = "0.7.3"  # reversing a u8-repr.
@@ -48,6 +50,7 @@ url = "^2.5.2"
 # For clipboard operations not supported directly by EGUI
 copypasta = "^0.10.1"
 #winreg = "0.52.0"
+
 
 
 [build-dependencies]
