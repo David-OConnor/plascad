@@ -5,6 +5,7 @@ use eframe::{
     },
     emath::RectTransform,
     epaint::PathShape,
+    glow::MAX_HEIGHT,
 };
 
 use crate::{
@@ -100,8 +101,42 @@ fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
                 }));
             }
 
+            let mut y_axis = Vec::new();
+            const NUM_Y_TICKS: usize = 7;
+            let data_range = 2. * MAX_VAL;
+            let dr_nt = data_range / NUM_Y_TICKS as f32;
+
+            let y_axis_posit = 4.;
+
+            for i in 0..NUM_Y_TICKS {
+                println!("I {}", i);
+                let tick_v = -(-MAX_VAL + dr_nt * i as f32) as i8;
+
+                y_axis.push(ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        // to_screen * pos2(y_axis_posit, i as f32 / NUM_Y_TICKS as f32 * CHART_HEIGHT),
+                        to_screen * pos2(y_axis_posit, i as f32 * dr_nt),
+                        Align2::CENTER_CENTER,
+                        tick_v.to_string(),
+                        FontId::new(14., FontFamily::Proportional),
+                        TICK_COLOR,
+                    )
+                }));
+            }
+
+            let center_axis = Shape::line_segment(
+                [
+                    to_screen * pos2(0., CHART_HEIGHT / 2.),
+                    to_screen * pos2(width, CHART_HEIGHT / 2.),
+                ],
+                Stroke::new(1., TICK_COLOR),
+            );
+
             ui.painter().extend([line]);
             ui.painter().extend(x_axis);
+            // ui.painter().extend(y_axis);
+            ui.painter().extend([center_axis]);
         });
 }
 
@@ -167,14 +202,14 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
                 ui.heading("Hydrophobicity");
                 ui.add_space(COL_SPACING);
 
-                if ui.button("Hide hydrophobicity data").clicked() {
+                if ui.button("Hide hydrophobicity").clicked() {
                     protein.show_hydropath = false;
                 }
             });
 
             hydrophobicity_chart(&protein.hydropath_data, ui);
         } else {
-            if ui.button("Show hydrophobicity data").clicked() {
+            if ui.button("Show hydrophobicity").clicked() {
                 protein.show_hydropath = true;
             }
         }
