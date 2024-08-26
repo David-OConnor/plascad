@@ -120,7 +120,10 @@ impl AminoAcid {
         }
     }
 
-    /// Used for determining protein hydropathy.
+    /// Used for determining protein hydropathy. High (eg positive) values intdicate hydrophilic
+    /// AAs. (Seems to not be completely true from some example checks? Some traditionally hydrophilic
+    /// proteins like Proline (-1.6) and Glycine (-4) are on the list, but the very negative values
+    /// are not associated with traditionally hydrophillic AAs.
     /// [Kyte, Doolittle](https://web.expasy.org/protscale/pscale/Hydropath.Doolittle.html)
     pub fn hydropathicity(&self) -> f32 {
         match self {

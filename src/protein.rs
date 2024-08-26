@@ -98,7 +98,7 @@ pub fn proteins_from_seq(
                         hydropath_data,
                         weight,
                         weight_with_prepost,
-                        show_hydropath: false,
+                        show_hydropath: true,
                     })
                 }
             }

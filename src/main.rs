@@ -50,6 +50,7 @@ use crate::{
     tags::TagMatch,
     util::RangeIncl,
 };
+use crate::portions::{MediaPrep, MediaPrepInput};
 
 mod amino_acids;
 mod cloning;

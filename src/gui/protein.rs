@@ -1,6 +1,6 @@
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, ScrollArea, Pos2, Rect, RichText, Sense, Shape,
         Stroke, Ui,
     },
     emath::RectTransform,
@@ -70,10 +70,10 @@ fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
                 points.push(
                     to_screen
                         * pos2(
-                            pt.0 as f32 / num_pts * width,
-                            // Offset for 0 baseline.
-                            (pt.1 + MAX_VAL / 2.) / MAX_VAL * CHART_HEIGHT,
-                        ),
+                        pt.0 as f32 / num_pts * width,
+                        // Offset for 0 baseline.
+                        (pt.1 + MAX_VAL / 2.) / MAX_VAL * CHART_HEIGHT,
+                    ),
                 );
             }
 
@@ -109,7 +109,6 @@ fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
             let y_axis_posit = 4.;
 
             for i in 0..NUM_Y_TICKS {
-                println!("I {}", i);
                 let tick_v = -(-MAX_VAL + dr_nt * i as f32) as i8;
 
                 y_axis.push(ui.ctx().fonts(|fonts| {
@@ -202,19 +201,22 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
                 ui.heading("Hydrophobicity");
                 ui.add_space(COL_SPACING);
 
-                if ui.button("Hide hydrophobicity").clicked() {
+                ui.label("High values indicate hydrophobic regions; low ones hydrophilic regions.");
+                ui.add_space(COL_SPACING);
+
+                if ui.button("Hide hydropathy").clicked() {
                     protein.show_hydropath = false;
                 }
             });
 
             hydrophobicity_chart(&protein.hydropath_data, ui);
         } else {
-            if ui.button("Show hydrophobicity").clicked() {
+            if ui.button("Show hydrophpathy").clicked() {
                 protein.show_hydropath = true;
             }
         }
 
-        ui.add_space(ROW_SPACING);
+        ui.add_space(ROW_SPACING * 2.);
     }
 }
 
@@ -241,7 +243,11 @@ pub fn protein_page(state: &mut State, ui: &mut Ui) {
         .iter()
         .any(|f| f.feature_type == FeatureType::CodingRegion)
     {
-        draw_proteins(state, ui);
+        ScrollArea::vertical()
+            .id_source(200)
+            .show(ui, |ui| {
+                draw_proteins(state, ui);
+            });
     } else {
         ui.label("Create one or more Coding Region feature to display proteins here.");
     }

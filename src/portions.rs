@@ -9,6 +9,8 @@ use bincode::{Decode, Encode};
 #[derive(Default, Clone, Encode, Decode)]
 pub struct PortionsState {
     pub solutions: Vec<Solution>,
+    pub media_input: MediaPrepInput,
+    pub media_result: MediaPrep,
 }
 
 #[derive(Default, Clone, Encode, Decode)]
@@ -209,5 +211,90 @@ impl Display for ReagentType {
         };
 
         write!(f, "{}", str)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Encode, Decode)]
+pub enum PlateSize {
+    /// 60mm diameter
+    D60,
+    D90,
+    D100,
+    D150,
+}
+
+impl PlateSize {
+    /// Nominal amount of liquid. Note that these go with the square of the baseline. We use 7mL for 60mm
+    /// plates as the baseline.
+    pub fn volume(&self) -> f32 {
+        match self {
+            Self::D60 => 0.007,
+            Self::D90 => 0.01575,
+            Self::D100 => 0.01944,
+            Self::D150 => 0.04375,
+        }
+    }
+}
+
+
+impl Display for PlateSize{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            Self::D60 => "60mm",
+            Self::D90 => "90mm",
+            Self::D100 => "100mm",
+            Self::D150 => "150mm",
+        };
+
+        write!(f, "{}", str)
+    }
+}
+
+#[derive(Clone, PartialEq, Encode, Decode   )]
+pub enum MediaPrepInput {
+    Plates((PlateSize, usize)), // number of plates,
+    Liquid(f32), // volume
+}
+
+impl Display for MediaPrepInput{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            Self::Plates(_) => "Plates",
+            Self::Liquid(_) => "Liquid culture",
+        };
+
+        write!(f, "{}", str)
+    }
+}
+
+impl Default for MediaPrepInput {
+    fn default() -> Self {
+        Self::Plates((PlateSize::D90, 6))
+    }
+}
+
+#[derive(Clone, Default, Encode, Decode)]
+pub struct MediaPrep {
+    pub water: f32, // L
+    pub food: f32, // g
+    pub agar: f32, // g
+    pub antibiotic: f32, // mL
+}
+
+/// Returns volume of water, grams of LB, grams of agar, mL of 1000x antibiotics.
+pub fn media_prep(input: &MediaPrepInput) -> MediaPrep{
+    let (volume, agar) = match input {
+        MediaPrepInput::Plates((plate_size, num)) => {
+            let volume = plate_size.volume() * *num as f32;
+            (volume, volume * 15.)
+        }
+        MediaPrepInput::Liquid(volume) => (*volume, 0.)
+    };
+
+    MediaPrep {
+        water: volume,
+        food: volume * 25.,
+        agar,
+        antibiotic: volume,
     }
 }
