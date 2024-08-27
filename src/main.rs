@@ -39,7 +39,7 @@ use crate::{
     },
     gui::{navigation::PageSeqTop, save::load_import, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
     pcr::{PcrParams, PolymeraseType},
-    portions::PortionsState,
+    portions::{MediaPrep, MediaPrepInput, PortionsState},
     primer::TM_TARGET,
     protein::{proteins_from_seq, sync_cr_orf_matches},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
@@ -50,10 +50,10 @@ use crate::{
     tags::TagMatch,
     util::RangeIncl,
 };
-use crate::portions::{MediaPrep, MediaPrepInput};
 
 mod amino_acids;
 mod cloning;
+mod external_websites;
 mod feature_db_load;
 mod file_io;
 mod gui;
@@ -315,6 +315,7 @@ struct StateUi {
     quick_feature_add_dir: FeatureDirection,
     // todo: Protein ui A/R
     aa_ident_disp: AaIdent,
+    pdb_error_received: bool,
 }
 
 impl Default for StateUi {
@@ -348,6 +349,7 @@ impl Default for StateUi {
             quick_feature_add_name: Default::default(),
             quick_feature_add_dir: Default::default(),
             aa_ident_disp: AaIdent::ThreeLetters,
+            pdb_error_received: false,
         }
     }
 }
@@ -414,14 +416,14 @@ impl State {
         let ui_loaded: io::Result<StateUiToSave> = load(path);
 
         if let Ok(ui) = ui_loaded {
-            self.ui = ui.to_state();
+            (self.ui, self.path_loaded) = ui.to_state();
         }
     }
 
     pub fn save_prefs(&self) {
         if let Err(e) = save(
             &PathBuf::from(DEFAULT_PREFS_FILE),
-            &StateUiToSave::from_state(&self.ui),
+            &StateUiToSave::from_state(&self.ui, &self.path_loaded),
         ) {
             eprintln!("Error saving prefs: {e}");
         }
@@ -631,11 +633,19 @@ impl State {
 
 fn main() {
     let mut window_title_initial = WINDOW_TITLE.to_owned();
+
+    let mut state = State::default();
+    state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+
+    // Initial load  hierarchy:
+    // - Path argument (eg file association)
+    // - Last opened file
+    // - Quicksave
     let path = {
         let mut r = PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap();
 
         // Windows and possibly other operating systems, if attempting to use your program to natively
-        // open a file type, will use command line argumentse to indicate this. Determine if the program
+        // open a file type, will use command line arguments to indicate this. Determine if the program
         // is being launched this way, and if so, open the file.
         let args: Vec<String> = env::args().collect();
         if args.len() > 1 {
@@ -648,15 +658,19 @@ fn main() {
                 .and_then(|name| name.to_str())
                 .map(|name_str| name_str.to_string())
                 .unwrap();
+        } else {
+            if let Some(path_last) = &state.path_loaded {
+                r = path_last.clone();
+            }
         }
 
         r
     };
 
-    let mut state = State::default();
     load_import(&mut state, &path);
+    state.sync_seq_related(None);
 
-    state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+    // state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
     state.reset_selections();
 
     if window_title_initial != WINDOW_TITLE {

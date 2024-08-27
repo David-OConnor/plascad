@@ -129,15 +129,15 @@ Annotate the common features from sequences; this includes promoters, origins of
 genes.
 
 
-### Displays amino acid sequences for coding regions (proteins)
+### Amino acid sequences and other protein data
 
 ![Protein view screenshot](screenshots/protein_aug_24.png)
 
-Displays inline with the sequence, and includes a dedicated page which shows amino acid sequences for all coding regions. This
-infers the reading frame based on marked coding region features, finding the best match of the 6 frames. It displays the amino
-acid sequence for each reading frame, with the part marked as a coding region highlighted.
+Displays amino acids inline with the sequence, and includes a dedicated page which shows amino acid sequences for all coding regions. This infers the reading frame based on marked coding region features, finding the best match of the 6 frames. It displays the amino acid sequence for each reading frame, with the part marked as a coding region highlighted.
 
 Displays a hydropathy chart of each amino acid, showing how hydrophobic each region of the protein is likely to be.
+
+Optionally loads data from the [RCSB Protein Data Bank](https://www.rcsb.org) (via [PDB's API](https://data.rcsb.org/#data-api)). Finds proteins that match each coding region. From these, it can automatically open a browser to PDB's entry on this protein, its 3D viewer, or download structure data (i.e. atomic coordinates). 
 
 
 ### Mixing portions assistant

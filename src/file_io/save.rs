@@ -7,7 +7,7 @@ use std::{
     fs::File,
     io,
     io::{ErrorKind, Read, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use bincode::{
@@ -150,10 +150,11 @@ pub struct StateUiToSave {
     selected_item: Selection,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
+    last_file_opened: Option<PathBuf>,
 }
 
 impl StateUiToSave {
-    pub fn from_state(state: &StateUi) -> Self {
+    pub fn from_state(state: &StateUi, path_loaded: &Option<PathBuf>) -> Self {
         Self {
             page: state.page,
             page_seq: state.page_seq,
@@ -162,21 +163,26 @@ impl StateUiToSave {
             selected_item: state.selected_item,
             seq_visibility: state.seq_visibility.clone(),
             hide_map_feature_editor: state.hide_map_feature_editor,
+            last_file_opened: path_loaded.clone(),
         }
     }
 
     /// Used to load to state. The result is data from this struct, augmented with default values.
-    pub fn to_state(&self) -> StateUi {
-        StateUi {
-            page: self.page,
-            page_seq: self.page_seq,
-            page_seq_top: self.page_seq_top,
-            pcr: self.pcr.clone(),
-            selected_item: self.selected_item,
-            seq_visibility: self.seq_visibility.clone(),
-            hide_map_feature_editor: self.hide_map_feature_editor,
-            ..Default::default()
-        }
+    pub fn to_state(&self) -> (StateUi, Option<PathBuf>) {
+        (
+            StateUi {
+                page: self.page,
+                page_seq: self.page_seq,
+                page_seq_top: self.page_seq_top,
+                pcr: self.pcr.clone(),
+                selected_item: self.selected_item,
+                seq_visibility: self.seq_visibility.clone(),
+                hide_map_feature_editor: self.hide_map_feature_editor,
+                // last_file_opened: self.last_file_opened.clone(),
+                ..Default::default()
+            },
+            self.last_file_opened.clone(),
+        )
     }
 }
 

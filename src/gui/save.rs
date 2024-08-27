@@ -191,13 +191,14 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     }
 }
 
-/// Load from a file of various formats.
+/// Load state from a file of various formats.
 pub fn load_import(state: &mut State, path: &Path) {
     if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
         match extension.to_lowercase().as_ref() {
             "pcad" => {
                 *state = State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
                 state.path_loaded = Some(path.to_owned());
+                state.save_prefs(); // to sync last opened.
             }
             // Does this work for FASTQ too?
             "fasta" => {
@@ -215,7 +216,7 @@ pub fn load_import(state: &mut State, path: &Path) {
             "dna" => {
                 if let Ok(data) = import_snapgene(&path) {
                     state.generic = data;
-                    // We do not mark the path as opened if using SnapGene, since we currently can  not
+                    // We do not mark the path as opened if using SnapGene, since we currently can not
                     // fully understand the format, nor make a native file SnapGene can open.
                     state.path_loaded = None;
                 }
@@ -224,6 +225,7 @@ pub fn load_import(state: &mut State, path: &Path) {
                 if let Ok(data) = import_genbank(&path) {
                     state.generic = data;
                     state.path_loaded = Some(path.to_owned());
+                    state.save_prefs();
                 }
             }
             _ => {

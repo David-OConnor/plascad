@@ -47,17 +47,23 @@ gb-io = "^0.7.1"
 webbrowser = "^1.0.1"
 url = "^2.5.2"
 
+# For creating JSON payloads for the PDB search API.
+#tinyjson = "^2.5.1"
+serde_json = {version = "^1.0.127"}
+
 # For clipboard operations not supported directly by EGUI
 copypasta = "^0.10.1"
-#winreg = "0.52.0"
+#winreg = "0.52.0"  # For setting up file associations on Windows
+# For loading PDB data.
 
+# todo: Any way to keep this from taking up 2Mb in the binary?
+reqwest = { version = "^0.12.7", features = ["blocking", "json"]}
 
 
 [build-dependencies]
 # These are for embedding an application icon, on Windows.
 winresource = "^0.1.17"
 
-# todo: Experimenting to get executable file size down.
 # https://doc.rust-lang.org/cargo/reference/profiles.html
 [profile.release]
 strip = true  # Strip symbols from binary. Very little improvement in size.

@@ -23,12 +23,12 @@ use eframe::{
     emath::RectTransform,
 };
 use navigation::Page;
-use url::Url;
 
 use crate::{
+    external_websites,
     feature_db_load::find_features,
     gui::{input::handle_input, primer_qc::primer_details},
-    sequence::{seq_to_str, Feature, FeatureType, Nucleotide},
+    sequence::{Feature, FeatureType},
     util,
     util::merge_feature_sets,
     Selection, State,
@@ -62,57 +62,6 @@ pub const COL_SPACING: f32 = 30.;
 // Note: This is basically working, but doesn't seem to reflect this scaling factor accurately.
 pub const SPLIT_SCREEN_MAX_HEIGHT: f32 = 3.5;
 
-// todo: Move this BLAST stuff A/R.
-const NCBI_BLAST_URL: &str = "https://blast.ncbi.nlm.nih.gov/Blast.cgi";
-
-/// Blast the selected Feature, primer, or selection. Prioritize the selection.
-pub fn blast(state: &State) {
-    let val = match state.ui.text_selection {
-        Some(sel) => {
-            // Don't format sel directly, as we insert the bp count downstream for use with feature selections.
-            Some((
-                sel.index_seq(&state.generic.seq),
-                format!(
-                    "{}, {}..{}",
-                    state.generic.metadata.plasmid_name, sel.start, sel.end
-                ),
-            ))
-        }
-        None => match state.ui.selected_item {
-            Selection::Feature(feat_i) => {
-                if state.generic.features.len() < feat_i + 1 {
-                    eprintln!("Invalid selected feature");
-                    None
-                } else {
-                    let feature = &state.generic.features[feat_i];
-                    Some((
-                        feature.range.index_seq(&state.generic.seq),
-                        feature.label.clone(),
-                    ))
-                }
-            }
-            Selection::Primer(prim_i) => {
-                if state.generic.primers.len() < prim_i + 1 {
-                    eprintln!("Invalid selected primer");
-                    None
-                } else {
-                    let primer = &state.generic.primers[prim_i];
-                    Some((Some(&primer.sequence[..]), primer.name.clone()))
-                }
-            }
-            Selection::None => None,
-        },
-    };
-
-    // todo: Handle reverse.
-
-    if let Some((seq, name)) = val {
-        if let Some(s) = seq {
-            open_blast(s, &name);
-        }
-    }
-}
-
 pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
     ui.label(label);
     let mut entry = val.to_string();
@@ -137,53 +86,6 @@ pub fn get_cursor_text(cursor_seq_i: Option<usize>, seq_len: usize) -> String {
             }
         }
         None => String::new(),
-    }
-}
-
-/// Open the web browser to a NCBI-BLAST page, of the sequence of interest.
-///
-///Example BLAST
-/// note: There appears to be a NT limit that will fail most full plastmids when using the GET api.
-/// ?PAGE_TYPE=BlastSearch&CMD=Web&LAYOUT=OneWindow&PROGRAM=blastn&MEGABLAST=on&PAGE=Nucleotides&DATABASE=nr
-/// &FORMAT_TYPE=HTML&NCBI_GI=on&SHOW_OVERVIEW=on&QUERY=%3Ettt%20%20(43%20..%20905%20%3D%20863%20bp)
-/// %0AACTCACTATAGGGAAATAATTTTGTTTAACTTTAAGAAGGAGATATACCGGTATGACTAGTATGGAAGACGCCAAAAACATAAAGAAAGGCCCG
-/// GCGCCATTCTATCCGCTGGAAGATGGAACCGCTGGAGAGCAACTGCATAAGGCTATGAAGAGATACGCCCTGGTTCCTGGAACAATTGCTTTTACAGA
-/// TGCACATATCGAGGTGGACATCACTTACGCTGAGTACTTCGAAATGTCCGTTCGGTTGGCAGAAGCTATGAAACGATATGGGCTGAATACAAATCACAGA
-/// ATCGTCGTATGCAGTGAAAACTCTCTTCAATTCTTTATGCCGGTGTTGGGCGCGTTATTTATCGGAGTTGCAGTTGCGCCCGCGAACGACATTTATAATGA
-/// ACGTGAATTGCTCAACAGTATGGGCATTTCGCAGCCTACCGTGGTGTTCGTTTCCAAAAAGGGGTTGCAAAAAATTTTGAACGTGCAAAAAAAGCTCCCAAT
-/// CATCCAAAAAATTATTATCATGGATTCTAAAACGGATTACCAGGGATTTCAGTCGATGTACACGTTCGTCACATCTCATCTACCTCCCGGTTTTAATGAATAC
-/// GATTTTGTGCCAGAGTCCTTCGATAGGGACAAGACAATTGCACTGATCATGAACTCCTCTGGATCTACTGGTCTGCCTAAAGGTGTCGCTCTGCCTCATAGAACT
-/// GCCTGCGTGAGATTCTCGCATGCCAGAGATCCTATTTTTGGCAATCAAATCATTCCGGATACTGCGATTTTAAGTGTTGTTCCATTCCATCACGGTTTTGGAA
-/// TGTTTACTACACTCGGATATTTGATATGTGGATTTCGAGTCGTCTTAATGTATAGAT
-
-fn open_blast(seq: &[Nucleotide], seq_name: &str) {
-    let text_query = format!(">{seq_name} ({} bp)\n{}", seq.len(), seq_to_str(seq));
-
-    let params = vec![
-        ("PAGE_TYPE", "BlastSearch"),
-        ("CMD", "Web"),
-        ("LAYOUT", "OneWindow"),
-        ("PROGRAM", "blastn"),
-        ("MEGABLAST", "on"),
-        ("PAGE", "Nucleotides"),
-        ("DATABASE", "nr"),
-        ("FORMAT_TYPE", "HTML"),
-        ("NCBI_GI", "on"),
-        ("SHOW_OVERVIEW", "on"),
-        ("QUERY", &text_query),
-    ];
-
-    let mut url = Url::parse(NCBI_BLAST_URL).unwrap();
-    {
-        let mut query_pairs = url.query_pairs_mut();
-        for (key, value) in params {
-            query_pairs.append_pair(key, value);
-        }
-    }
-
-    // Open the URL in the default web browser
-    if let Err(e) = webbrowser::open(url.as_str()) {
-        eprintln!("Failed to open the web browser: {:?}", e);
     }
 }
 
@@ -357,7 +259,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                     .button(RichText::new(text).color(Color32::GOLD))
                     .clicked()
                 {
-                    blast(&state);
+                    external_websites::blast(&state);
                 }
             }
 

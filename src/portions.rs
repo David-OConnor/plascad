@@ -236,8 +236,7 @@ impl PlateSize {
     }
 }
 
-
-impl Display for PlateSize{
+impl Display for PlateSize {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Self::D60 => "60mm",
@@ -250,13 +249,13 @@ impl Display for PlateSize{
     }
 }
 
-#[derive(Clone, PartialEq, Encode, Decode   )]
+#[derive(Clone, PartialEq, Encode, Decode)]
 pub enum MediaPrepInput {
     Plates((PlateSize, usize)), // number of plates,
-    Liquid(f32), // volume
+    Liquid(f32),                // volume
 }
 
-impl Display for MediaPrepInput{
+impl Display for MediaPrepInput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Self::Plates(_) => "Plates",
@@ -275,20 +274,20 @@ impl Default for MediaPrepInput {
 
 #[derive(Clone, Default, Encode, Decode)]
 pub struct MediaPrep {
-    pub water: f32, // L
-    pub food: f32, // g
-    pub agar: f32, // g
+    pub water: f32,      // L
+    pub food: f32,       // g
+    pub agar: f32,       // g
     pub antibiotic: f32, // mL
 }
 
 /// Returns volume of water, grams of LB, grams of agar, mL of 1000x antibiotics.
-pub fn media_prep(input: &MediaPrepInput) -> MediaPrep{
+pub fn media_prep(input: &MediaPrepInput) -> MediaPrep {
     let (volume, agar) = match input {
         MediaPrepInput::Plates((plate_size, num)) => {
             let volume = plate_size.volume() * *num as f32;
             (volume, volume * 15.)
         }
-        MediaPrepInput::Liquid(volume) => (*volume, 0.)
+        MediaPrepInput::Liquid(volume) => (*volume, 0.),
     };
 
     MediaPrep {

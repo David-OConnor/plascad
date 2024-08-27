@@ -5,6 +5,7 @@ use bincode::{Decode, Encode};
 
 use crate::{
     amino_acids::AminoAcid,
+    external_websites::{PdbData, PdbSearchResult},
     sequence::{
         find_orf_matches, Feature, FeatureType, Nucleotide, ReadingFrame, ReadingFrameMatch,
     },
@@ -29,6 +30,7 @@ pub struct Protein {
     /// This type is for storing graphable data used by egui_plot.
     // pub hydropath_data: Vec<[f64; 2]>,
     pub hydropath_data: Vec<(usize, f32)>,
+    pub pdb_data: Vec<PdbData>,
     // Note: This is more of a UI functionality; here for now.
     pub show_hydropath: bool,
 }
@@ -99,6 +101,7 @@ pub fn proteins_from_seq(
                         weight,
                         weight_with_prepost,
                         show_hydropath: true,
+                        pdb_data: Vec::new(),
                     })
                 }
             }
@@ -210,4 +213,15 @@ pub fn protein_weight(seq: &[AminoAcid]) -> f32 {
         result += aa.weight();
     }
     (result - WATER_WEIGHT * (seq.len() - 1) as f32) / 1_000.
+}
+
+/// Convert an amino acid sequence to string, using single-letter idents.
+pub fn aa_seq_to_str(seq: &[AminoAcid]) -> String {
+    let mut result = String::new();
+
+    for aa in seq {
+        result.push_str(&aa.ident_single_letter());
+    }
+
+    result
 }

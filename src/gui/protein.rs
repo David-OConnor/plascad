@@ -1,15 +1,17 @@
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, ScrollArea, Pos2, Rect, RichText, Sense, Shape,
-        Stroke, Ui,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, ScrollArea,
+        Sense, Shape, Stroke, Ui,
     },
     emath::RectTransform,
     epaint::PathShape,
-    glow::MAX_HEIGHT,
 };
 
 use crate::{
     amino_acids::{AaIdent, AminoAcid},
+    external_websites::{
+        load_pdb_data, load_pdb_structure, open_pdb, open_pdb_3d_view, PdbData, PdbSearchResult,
+    },
     gui::{circle::TICK_COLOR, seq_view::BACKGROUND_COLOR, COL_SPACING, ROW_SPACING},
     sequence::FeatureType,
     State,
@@ -70,10 +72,10 @@ fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
                 points.push(
                     to_screen
                         * pos2(
-                        pt.0 as f32 / num_pts * width,
-                        // Offset for 0 baseline.
-                        (pt.1 + MAX_VAL / 2.) / MAX_VAL * CHART_HEIGHT,
-                    ),
+                            pt.0 as f32 / num_pts * width,
+                            // Offset for 0 baseline.
+                            (pt.1 + MAX_VAL / 2.) / MAX_VAL * CHART_HEIGHT,
+                        ),
                 );
             }
 
@@ -139,9 +141,78 @@ fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
         });
 }
 
+fn pdb_links(data: &PdbData, ui: &mut Ui) {
+    ui.horizontal(|ui| {
+        if ui
+            .button(RichText::new("PDB").color(Color32::GOLD))
+            .clicked()
+        {
+            open_pdb(&data.rcsb_id);
+        }
+
+        if ui
+            .button(RichText::new("3D").color(Color32::GOLD))
+            .clicked()
+        {
+            open_pdb_3d_view(&data.rcsb_id);
+        }
+
+        if ui
+            .button(RichText::new("Structure").color(Color32::GOLD))
+            .clicked()
+        {
+            load_pdb_structure(&data.rcsb_id);
+        }
+        ui.add_space(COL_SPACING / 2.);
+
+        ui.label(
+            RichText::new(&format!("{}: {}", data.rcsb_id, data.title))
+                .color(Color32::LIGHT_BLUE)
+                .font(FontId::monospace(14.)),
+        );
+    });
+}
+
 fn draw_proteins(state: &mut State, ui: &mut Ui) {
     for protein in &mut state.volatile.proteins {
-        ui.heading(RichText::new(&protein.feature.label).color(Color32::LIGHT_BLUE));
+        ui.horizontal(|ui| {
+            ui.heading(RichText::new(&protein.feature.label).color(Color32::LIGHT_BLUE));
+
+            ui.add_space(COL_SPACING);
+
+            if ui
+                .button(RichText::new("PDB search").color(Color32::GOLD))
+                .clicked()
+            {
+                match load_pdb_data(protein) {
+                    Ok(pdb_data) => {
+                        state.ui.pdb_error_received = false;
+                        protein.pdb_data = pdb_data;
+                    }
+                    Err(e) => {
+                        eprintln!("Error fetching PDB results: {e}");
+                        state.ui.pdb_error_received = true;
+                    }
+                }
+            }
+
+            if state.ui.pdb_error_received {
+                ui.label(RichText::new("Error getting PDB results").color(Color32::LIGHT_RED));
+            }
+            //
+            // if !protein.pdb_ids.is_empty() {
+            //     ui.add_space(COL_SPACING);
+            //     ui.label("Click to open a browser:");
+            // }
+        });
+
+        if !protein.pdb_data.is_empty() {
+            for pdb_result in &protein.pdb_data {
+                // todo: Use a grid layout or similar; take advantage of horizontal space.
+                pdb_links(pdb_result, ui);
+            }
+            ui.add_space(ROW_SPACING / 2.);
+        }
 
         ui.horizontal(|ui| {
             ui.label(format!(
@@ -198,7 +269,7 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
 
         if protein.show_hydropath {
             ui.horizontal(|ui| {
-                ui.heading("Hydrophobicity");
+                ui.heading("Hydrophopathy");
                 ui.add_space(COL_SPACING);
 
                 ui.label("High values indicate hydrophobic regions; low ones hydrophilic regions.");
@@ -243,11 +314,9 @@ pub fn protein_page(state: &mut State, ui: &mut Ui) {
         .iter()
         .any(|f| f.feature_type == FeatureType::CodingRegion)
     {
-        ScrollArea::vertical()
-            .id_source(200)
-            .show(ui, |ui| {
-                draw_proteins(state, ui);
-            });
+        ScrollArea::vertical().id_source(200).show(ui, |ui| {
+            draw_proteins(state, ui);
+        });
     } else {
         ui.label("Create one or more Coding Region feature to display proteins here.");
     }

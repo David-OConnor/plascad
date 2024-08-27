@@ -7,9 +7,11 @@ use eframe::{
 
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
-    portions::{PortionsState, Reagent, ReagentPrep, ReagentType, Solution},
+    portions::{
+        media_prep, MediaPrepInput, PlateSize, PortionsState, Reagent, ReagentPrep, ReagentType,
+        Solution,
+    },
 };
-use crate::portions::{media_prep, MediaPrepInput, PlateSize};
 // todo: Make a non-gui portions module once this becomes unweildy.
 
 // todo: Store solutions. Save to file, and mix solutions from other solutions.
@@ -193,15 +195,20 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
 
     ui.horizontal(|ui| {
         ComboBox::from_id_source(3_000)
-            .width(140.)
+            .width(110.)
             .selected_text(portions.media_input.to_string())
             .show_ui(ui, |ui| {
                 for type_ in [
                     MediaPrepInput::Plates((PlateSize::D90, 6)),
                     MediaPrepInput::Liquid(0.),
                 ] {
-                    ui.selectable_value(&mut portions.media_input, type_.clone(), type_.to_string());
-                }});
+                    ui.selectable_value(
+                        &mut portions.media_input,
+                        type_.clone(),
+                        type_.to_string(),
+                    );
+                }
+            });
 
         ui.add_space(COL_SPACING);
 
@@ -215,7 +222,7 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
 
                 let dia_prev = plate_size.clone();
                 ComboBox::from_id_source(3_001)
-                    .width(140.)
+                    .width(70.)
                     .selected_text(plate_size.to_string())
                     .show_ui(ui, |ui| {
                         for size in [
@@ -225,7 +232,8 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
                             PlateSize::D150,
                         ] {
                             ui.selectable_value(plate_size, size, size.to_string());
-                        }});
+                        }
+                    });
 
                 if *plate_size != dia_prev {
                     run_calc = true;
@@ -234,49 +242,56 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
                 ui.label("Num plates:");
 
                 let mut val = num.to_string();
-                if ui.add(TextEdit::singleline(&mut val).desired_width(80.)).changed() {
-                    *num= val.parse().unwrap_or_default();
+                if ui
+                    .add(TextEdit::singleline(&mut val).desired_width(40.))
+                    .changed()
+                {
+                    *num = val.parse().unwrap_or_default();
                     run_calc = true;
                 }
-            },
+            }
             MediaPrepInput::Liquid(volume) => {
                 ui.label("Volume (mL):");
 
                 let mut val_ml = (*volume * 1_000.).to_string();
-                if ui.add(TextEdit::singleline(&mut val_ml).desired_width(60.)).changed() {
+                if ui
+                    .add(TextEdit::singleline(&mut val_ml).desired_width(50.))
+                    .changed()
+                {
                     let val_int: u32 = val_ml.parse().unwrap_or_default();
                     *volume = val_int as f32 / 1_000.;
-                    println!("SETTING");
                     run_calc = true;
                 }
-            },
+            }
         }
     });
+
+    ui.add_space(ROW_SPACING);
 
     // todo: Adjust units etc A/R for higherh values.
     let result = &portions.media_result;
     ui.horizontal(|ui| {
         ui.label("Water: ");
-        ui.label(format!("{:.0}mL", result.water * 1_000.));
+        ui.label(format!("{:.0} mL", result.water * 1_000.));
         ui.add_space(COL_SPACING);
 
         ui.label("LB: ");
-        ui.label(format!("{:.2}g", result.food));
+        ui.label(format!("{:.2} g", result.food));
         ui.add_space(COL_SPACING);
 
         if result.agar > 0. {
             ui.label("Agar: ");
-            ui.label(format!("{:.2}g", result.agar));
+            ui.label(format!("{:.2} g", result.agar));
             ui.add_space(COL_SPACING);
         }
 
-        ui.label(format!("{:.2}μL", result.antibiotic * 1_000.));
+        ui.label("Antibiotic (1000×): ");
+        ui.label(format!("{:.2} μL", result.antibiotic * 1_000.));
     });
 
     // todo: Run calc immediately.
 
     if run_calc {
-        println!("RUN");
         portions.media_result = media_prep(&portions.media_input);
     }
 }
@@ -294,6 +309,7 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
         {
             portions.solutions.push(Solution {
                 total_volume: DEFAULT_TOTAL_VOLUME,
+                reagents: vec![Reagent::default()],
                 ..Default::default()
             });
         }
