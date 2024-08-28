@@ -60,6 +60,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
         .column(Column::initial(650.).resizable(true)) // Sequence
         .column(Column::initial(160.).resizable(true)) // Description
         .column(Column::auto().resizable(true))// Len
+        .column(Column::auto().resizable(true))// Len
         .column(Column::auto().resizable(true))// Matches
         .column(Column::auto().resizable(true))// Quality
         .column(Column::initial(40.).resizable(true)) // TM
@@ -74,10 +75,13 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                 ui.heading("Primer sequence (5' ⏵ 3')");
             });
             header.col(|ui| {
-                ui.heading("Description");
+                ui.heading("Name");
             });
             header.col(|ui| {
                 ui.heading("Len").on_hover_text("Number of nucleotides in the (tuned, if applicable) primer");
+            });
+            header.col(|ui| {
+                ui.heading("Weight").on_hover_text("The weight of this primer, in Daltons.");
             });
             header.col(|ui| {
                 ui.heading("Mt").on_hover_text("Number of matches with the target sequence");
@@ -182,7 +186,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                     });
 
                     row.col(|ui| {
-                        ui.add(TextEdit::singleline(&mut primer.name));
+                        ui.add(TextEdit::singleline(&mut primer.name).text_color(Color32::LIGHT_BLUE));
                     });
 
                     row.col(|ui| {
@@ -198,10 +202,11 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                     });
 
                     row.col(|ui| {
-                        // todo: Cache this?
-                        // let num_matches = data.matches_seq.len() + data.matches_vector_with_insert.len();
-                        let num_matches = primer.volatile.matches.len();
-                        ui.label(num_matches.to_string());
+                        ui.label(format!("{:.1}", primer.volatile.weight));
+                    });
+
+                    row.col(|ui| {
+                        ui.label(primer.volatile.matches.len().to_string());
                     });
 
                     row.col(|ui| {

@@ -12,7 +12,7 @@ use crate::{
     State,
 };
 
-const WATER_WEIGHT: f32 = 18.015; // g/mol. We subtract these when calculating a protein's weight.
+pub const WATER_WEIGHT: f32 = 18.015; // g/mol. We subtract these when calculating a protein's weight.
 
 // todo: Adjust A/R. Ideally, let the user customize it.
 pub const HYDROPATHY_WINDOW_SIZE: usize = 9;

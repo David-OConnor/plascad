@@ -272,7 +272,7 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
     let result = &portions.media_result;
     ui.horizontal(|ui| {
         ui.label("Water: ");
-        ui.label(format!("{:.0} mL", result.water * 1_000.));
+        ui.label(format!("{:.1} mL", result.water * 1_000.));
         ui.add_space(COL_SPACING);
 
         ui.label("LB: ");
@@ -286,7 +286,7 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
         }
 
         ui.label("Antibiotic (1000×): ");
-        ui.label(format!("{:.2} μL", result.antibiotic * 1_000.));
+        ui.label(format!("{:.1} μL", result.antibiotic * 1_000.));
     });
 
     // todo: Run calc immediately.

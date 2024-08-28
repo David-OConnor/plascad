@@ -1,8 +1,12 @@
 //! Contains references, comments, etc about the plasmid.
 
+use chrono::NaiveDate;
 use eframe::egui::{Color32, RichText, ScrollArea, TextEdit, Ui};
 
-use crate::{gui::ROW_SPACING, sequence::Metadata};
+use crate::{
+    gui::{COL_SPACING, ROW_SPACING},
+    sequence::Metadata,
+};
 
 const WIDTH_RATIO: f32 = 0.6;
 const ROW_HEIGHT: usize = 1;
@@ -10,10 +14,21 @@ const ROW_HEIGHT: usize = 1;
 const HEADING_COLOR: Color32 = Color32::from_rgb(40, 180, 255);
 
 /// A convenience function to create a text edit for Option<String>
-fn option_edit(val: &mut Option<String>, label: &str, multi: bool, ui: &mut Ui) {
+fn option_edit(
+    val: &mut Option<String>,
+    label: &str,
+    multi: bool,
+    width_: Option<f32>,
+    ui: &mut Ui,
+) {
     ui.horizontal(|ui| {
         // ui.allocate_exact_size(Vec2::new(LABEL_WIDTH, 0.0), egui::Sense::hover()); // Reserve space
         ui.label(label);
+
+        let width = match width_ {
+            Some(w) => w,
+            None => ui.available_width() * WIDTH_RATIO,
+        };
 
         // todo: Way without cloning?
         let mut v = val.clone().unwrap_or_default();
@@ -21,11 +36,11 @@ fn option_edit(val: &mut Option<String>, label: &str, multi: bool, ui: &mut Ui) 
         let response = if multi {
             ui.add(
                 TextEdit::multiline(&mut v)
-                    .desired_width(ui.available_width() * WIDTH_RATIO)
+                    .desired_width(width)
                     .desired_rows(ROW_HEIGHT),
             )
         } else {
-            ui.add(TextEdit::singleline(&mut v).desired_width(ui.available_width() * WIDTH_RATIO))
+            ui.add(TextEdit::singleline(&mut v).desired_width(width))
         };
 
         if response.changed() {
@@ -54,12 +69,35 @@ pub fn metadata_page(data: &mut Metadata, ui: &mut Ui) {
         });
         ui.add_space(ROW_SPACING);
 
-        option_edit(&mut data.definition, "Definition:", true, ui);
-        option_edit(&mut data.accession, "Accession:", true, ui);
-        option_edit(&mut data.version, "Version:", true, ui);
-        option_edit(&mut data.keywords, "Keywords:", true, ui);
-        option_edit(&mut data.source, "Source:", true, ui);
-        option_edit(&mut data.organism, "Organism:", true, ui);
+        option_edit(&mut data.definition, "Definition:", false, None, ui);
+
+        ui.horizontal(|ui| {
+            ui.label("Division:");
+            ui.add(TextEdit::singleline(&mut data.division).desired_width(60.));
+            ui.add_space(COL_SPACING);
+
+            option_edit(
+                &mut data.molecule_type,
+                "Molecule type:",
+                false,
+                Some(80.),
+                ui,
+            );
+
+            if let Some(date) = data.date {
+                ui.add_space(COL_SPACING);
+                // todo: Allow the date to be editable, and not just when present.
+                let date = NaiveDate::from_ymd(date.0, date.1.into(), date.2.into());
+                ui.label(format!("Date: {}", date));
+            }
+        });
+        ui.add_space(ROW_SPACING / 2.);
+
+        option_edit(&mut data.accession, "Accession:", true, None, ui);
+        option_edit(&mut data.version, "Version:", true, None, ui);
+        option_edit(&mut data.keywords, "Keywords:", true, None, ui);
+        option_edit(&mut data.source, "Source:", true, None, ui);
+        option_edit(&mut data.organism, "Organism:", true, None, ui);
 
         ui.add_space(ROW_SPACING);
 
@@ -96,12 +134,12 @@ pub fn metadata_page(data: &mut Metadata, ui: &mut Ui) {
             });
             ui.add_space(ROW_SPACING / 2.);
 
-            option_edit(&mut ref_.authors, "Authors:", true, ui);
-            option_edit(&mut ref_.consortium, "Consortium:", true, ui);
+            option_edit(&mut ref_.authors, "Authors:", true, None, ui);
+            option_edit(&mut ref_.consortium, "Consortium:", true, None, ui);
 
-            option_edit(&mut ref_.journal, "Journal:", true, ui);
-            option_edit(&mut ref_.pubmed, "Pubmed:", true, ui);
-            option_edit(&mut ref_.remark, "Remarks:", true, ui);
+            option_edit(&mut ref_.journal, "Journal:", true, None, ui);
+            option_edit(&mut ref_.pubmed, "Pubmed:", true, None, ui);
+            option_edit(&mut ref_.remark, "Remarks:", true, None, ui);
 
             ui.add_space(ROW_SPACING);
         }

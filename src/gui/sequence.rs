@@ -11,7 +11,7 @@ use crate::{
         circle::feature_range_sliders,
         feature_table::{direction_picker, feature_table},
         navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
-        primer_qc::primer_details,
+        primer_table::primer_details,
         seq_view::sequence_vis,
         SPLIT_SCREEN_MAX_HEIGHT,
     },

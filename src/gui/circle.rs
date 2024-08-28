@@ -533,17 +533,10 @@ fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape
 
         // todo: Do not run these calcs each time. Cache.
         for prim_match in primer_matches {
-            // We currently index primers relative to the end they started.
-            let seq_range = match prim_match.direction {
-                PrimerDirection::Forward => prim_match.range.clone(),
-                PrimerDirection::Reverse => RangeIncl::new(
-                    data.seq_len - prim_match.range.end,
-                    data.seq_len - prim_match.range.start,
-                ),
-            };
+            let seq_range = &prim_match.range;
 
-            let angle_start = seq_i_to_angle(seq_range.start, data.seq_len);
-            let angle_end = seq_i_to_angle(seq_range.end, data.seq_len);
+            let angle_start = seq_i_to_angle(prim_match.range.start, data.seq_len);
+            let angle_end = seq_i_to_angle(prim_match.range.end, data.seq_len);
             let angle_mid = (angle_start + angle_end) / 2.;
 
             let point_start_inner =

@@ -1,10 +1,12 @@
 use std::{fmt::Display, io};
 
 use bincode::{Decode, Encode};
+use chrono::NaiveDate;
 use num_enum::TryFromPrimitive;
 
 use crate::{
     primer::PrimerDirection,
+    protein::WATER_WEIGHT,
     sequence::Nucleotide::{A, C, G, T},
     util::{match_subseq, RangeIncl},
     Color,
@@ -58,6 +60,17 @@ impl Nucleotide {
             T => b'T',
             G => b'G',
             C => b'C',
+        }
+    }
+
+    /// Molecular weight, in Daltons, in a DNA strand.
+    /// [Weight source: NorthWestern](http://biotools.nubic.northwestern.edu/OligoCalc.html)
+    pub fn weight(&self) -> f32 {
+        match self {
+            A => 313.21,
+            T => 304.2,
+            G => 329.21,
+            C => 289.18,
         }
     }
 }
@@ -301,7 +314,6 @@ pub struct Feature {
     /// By default, we display features using featuretype-specific color. Allow the user
     /// to override this.
     pub color_override: Option<Color>,
-    // pub notes: HashMap<String, String>,
     pub notes: Vec<(String, String)>,
 }
 
@@ -460,7 +472,12 @@ pub struct Metadata {
     pub comments: Vec<String>,
     pub references: Vec<Reference>,
     pub locus: String,
+    // pub date: Option<NaiveDate>,
+    /// We use this to prevent manual encode/decode for the whoel struct.
+    pub date: Option<(i32, u8, u8)>, // Y M D
     pub definition: Option<String>,
+    pub molecule_type: Option<String>,
+    pub division: String,
     pub accession: Option<String>,
     pub version: Option<String>,
     // pub keywords: Vec<String>,
@@ -495,4 +512,19 @@ pub fn find_search_matches(seq: &[Nucleotide], search_seq: &[Nucleotide]) -> Vec
 
     fwd.append(&mut rev);
     fwd.into_iter().map(|range| SearchMatch { range }).collect()
+}
+
+/// Sequence weight, in Daltons. Assumes single-stranded.
+pub fn seq_weight(seq: &[Nucleotide]) -> f32 {
+    let mut result = 0.;
+
+    for nt in seq {
+        result += nt.weight();
+    }
+
+    // result -= WATER_WEIGHT * (seq.len() - 1) as f32;
+
+    result -= 61.96;
+
+    result
 }

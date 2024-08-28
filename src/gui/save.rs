@@ -139,6 +139,8 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         match save(&path, &StateToSave::from_state(state)) {
             Ok(_) => {
                 state.path_loaded = Some(path.to_owned());
+                state.save_prefs(); // to sync last opened.
+
                 set_window_title(&state.path_loaded, ui);
             }
             Err(e) => eprintln!("Error saving in PlasCAD format: {:?}", e),
@@ -208,6 +210,7 @@ pub fn load_import(state: &mut State, path: &Path) {
                     state.generic.metadata.comments = vec![description];
                     // FASTA is seq-only data, so don't attempt to save over it.
                     state.path_loaded = None;
+                    state.save_prefs();
 
                     // Automatically annotate FASTA files.
                     state.generic.features = find_features(&state.generic.seq);

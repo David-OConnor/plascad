@@ -3,10 +3,10 @@
 use bincode::{Decode, Encode};
 
 use crate::{
-    gui::primer_qc::DEFAULT_TRIM_AMT,
+    gui::primer_table::DEFAULT_TRIM_AMT,
     primer_metrics::PrimerMetrics,
     sequence::{
-        seq_complement, seq_from_str, seq_to_str, Nucleotide,
+        seq_complement, seq_from_str, seq_to_str, seq_weight, Nucleotide,
         Nucleotide::{C, G},
         Seq,
     },
@@ -214,8 +214,10 @@ impl Primer {
     /// Perform calculations on primer quality and related data. Run this when the sequence changes,
     /// the tuning values change etc.
     ///
-    /// This also syncs the active sequence based on the tune settings.
+    /// This also syncs the active sequence based on the tune settings, and calculates primer weight.
     pub fn run_calcs(&mut self, ion_concentrations: &IonConcentrations) {
+        self.volatile.weight = seq_weight(&self.sequence);
+
         let full_len = self.volatile.sequence_input.len();
         let mut start = 0;
         let mut end = full_len;
@@ -392,6 +394,8 @@ pub struct PrimerData {
     pub seq_removed_3p: String,
     /// todo: Which direction is the range, if the direction is reverse?
     pub matches: Vec<PrimerMatch>,
+    /// Primer weight, in Daltons.
+    pub weight: f32,
 }
 
 impl PrimerData {

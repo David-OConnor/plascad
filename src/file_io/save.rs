@@ -16,6 +16,7 @@ use bincode::{
     Decode, Encode,
 };
 use bio::io::fasta;
+use chrono::NaiveDate;
 use eframe::egui::Ui;
 
 use crate::{
@@ -26,7 +27,7 @@ use crate::{
     },
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
-    sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Seq, SeqTopology},
+    sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Reference, Seq, SeqTopology},
     PcrUi, Selection, SeqVisibility, State, StateUi,
 };
 
@@ -116,6 +117,111 @@ impl Decode for GenericData {
         })
     }
 }
+
+// impl Encode for Metadata {
+//     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
+//         self.plasmid_name.encode(encoder)?;
+//         self.comments.encode(encoder)?;
+//         self.references.encode(encoder)?;
+//         self.locus.encode(encoder)?;
+//
+//         // Handle optional date
+//         if let Some(date) = &self.date {
+//             // Encode the flag indicating the presence of the date
+//             true.encode(encoder)?;
+//
+//             let mut date_bytes = [0; 6];
+//             date_bytes[0..4].clone_from_slice(&date.year().to_le_bytes());
+//             date_bytes[4] = date.month() as u8;
+//             date_bytes[5] = date.day() as u8;
+//
+//             date_bytes.encode(encoder)?;
+//         } else {
+//             // Encode the flag indicating the absence of the date
+//             false.encode(encoder)?;
+//         }
+//
+//         self.definition.encode(encoder)?;
+//         self.accession.encode(encoder)?;
+//         self.version.encode(encoder)?;
+//         self.keywords.encode(encoder)?;
+//         self.source.encode(encoder)?;
+//         self.organism.encode(encoder)?;
+//
+//         Ok(())
+//     }
+// }
+//
+// impl Decode for Metadata {
+//     fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
+//         let plasmid_name = String::decode(decoder)?;
+//         let comments = String::decode(decoder)?;
+//         let references = Vec<Reference>::decode(decoder)?;
+//         let locus = String::decode(decoder)?;
+//
+//         // Decode optional fields with a flag
+//         let date = if bool::decode(decoder)? {
+//             let date_bytes = Vec::decode(decoder)?;
+//             Some(NaiveDate::from_ymd(
+//                 i32::from_le_bytes(date_bytes[0..4].try_into().unwrap()),
+//                 u32::from_le_bytes([date_bytes[4]].try_into().unwrap()),
+//                 u32::from_le_bytes([date_bytes[5]].try_into().unwrap()),
+//             ))
+//         } else {
+//             None
+//         };
+//
+//         let definition = if bool::decode(decoder)? {
+//             Some(String::decode(decoder)?)
+//         } else {
+//             None
+//         };
+//
+//         let accession = if bool::decode(decoder)? {
+//             Some(String::decode(decoder)?)
+//         } else {
+//             None
+//         };
+//
+//         let version = if bool::decode(decoder)? {
+//             Some(String::decode(decoder)?)
+//         } else {
+//             None
+//         };
+//
+//         let keywords = if bool::decode(decoder)? {
+//             Some(String::decode(decoder)?)
+//         } else {
+//             None
+//         };
+//
+//         let source = if bool::decode(decoder)? {
+//             Some(String::decode(decoder)?)
+//         } else {
+//             None
+//         };
+//
+//         let organism = if bool::decode(decoder)? {
+//             Some(String::decode(decoder)?)
+//         } else {
+//             None
+//         };
+//
+//         Ok(Self {
+//             plasmid_name,
+//             comments,
+//             references,
+//             locus,
+//             date,
+//             definition,
+//             accession,
+//             version,
+//             keywords,
+//             source,
+//             organism,
+//         })
+//     }
+// }
 
 impl StateToSave {
     pub fn from_state(state: &State) -> Self {

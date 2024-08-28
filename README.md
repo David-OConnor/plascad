@@ -179,7 +179,9 @@ We calculate the following categories of nucleotide repeats:
 *Primer quality* is a fuzzy metric, and is calculated as a weighted average from other metrics. It's the quantity our tuning algorithm optimizes when adjusting primer length.
 
 Protein weight is calculated by summing the individual atomic weights of constituent amino acids, then subtracting 18.05 g/mol
-per link. (number of amino acids - 1).
+per link. (number of amino acids - 1). 
+
+Primer weight is computed BY summing individual nucleotide atomic weights, then subtracting 61.96 g/mole to account for the repoval of HPO₂, and the addition of two hydrogen molecules.
 
 Protein hydrophathy is calculated using the [Kyte & Doolittle](https://web.expasy.org/protscale/)  [Paper](https://sci-hub.scrongyao.com/10.1016/0022-2836(82)90515-0) method; 
 each amino acid is given a hydropathy index. The result at each amino acid position is from an average of these indexes in a window centered on the position, using uniform weights. It uses a window-size of 9 amino acids.

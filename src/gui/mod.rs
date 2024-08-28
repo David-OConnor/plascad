@@ -27,7 +27,7 @@ use navigation::Page;
 use crate::{
     external_websites,
     feature_db_load::find_features,
-    gui::{input::handle_input, primer_qc::primer_details},
+    gui::{input::handle_input, primer_table::primer_details},
     sequence::{Feature, FeatureType},
     util,
     util::merge_feature_sets,
@@ -44,7 +44,7 @@ pub mod navigation;
 mod pcr;
 mod portions;
 mod primer_arrow;
-pub mod primer_qc;
+pub mod primer_table;
 mod protein;
 pub mod save;
 pub mod seq_view;

@@ -10,6 +10,7 @@ use std::{
     path::Path,
 };
 
+use chrono::{Datelike, NaiveDate};
 use gb_io::{
     self,
     reader::SeqReader,
@@ -33,27 +34,6 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
     let file = File::open(path)?;
 
     // todo: This currently only handles a single sequene. It returns the first found.
-
-    // todo: Should we take advantage of other features?
-    //     pub name: Option<String>,
-    //     pub topology: Topology,
-    //     pub date: Option<Date>,
-    //     pub len: Option<usize>,
-    //     pub molecule_type: Option<String>,
-    //     pub division: String,
-    //     pub definition: Option<String>,
-    //     pub accession: Option<String>,
-    //     pub version: Option<String>,
-    //     pub source: Option<Source>,
-    //     pub dblink: Option<String>,
-    //     pub keywords: Option<String>,
-    //     pub references: Vec<Reference>,
-    //     pub comments: Vec<String>,
-    //     pub seq: Vec<u8>,
-    //     pub contig: Option<Location>,
-    //     pub features: Vec<Feature>,
-    // }
-
     for seq in SeqReader::new(file) {
         let seq = seq.map_err(|e| {
             io::Error::new(
@@ -88,7 +68,7 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
                 consortium: ref_.consortium.clone(),
                 title: ref_.title.clone(),
                 journal: ref_.journal.clone(),
-                pubmed: ref_.pubmed.clone(),
+                pubmed: ref_.pubmed.clone(), // todo: Appears not to work
                 remark: ref_.remark.clone(),
             })
         }
@@ -100,10 +80,20 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
             None => (None, None),
         };
 
+        let date = if let Some(date) = seq.date {
+            // Some(NaiveDate::from_ymd(date.year(), date.month(), date.day()))
+            Some((date.year(), date.month() as u8, date.day() as u8))
+        } else {
+            None
+        };
+
         let metadata = Metadata {
             plasmid_name: get_filename(path),
+            date,
             comments: seq.comments.clone(),
             definition: seq.definition.clone(),
+            molecule_type: seq.molecule_type.clone(),
+            division: seq.division.clone(),
             accession: seq.accession.clone(),
             version: seq.version.clone(),
             keywords: seq.keywords.clone(),
@@ -203,30 +193,6 @@ fn parse_features_primers(
             range = RangeIncl::new(range.start, seq.len() + range.end);
         }
 
-        // GenBank stores primer bind sites (Which we treat as volatile), vice primer sequences.
-        // Infer the sequence using the bind indices, and the main sequence.
-        if feature_type == FeatureType::Primer {
-            let sequence = match direction {
-                FeatureDirection::Reverse => {
-                    let range =
-                        RangeIncl::new(seq.len() - (range.end) + 1, seq.len() - (range.start));
-
-                    range.index_seq(&compl).unwrap_or_default()
-                }
-                _ => range.index_seq(&seq).unwrap_or_default(),
-            }
-            .to_vec();
-
-            let volatile = PrimerData::new(&sequence);
-            primers.push(Primer {
-                sequence,
-                name: label,
-                description: None, // todo: Can we populate this?
-                volatile,
-            });
-            continue;
-        }
-
         // Parse notes from qualifiers other than label and direction.
         // let mut notes = HashMap::new();
         let mut notes = Vec::new();
@@ -238,6 +204,38 @@ fn parse_features_primers(
                 // notes.insert(qual_key.to_string(), v.clone());
                 notes.push((qual_key.to_string(), v.clone()));
             }
+        }
+
+        // GenBank stores primer bind sites (Which we treat as volatile), vice primer sequences.
+        // Infer the sequence using the bind indices, and the main sequence.
+        if feature_type == FeatureType::Primer {
+            let sequence = match direction {
+                FeatureDirection::Reverse => {
+                    let range =
+                        RangeIncl::new(seq.len() - (range.end - 1), seq.len() - (range.start - 1));
+
+                    range.index_seq(&compl).unwrap_or_default()
+                }
+                _ => range.index_seq(&seq).unwrap_or_default(),
+            }
+            .to_vec();
+
+            // Perhaps improper way of storing primer descriptions
+
+            let description = if notes.is_empty() {
+                None
+            } else {
+                Some(notes[0].1.clone())
+            };
+
+            let volatile = PrimerData::new(&sequence);
+            primers.push(Primer {
+                sequence,
+                name: label,
+                description,
+                volatile,
+            });
+            continue;
         }
 
         result_ft.push(Feature {
@@ -271,19 +269,22 @@ pub fn export_genbank(
     };
 
     for feature in &data.features {
-        let mut qualifiers = vec![("label".into(), Some(feature.label.clone()))];
+        let mut qualifiers = Vec::new();
+
+        if !feature.label.is_empty() {
+            qualifiers.push(("label".into(), Some(feature.label.clone())))
+        }
 
         for note in &feature.notes {
             qualifiers.push(((&*note.0).into(), Some(note.1.clone())));
-            // qualifiers.push((note.0.clone(), Some(note.1.clone())));
         }
 
         match feature.direction {
             FeatureDirection::Forward => {
-                qualifiers.push(("direction".into(), Some("right".to_owned())))
+                qualifiers.push(("direction".into(), Some("RIGHT".to_owned())))
             }
             FeatureDirection::Reverse => {
-                qualifiers.push(("direction".into(), Some("left".to_owned())))
+                qualifiers.push(("direction".into(), Some("LEFT".to_owned())))
             }
             _ => (),
         }
@@ -310,6 +311,23 @@ pub fn export_genbank(
     }
 
     for (prim_match, name) in primer_matches {
+        // todo: qualifiers/notes DRY with features.
+        let mut qualifiers = Vec::new();
+
+        if !name.is_empty() {
+            qualifiers.push(("label".into(), Some(name.to_owned())));
+        }
+
+        // todo: This is a sloppy way of accessing the primer.
+        for primer in &data.primers {
+            if primer.name == *name {
+                if let Some(descrip) = &primer.description {
+                    qualifiers.push(("note".into(), Some(descrip.to_owned())));
+                }
+                break;
+            }
+        }
+
         // todo: Location code is DRY with features.
         let start: i64 = prim_match.range.start.try_into().unwrap();
 
@@ -324,10 +342,12 @@ pub fn export_genbank(
             ))),
         };
 
+        // todo: Make sure we're not getting a duplicate label.
+
         gb_data.features.push(gb_io::seq::Feature {
             kind: "primer_bind".into(),
             location,
-            qualifiers: vec![("label".into(), name.to_owned().into())],
+            qualifiers,
         });
     }
 
@@ -344,10 +364,20 @@ pub fn export_genbank(
     }
 
     // data.keywords = md.keywords.clone();
-    gb_data.keywords = Some(md.plasmid_name.clone());
+    gb_data.keywords.clone_from(&md.keywords);
+
+    gb_data.date = if let Some(date) = md.date {
+        // gb_io::seq::Date::from_ymd(date.year(), date.month(), date.day()).ok()
+        gb_io::seq::Date::from_ymd(date.0, date.1.into(), date.2.into()).ok()
+    } else {
+        None
+    };
+
     gb_data.version.clone_from(&md.version);
-    gb_data.accession.clone_from(&md.definition);
+    gb_data.accession.clone_from(&md.accession);
     gb_data.definition.clone_from(&md.definition);
+    gb_data.molecule_type.clone_from(&md.molecule_type);
+    gb_data.division.clone_from(&md.division);
     gb_data.name = Some(md.locus.clone());
 
     for ref_ in &md.references {
