@@ -91,6 +91,16 @@ impl Primer {
         result
     }
 
+    /// Formats the indexes, and size of this feature.
+    pub fn location_descrip(&self) -> String {
+        self.volatile
+            .matches
+            .iter()
+            .map(|match_| format!("{}..{}", match_.range.start, match_.range.end))
+            .collect::<Vec<String>>()
+            .join("; ")
+    }
+
     /// Automatically select primer length based on quality score.
     pub fn tune(&mut self, ion: &IonConcentrations) {
         match self.volatile.tune_setting {

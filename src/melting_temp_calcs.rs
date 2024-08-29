@@ -5,6 +5,9 @@
 //! and apply salt corrections based on user input concentrations of ions and primers.
 //!
 //! The calculations are based primarily on [SantaLucia & Hicks (2004)](https://pubmed.ncbi.nlm.nih.gov/15139820/)
+//!
+//! [This calculator from NorthWestern](http://biotools.nubic.northwestern.edu/OligoCalc.html) may be used
+//! for QC TM, weight, and other properties. It includes detailed sources and methods.
 
 use crate::{
     primer::{calc_gc, IonConcentrations, MIN_PRIMER_LEN},
@@ -323,7 +326,8 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
 
     //  We will assume saltcorr method 1-4 for now.
     if let Some(sc) = salt_correction(seq, ion_concentrations) {
-        result += sc;
+        // todo: Put back! Evaluating our method.
+        // result += sc;
 
         // for saltcorr 6/7:
         // result = 1. / (1. / (result + 273.15) + sc) - 273.15

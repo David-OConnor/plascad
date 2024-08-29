@@ -1,5 +1,7 @@
 //! This module contains GUI code related to the sequence view.
 
+use std::error::Error;
+
 use eframe::egui::{text::CursorRange, Color32, Frame, RichText, ScrollArea, TextEdit, Ui};
 
 // todo: monospace font for all seqs.
@@ -13,7 +15,7 @@ use crate::{
         navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
         primer_table::primer_details,
         seq_view::sequence_vis,
-        SPLIT_SCREEN_MAX_HEIGHT,
+        PRIMER_FWD_COLOR, SPLIT_SCREEN_MAX_HEIGHT,
     },
     primer::{Primer, PrimerData},
     util::RangeIncl,
@@ -42,29 +44,36 @@ fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
 }
 
 /// Displays text of the feature under the cursor, or selected, as required.
-fn feature_text(feature: &Option<usize>, features: &[Feature], seq_len: usize, ui: &mut Ui) {
-    match feature {
-        Some(i) => {
-            if features.len() < *i + 1 {
-                eprintln!("Invalid hover feature");
-                return; // todo: Ideally set the feature to none.
-            }
-            let feature = &features[*i];
-
-            ui.label(&feature.label); // todo: IDeally heading here, but it is currnetly causing display jumping.
-            ui.label(feature.location_descrip(seq_len));
-            let (r, g, b) = feature.color();
-            ui.label(
-                RichText::new(feature.feature_type.to_string()).color(Color32::from_rgb(r, g, b)),
-            );
-
-            // todo?
-            for note in &feature.notes {
-                // ui.label(&format!("{}: {}", note.0, note.1));
-            }
-        }
-        None => (),
+fn feature_text(i: usize, features: &[Feature], seq_len: usize, ui: &mut Ui) {
+    if features.len() < i + 1 {
+        eprintln!("Invalid selected feature");
+        return; // todo: Ideally set the feature to none.
     }
+    let feature = &features[i];
+
+    ui.label(&feature.label);
+    ui.label(feature.location_descrip(seq_len));
+    let (r, g, b) = feature.color();
+    ui.label(RichText::new(feature.feature_type.to_string()).color(Color32::from_rgb(r, g, b)));
+
+    // todo?
+    for note in &feature.notes {
+        // ui.label(&format!("{}: {}", note.0, note.1));
+    }
+}
+
+fn primer_text(i: usize, primers: &[Primer], seq_len: usize, ui: &mut Ui) {
+    if primers.len() < i + 1 {
+        eprintln!("Invalid selected primer");
+        return; // todo: Ideally set the feature to none.
+    }
+    let primer = &primers[i];
+
+    ui.label(&primer.name);
+    ui.label(&primer.location_descrip());
+    ui.label(&primer.description.clone().unwrap_or_default());
+    // todo: Rev color A/R
+    ui.label(RichText::new(seq_to_str(&primer.sequence)).color(PRIMER_FWD_COLOR));
 }
 
 /// Add a toolbar to create a feature from selection, if appropriate.
@@ -224,18 +233,35 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         ui.add_space(COL_SPACING);
 
         let mut feature_to_disp = None;
-        if let Selection::Feature(i) = state.ui.selected_item {
-            feature_to_disp = Some(i);
-        } else if state.ui.feature_hover.is_some() {
-            feature_to_disp = Some(state.ui.feature_hover.unwrap());
+        let mut primer_to_disp = None;
+
+        match state.ui.selected_item {
+            Selection::Feature(i) => feature_to_disp = Some(i),
+            Selection::Primer(i) => primer_to_disp = Some(i),
+            Selection::None => {
+                if state.ui.feature_hover.is_some() {
+                    feature_to_disp = Some(state.ui.feature_hover.unwrap());
+                }
+            }
         }
 
-        feature_text(
-            &feature_to_disp,
-            &state.generic.features,
-            state.generic.seq.len(),
-            ui,
-        );
+        if let Some(feature_i) = feature_to_disp {
+            feature_text(
+                feature_i,
+                &state.generic.features,
+                state.generic.seq.len(),
+                ui,
+            );
+        }
+
+        if let Some(primer_i) = primer_to_disp {
+            primer_text(
+                primer_i,
+                &state.generic.primers,
+                state.generic.seq.len(),
+                ui,
+            );
+        }
     });
 
     ui.add_space(ROW_SPACING / 2.);

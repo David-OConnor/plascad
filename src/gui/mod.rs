@@ -62,6 +62,9 @@ pub const COL_SPACING: f32 = 30.;
 // Note: This is basically working, but doesn't seem to reflect this scaling factor accurately.
 pub const SPLIT_SCREEN_MAX_HEIGHT: f32 = 3.5;
 
+pub const PRIMER_FWD_COLOR: Color32 = Color32::from_rgb(255, 0, 255);
+pub const PRIMER_REV_COLOR: Color32 = Color32::from_rgb(0, 255, 0);
+
 pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
     ui.label(label);
     let mut entry = val.to_string();

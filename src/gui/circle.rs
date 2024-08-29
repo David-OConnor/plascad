@@ -19,7 +19,7 @@ use crate::{
         navigation::NAV_BUTTON_COLOR,
         select_feature,
         seq_view::{COLOR_RE, COLOR_SEQ},
-        COL_SPACING, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
+        COL_SPACING, PRIMER_FWD_COLOR, PRIMER_REV_COLOR, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
     },
     primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
@@ -817,6 +817,45 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
     result
 }
 
+/// Similar to `draw_feature_text`.
+fn draw_primer_text(primer: &Primer, data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
+    let mut result = Vec::new();
+
+    let labels = vec![
+        primer.name.clone(),
+        primer.location_descrip(),
+        primer.description.clone().unwrap_or_default(),
+        seq_to_str(&primer.sequence),
+    ];
+
+    // let color = match primer.direction {
+    //     PrimerDirection::Forward => PRIMER_FWD_COLOR,
+    //     PrimerDirection::Reverse => PRIMER_REV_COLOR,
+    // };
+    //
+    // todo: Rev or neutral A/R
+    let color = PRIMER_FWD_COLOR;
+
+    let mut i = 0; // Rows
+
+    for label in &labels {
+        result.push(draw_text(
+            label,
+            data.to_screen
+                * pos2(
+                    data.center.x,
+                    data.center.y + i as f32 * CENTER_TEXT_ROW_SPACING - 60.,
+                ),
+            16.,
+            color,
+            ui,
+        )); // slightly below seq name, ui));
+        i += 1;
+    }
+
+    result
+}
+
 /// Draw text in the center of the circle; eg general plasmid information, or information
 /// about a feature. This is the selected feature if available; then hovered-over if available;
 /// then general plasmid information.
@@ -837,7 +876,7 @@ fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Sh
                 return result;
             }
             let primer = &state.generic.primers[*prim_i];
-            // todo
+            result.append(&mut draw_primer_text(primer, data, ui));
         }
         Selection::None => {
             match &state.ui.feature_hover {
