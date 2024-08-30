@@ -73,6 +73,30 @@ impl Nucleotide {
             C => 289.18,
         }
     }
+
+    /// Optical density of a 1mL solution, in a cuvette with 1cm pathlength.
+    /// Result is in nm.
+    /// http://biotools.nubic.northwestern.edu/OligoCalc.html
+    pub fn a_max(&self) -> f32 {
+        match self {
+            A => 259.,
+            T => 267.,
+            G => 253.,
+            C => 271.,
+        }
+    }
+
+    /// Optical density of a 1mL solution, in a cuvette with 1cm pathlength.
+    /// Result is in 1/(Moles x cm)
+    /// http://biotools.nubic.northwestern.edu/OligoCalc.html
+    pub fn molar_density(&self) -> f32 {
+        match self {
+            A => 15_200.,
+            T => 8_400.,
+            G => 12_010.,
+            C => 7_050.,
+        }
+    }
 }
 
 /// Of the 6 possible reading frames.

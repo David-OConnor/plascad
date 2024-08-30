@@ -1,6 +1,8 @@
 //! GUI code for the features editor and related.
 
-use eframe::egui::{Color32, ComboBox, Frame, RichText, ScrollArea, Stroke, TextEdit, Ui};
+use eframe::egui::{
+    Color32, ComboBox, CursorIcon, Frame, RichText, ScrollArea, Sense, Stroke, TextEdit, Ui,
+};
 
 use crate::{
     gui::{int_field, COL_SPACING, ROW_SPACING},
@@ -94,7 +96,14 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
             .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
             .inner_margin(border_width)
             .show(ui, |ui| {
-                ui.heading(RichText::new(&feature.label).color(Color32::GOLD));
+                if ui
+                    .heading(RichText::new(&feature.label).color(Color32::GOLD))
+                    .on_hover_cursor(CursorIcon::PointingHand)
+                    .clicked()
+                {
+                    state.ui.selected_item = Selection::Feature(i);
+                }
+
                 ui.horizontal(|ui| {
                     int_field(&mut feature.range.start, "Start:", ui);
                     int_field(&mut feature.range.end, "End:", ui);

@@ -71,9 +71,10 @@ fn primer_text(i: usize, primers: &[Primer], seq_len: usize, ui: &mut Ui) {
 
     ui.label(&primer.name);
     ui.label(&primer.location_descrip());
-    ui.label(&primer.description.clone().unwrap_or_default());
     // todo: Rev color A/R
     ui.label(RichText::new(seq_to_str(&primer.sequence)).color(PRIMER_FWD_COLOR));
+
+    ui.label(&primer.description.clone().unwrap_or_default());
 }
 
 /// Add a toolbar to create a feature from selection, if appropriate.

@@ -4,8 +4,8 @@ use core::f32::consts::TAU;
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, ScrollArea,
-        Sense, Shape, Slider, Stroke, Ui,
+        pos2, vec2, Align2, Color32, CursorIcon, FontFamily, FontId, Frame, Pos2, Rect, RichText,
+        ScrollArea, Sense, Shape, Slider, Stroke, Ui,
     },
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
@@ -63,7 +63,7 @@ const CIRCLE_SIZE_RATIO: f32 = 0.42;
 
 // The maximum distance the cursor can be from the circle for various tasks like selection, finding
 // the cursor position etc.
-const SELECTION_MAX_DIST: f32 = 100.;
+const SELECTION_MAX_DIST: f32 = 80.;
 
 const CENTER_TEXT_ROW_SPACING: f32 = 20.;
 
@@ -999,6 +999,13 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             top_details(state, ui);
         });
     }
+
+    ui.ctx()
+        .set_cursor_icon(if state.ui.feature_hover.is_some() {
+            CursorIcon::PointingHand
+        } else {
+            CursorIcon::Default
+        });
 
     Frame::canvas(ui.style())
         .fill(BACKGROUND_COLOR)

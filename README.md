@@ -32,6 +32,8 @@ sequence on this end. The end point can then be adjusted to optimize primer qual
 When both ends are marked as tunable, PlasCAD assumes this primer is for attaching two DNA fragments together, as in SLIC and FC
 cloning.
 
+![Primer view screenshot](screenshots/primers_aug_24.png)
+
 
 ### Primer generation for SLIC and FastCloning
 Given the sequences for an insert, a vector, and insertion point, it will generate primers suitable for SLIC and FastCloning.
@@ -150,6 +152,9 @@ a fast, lightweight program that's as easy to use as possible, without sacrifici
 
 Also of note, the native file format this program uses is more compact, including for DNA sequences, where each nucleotide only takes up 2 bits, as opposed to 8 in common formats.
 
+Performance is a top priority; compared to other tools, this has a small program size, small memory footprint, and low CPU use.
+It starts fast, and responds instantly.
+
 
 ## Near-term plans
 - QCing plasmids for toxic proteins, hydrophobic regions, and aggregation-prone regions
@@ -167,7 +172,7 @@ primer Molar concentration:
 
 $$ (1000 * ΔH) / (ΔS + R \times ln(\frac{C_T}{4})) - 273.15 $$
 
-The calculation also includes salt correction, derived from BioPython, using concentrations of $K^+$, $Na^+$, $Mg^{2+}$, and dntp concentration. These are provided by the user, or initiated with defaults.
+The calculation also includes salt correction, derived from BioPython, using concentrations of $K^+$, $Na^+$, $Mg^{2+}$, and dntp concentration. (SantaLucia, 1998) These ion concentrations are provided by the user, or initiated with defaults.
 
 We score primer length compared to an ideal of 18-24 nucleotides. Note that for cloning primers that join sequences (eg SLIC insert primers), length is scored between each end and the anchor (The point the two sequences are joined at, towards the middle of the primer.) We expect these primers to be about twice the length of normal primers.
 

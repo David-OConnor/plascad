@@ -316,7 +316,7 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
 
     let C_T = ion_concentrations.primer * 1.0e-9;
 
-    // println!("\n\ndH: {dH} dS: {dS}");
+    println!("\n\ndH: {dH} dS: {dS}");
 
     if let Some(sc) = salt_correction(seq, ion_concentrations) {
         // Hard-coded for salt-correction method 5.
@@ -331,6 +331,13 @@ pub fn calc_tm(seq: &[Nucleotide], ion_concentrations: &IonConcentrations) -> Op
 
     // SantaLucia and Hicks, Equation 3. Note the C_T / 2 vice / 4, due to double-stranded concentration.
     let result = (1_000. * dH) / (dS + R * (C_T / 2.).ln()) - 273.15;
+
+    //     melting_temp = (1000 * delta_h) / (delta_s + (R * (math.log(k)))) - 273.15
+    //     if saltcorr in (1, 2, 3, 4):
+    //         melting_temp += corr
+    //     if saltcorr in (6, 7):
+    //         # Tm = 1/(1/Tm + corr)
+    //         melting_temp = 1 / (1 / (melting_temp + 273.15) + corr) - 273.15
 
     Some(result)
 }
