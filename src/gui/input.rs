@@ -71,7 +71,6 @@ fn handle_seq_selection(state_ui: &mut StateUi, dragging: bool) {
             state_ui.dragging = true;
             // We are handling in the seq view after setting cursor seq i. Still glitchy.
 
-            println!("new drag");
             if let Some(i) = &state_ui.cursor_seq_i {
                 state_ui.text_selection = Some(RangeIncl::new(*i, *i)); // The end value is a placeholder.
             }
@@ -79,9 +78,7 @@ fn handle_seq_selection(state_ui: &mut StateUi, dragging: bool) {
             // The drag is in progress; continually update the selection, for visual feedback.
             if let Some(i) = &state_ui.cursor_seq_i {
                 if let Some(sel_range) = &mut state_ui.text_selection {
-
                     sel_range.end = *i;
-
                 }
             }
         }
@@ -168,7 +165,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                 }
 
                 let i = i + 1; // Insert after this nucleotide; not before.
-                // Don't allow accidental nt insertion when the user is entering into the search bar.
+                               // Don't allow accidental nt insertion when the user is entering into the search bar.
 
                 // Add NTs.
                 if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {

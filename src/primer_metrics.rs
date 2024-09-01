@@ -56,7 +56,7 @@ impl PrimerMetrics {
 
         // todo: Instead of closeness to 59, should it be >54??
         // Also: 50-60C. And within 5C of the complement primer.
-        self.tm_score = map_linear((self.melting_temp - TM_TARGET).abs(), (0., 12.), (1., 0.));
+        self.tm_score = map_linear((self.melting_temp - TM_TARGET).abs(), (0., 18.), (1., 0.));
         self.tm_score = self.tm_score.clamp(0., 1.);
 
         // This is currently a linear map, between 0 and 1.

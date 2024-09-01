@@ -1,7 +1,6 @@
 # PlasCAD
 
 [![Crate](https://img.shields.io/crates/v/plascad.svg)](https://crates.io/crates/plascad)
-
 [![Docs](https://docs.rs/plascad/badge.svg)](https://docs.rs/plascad)
 
 Design software for plasmid (vector) and primer creation and validation.
@@ -13,7 +12,7 @@ Design software for plasmid (vector) and primer creation and validation.
 [Download, unzip, and run](https://github.com/David-OConnor/plascad/releases). 
 
 
-Note: On some Linux distros (eg Ubuntu), run `setup_linux_desktop.sh` to create a Desktop GUI entry.
+Note: On some Linux distros (eg Ubuntu), run `setup_linux_desktop.sh`, included in the zip, to create a Desktop GUI entry.
 
 ### Mac
 Compile from source by [downloading and installing Rust](https://www.rust-lang.org/tools/install), then running `cargo install plascad` from a CLI.
@@ -29,8 +28,10 @@ This allows primer length to be automatically or manually changed to optimize th
 one or more primer end as not having a fixed starting point, and providing more-than-expected nucleotides of the matching 
 sequence on this end. The end point can then be adjusted to optimize primer qualities.
 
-When both ends are marked as tunable, PlasCAD assumes this primer is for attaching two DNA fragments together, as in SLIC and FC
-cloning.
+When both ends are marked as tunable, PlasCAD assumes this primer is for attaching two DNA fragments together, as in SLIC and FC cloning.
+
+#### Note on TM calculations
+Melting temperature (TM) can be a difficult to accurately estimate, and depends on parameters specific to the master mix used during PCR. This program uses nearest-neighbor dH and dS calculations, augmented with salt compensation. Its results are generally close to those provided by [IDT](https://www.idtdna.com) and [Biopython](https://biopython.org/) with default parameters. Its results are generally lower than those used by SnapGene and AmplifX, largely due to the way salt compensation is handled. See the *Calculations used* section at the bottom of this readme for more information.
 
 ![Primer view screenshot](screenshots/primers_aug_24.png)
 

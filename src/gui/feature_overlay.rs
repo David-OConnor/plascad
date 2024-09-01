@@ -3,6 +3,7 @@
 // todo: Abstract out diffs between this and the primer arrow; avoid repeated code.
 
 use std::mem;
+
 use eframe::{
     egui::{pos2, Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui},
     epaint::PathShape,
@@ -26,7 +27,7 @@ const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?
 
 /// We include this in this module because visually, it is very similar to the overlay.
 /// Note: At least for now, selection uses 1-based indexing.
-pub fn draw_selection(mut  selection: RangeIncl, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
+pub fn draw_selection(mut selection: RangeIncl, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
     // This reversal should only occur during reverse dragging; it should resolve when dragging is complete.
