@@ -132,6 +132,7 @@ fn origin_change(state: &mut State, ui: &mut Ui) {
 fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usize> {
     if let Some(seq_i) = index {
         // If multiple features are in the cursor's region, choose the smallest.
+        let mut matched = false;
         let mut smallest_feature = 0;
         let mut smallest_feature_size = 99999;
 
@@ -141,6 +142,7 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
             }
 
             if *seq_i > feature.range.start && *seq_i < feature.range.end {
+                matched = true;
                 let feature_size = feature.range.end - feature.range.start - 1;
                 if feature_size < smallest_feature_size {
                     smallest_feature = i;
@@ -148,7 +150,9 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
                 }
             }
         }
-        return Some(smallest_feature);
+        if matched {
+            return Some(smallest_feature);
+        }
     }
     None
 }

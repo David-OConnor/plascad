@@ -68,6 +68,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
                             ReagentType::Custom(0.),
                             ReagentType::SodiumChloride,
                             ReagentType::TrisHcl,
+                            ReagentType::Iptg,
                             ReagentType::SodiumPhosphateMonobasic,
                             ReagentType::SodiumPhosphateDibasic,
                             ReagentType::SodiumPhosphateDibasicHeptahydrate,

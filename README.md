@@ -2,9 +2,9 @@
 
 [![Crate](https://img.shields.io/crates/v/plascad.svg)](https://crates.io/crates/plascad)
 
-[//]: # ([![Docs]&#40;https://docs.rs/plascad/badge.svg&#41;]&#40;https://docs.rs/plascad&#41;)
+[![Docs](https://docs.rs/plascad/badge.svg)](https://docs.rs/plascad)
 
-Design software for plasmid and primer creation and validation.
+Design software for plasmid (vector) and primer creation and validation.
 
 
 ## Installation

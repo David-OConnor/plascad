@@ -281,7 +281,14 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             // todo: Try resolving using the inclusive range type, and standardizing to 1-based.
             // todo: Resolve this one field at a time, from a working state.
             if let Some(sel_range) = &state.ui.text_selection {
-                if sel_range.contains(i) {
+                // This reversal should only occur during reverse dragging; it should resolve when dragging is complete.
+                let range = if sel_range.start > sel_range.end {
+                    RangeIncl::new(sel_range.end, sel_range.start)
+                } else {
+                    *sel_range
+                };
+
+                if range.contains(i) {
                     r = COLOR_SELECTED_NTS;
                 }
             }
@@ -417,14 +424,6 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     state.ui.feature_hover =
                         feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
                 }
-
-                // Handle drag start; we do this here to prevent the start-off-by-one errors we get in the
-                // general input codex. {}
-                // if state.ui.dragging && state.ui.text_selection.is_none() {
-                //     if let Some(i) = &state.ui.cursor_seq_i {
-                //         state.ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
-                //     }
-                // }
 
                 // Removed: We select cursor position instead now.
                 select_feature(state, &from_screen);

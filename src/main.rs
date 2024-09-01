@@ -651,18 +651,18 @@ fn main() {
         if args.len() > 1 {
             let temp = &args[1];
             r = PathBuf::from_str(&temp).unwrap();
-
-            // Just the filename and extension.
-            window_title_initial = r
-                .file_name()
-                .and_then(|name| name.to_str())
-                .map(|name_str| name_str.to_string())
-                .unwrap();
         } else {
             if let Some(path_last) = &state.path_loaded {
                 r = path_last.clone();
             }
         }
+
+        // Just the filename and extension.
+        window_title_initial = r
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name_str| name_str.to_string())
+            .unwrap();
 
         r
     };

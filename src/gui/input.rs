@@ -63,26 +63,25 @@ fn handle_global(state: &mut State, ip: &InputState) {
     }
 }
 
-/// Handle text selection on the sequence page.
-fn handle_text_selection(state_ui: &mut StateUi, dragging: bool) {
+/// Handle sequence selection on the sequence page, as when dragging the mouse.
+fn handle_seq_selection(state_ui: &mut StateUi, dragging: bool) {
     if dragging {
         // A drag has started.
         if !state_ui.dragging {
             state_ui.dragging = true;
             // We are handling in the seq view after setting cursor seq i. Still glitchy.
 
+            println!("new drag");
             if let Some(i) = &state_ui.cursor_seq_i {
-                state_ui.text_selection = Some(RangeIncl::new(*i, *i)); // 1-based indexing. Second value is a placeholder.
+                state_ui.text_selection = Some(RangeIncl::new(*i, *i)); // The end value is a placeholder.
             }
         } else {
             // The drag is in progress; continually update the selection, for visual feedback.
             if let Some(i) = &state_ui.cursor_seq_i {
                 if let Some(sel_range) = &mut state_ui.text_selection {
+
                     sel_range.end = *i;
 
-                    if sel_range.start > sel_range.end {
-                        mem::swap(&mut sel_range.start, &mut sel_range.end);
-                    }
                 }
             }
         }
@@ -91,7 +90,14 @@ fn handle_text_selection(state_ui: &mut StateUi, dragging: bool) {
         if state_ui.dragging {
             state_ui.dragging = false;
 
-            // println!("Drag end. Selection: {:?}", state_ui.text_selection);
+            // This logic allows for reverse-order selecting, ie dragging the cursor from the end to
+            // the start of the region. Handle in the UI how to display this correctly while the drag is in process,
+            // since this only resolves once it's complete.
+            if let Some(sel_range) = &mut state_ui.text_selection {
+                if sel_range.start > sel_range.end {
+                    mem::swap(&mut sel_range.start, &mut sel_range.end);
+                }
+            }
         }
     }
 }
@@ -162,7 +168,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                 }
 
                 let i = i + 1; // Insert after this nucleotide; not before.
-                               // Don't allow accidental nt insertion when the user is entering into the search bar.
+                // Don't allow accidental nt insertion when the user is entering into the search bar.
 
                 // Add NTs.
                 if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
@@ -234,7 +240,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                 }
             }
 
-            handle_text_selection(&mut state.ui, ip.pointer.is_decidedly_dragging());
+            handle_seq_selection(&mut state.ui, ip.pointer.is_decidedly_dragging());
         }
     });
 
