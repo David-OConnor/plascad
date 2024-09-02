@@ -279,7 +279,7 @@ struct StateUi {
     pcr: PcrUi,
     feature_add: StateFeatureAdd,
     // primer_selected: Option<usize>, // primer page only.
-    feature_hover: Option<usize>, // todo: Apply similar enum logic to selection: Allow Primer::, Feature::, or None::
+    feature_hover: Option<usize>,
     selected_item: Selection,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,

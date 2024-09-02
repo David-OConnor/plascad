@@ -274,6 +274,17 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                         }
                     }
                 }
+                Selection::Primer(i_ft) => {
+                    if i_ft + 1 < state.generic.primers.len() {
+                        for p_match in &state.generic.primers[i_ft].volatile.matches {
+                            let range = p_match.range;
+                            if range.contains(i) {
+                                r = COLOR_SELECTED_NTS;
+                                break;
+                            }
+                        }
+                    }
+                }
                 _ => (),
             }
 
@@ -445,6 +456,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 if state.ui.seq_visibility.show_primers {
                     shapes.append(&mut primer_arrow::draw_primers(
                         &state.generic.primers,
+                        state.ui.selected_item,
                         &data,
                         ui,
                     ));

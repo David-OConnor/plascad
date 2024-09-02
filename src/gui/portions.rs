@@ -83,6 +83,8 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
                             ReagentType::Edta,
                             ReagentType::HydrochloricAcid,
                             ReagentType::SodiumHydroxide,
+                            ReagentType::BromophenolBlue,
+                            ReagentType::Dtt,
                         ] {
                             ui.selectable_value(&mut reagent.type_, type_, type_.to_string());
                         }

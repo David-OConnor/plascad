@@ -8,6 +8,7 @@ use crate::{
     sequence::FeatureType,
     util,
     util::RangeIncl,
+    Selection,
 };
 
 pub const STROKE_WIDTH: f32 = 2.;
@@ -19,10 +20,15 @@ pub const SLANT: f32 = 12.; // slant different, in pixels, for the arrow.
 pub const SLANT_DIV2: f32 = SLANT / 2.;
 
 /// Add primer arrows to the display.
-pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
+pub fn draw_primers(
+    primers: &[Primer],
+    selected_item: Selection,
+    data: &SeqViewData,
+    ui: &mut Ui,
+) -> Vec<Shape> {
     let mut shapes = Vec::new();
 
-    for primer in primers {
+    for (i, primer) in primers.iter().enumerate() {
         let primer_matches = &primer.volatile.matches;
 
         // todo: Do not run these calcs each time. Cache.
@@ -54,6 +60,11 @@ pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<
                 PrimerDirection::Reverse => (0, 255, 0),
             };
 
+            let selected = match selected_item {
+                Selection::Primer(j) => i == j,
+                _ => false,
+            };
+
             // todo: PUt back; temp check on compiling.
             shapes.append(&mut feature_overlay::feature_seq_overlay(
                 &feature_ranges_px,
@@ -62,7 +73,7 @@ pub fn draw_primers(primers: &[Primer], data: &SeqViewData, ui: &mut Ui) -> Vec<
                 VERTICAL_OFFSET_PRIMER,
                 (prim_match.direction).into(),
                 &primer.name,
-                false,
+                selected,
                 ui,
             ));
         }

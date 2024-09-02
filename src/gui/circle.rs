@@ -522,19 +522,22 @@ fn draw_features(
 }
 
 /// todo: C+P from draw_features! Build this into the feature one like you did in seq view.
-fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
+fn draw_primers(
+    primers: &[Primer],
+    data: &CircleData,
+    selection: Selection,
+    ui: &mut Ui,
+) -> Vec<Shape> {
     let mut result = Vec::new();
 
     let radius_outer = data.radius + PRIMER_WIDTH / 2.;
     let radius_inner = data.radius - PRIMER_WIDTH / 2.;
 
-    for primer in primers {
+    for (i, primer) in primers.iter().enumerate() {
         let primer_matches = &primer.volatile.matches;
 
         // todo: Do not run these calcs each time. Cache.
         for prim_match in primer_matches {
-            let seq_range = &prim_match.range;
-
             let angle_start = seq_i_to_angle(prim_match.range.start, data.seq_len);
             let angle_end = seq_i_to_angle(prim_match.range.end, data.seq_len);
             let angle_mid = (angle_start + angle_end) / 2.;
@@ -550,11 +553,17 @@ fn draw_primers(primers: &[Primer], data: &CircleData, ui: &mut Ui) -> Vec<Shape
             let point_mid_outer = angle_to_pixel(angle_mid, radius_outer) + data.center.to_vec2();
 
             // todo: This color code is DRY from primer_arrow. Consolidate.
-            let outline_color = match prim_match.direction {
+            let mut outline_color = match prim_match.direction {
                 PrimerDirection::Forward => Color32::from_rgb(255, 0, 255),
                 PrimerDirection::Reverse => Color32::LIGHT_YELLOW,
                 // FeatureDirection::None => Color32::GOLD,
             };
+
+            if let Selection::Primer(sel_i) = selection {
+                if sel_i == i {
+                    outline_color = Color32::RED;
+                }
+            }
 
             let stroke = Stroke::new(PRIMER_STROKE_WIDTH, outline_color);
 
@@ -1066,7 +1075,12 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             shapes.append(&mut draw_ticks(&data, ui));
 
             if state.ui.seq_visibility.show_primers {
-                shapes.append(&mut draw_primers(&state.generic.primers, &data, ui));
+                shapes.append(&mut draw_primers(
+                    &state.generic.primers,
+                    &data,
+                    state.ui.selected_item,
+                    ui,
+                ));
             }
 
             // tood: Check mark to edit this visibility on the page

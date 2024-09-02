@@ -157,6 +157,8 @@ pub enum ReagentType {
     HydrochloricAcid,
     // AceticAcid,
     SodiumHydroxide,
+    BromophenolBlue,
+    Dtt,
     Custom(f32), // Inner: Molecular weight
     /// Index of the solution in state.
     Solution(usize),
@@ -183,6 +185,8 @@ impl ReagentType {
             Self::Edta => 292.24,
             Self::HydrochloricAcid => 36.46,
             Self::SodiumHydroxide => 40.,
+            Self::BromophenolBlue => 669.96,
+            Self::Dtt => 154.25,
             Self::Custom(weight) => *weight,
             Self::Solution(_) => 0., // todo?
         }
@@ -209,6 +213,8 @@ impl Display for ReagentType {
             Self::Edta => "EDTA".to_owned(),
             Self::HydrochloricAcid => "HCl".to_owned(),
             Self::SodiumHydroxide => "NaOH".to_owned(),
+            Self::BromophenolBlue => "Bromophenol blue".to_owned(),
+            Self::Dtt => "DTT".to_owned(),
             Self::Custom(_) => "Custom".to_owned(),
             Self::Solution(_) => format!("Solution").to_owned(), // todo
         };

@@ -28,6 +28,7 @@ use crate::{
     external_websites,
     feature_db_load::find_features,
     gui::{input::handle_input, primer_table::primer_details},
+    primer::Primer,
     sequence::{Feature, FeatureType},
     util,
     util::merge_feature_sets,
@@ -157,8 +158,36 @@ fn feature_from_index(index: &Option<usize>, features: &[Feature]) -> Option<usi
     None
 }
 
-/// Selects a feature, if there is a click in the appropriate canvas; used in both the sequence,
-/// and map views.
+/// todo: DRY with `feature_from_index`. Combine.
+fn primer_from_index(index: &Option<usize>, primers: &[Primer]) -> Option<usize> {
+    if let Some(seq_i) = index {
+        // If multiple features are in the cursor's region, choose the smallest.
+        let mut matched = false;
+        let mut smallest_feature = 0;
+        let mut smallest_feature_size = 99999;
+
+        for (i, primer) in primers.iter().enumerate() {
+            for p_match in &primer.volatile.matches {
+                if *seq_i > p_match.range.start && *seq_i < p_match.range.end {
+                    matched = true;
+                    let feature_size = p_match.range.end - p_match.range.start - 1;
+                    if feature_size < smallest_feature_size {
+                        smallest_feature = i;
+                        smallest_feature_size = feature_size;
+                    }
+                }
+            }
+        }
+        if matched {
+            return Some(smallest_feature);
+        }
+    }
+    None
+}
+
+/// Selects a primer or feature, if there is a click in the appropriate canvas; used in both the sequence,
+/// and map views. Currently, if there is a primer and fetaure overlayed, it selects the primer. (This isn't ideal,
+/// but acceptable for now.)
 pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
     let click_handle = match &mut state.ui.page {
         Page::Sequence => &mut state.ui.dblclick_pending_handle,
@@ -173,20 +202,36 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
 
             if pos_rel.x > 0. && pos_rel.y > 0. {
                 let feature_i = feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
+                let primer_i = primer_from_index(&state.ui.cursor_seq_i, &state.generic.primers);
 
                 let mut toggled_off = false;
                 if let Selection::Feature(j) = state.ui.selected_item {
-                    if j == feature_i.unwrap_or(999) {
+                    if primer_i.is_none() {
+                        // If primer_i is some, we select it vice selecting None.
+                        if j == feature_i.unwrap_or(999) {
+                            state.ui.selected_item = Selection::None;
+                            toggled_off = true;
+                        }
+                    }
+                }
+
+                // todo: DRY
+                if let Selection::Primer(j) = state.ui.selected_item {
+                    if j == primer_i.unwrap_or(999) {
                         state.ui.selected_item = Selection::None;
                         toggled_off = true;
                     }
                 }
 
                 if !toggled_off {
-                    state.ui.selected_item = match feature_i {
-                        Some(i) => Selection::Feature(i),
-                        None => Selection::None,
-                    };
+                    state.ui.selected_item = if primer_i.is_none() {
+                        match feature_i {
+                            Some(i) => Selection::Feature(i),
+                            None => Selection::None,
+                        }
+                    } else {
+                        Selection::Primer(primer_i.unwrap())
+                    }
                 }
             }
         }
