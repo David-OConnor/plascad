@@ -3,12 +3,12 @@
 //! PDB Search API: https://search.rcsb.org/#search-api
 //! PDB Data API: https://data.rcsb.org/#data-api
 
-use std::{char::MAX, time::Duration};
+use std::{io, time::Duration};
 
 use bincode::{Decode, Encode};
-use reqwest::{self, header::CONTENT_TYPE};
 use serde::{Deserialize, Serialize};
 use serde_json::{self, Value};
+use ureq::{self, Agent, AgentBuilder};
 use url::Url;
 
 use crate::{
@@ -29,6 +29,8 @@ const PDB_DATA_API_URL: &str = "https://data.rcsb.org/rest/v1/core/entry";
 // An arbitrary limit to prevent excessive queries to the PDB data api,
 // and to simplify display code.
 const MAX_PDB_RESULTS: usize = 8;
+
+const HTTP_TIMEOUT: u64 = 4; // In seconds
 
 /// BLAST the selected Feature, primer, or selection. Prioritize the selection.
 /// This function handles extracting the sequence to BLAST from possible selections.
@@ -188,9 +190,25 @@ pub struct PdbData {
     pub title: String,
 }
 
+// Workraound for not being able to construct ureq's errors in a way I've found.
+pub struct ReqError {}
+
+impl From<ureq::Error> for ReqError {
+    fn from(err: ureq::Error) -> Self {
+        Self {}
+    }
+}
+
+impl From<io::Error> for ReqError {
+    fn from(err: io::Error) -> Self {
+        Self {}
+    }
+}
+
 /// Load PDB data using [its API](https://search.rcsRb.org/#search-api)
 /// Returns the set of PDB ID matches, with scores.
-pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, reqwest::Error> {
+// pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, reqwest::Error> {
+pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, ReqError> {
     let payload_search = PdbPayloadSearch {
         return_type: "entry".to_string(),
         query: PdbSearchQuery {
@@ -215,19 +233,18 @@ pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, reqwest::Error> 
 
     let payload_json = serde_json::to_string(&payload_search).unwrap();
 
-    let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(4))
-        .build()?;
+    let agent: Agent = ureq::AgentBuilder::new()
+        .timeout_read(Duration::from_secs(HTTP_TIMEOUT))
+        .timeout_write(Duration::from_secs(HTTP_TIMEOUT))
+        .build();
 
-    // todo: New thread for this A/R.
-
-    let resp = client
+    let resp: String = agent
         .post(PDB_SEARCH_API_URL)
-        .header(CONTENT_TYPE, "application/json")
-        .body(payload_json)
-        .send()?;
+        .set("Content-Type", "application/json")
+        .send_string(&payload_json)?
+        .into_string()?;
 
-    let search_data: PdbSearchResults = resp.json()?;
+    let search_data: PdbSearchResults = serde_json::from_str(&resp).map_err(|_| ReqError {})?;
 
     let mut result_search = Vec::new();
     for (i, r) in search_data.result_set.into_iter().enumerate() {
@@ -238,22 +255,18 @@ pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, reqwest::Error> 
 
     let mut result = Vec::new();
     for r in result_search {
-        let resp = client
+        let resp = agent
             .get(&format!("{PDB_DATA_API_URL}/{}", r.identifier))
-            // .header(CONTENT_TYPE, "application/json")
-            .send()?;
+            .call()?
+            .into_string()?;
 
-        // println!("resp data: {:?}", resp.text());
-        let data: PdbDataResults = resp.json()?;
-        // println!("PDB Data: {:?}", data);
+        let data: PdbDataResults = serde_json::from_str(&resp).map_err(|_| ReqError {})?;
 
         result.push(PdbData {
             rcsb_id: r.identifier,
             title: data.struct_.title,
         })
     }
-
-    // Now, load data for each result.t
 
     Ok(result)
 }

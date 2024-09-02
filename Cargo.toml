@@ -40,10 +40,11 @@ num_enum = "0.7.3"  # reversing a u8-repr.
 # Note, 2024-08-09: Removing this appears to have minimal impact on binary size.
 bio = "^2.0.1"
 quick-xml = {version = "0.36.1", features = ["serialize"]}   # For Snapgene feature parsing and writing.
+# For parsing and writing GenBank files. todo: This seems to have a lot of sub-deps; Increases binary size a bit.
+gb-io = "^0.7.1"
+
 # We use bincode for saving and loading to files using our custom format.
 bincode = "^2.0.0-rc.3"
-# todo: This seems to have a lot of sub-deps, and a messy API. Increases binary size a bit.
-gb-io = "^0.7.1"
 
 # For opening BLAST. Hopefully this doesn't increase binary size too much.
 webbrowser = "^1.0.1"
@@ -56,11 +57,10 @@ serde_json = {version = "^1.0.127"}
 # For clipboard operations not supported directly by EGUI
 copypasta = "^0.10.1"
 #winreg = "0.52.0"  # For setting up file associations on Windows
-# For loading PDB data.
 
-# todo: Any way to keep this from taking up 2Mb in the binary?
-reqwest = { version = "^0.12.7", features = ["blocking", "json"]}
-
+# HTTP client, for loading PDB data.
+# ureq = { version = "^3.0.0", features = ["tls"], default-features = false }  # todo: This is getting a major release update to 3.0 soon.
+ureq = { version = "^2.10.1", features = ["tls"], default-features = false }  # todo: This is getting a major release update to 3.0 soon.
 
 [build-dependencies]
 # These are for embedding an application icon, on Windows.

@@ -208,7 +208,7 @@ impl Display for ReagentType {
             Self::Lysozyme => "Lysozyme".to_owned(),
             Self::Mes => "MES".to_owned(),
             Self::Bes => "BES".to_owned(),
-            Self::Tes => "BES".to_owned(),
+            Self::Tes => "TES".to_owned(),
             Self::CitricAcid => "Citric acid".to_owned(),
             Self::Edta => "EDTA".to_owned(),
             Self::HydrochloricAcid => "HCl".to_owned(),
