@@ -27,11 +27,12 @@ use navigation::Page;
 use crate::{
     external_websites,
     feature_db_load::find_features,
+    file_io::save::DEFAULT_SAVE_FILE,
     gui::{input::handle_input, primer_table::primer_details},
     primer::Primer,
     sequence::{Feature, FeatureType},
     util,
-    util::merge_feature_sets,
+    util::{get_window_title, merge_feature_sets},
     Selection, State,
 };
 
@@ -243,11 +244,7 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
 /// Update the tilebar to reflect the current path loaded or saved.
 pub fn set_window_title(path_loaded: &Option<PathBuf>, ui: &mut Ui) {
     let title = match path_loaded {
-        Some(path) => path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .map(|name_str| name_str.to_string())
-            .unwrap(),
+        Some(path) => get_window_title(path),
         None => WINDOW_TITLE.to_owned(),
     };
 

@@ -9,6 +9,15 @@
 
 // todo: Break out Generic into its own mod?
 
+// todo:
+// Focus on tools that allow you to conveniently design plasmid seqs based on source vectors, REs etc. It will make primers,
+// choose how to combine sequences etc. so, more towards realistic, product-first workflows.
+//
+// This will make more sense when you are designing new products.
+// For example: consider a lib of Addgene's generic vectors for E. Coli.
+//
+// The input: your target product: Output: as much we can automate as possible.
+
 // Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
 use std::{
     env, io,
@@ -20,7 +29,10 @@ use std::{
 use bincode::{Decode, Encode};
 use cloning::CloningInsertData;
 use copypasta::{ClipboardContext, ClipboardProvider};
-use eframe::{self, egui, egui::Context};
+use eframe::{
+    self, egui,
+    egui::{Context, Ui},
+};
 use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load, StateToSave, DEFAULT_SAVE_FILE};
 use gui::navigation::{Page, PageSeq};
@@ -37,9 +49,12 @@ use crate::{
         },
         GenericData,
     },
-    gui::{navigation::PageSeqTop, save::load_import, WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH},
+    gui::{
+        navigation::PageSeqTop, save::load_import, set_window_title, WINDOW_HEIGHT, WINDOW_TITLE,
+        WINDOW_WIDTH,
+    },
     pcr::{PcrParams, PolymeraseType},
-    portions::{MediaPrep, MediaPrepInput, PortionsState},
+    portions::PortionsState,
     primer::TM_TARGET,
     protein::{proteins_from_seq, sync_cr_orf_matches},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
@@ -48,7 +63,7 @@ use crate::{
         Nucleotide, ReadingFrame, ReadingFrameMatch, SearchMatch, MIN_SEARCH_LEN,
     },
     tags::TagMatch,
-    util::RangeIncl,
+    util::{get_window_title, RangeIncl},
 };
 
 mod amino_acids;
@@ -404,6 +419,9 @@ impl State {
     pub fn reset(&mut self) {
         self.generic = Default::default();
         self.volatile = Default::default();
+        self.path_loaded = None;
+        // todo: Ideally we reset the window title  here, but we've having trouble with variable
+        // todo scope in the input function.
 
         self.ui.cursor_pos = None;
         self.ui.cursor_seq_i = None;
@@ -632,8 +650,6 @@ impl State {
 }
 
 fn main() {
-    let mut window_title_initial = WINDOW_TITLE.to_owned();
-
     let mut state = State::default();
     state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
 
@@ -641,8 +657,8 @@ fn main() {
     // - Path argument (eg file association)
     // - Last opened file
     // - Quicksave
-    let path = {
-        let mut r = PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap();
+    let (path, window_title_initial) = {
+        let mut p = PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap();
 
         // Windows and possibly other operating systems, if attempting to use your program to natively
         // open a file type, will use command line arguments to indicate this. Determine if the program
@@ -650,21 +666,15 @@ fn main() {
         let args: Vec<String> = env::args().collect();
         if args.len() > 1 {
             let temp = &args[1];
-            r = PathBuf::from_str(&temp).unwrap();
+            p = PathBuf::from_str(&temp).unwrap();
         } else {
             if let Some(path_last) = &state.path_loaded {
-                r = path_last.clone();
+                p = path_last.clone();
             }
         }
 
-        // Just the filename and extension.
-        window_title_initial = r
-            .file_name()
-            .and_then(|name| name.to_str())
-            .map(|name_str| name_str.to_string())
-            .unwrap();
-
-        r
+        let window_title = get_window_title(&p);
+        (p, window_title)
     };
 
     load_import(&mut state, &path);
@@ -672,10 +682,6 @@ fn main() {
 
     // state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
     state.reset_selections();
-
-    if window_title_initial != WINDOW_TITLE {
-        state.path_loaded = Some(path);
-    }
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
     let icon_data = eframe::icon_data::from_png_bytes(icon_bytes);

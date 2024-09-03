@@ -63,6 +63,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         .clicked()
     {
         state.reset();
+        set_window_title(&state.path_loaded, ui);
     }
 
     let button_text = if state.path_loaded.is_some() {

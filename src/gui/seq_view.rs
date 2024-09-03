@@ -191,13 +191,18 @@ fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &SeqViewData) -> Option<u
     match cursor_pos {
         Some(p) => {
             // We've had issues where cursor above the seq would be treated as first row.
-            let pos_relative = data.from_screen * pos2(p.0, p.1);
+            let p_rel = pos2(p.0, p.1);
+            let p_abs = data.from_screen * p_rel;
 
-            if pos_relative.x > 0. && pos_relative.y > 0. {
-                let mut result = pixel_to_seq_i(pos_relative, &data.row_ranges);
+            // See note on the pad below; this is for clicking before seq start.
+            if p_abs.x > (VIEW_AREA_PAD_LEFT - 2. * NT_WIDTH_PX) && p_abs.y > 0. {
+                let mut result = pixel_to_seq_i(p_abs, &data.row_ranges);
                 if let Some(i) = result {
-                    if i > data.seq_len {
+                    if i > data.seq_len + 2 {
+                        // This pad allows setting the cursor a bit past the seq end.
                         return None;
+                    } else if i > data.seq_len {
+                        return Some(data.seq_len);
                     }
                 }
                 result

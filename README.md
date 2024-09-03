@@ -12,7 +12,9 @@ Design software for plasmid (vector) and primer creation and validation.
 [Download, unzip, and run](https://github.com/David-OConnor/plascad/releases). 
 
 
-Note: On some Linux distros (eg Ubuntu), run `setup_linux_desktop.sh`, included in the zip, to create a Desktop GUI entry.
+Notes: 
+- On some Linux distros (eg Ubuntu), run `setup_linux_desktop.sh`, included in the zip, to create a Desktop GUI entry.
+- On Windows, the first time you run the program, you may get the message *"Microsoft Defender prented an unrecognized app from starting"*. To bypass this, click *More info*, then *Run Anyway*.
 
 ### Mac
 Compile from source by [downloading and installing Rust](https://www.rust-lang.org/tools/install), then running `cargo install plascad` from a CLI.
@@ -31,7 +33,7 @@ sequence on this end. The end point can then be adjusted to optimize primer qual
 When both ends are marked as tunable, PlasCAD assumes this primer is for attaching two DNA fragments together, as in SLIC and FC cloning.
 
 #### Note on TM calculations
-Melting temperature (TM) can be a difficult to accurately estimate, and depends on parameters specific to the master mix used during PCR. This program uses nearest-neighbor dH and dS calculations, augmented with salt compensation. Its results are generally close to those provided by [IDT](https://www.idtdna.com) and [Biopython](https://biopython.org/) with default parameters. Its results are generally lower than those used by SnapGene and AmplifX, largely due to the way salt compensation is handled. See the *Calculations used* section at the bottom of this readme for more information.
+Melting temperature (TM) can be a difficult to accurately estimate, and depends on parameters specific to the master mix used during PCR. This program uses nearest-neighbor ΔH and ΔS calculations, augmented with salt compensation. Its results are generally close to those provided by [IDT](https://www.idtdna.com) and [Biopython](https://biopython.org/) with default parameters. Its results are generally lower than those used by SnapGene and AmplifX, largely due to the way salt compensation is handled. See the *Calculations used* section at the bottom of this readme for more information.
 
 ![Primer view screenshot](screenshots/primers_aug_24.png)
 
@@ -187,7 +189,7 @@ We calculate the following categories of nucleotide repeats:
 Protein weight is calculated by summing the individual atomic weights of constituent amino acids, then subtracting 18.05 g/mol
 per link. (number of amino acids - 1). 
 
-Primer weight is computed BY summing individual nucleotide atomic weights, then subtracting 61.96 g/mole to account for the repoval of HPO₂, and the addition of two hydrogen molecules.
+Primer weight is computed by summing individual nucleotide atomic weights, then subtracting 61.96 g/mole to account for the repoval of HPO₂, and the addition of two hydrogen molecules.
 
 Protein hydrophathy is calculated using the [Kyte & Doolittle](https://web.expasy.org/protscale/)  [Paper](https://sci-hub.scrongyao.com/10.1016/0022-2836(82)90515-0) method; 
 each amino acid is given a hydropathy index. The result at each amino acid position is from an average of these indexes in a window centered on the position, using uniform weights. It uses a window-size of 9 amino acids.

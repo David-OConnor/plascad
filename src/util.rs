@@ -1,13 +1,18 @@
-use std::{cmp::min, collections::HashSet, fmt, io, io::ErrorKind};
+use std::{cmp::min, collections::HashSet, fmt, io, io::ErrorKind, path::Path};
 
 use bincode::{Decode, Encode};
 use eframe::egui::{pos2, Pos2};
 
 use crate::{
-    gui::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
+    file_io::save::DEFAULT_SAVE_FILE,
+    gui::{
+        seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
+        WINDOW_TITLE,
+    },
     sequence::{seq_complement, Feature, Nucleotide},
     Color, State,
 };
+
 const FEATURE_ANNOTATION_MATCH_THRESH: f32 = 0.95;
 
 /// A replacement for std::RangeInclusive, but copy type, and directly-accessible (mutable) fields.
@@ -330,3 +335,18 @@ pub fn merge_feature_sets(existing: &mut Vec<Feature>, new: &[Feature]) {
 //
 //     Ok(())
 // }
+
+/// Get the title to be displayed in the windows tilebar.
+pub fn get_window_title(path: &Path) -> String {
+    let filename = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(|name_str| name_str.to_string())
+        .unwrap();
+
+    if &filename == DEFAULT_SAVE_FILE {
+        WINDOW_TITLE.to_owned()
+    } else {
+        filename
+    }
+}

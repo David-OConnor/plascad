@@ -13,7 +13,9 @@ use crate::{
 };
 
 /// Handle hotkeys and clicks that affect all pages.
-fn handle_global(state: &mut State, ip: &InputState) {
+fn handle_global(state: &mut State, ip: &InputState) -> bool {
+    let mut reset = false; // avoids a borrow error.
+
     if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
         if !state.generic.seq.is_empty() {
             state.ui.text_selection = Some(RangeIncl::new(1, state.generic.seq.len()))
@@ -31,6 +33,7 @@ fn handle_global(state: &mut State, ip: &InputState) {
 
     if ip.key_pressed(Key::N) && ip.modifiers.ctrl {
         state.reset();
+        reset = true;
     }
 
     if ip.key_pressed(Key::F) && ip.modifiers.ctrl {
@@ -61,6 +64,8 @@ fn handle_global(state: &mut State, ip: &InputState) {
     if ip.pointer.button_double_clicked(PointerButton::Primary) {
         state.ui.dblclick_pending_handle = true;
     }
+
+    reset
 }
 
 /// Handle sequence selection on the sequence page, as when dragging the mouse.
@@ -102,7 +107,7 @@ fn handle_seq_selection(state_ui: &mut StateUi, dragging: bool) {
 /// Handles keyboard and mouse input not associated with a widget.
 /// todo: MOve to a separate module if this becomes complex.
 pub fn handle_input(state: &mut State, ui: &mut Ui) {
-    let mut file_loaded = false;
+    let mut reset_window_title = false; // This setup avoids borrow errors.
 
     ui.ctx().input(|ip| {
         // Check for file drop
@@ -113,11 +118,13 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                 state.sync_pcr();
                 state.sync_primer_metrics();
                 state.sync_seq_related(None);
-                file_loaded = true;
+                reset_window_title = true;
             }
         }
 
-        handle_global(state, &ip);
+        if handle_global(state, &ip) {
+            reset_window_title = true;
+        }
 
         // This event match is not specific to the seqe page
         for event in &ip.events {
@@ -181,10 +188,10 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                     state.insert_nucleotides(&[Nucleotide::G], i);
                 }
                 if ip.key_pressed(Key::Backspace) && i > 1 {
-                    state.remove_nucleotides(RangeIncl::new(i - 1, i - 1));
+                    state.remove_nucleotides(RangeIncl::new(i - 2, i - 2));
                 }
                 if ip.key_pressed(Key::Delete) {
-                    state.remove_nucleotides(RangeIncl::new(i, i));
+                    state.remove_nucleotides(RangeIncl::new(i - 1, i - 1));
                 }
 
                 // Paste nucleotides
@@ -227,9 +234,11 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                 if let Some(i) = &mut state.ui.text_cursor_i {
                     if let Some(amt) = move_cursor {
                         let val = *i as i32 + amt;
-                        if val >= 1 {
+                        // If val is 0, the cursor is before the first character; this is OK.
+                        // If it's < 0, we will get an overflow when converting to usize.
+                        if val >= 0 {
                             let new_posit = val as usize;
-                            if new_posit + 1 <= state.generic.seq.len() {
+                            if new_posit <= state.generic.seq.len() {
                                 *i = new_posit;
                             }
                         }
@@ -241,7 +250,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
         }
     });
 
-    if file_loaded {
+    if reset_window_title {
         set_window_title(&state.path_loaded, ui);
     }
 }
