@@ -33,12 +33,38 @@ impl RangeIncl {
 
     /// This function handles both the +1 nature of our range indexing,
     /// and error handling for out of bounds. (The latter of which panics at runtime)
-    pub fn index_seq<'a, T>(&self, seq: &'a [T]) -> Option<&'a [T]> {
+    pub fn index_seq<'a, T: Clone>(&self, seq: &'a [T]) -> Option<&'a [T]> {
+        // todo: If end > len, wrap, and handle as circular.
+        // if self.start < 1 || self.end > seq.len() {
         if self.start < 1 || self.end > seq.len() || self.start > self.end {
             return None;
         }
 
+        // todo: This unfortunately doesn't work due to borrow rules.
+        // We assume a circular sequence, for now. todo: Add as a parameter.
+        // if self.start > self.end {
+        //     let part1 = &seq[self.start - 1..];
+        //     let part2 = &seq[..self.end - 1];
+        //     Some(&[part1, part2].concat())
+        // } else {
+        //     Some(&seq[self.start - 1..=self.end - 1])
+        // }
+
         Some(&seq[self.start - 1..=self.end - 1])
+    }
+
+    /// A wrap-based extension to `index_seq`.
+    pub fn index_seq_wrap<'a, T: Clone>(&self, seq: &'a [T]) -> Option<Vec<T>> {
+        if self.start < 1 || self.end > seq.len() || self.start <= self.end {
+            return None;
+        }
+
+        let part1 = seq[self.start - 1..].to_vec();
+        // Todo: Not sure why we're including the end here without -1. Using for PCR to get it to come out right.
+        let part2 = seq[..self.end].to_vec();
+        let mut result = part1;
+        result.extend(part2);
+        Some(result)
     }
 
     pub fn len(&self) -> usize {
@@ -209,14 +235,14 @@ pub fn color_to_hex(color: Color) -> String {
 pub fn change_origin(state: &mut State) {
     let origin = &state.ui.new_origin;
     // Note the 1-based indexing logic we use.
-    if *origin < 1 || *origin > state.generic.seq.len() {
+    if *origin < 1 || *origin > state.get_seq().len() {
         return;
     }
 
-    state.generic.seq.rotate_left(origin - 1);
+    state.generic[state.active].seq.rotate_left(origin - 1);
 
-    let seq_len = state.generic.seq.len();
-    for feature in &mut state.generic.features {
+    let seq_len = state.get_seq().len();
+    for feature in &mut state.generic[state.active].features {
         // Convert to i32 to prevent an underflow on crash if we wrap. Use `rem_euclid`,
         // as Rust has unexpected behavior when using modulus on negatives.
         feature.range = RangeIncl::new(

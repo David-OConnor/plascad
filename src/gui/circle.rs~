@@ -626,8 +626,7 @@ fn draw_primers(
 pub fn feature_range_sliders(state: &mut State, ui: &mut Ui) {
     if let Selection::Feature(feat_i) = &mut state.ui.selected_item {
         ui.spacing_mut().slider_width = FEATURE_SLIDER_WIDTH;
-        // let seq_len = state.get_seq().len();
-        let seq_len = state.generic[state.active].seq.len();
+        let seq_len = state.get_seq().len();
 
         if state.generic[state.active].features.len() < *feat_i + 1 {
             eprintln!("Invalid selected feature");
@@ -636,11 +635,17 @@ pub fn feature_range_sliders(state: &mut State, ui: &mut Ui) {
             let feature = &mut state.generic[state.active].features[*feat_i];
             // todo: Handle wraps.
             ui.label("Start:");
-            ui.add(Slider::new(&mut feature.range.start, 0..=seq_len));
+            ui.add(Slider::new(
+                &mut feature.range.start,
+                0..=seq_len,
+            ));
 
             ui.add_space(COL_SPACING);
             ui.label("End:");
-            ui.add(Slider::new(&mut feature.range.end, 0..=seq_len));
+            ui.add(Slider::new(
+                &mut feature.range.end,
+                0..=seq_len,
+            ));
 
             // todo: Don't let end be before start.
             // if feature.range.start > feature.range.end {
@@ -672,8 +677,7 @@ fn top_details(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(COL_SPACING);
     ui.label("Cursor:");
-    let cursor_posit_text =
-        get_cursor_text(state.ui.cursor_seq_i, state.generic[state.active].seq.len());
+    let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, state.generic[state.active].seq.len());
     ui.heading(cursor_posit_text);
 }
 
@@ -1045,10 +1049,8 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             state.ui.cursor_seq_i = find_cursor_i(state.ui.cursor_pos, &data);
 
             if prev_cursor_i != state.ui.cursor_seq_i {
-                state.ui.feature_hover = feature_from_index(
-                    &state.ui.cursor_seq_i,
-                    &state.generic[state.active].features,
-                );
+                state.ui.feature_hover =
+                    feature_from_index(&state.ui.cursor_seq_i, &state.generic[state.active].features);
             }
 
             select_feature(state, &data.from_screen);

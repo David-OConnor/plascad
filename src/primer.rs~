@@ -580,31 +580,15 @@ pub fn make_cloning_primers(state: &mut State) {
         // Note: If we don't run `run_calcs` before tune here, we get unexpected beavhior culminating
         // in a crash after attempting to tune primers. This is likely related to syncing the tuned-out
         // part of the primers.
-        primers
-            .insert_fwd
-            .run_calcs(&state.ion_concentrations[state.active]);
-        primers
-            .insert_rev
-            .run_calcs(&state.ion_concentrations[state.active]);
-        primers
-            .vector_fwd
-            .run_calcs(&state.ion_concentrations[state.active]);
-        primers
-            .vector_rev
-            .run_calcs(&state.ion_concentrations[state.active]);
+        primers.insert_fwd.run_calcs(&state.ion_concentrations[state.active]);
+        primers.insert_rev.run_calcs(&state.ion_concentrations[state.active]);
+        primers.vector_fwd.run_calcs(&state.ion_concentrations[state.active]);
+        primers.vector_rev.run_calcs(&state.ion_concentrations[state.active]);
 
-        primers
-            .insert_fwd
-            .tune(&state.ion_concentrations[state.active]);
-        primers
-            .insert_rev
-            .tune(&state.ion_concentrations[state.active]);
-        primers
-            .vector_fwd
-            .tune(&state.ion_concentrations[state.active]);
-        primers
-            .vector_rev
-            .tune(&state.ion_concentrations[state.active]);
+        primers.insert_fwd.tune(&state.ion_concentrations[state.active]);
+        primers.insert_rev.tune(&state.ion_concentrations[state.active]);
+        primers.vector_fwd.tune(&state.ion_concentrations[state.active]);
+        primers.vector_rev.tune(&state.ion_concentrations[state.active]);
 
         state.generic[state.active].primers.extend([
             primers.insert_fwd,
@@ -641,8 +625,8 @@ pub fn make_amplification_primers(state: &mut State) {
         primers.fwd.volatile = primer_fwd_data;
         primers.rev.volatile = primer_rev_data;
 
-        primers.fwd.tune(&state.ion_concentrations[state.active]);
-        primers.rev.tune(&state.ion_concentrations[state.active]);
+        primers.fwd.tune(&state.ion_concentrations);
+        primers.rev.tune(&state.ion_concentrations);
 
         state.generic[state.active]
             .primers

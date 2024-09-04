@@ -114,7 +114,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
             header.col(|_ui| {});
         })
         .body(|mut body| {
-            for (i, primer) in state.generic.primers.iter_mut().enumerate() {
+            for (i, primer) in state.generic[state.active].primers.iter_mut().enumerate() {
 
                 // println!("Primer: 5p: {:?} 3p: {:?} Rem5: {:?} Rem3: {:?}", primer.volatile.tunable_5p,
                 //          primer.volatile.tunable_5p, primer.volatile.seq_removed_5p, primer.volatile.seq_removed_3p);
@@ -132,7 +132,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                             {
                                 primer.volatile.tune_setting.toggle_5p();
                                 // if primer.volatile.tunable_5p == TuneSetting::Disabled {
-                                primer.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
+                                primer.run_calcs(&state.ion_concentrations[state.active]); // To re-sync the sequence without parts removed.
                                 // }
                                 run_match_sync = Some(i);
                             }
@@ -145,7 +145,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                                 primer.sequence = seq_from_str(&primer.volatile.sequence_input);
                                 primer.volatile.sequence_input =
                                     seq_to_str(&primer.sequence);
-                                primer.run_calcs(&state.ion_concentrations);
+                                primer.run_calcs(&state.ion_concentrations[state.active]);
                                 run_match_sync = Some(i);
                             }
 
@@ -159,7 +159,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                             {
                                 primer.volatile.tune_setting.toggle_3p();
                                 // if primer.volatile.tunable_3p == TuneSetting::Disabled {
-                                    primer.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
+                                    primer.run_calcs(&state.ion_concentrations[state.active]); // To re-sync the sequence without parts removed.
                                 // }
                                 run_match_sync = Some(i);
                             }
@@ -171,7 +171,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                                     if ui
                                         .button(RichText::new("Tune")).on_hover_text("Tune selected ends for this primer").clicked()
                                     {
-                                        primer.tune(&state.ion_concentrations);
+                                        primer.tune(&state.ion_concentrations[state.active]);
                                         run_match_sync = Some(i);
                                     }
                                 }
@@ -179,7 +179,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                             }
                         });
 
-                        let updated_seq = primer_tune_display(primer, &state.ion_concentrations, ui);
+                        let updated_seq = primer_tune_display(primer, &state.ion_concentrations[state.active], ui);
                         if updated_seq {
                             run_match_sync = Some(i);
                         }
@@ -299,7 +299,7 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
                 .button("➕ Add primer")
                 .on_hover_text("Adds a primer to the list below.");
             if add_btn.clicked() {
-                state.generic.primers.push(Default::default())
+                state.generic[state.active].primers.push(Default::default())
             }
 
             if ui
@@ -312,8 +312,8 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
 
             let mut sync_primer_matches = false; // Prevents a double-borrow error.
             if ui.button("Tune all").clicked() {
-                for primer in &mut state.generic.primers {
-                    primer.tune(&state.ion_concentrations);
+                for primer in &mut state.generic[state.active].primers {
+                    primer.tune(&state.ion_concentrations[state.active]);
                     sync_primer_matches = true;
                 }
             }
@@ -328,13 +328,13 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
 
             ui.heading("Ions: (mMol)");
 
-            if ion_edit(&mut state.ion_concentrations.monovalent, "Na+ and K+", ui)
-                || ion_edit(&mut state.ion_concentrations.divalent, "mg2+", ui)
-                || ion_edit(&mut state.ion_concentrations.dntp, "dNTP", ui)
-                || ion_edit(&mut state.ion_concentrations.primer, "primer (nM)", ui)
+            if ion_edit(&mut state.ion_concentrations[state.active].monovalent, "Na+ and K+", ui)
+                || ion_edit(&mut state.ion_concentrations[state.active].divalent, "mg2+", ui)
+                || ion_edit(&mut state.ion_concentrations[state.active].dntp, "dNTP", ui)
+                || ion_edit(&mut state.ion_concentrations[state.active].primer, "primer (nM)", ui)
             {
-                for primer in &mut state.generic.primers {
-                    primer.run_calcs(&state.ion_concentrations); // Note: We only need to run the TM calc.
+                for primer in &mut state.generic[state.active].primers {
+                    primer.run_calcs(&state.ion_concentrations[state.active]); // Note: We only need to run the TM calc.
                 }
             }
         });
@@ -347,11 +347,11 @@ To learn about a table column, mouse over it.");
 
         if let Selection::Primer(sel_i) = state.ui.selected_item {
             ui.horizontal(|ui| {
-                if sel_i + 1 > state.generic.primers.len() {
+                if sel_i + 1 > state.generic[state.active].primers.len() {
                     // This currently happens if deleting the bottom-most primer.
                     // If so, select the primer above it.
-                    state.ui.selected_item = if !state.generic.primers.is_empty() {
-                        Selection::Primer(state.generic.primers.len() - 1)
+                    state.ui.selected_item = if !state.generic[state.active].primers.is_empty() {
+                        Selection::Primer(state.generic[state.active].primers.len() - 1)
                     } else {
                         Selection::None
                     };
@@ -361,13 +361,13 @@ To learn about a table column, mouse over it.");
                 if ui.button(RichText::new("⏶")).clicked() {
                     // todo: Arrow icons
                     if sel_i != 0 {
-                        state.generic.primers.swap(sel_i, sel_i - 1);
+                        state.generic[state.active].primers.swap(sel_i, sel_i - 1);
                         state.ui.selected_item = Selection::Primer(sel_i - 1);
                     }
                 }
-                if ui.button(RichText::new("⏷")).clicked() && sel_i != state.generic.primers.len() - 1
+                if ui.button(RichText::new("⏷")).clicked() && sel_i != state.generic[state.active].primers.len() - 1
                 {
-                    state.generic.primers.swap(sel_i, sel_i + 1);
+                    state.generic[state.active].primers.swap(sel_i, sel_i + 1);
                     state.ui.selected_item = Selection::Primer(sel_i + 1);
                 }
 
@@ -375,7 +375,7 @@ To learn about a table column, mouse over it.");
                     .button(RichText::new("Delete 🗑").color(Color32::RED))
                     .clicked()
                 {
-                    state.generic.primers.remove(sel_i);
+                    state.generic[state.active].primers.remove(sel_i);
                 }
 
                 if ui
@@ -387,12 +387,12 @@ To learn about a table column, mouse over it.");
 
                 ui.add_space(COL_SPACING);
 
-                if sel_i + 1 > state.generic.primers.len() {
+                if sel_i + 1 > state.generic[state.active].primers.len() {
                     state.ui.selected_item = Selection::None;
                     return;
                 }
 
-                ui.heading(&format!("Selected: {}", &state.generic.primers[sel_i].name));
+                ui.heading(&format!("Selected: {}", &state.generic[state.active].primers[sel_i].name));
             });
 
             ui.add_space(ROW_SPACING);

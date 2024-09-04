@@ -65,7 +65,7 @@ pub const COL_SPACING: f32 = 30.;
 pub const SPLIT_SCREEN_MAX_HEIGHT: f32 = 3.5;
 
 pub const PRIMER_FWD_COLOR: Color32 = Color32::from_rgb(255, 0, 255);
-pub const PRIMER_REV_COLOR: Color32 = Color32::from_rgb(0, 255, 0);
+pub const PRIMER_REV_COLOR: Color32 = Color32::LIGHT_YELLOW;
 
 pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
     ui.label(label);
@@ -116,8 +116,8 @@ fn origin_change(state: &mut State, ui: &mut Ui) {
             }
 
             // ui.add(
-            //     // egui::Slider::from_get_set(0.0..=state.generic.seq.len() as f32, |v| {
-            //     egui::Slider::new(&mut 0, 0..=state.generic.seq.len(), |v| {
+            //     // egui::Slider::from_get_set(0.0..=state.generic[state.active].seq.len() as f32, |v| {
+            //     egui::Slider::new(&mut 0, 0..=state.generic[state.active].seq.len(), |v| {
             //         if let Some(v_) = v {
             //
             //             bases_modified.push(basis_i);
@@ -202,8 +202,12 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
             let pos_rel = from_screen * pos2(pos.0, pos.1);
 
             if pos_rel.x > 0. && pos_rel.y > 0. {
-                let feature_i = feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
-                let primer_i = primer_from_index(&state.ui.cursor_seq_i, &state.generic.primers);
+                let feature_i = feature_from_index(
+                    &state.ui.cursor_seq_i,
+                    &state.generic[state.active].features,
+                );
+                let primer_i =
+                    primer_from_index(&state.ui.cursor_seq_i, &state.generic[state.active].primers);
 
                 let mut toggled_off = false;
                 if let Selection::Feature(j) = state.ui.selected_item {
@@ -262,6 +266,9 @@ pub fn draw(state: &mut State, ctx: &Context) {
         visuals.override_text_color = Some(Color32::LIGHT_GRAY);
         ctx.set_visuals(visuals);
 
+        navigation::tab_selector(state, ui);
+        ui.add_space(ROW_SPACING / 2.);
+
         ui.horizontal(|ui| {
             navigation::page_selector(state, ui);
 
@@ -269,10 +276,11 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             ui.label("Name: ");
             ui.add(
-                TextEdit::singleline(&mut state.generic.metadata.plasmid_name).desired_width(280.),
+                TextEdit::singleline(&mut state.generic[state.active].metadata.plasmid_name)
+                    .desired_width(280.),
             );
 
-            ui.label(format!("{} bp", state.generic.seq.len()));
+            ui.label(format!("{} bp", state.generic[state.active].seq.len()));
         });
 
         ui.add_space(ROW_SPACING / 2.);
@@ -286,10 +294,8 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             if ui.button("Annotate").clicked() {
                 // Don't add duplicates.
-                merge_feature_sets(
-                    &mut state.generic.features,
-                    &find_features(&state.generic.seq),
-                )
+                let features = find_features(&state.generic[state.active].seq);
+                merge_feature_sets(&mut state.generic[state.active].features, &features)
             }
 
             // todo: YOu will need a better organization method.
@@ -350,8 +356,10 @@ pub fn draw(state: &mut State, ctx: &Context) {
             }
             Page::Proteins => protein::protein_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
-            Page::Metadata => metadata::metadata_page(&mut state.generic.metadata, ui),
-            Page::Portions => portions::portions_page(&mut state.portions, ui),
+            Page::Metadata => {
+                metadata::metadata_page(&mut state.generic[state.active].metadata, ui)
+            }
+            Page::Portions => portions::portions_page(&mut state.portions[state.active], ui),
             _ => (),
             // });
         }

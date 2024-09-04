@@ -5,7 +5,10 @@ use std::fmt::Display;
 use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
 
-use crate::{gui::COL_SPACING, State};
+use crate::{
+    gui::{set_window_title, COL_SPACING},
+    State,
+};
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 00, 110);
 
@@ -49,6 +52,52 @@ impl Display for Page {
         .to_owned();
         write!(f, "{}", str)
     }
+}
+
+/// Selects which tab (ie file) is active
+pub fn tab_selector(state: &mut State, ui: &mut Ui) {
+    // Note: This assumes generic, paths_loaded etc are always the same length. (Which they *should* be.)
+    ui.horizontal(|ui| {
+        if ui
+            .button("New")
+            .on_hover_text("Create and open a new file. (Ctrl + N)")
+            .clicked()
+        {
+            state.add_tab();
+            // state.reset();
+            // set_window_title(&state.path_loaded[state.active], ui);
+        }
+
+        for (i, p) in state.path_loaded.iter().enumerate() {
+            // todo: DRY with page selectors.
+            if let Some(path) = p {
+                let color = if i == state.active {
+                    Color32::GREEN
+                } else {
+                    Color32::WHITE
+                };
+
+                let filename = path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .map(|name_str| name_str.to_string())
+                    .unwrap();
+
+                if ui
+                    .button(
+                        RichText::new(filename)
+                            .color(color)
+                            .background_color(NAV_BUTTON_COLOR),
+                    )
+                    .clicked()
+                {
+                    state.active = i;
+                }
+
+                ui.add_space(COL_SPACING / 2.);
+            }
+        }
+    });
 }
 
 pub fn page_selector(state: &mut State, ui: &mut Ui) {

@@ -36,8 +36,8 @@ fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
     ScrollArea::vertical().id_source(200).show(ui, |ui| {
         let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
         if response.changed() {
-            state.generic.seq = seq_from_str(&state.ui.seq_input);
-            state.ui.seq_input = seq_to_str(&state.generic.seq);
+            state.generic[state.active].seq = seq_from_str(&state.ui.seq_input);
+            state.ui.seq_input = seq_to_str(&state.generic[state.active].seq);
             state.sync_seq_related(None);
         }
     });
@@ -84,7 +84,7 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
             .button(RichText::new("➕ Add feature from sel").color(Color32::GOLD))
             .clicked()
         {
-            state.generic.features.push(Feature {
+            state.generic[state.active].features.push(Feature {
                 range: text_sel,
                 label: state.ui.quick_feature_add_name.clone(),
                 direction: state.ui.quick_feature_add_dir,
@@ -100,7 +100,7 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
             .clicked()
         {
             // todo: DRY with genbank parsing; common fn A/R.
-            let seq = &state.generic.seq;
+            let seq = state.get_seq();
             let compl = &seq_complement(seq);
             let seq_primer = match state.ui.quick_feature_add_dir {
                 FeatureDirection::Reverse => {
@@ -117,7 +117,7 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
 
             let volatile = PrimerData::new(&seq_primer);
 
-            state.generic.primers.push(Primer {
+            state.generic[state.active].primers.push(Primer {
                 sequence: seq_primer,
                 name: state.ui.quick_feature_add_name.clone(),
                 description: None,
@@ -126,6 +126,7 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
 
             state.ui.quick_feature_add_name = String::new();
             state.sync_primer_matches(None);
+            state.sync_primer_metrics();
         }
 
         direction_picker(&mut state.ui.quick_feature_add_dir, 200, ui);
@@ -249,8 +250,8 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         if let Some(feature_i) = feature_to_disp {
             feature_text(
                 feature_i,
-                &state.generic.features,
-                state.generic.seq.len(),
+                &state.generic[state.active].features,
+                state.generic[state.active].seq.len(),
                 ui,
             );
         }
@@ -258,8 +259,8 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         if let Some(primer_i) = primer_to_disp {
             primer_text(
                 primer_i,
-                &state.generic.primers,
-                state.generic.seq.len(),
+                &state.generic[state.active].primers,
+                state.generic[state.active].seq.len(),
                 ui,
             );
         }

@@ -8,6 +8,7 @@ use std::{
     io,
     io::{ErrorKind, Read, Write},
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 use bincode::{
@@ -20,14 +21,19 @@ use chrono::NaiveDate;
 use eframe::egui::Ui;
 
 use crate::{
-    file_io::GenericData,
+    feature_db_load::find_features,
+    file_io::{
+        genbank::{export_genbank, import_genbank},
+        snapgene::{export_snapgene, import_snapgene},
+        GenericData,
+    },
     gui::{
         navigation::{Page, PageSeq, PageSeqTop},
         set_window_title,
     },
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
-    sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Reference, Seq, SeqTopology},
+    sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Seq, SeqTopology},
     PcrUi, Selection, SeqVisibility, State, StateUi,
 };
 
@@ -39,21 +45,23 @@ pub const DEFAULT_GENBANK_FILE: &str = "export.gbk";
 pub const DEFAULT_DNA_FILE: &str = "export.dna";
 
 /// This is similar to `State`, but excludes the UI, and other things we don't wish to save.
+#[derive(Default)]
 pub struct StateToSave {
-    generic: GenericData,
-    insert_loc: usize,
-    ion_concentrations: IonConcentrations,
-    reading_frame: ReadingFrame,
-    portions: PortionsState,
+    pub generic: GenericData,
+    // insert_loc: usize,
+    pub path_loaded: Option<PathBuf>,
+    pub ion_concentrations: IonConcentrations,
+    // reading_frame: ReadingFrame,
+    pub portions: PortionsState,
 }
 
 impl Encode for StateToSave {
     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
         // todo: We currently use default encoding for all this, but may change later.
         self.generic.encode(encoder)?;
-        self.insert_loc.encode(encoder)?;
+        self.path_loaded.encode(encoder)?;
         self.ion_concentrations.encode(encoder)?;
-        self.reading_frame.encode(encoder)?;
+        // self.reading_frame.encode(encoder)?;
         self.portions.encode(encoder)?;
 
         Ok(())
@@ -64,16 +72,18 @@ impl Decode for StateToSave {
     fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
         // todo: We currently use default encoding for all this, but may change later.
         let generic = GenericData::decode(decoder)?;
-        let insert_loc = usize::decode(decoder)?;
+        // let insert_loc = usize::decode(decoder)?;
+        let path_loaded = Option::<PathBuf>::decode(decoder)?;
         let ion_concentrations = IonConcentrations::decode(decoder)?;
-        let reading_frame = ReadingFrame::decode(decoder)?;
+        // let reading_frame = ReadingFrame::decode(decoder)?;
         let portions = PortionsState::decode(decoder)?;
 
         Ok(Self {
             generic,
-            insert_loc,
+            // insert_loc,
+            path_loaded,
             ion_concentrations,
-            reading_frame,
+            // reading_frame,
             portions,
         })
     }
@@ -224,27 +234,29 @@ impl Decode for GenericData {
 // }
 
 impl StateToSave {
-    pub fn from_state(state: &State) -> Self {
+    pub fn from_state(state: &State, active: usize) -> Self {
         Self {
-            generic: state.generic.clone(),
-            insert_loc: state.cloning_insert_loc,
-            ion_concentrations: state.ion_concentrations.clone(),
-            reading_frame: state.reading_frame,
-            portions: state.portions.clone(),
+            generic: state.generic[active].clone(),
+            // insert_loc: state.cloning_insert_loc, // todo: Not fully handled.
+            ion_concentrations: state.ion_concentrations[active].clone(),
+            path_loaded: state.path_loaded[active].clone(),
+            // reading_frame: state.reading_frame,
+            portions: state.portions[state.active].clone(),
         }
     }
 
-    /// Used to load to state. The result is data from this struct, augmented with default values.
-    pub fn to_state(self) -> State {
-        State {
-            generic: self.generic,
-            cloning_insert_loc: self.insert_loc,
-            ion_concentrations: self.ion_concentrations,
-            reading_frame: self.reading_frame,
-            portions: self.portions,
-            ..Default::default()
-        }
-    }
+    // /// Used to load to state. The result is data from this struct, augmented with default values.
+    // pub fn to_state(self) -> State {
+    //     // todo: YOu will need to rethink this with multiple tabs.
+    //     State {
+    //         generic: vec![self.generic], // todo!
+    //         // cloning_insert_loc: self.insert_loc,
+    //         ion_concentrations: self.ion_concentrations,
+    //         // reading_frame: self.reading_frame,
+    //         portions: vec![self.portions], // todo!
+    //         ..Default::default()
+    //     }
+    // }
 }
 
 #[derive(Encode, Decode)]
@@ -413,16 +425,17 @@ pub fn deser_seq_bin(data: &[u8]) -> io::Result<Seq> {
     Ok(result)
 }
 
-// todo: Move to file_io A/R
 /// Save a new file, eg a cloning or PCR product.
 pub fn save_new_product(name: &str, state: &mut State, ui: &mut Ui) {
-    name.clone_into(&mut state.generic.metadata.plasmid_name);
+    name.clone_into(&mut state.generic[state.active].metadata.plasmid_name);
+
+    let active = state.generic.len();
+    state.active = active;
 
     // todo: Option for GenBank and SnapGene formats here?
     let mut save_path = env::current_dir().unwrap();
     let filename = {
-        let name = state
-            .generic
+        let name = state.generic[state.active]
             .metadata
             .plasmid_name
             .to_lowercase()
@@ -435,10 +448,10 @@ pub fn save_new_product(name: &str, state: &mut State, ui: &mut Ui) {
     state.ui.file_dialogs.save.save_file();
 
     if let Some(path) = state.ui.file_dialogs.save.take_selected() {
-        match save(&path, &StateToSave::from_state(state)) {
+        match save(&path, &StateToSave::from_state(state, state.active)) {
             Ok(_) => {
-                state.path_loaded = Some(path.to_owned());
-                set_window_title(&state.path_loaded, ui);
+                state.path_loaded[state.active] = Some(path.to_owned());
+                set_window_title(&state.path_loaded[state.active], ui);
             }
             Err(e) => eprintln!(
                 "Error saving cloning product in the PlasCAD format: {:?}",
@@ -446,4 +459,143 @@ pub fn save_new_product(name: &str, state: &mut State, ui: &mut Ui) {
             ),
         };
     }
+}
+
+/// Load state from a file of various formats.
+// pub fn load_import(state: &mut State, path: &Path, active: usize) {
+pub fn load_import(path: &Path) -> Option<StateToSave> {
+    let mut result = StateToSave::default();
+
+    if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
+        // if active >= state.generic.len() {
+        //
+        //     state.generic.push(Default::default());
+        //     state.path_loaded.push(Default::default());
+        //     state.portions.push(Default::default());
+        // }
+
+        match extension.to_lowercase().as_ref() {
+            "pcad" => {
+                let state_loaded: io::Result<StateToSave> = load(path);
+                match state_loaded {
+                    Ok(s) => {
+                        // s.to_state()
+                        result.generic = s.generic;
+                        result.ion_concentrations = s.ion_concentrations;
+                        result.path_loaded = Some(path.to_owned());
+                        result.portions = s.portions;
+
+                        return Some(result);
+                    }
+                    Err(_) => {
+                        eprintln!("Error loading a PCAD file");
+                    }
+                };
+                // state.load(path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+
+                // result.path_loaded = Some(path.to_owned());
+                // state.save_prefs(); // to sync last opened.
+            }
+            // Does this work for FASTQ too?
+            "fasta" => {
+                if let Ok((seq, id, description)) = import_fasta(&path) {
+                    result.generic.seq = seq;
+                    result.generic.metadata.plasmid_name = id;
+                    result.generic.metadata.comments = vec![description];
+                    // FASTA is seq-only data, so don't attempt to save over it.
+                    result.path_loaded = None;
+                    // result.save_prefs();
+
+                    // Automatically annotate FASTA files.
+                    result.generic.features = find_features(&result.generic.seq);
+
+                    return Some(result);
+                }
+            }
+            "dna" => {
+                if let Ok(data) = import_snapgene(&path) {
+                    result.generic = data;
+                    // We do not mark the path as opened if using SnapGene, since we currently can not
+                    // fully understand the format, nor make a native file SnapGene can open.
+                    result.path_loaded = None;
+
+                    return Some(result);
+                }
+            }
+            "gb" | "gbk" => {
+                if let Ok(data) = import_genbank(&path) {
+                    result.generic = data;
+                    result.path_loaded = Some(path.to_owned());
+                    // result.save_prefs();
+                    return Some(result);
+                }
+            }
+            _ => {
+                eprintln!(
+                    "The file to import must be in PlasCAD, FASTA, GenBank, or SnapGene format."
+                )
+            }
+        }
+    }
+    None
+}
+
+/// Save the current file ("save" vice "save as") if there is one; if not, quicksave to an anonymous file.
+pub fn save_current_file(state: &State) {
+    match &state.path_loaded[state.active] {
+        Some(path) => {
+            if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
+                match extension.to_lowercase().as_ref() {
+                    "pcad" => {
+                        if let Err(e) = save(path, &StateToSave::from_state(state, state.active)) {
+                            eprintln!("Error saving in PlasCAD format: {:?}", e);
+                        };
+                    }
+                    // Does this work for FASTQ too?
+                    "fasta" => {
+                        if let Err(e) = export_fasta(
+                            &state.generic[state.active].seq,
+                            &state.generic[state.active].metadata.plasmid_name,
+                            path,
+                        ) {
+                            eprintln!("Error exporting to FASTA: {:?}", e);
+                        };
+                    }
+                    "dna" => {
+                        if let Err(e) = export_snapgene(&state.generic[state.active], path) {
+                            eprintln!("Error exporting to SnapGene: {:?}", e);
+                        };
+                    }
+                    "gb" | "gbk" => {
+                        let mut primer_matches = Vec::new();
+                        for primer in &state.generic[state.active].primers {
+                            for prim_match in &primer.volatile.matches {
+                                primer_matches.push((prim_match.clone(), primer.name.clone()));
+                            }
+                        }
+
+                        if let Err(e) =
+                            export_genbank(&state.generic[state.active], &primer_matches, path)
+                        {
+                            eprintln!("Error exporting to GenBank: {:?}", e);
+                        };
+                    }
+                    _ => {
+                        eprintln!("Unexpected file format loading.")
+                    }
+                }
+            }
+        }
+        None => {
+            // Quicksave.
+            if let Err(e) = save(
+                &PathBuf::from(DEFAULT_SAVE_FILE),
+                &StateToSave::from_state(state, state.active),
+            ) {
+                eprintln!("Error quicksaving: {e}");
+            }
+        }
+    }
+    // todo: You will likely more this to an automatic one.
+    state.save_prefs()
 }

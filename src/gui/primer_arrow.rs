@@ -3,7 +3,7 @@
 use eframe::egui::{Pos2, Shape, Ui};
 
 use crate::{
-    gui::{feature_overlay, seq_view::SeqViewData},
+    gui::{feature_overlay, seq_view::SeqViewData, PRIMER_FWD_COLOR, PRIMER_REV_COLOR},
     primer::{Primer, PrimerDirection},
     sequence::FeatureType,
     util,
@@ -39,7 +39,13 @@ pub fn draw_primers(
             // hence the offset.
             let seq_range = match prim_match.direction {
                 PrimerDirection::Forward => {
-                    RangeIncl::new(prim_match.range.start, prim_match.range.end - 1)
+                    // todo: Getting an underflow, but not sure why yet.
+                    let end = if prim_match.range.end > 0 {
+                        prim_match.range.end - 1
+                    } else {
+                        prim_match.range.end
+                    };
+                    RangeIncl::new(prim_match.range.start, end)
                 }
 
                 PrimerDirection::Reverse => {
@@ -56,8 +62,16 @@ pub fn draw_primers(
                 .collect();
 
             let color = match prim_match.direction {
-                PrimerDirection::Forward => (255, 0, 255),
-                PrimerDirection::Reverse => (0, 255, 0),
+                PrimerDirection::Forward => (
+                    PRIMER_FWD_COLOR.r(),
+                    PRIMER_FWD_COLOR.g(),
+                    PRIMER_FWD_COLOR.b(),
+                ),
+                PrimerDirection::Reverse => (
+                    PRIMER_REV_COLOR.r(),
+                    PRIMER_REV_COLOR.g(),
+                    PRIMER_REV_COLOR.b(),
+                ),
             };
 
             let selected = match selected_item {

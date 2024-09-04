@@ -444,6 +444,8 @@ impl State {
         self.ion_concentrations.push(Default::default());
 
         self.active = self.generic.len() - 1;
+
+        self.
     }
 
     /// Convenience function

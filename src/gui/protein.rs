@@ -309,8 +309,7 @@ pub fn protein_page(state: &mut State, ui: &mut Ui) {
     });
     ui.add_space(ROW_SPACING);
 
-    if state
-        .generic
+    if state.generic[state.active]
         .features
         .iter()
         .any(|f| f.feature_type == FeatureType::CodingRegion)

@@ -14,7 +14,7 @@ Design software for plasmid (vector) and primer creation and validation.
 
 Notes: 
 - On some Linux distros (eg Ubuntu), run `setup_linux_desktop.sh`, included in the zip, to create a Desktop GUI entry.
-- On Windows, the first time you run the program, you may get the message *"Microsoft Defender prented an unrecognized app from starting"*. To bypass this, click *More info*, then *Run Anyway*.
+- On Windows, the first time you run the program, you may get the message *"Microsoft Defender prevented an unrecognized app from starting"*. To bypass this, click *More info*, then *Run Anyway*.
 
 ### Mac
 Compile from source by [downloading and installing Rust](https://www.rust-lang.org/tools/install), then running `cargo install plascad` from a CLI.

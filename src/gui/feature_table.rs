@@ -84,7 +84,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     let mut removed = None;
-    for (i, feature) in state.generic.features.iter_mut().enumerate() {
+    for (i, feature) in state.generic[state.active].features.iter_mut().enumerate() {
         let mut border_width = 0.;
         if let Selection::Feature(j) = state.ui.selected_item {
             if i == j {
@@ -162,7 +162,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
                 for (key, value) in &mut feature.notes {
                     ui.horizontal(|ui| {
                         ui.label("Note:");
-                        ui.add(TextEdit::singleline(key).desired_width(200.));
+                        ui.add(TextEdit::singleline(key).desired_width(140.));
 
                         ui.label("Value:");
                         ui.add(TextEdit::singleline(value).desired_width(600.));
@@ -173,7 +173,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
         ui.add_space(ROW_SPACING);
     }
     if let Some(rem_i) = removed {
-        state.generic.features.remove(rem_i);
+        state.generic[state.active].features.remove(rem_i);
     }
 }
 
@@ -194,7 +194,7 @@ pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
                 );
             }
 
-            state.generic.features.push(Feature {
+            state.generic[state.active].features.push(Feature {
                 range: RangeIncl::new(
                     state.ui.feature_add.start_posit,
                     state.ui.feature_add.end_posit,

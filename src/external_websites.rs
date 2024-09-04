@@ -35,36 +35,32 @@ const HTTP_TIMEOUT: u64 = 4; // In seconds
 /// BLAST the selected Feature, primer, or selection. Prioritize the selection.
 /// This function handles extracting the sequence to BLAST from possible selections.
 pub fn blast(state: &State) {
+    let data = &state.generic[state.active];
+
     let val = match state.ui.text_selection {
         Some(sel) => {
             // Don't format sel directly, as we insert the bp count downstream for use with feature selections.
             Some((
-                sel.index_seq(&state.generic.seq),
-                format!(
-                    "{}, {}..{}",
-                    state.generic.metadata.plasmid_name, sel.start, sel.end
-                ),
+                sel.index_seq(&data.seq),
+                format!("{}, {}..{}", data.metadata.plasmid_name, sel.start, sel.end),
             ))
         }
         None => match state.ui.selected_item {
             Selection::Feature(feat_i) => {
-                if state.generic.features.len() < feat_i + 1 {
+                if data.features.len() < feat_i + 1 {
                     eprintln!("Invalid selected feature");
                     None
                 } else {
-                    let feature = &state.generic.features[feat_i];
-                    Some((
-                        feature.range.index_seq(&state.generic.seq),
-                        feature.label.clone(),
-                    ))
+                    let feature = &data.features[feat_i];
+                    Some((feature.range.index_seq(&data.seq), feature.label.clone()))
                 }
             }
             Selection::Primer(prim_i) => {
-                if state.generic.primers.len() < prim_i + 1 {
+                if data.primers.len() < prim_i + 1 {
                     eprintln!("Invalid selected primer");
                     None
                 } else {
-                    let primer = &state.generic.primers[prim_i];
+                    let primer = &data.primers[prim_i];
                     Some((Some(&primer.sequence[..]), primer.name.clone()))
                 }
             }

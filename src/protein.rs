@@ -164,11 +164,11 @@ pub fn sync_cr_orf_matches(state: &mut State) {
         ReadingFrame::Rev1,
         ReadingFrame::Rev2,
     ] {
-        let mut regions = find_orf_matches(&state.generic.seq, orf);
+        let mut regions = find_orf_matches(state.get_seq(), orf);
         region_matches.append(&mut regions);
     }
 
-    for (i, feature) in state.generic.features.iter().enumerate() {
+    for (i, feature) in state.generic[state.active].features.iter().enumerate() {
         if feature.feature_type != FeatureType::CodingRegion {
             continue;
         }

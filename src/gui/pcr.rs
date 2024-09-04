@@ -3,10 +3,10 @@ use std::str::FromStr;
 use eframe::egui::{Color32, ComboBox, Grid, RichText, TextEdit, Ui, Vec2};
 
 use crate::{
-    file_io::save::save_new_product,
-    gui::{save::save_current_file, COL_SPACING, ROW_SPACING},
+    file_io::save::{save_current_file, save_new_product},
+    gui::{COL_SPACING, ROW_SPACING},
     pcr::{PolymeraseType, TempTime},
-    primer::{Primer, TM_TARGET},
+    primer::{Primer, PrimerDirection, TM_TARGET},
     util::RangeIncl,
     PcrUi, State,
 };
@@ -39,7 +39,13 @@ where
     changed
 }
 
-fn primer_dropdown(val: &mut usize, primers: &[Primer], id: usize, ui: &mut Ui) {
+fn primer_dropdown(
+    val: &mut usize,
+    primers: &[Primer],
+    direction: Option<PrimerDirection>,
+    id: usize,
+    ui: &mut Ui,
+) {
     // Reset primer selected if an invalid one is set.
     if *val > primers.len() {
         *val = 0;
@@ -52,13 +58,25 @@ fn primer_dropdown(val: &mut usize, primers: &[Primer], id: usize, ui: &mut Ui) 
         .selected_text(&primer.name)
         .show_ui(ui, |ui| {
             for (i, primer) in primers.iter().enumerate() {
+                if let Some(dir) = direction {
+                    let mut dir_match = false;
+                    for match_ in &primer.volatile.matches {
+                        if match_.direction == dir {
+                            dir_match = true;
+                        }
+                    }
+                    if !dir_match {
+                        continue;
+                    }
+                }
+
                 ui.selectable_value(val, i, &primer.name);
             }
         });
 }
 
 fn pcr_sim(state: &mut State, ui: &mut Ui) {
-    let num_primers = state.generic.primers.len();
+    let num_primers = state.generic[state.active].primers.len();
 
     if state.ui.pcr.primer_fwd >= num_primers || state.ui.pcr.primer_rev >= num_primers {
         state.ui.pcr.primer_fwd = 0;
@@ -70,22 +88,43 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
     if num_primers >= 2 {
         ui.horizontal(|ui| {
             ui.label("Fwd:");
-            primer_dropdown(&mut state.ui.pcr.primer_fwd, &state.generic.primers, 2, ui);
+            primer_dropdown(
+                &mut state.ui.pcr.primer_fwd,
+                &state.generic[state.active].primers,
+                Some(PrimerDirection::Forward),
+                2,
+                ui,
+            );
 
             ui.add_space(COL_SPACING);
 
             ui.label("Rev:");
-            primer_dropdown(&mut state.ui.pcr.primer_rev, &state.generic.primers, 3, ui);
+            primer_dropdown(
+                &mut state.ui.pcr.primer_rev,
+                &state.generic[state.active].primers,
+                Some(PrimerDirection::Reverse),
+                3,
+                ui,
+            );
 
             ui.add_space(COL_SPACING);
 
-            let fwd_primer = &state.generic.primers[state.ui.pcr.primer_fwd];
-            let rev_primer = &state.generic.primers[state.ui.pcr.primer_rev];
+            // let fwd_primer = &state.generic[state.active].primers[state.ui.pcr.primer_fwd];
+            // let rev_primer = &state.generic[state.active].primers[state.ui.pcr.primer_rev];
 
+            // todo: Yikes on this syntax.
             if state.ui.pcr.primer_fwd == state.ui.pcr.primer_rev {
                 ui.label("Select two different primers");
-            } else if fwd_primer.volatile.matches.len() == 1
-                && rev_primer.volatile.matches.len() == 1
+            } else if state.generic[state.active].primers[state.ui.pcr.primer_fwd]
+                .volatile
+                .matches
+                .len()
+                == 1
+                && state.generic[state.active].primers[state.ui.pcr.primer_rev]
+                    .volatile
+                    .matches
+                    .len()
+                    == 1
             {
                 if ui
                     .button(RichText::new("Simulate PCR").color(Color32::GOLD))
@@ -95,26 +134,58 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
                     // product.
                     save_current_file(state);
 
-                    let fwd_primer = &state.generic.primers[state.ui.pcr.primer_fwd];
-                    let rev_primer = &state.generic.primers[state.ui.pcr.primer_rev];
+                    // let fwd_primer = &state.generic[state.active].primers[state.ui.pcr.primer_fwd];
+                    // let rev_primer = &state.generic[state.active].primers[state.ui.pcr.primer_rev];
 
-                    // todo: Make the the directions are correct.
-                    let range_fwd = fwd_primer.volatile.matches[0].range;
-                    let range_rev = rev_primer.volatile.matches[0].range;
-
+                    // todo: Yikes.
+                    let range_fwd = state.generic[state.active].primers[state.ui.pcr.primer_fwd]
+                        .volatile
+                        .matches[0]
+                        .range;
+                    let range_rev = state.generic[state.active].primers[state.ui.pcr.primer_rev]
+                        .volatile
+                        .matches[0]
+                        .range;
                     let range_combined = RangeIncl::new(range_fwd.start, range_rev.end);
 
-                    if let Some(seq) = range_combined.index_seq(&state.generic.seq) {
-                        state.generic.seq = seq.to_vec();
-                        state.generic.features = Vec::new(); // todo: Temp
-                                                             // state.generic.primers = Vec::new(); // todo temp.
+                    let product_seq = if range_combined.start > range_combined.end {
+                        range_combined
+                            .index_seq_wrap(&state.generic[state.active].seq)
+                            .unwrap()
+                    // todo unwrap is dicey.
+                    } else {
+                        range_combined
+                            .index_seq(&state.generic[state.active].seq)
+                            .unwrap()
+                            .to_vec() // todo unwrap is dicey.
+                    };
 
-                        state.sync_seq_related(None);
+                    // if let Some(seq) = range_combined.index_seq(&state.generic.seq) {
+                    state.generic[state.active].seq = product_seq;
+                    let product_features = Vec::new();
 
-                        // todo: Remove all features not included in the range.
+                    // Include the primers used for PCR, and features that are included in the new segment.
+                    // note that the feature indexes will need to change.
 
-                        save_new_product("PCR product", state, ui);
+                    // todo: Syntax.
+                    let product_primers = vec![
+                        state.generic[state.active].primers[state.ui.pcr.primer_fwd].clone(),
+                        state.generic[state.active].primers[state.ui.pcr.primer_rev].clone(),
+                    ];
+
+                    for feature in &state.generic[state.active].features {
+                        // todo: Implement.
                     }
+
+                    state.generic[state.active].features = product_features;
+                    state.generic[state.active].primers = product_primers;
+
+                    state.sync_seq_related(None);
+
+                    // todo: Remove all features not included in the range.
+
+                    save_new_product("PCR product", state, ui);
+                    // }
                 }
             } else {
                 ui.label("There must be exactly one match for each primer");
@@ -129,15 +200,15 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     pcr_sim(state, ui);
-    ui.add_space(ROW_SPACING);
+    ui.add_space(ROW_SPACING * 2.);
 
     ui.horizontal(|ui| {
         ui.heading("PCR parameters");
-        if !state.generic.primers.is_empty() {
+        if !state.generic[state.active].primers.is_empty() {
             ui.add_space(COL_SPACING);
 
             if ui.button("Load from primer: ").clicked() {
-                let primer = &state.generic.primers[state.ui.pcr.primer_selected]; // todo: Overflow check?
+                let primer = &state.generic[state.active].primers[state.ui.pcr.primer_selected]; // todo: Overflow check?
 
                 if let Some(metrics) = &primer.volatile.metrics {
                     state.ui.pcr = PcrUi {
@@ -152,7 +223,8 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
 
             primer_dropdown(
                 &mut state.ui.pcr.primer_selected,
-                &state.generic.primers,
+                &state.generic[state.active].primers,
+                None,
                 1,
                 ui,
             );

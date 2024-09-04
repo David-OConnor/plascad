@@ -9,10 +9,12 @@ use crate::{
     cloning::CloningInsertData,
     file_io::{
         genbank::import_genbank,
-        save::{import_fasta, save_new_product, DEFAULT_PREFS_FILE},
+        save::{
+            import_fasta, load_import, save_current_file, save_new_product, DEFAULT_PREFS_FILE,
+        },
         snapgene::import_snapgene,
     },
-    gui::{navigation::PageSeq, save::save_current_file, COL_SPACING, ROW_SPACING},
+    gui::{navigation::PageSeq, COL_SPACING, ROW_SPACING},
     primer::make_cloning_primers,
     sequence::{seq_from_str, seq_to_str, Feature, FeatureDirection, FeatureType},
     util::RangeIncl,
@@ -111,45 +113,48 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
         state.ui.file_dialogs.cloning_load.update(ui.ctx());
 
         if let Some(path) = state.ui.file_dialogs.cloning_load.take_selected() {
-            // state.ui.file_dialogs.selected = Some(path.to_owned());
+            if let Some(state_loaded) = load_import(&path) {
+                state.ui.cloning_insert.features_loaded = state_loaded.generic.features;
+                state.ui.cloning_insert.seq_loaded = state_loaded.generic.seq;
+                // }
 
-            if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
-                match extension.to_lowercase().as_ref() {
-                    "pcad" => {
-                        let data =
-                            State::load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
-                        state.ui.cloning_insert.features_loaded = data.generic.features;
-                        state.ui.cloning_insert.seq_loaded = data.generic.seq;
-                    }
-                    "fasta" => {
-                        if let Ok((seq, _id, _description)) = import_fasta(&path) {
-                            state.ui.cloning_insert.seq_loaded = seq;
-                        }
-                    }
-                    "dna" => {
-                        if let Ok(data) = import_snapgene(&path) {
-                            state.ui.cloning_insert.features_loaded = data.features;
-                            state.ui.cloning_insert.seq_loaded = data.seq;
-                        }
-                    }
-                    "gb" | "gbk" => {
-                        if let Ok(data) = import_genbank(&path) {
-                            state.ui.cloning_insert.features_loaded = data.features;
-                            state.ui.cloning_insert.seq_loaded = data.seq;
-                        }
-                    }
-                    _ => {
-                        eprintln!(
-                            "The file to import must be in FASTA, GenBank, or SnapGene format."
-                        )
-                    }
-                }
+                // if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
+                //     match extension.to_lowercase().as_ref() {
+                //         "pcad" => {
+                //             state.load(&path, &PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+                //
+                //             state.ui.cloning_insert.features_loaded = data.generic.features;
+                //             state.ui.cloning_insert.seq_loaded = data.generic.seq;
+                //         }
+                //         "fasta" => {
+                //             if let Ok((seq, _id, _description)) = import_fasta(&path) {
+                //                 state.ui.cloning_insert.seq_loaded = seq;
+                //             }
+                //         }
+                //         "dna" => {
+                //             if let Ok(data) = import_snapgene(&path) {
+                //                 state.ui.cloning_insert.features_loaded = data.features;
+                //                 state.ui.cloning_insert.seq_loaded = data.seq;
+                //             }
+                //         }
+                //         "gb" | "gbk" => {
+                //             if let Ok(data) = import_genbank(&path) {
+                //                 state.ui.cloning_insert.features_loaded = data.features;
+                //                 state.ui.cloning_insert.seq_loaded = data.seq;
+                //             }
+                //         }
+                //         _ => {
+                //             eprintln!(
+                //                 "The file to import must be in FASTA, GenBank, or SnapGene format."
+                //             )
+                //         }
+                //     }
 
                 // Choose the initial insert as the CDS or gene with the largest len.
                 let mut best = None;
                 let mut best_len = 0;
                 for (i, feature) in state.ui.cloning_insert.features_loaded.iter().enumerate() {
-                    let len = feature.len(state.generic.seq.len());
+                    let len = feature.len(state.generic[state.active].seq.len());
                     if (feature.feature_type == FeatureType::CodingRegion
                         || feature.feature_type == FeatureType::Gene)
                         && len > best_len
@@ -196,7 +201,7 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
 
                 // todo: Eventually, we'll likely be pulling in sequences already associated with a feature;
                 // todo: Use the already existing data instead.
-                state.generic.features.push(Feature {
+                state.generic[state.active].features.push(Feature {
                     range: RangeIncl::new(
                         state.cloning_insert_loc + 1,
                         state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len(),
@@ -208,7 +213,8 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
                 });
 
                 state.ui.page_seq = PageSeq::View;
-                state.ui.selected_item = Selection::Feature(state.generic.features.len() - 1);
+                state.ui.selected_item =
+                    Selection::Feature(state.generic[state.active].features.len() - 1);
 
                 save_new_product("SLIC cloning product", state, ui);
             }

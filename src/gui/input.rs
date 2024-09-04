@@ -5,8 +5,8 @@ use std::{mem, path::PathBuf};
 use eframe::egui::{Event, InputState, Key, PointerButton, Ui};
 
 use crate::{
-    file_io::save::{save, StateToSave, DEFAULT_SAVE_FILE},
-    gui::{navigation::Page, save::load_import, set_window_title},
+    file_io::save::{load_import, save, StateToSave, DEFAULT_SAVE_FILE},
+    gui::{navigation::Page, set_window_title},
     sequence::{seq_from_str, Nucleotide},
     util::RangeIncl,
     State, StateUi,
@@ -17,15 +17,15 @@ fn handle_global(state: &mut State, ip: &InputState) -> bool {
     let mut reset = false; // avoids a borrow error.
 
     if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
-        if !state.generic.seq.is_empty() {
-            state.ui.text_selection = Some(RangeIncl::new(1, state.generic.seq.len()))
+        if !state.generic[state.active].seq.is_empty() {
+            state.ui.text_selection = Some(RangeIncl::new(1, state.generic[state.active].seq.len()))
         }
     }
 
     if ip.key_pressed(Key::S) && ip.modifiers.ctrl && !ip.modifiers.shift {
         if let Err(e) = save(
             &PathBuf::from(DEFAULT_SAVE_FILE),
-            &StateToSave::from_state(state),
+            &StateToSave::from_state(state, state.active),
         ) {
             eprintln!("Error saving: {e}");
         }
@@ -113,12 +113,10 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
         // Check for file drop
         if let Some(dropped_files) = ip.raw.dropped_files.first() {
             if let Some(path) = &dropped_files.path {
-                load_import(state, &path);
-
-                state.sync_pcr();
-                state.sync_primer_metrics();
-                state.sync_seq_related(None);
-                reset_window_title = true;
+                if let Some(loaded) = load_import(&path) {
+                    state.load(&loaded, state.active);
+                    reset_window_title = true;
+                }
             }
         }
 
@@ -167,7 +165,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
 
             // Insert nucleotides A/R.
             if let Some(mut i) = state.ui.text_cursor_i {
-                if i > state.generic.seq.len() {
+                if i > state.generic[state.active].seq.len() {
                     i = 0; // todo?? Having an overflow when backspacing near origin.
                 }
 
@@ -238,7 +236,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                         // If it's < 0, we will get an overflow when converting to usize.
                         if val >= 0 {
                             let new_posit = val as usize;
-                            if new_posit <= state.generic.seq.len() {
+                            if new_posit <= state.generic[state.active].seq.len() {
                                 *i = new_posit;
                             }
                         }
@@ -251,6 +249,6 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
     });
 
     if reset_window_title {
-        set_window_title(&state.path_loaded, ui);
+        set_window_title(&state.path_loaded[state.active], ui);
     }
 }

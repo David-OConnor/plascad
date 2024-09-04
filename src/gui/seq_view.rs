@@ -218,7 +218,7 @@ fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &SeqViewData) -> Option<u
 fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    for (i, nt) in state.generic.seq.iter().enumerate() {
+    for (i, nt) in state.generic[state.active].seq.iter().enumerate() {
         let i = i + 1; // 1-based indexing.
         let pos = data.seq_i_to_px_rel(i);
 
@@ -232,7 +232,9 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                                        // todo: Cache this; don't run it every update.
                     if (i_orf - orf_match.frame.offset()) % 3 == 0 {
                         if let Some(aa) = AminoAcid::from_codons(
-                            state.generic.seq[i_orf..i_orf + 3].try_into().unwrap(),
+                            state.generic[state.active].seq[i_orf..i_orf + 3]
+                                .try_into()
+                                .unwrap(),
                         ) {
                             result.push(ui.ctx().fonts(|fonts| {
                                 Shape::text(
@@ -272,16 +274,16 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             // bright fill.
             match state.ui.selected_item {
                 Selection::Feature(i_ft) => {
-                    if i_ft + 1 < state.generic.features.len() {
-                        let range = &state.generic.features[i_ft].range;
+                    if i_ft + 1 < state.generic[state.active].features.len() {
+                        let range = &state.generic[state.active].features[i_ft].range;
                         if range.contains(i) {
                             r = COLOR_SELECTED_NTS;
                         }
                     }
                 }
                 Selection::Primer(i_ft) => {
-                    if i_ft + 1 < state.generic.primers.len() {
-                        for p_match in &state.generic.primers[i_ft].volatile.matches {
+                    if i_ft + 1 < state.generic[state.active].primers.len() {
+                        for p_match in &state.generic[state.active].primers[i_ft].volatile.matches {
                             let range = p_match.range;
                             if range.contains(i) {
                                 r = COLOR_SELECTED_NTS;
@@ -375,7 +377,7 @@ fn draw_text_cursor(cursor_i: Option<usize>, data: &SeqViewData) -> Vec<Shape> {
 pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     let mut shapes = vec![];
 
-    let seq_len = state.generic.seq.len();
+    let seq_len = state.generic[state.active].seq.len();
 
     state.ui.nt_chars_per_row = ((ui.available_width()
         - (VIEW_AREA_PAD_LEFT + VIEW_AREA_PAD_RIGHT))
@@ -437,8 +439,10 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 state.ui.cursor_seq_i = find_cursor_i(state.ui.cursor_pos, &data);
 
                 if prev_cursor_i != state.ui.cursor_seq_i {
-                    state.ui.feature_hover =
-                        feature_from_index(&state.ui.cursor_seq_i, &state.generic.features);
+                    state.ui.feature_hover = feature_from_index(
+                        &state.ui.cursor_seq_i,
+                        &state.generic[state.active].features,
+                    );
                 }
 
                 // Removed: We select cursor position instead now.
@@ -460,7 +464,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
                 if state.ui.seq_visibility.show_primers {
                     shapes.append(&mut primer_arrow::draw_primers(
-                        &state.generic.primers,
+                        &state.generic[state.active].primers,
                         state.ui.selected_item,
                         &data,
                         ui,
@@ -469,7 +473,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
 
                 if state.ui.seq_visibility.show_features {
                     shapes.append(&mut draw_features(
-                        &state.generic.features,
+                        &state.generic[state.active].features,
                         state.ui.selected_item,
                         &data,
                         ui,
