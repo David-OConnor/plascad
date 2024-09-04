@@ -57,6 +57,9 @@ impl Display for Page {
 /// Selects which tab (ie file) is active
 pub fn tab_selector(state: &mut State, ui: &mut Ui) {
     // Note: This assumes generic, paths_loaded etc are always the same length. (Which they *should* be.)
+
+    let mut tab_removed = None;
+
     ui.horizontal(|ui| {
         if ui
             .button("New")
@@ -70,34 +73,41 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
 
         for (i, p) in state.path_loaded.iter().enumerate() {
             // todo: DRY with page selectors.
-            if let Some(path) = p {
-                let color = if i == state.active {
-                    Color32::GREEN
-                } else {
-                    Color32::WHITE
-                };
-
-                let filename = path
+            let tab_name = match p {
+                Some(path) => path
                     .file_name()
                     .and_then(|name| name.to_str())
                     .map(|name_str| name_str.to_string())
-                    .unwrap();
+                    .unwrap(),
+                None => "New plasmid".to_owned(),
+            };
 
-                if ui
-                    .button(
-                        RichText::new(filename)
-                            .color(color)
-                            .background_color(NAV_BUTTON_COLOR),
-                    )
-                    .clicked()
-                {
-                    state.active = i;
-                }
+            let color = if i == state.active {
+                Color32::GREEN
+            } else {
+                Color32::WHITE
+            };
+            let button = ui.button(
+                RichText::new(tab_name)
+                    .color(color)
+                    .background_color(NAV_BUTTON_COLOR),
+            );
 
-                ui.add_space(COL_SPACING / 2.);
+            if button.clicked() {
+                state.active = i;
             }
+
+            if button.middle_clicked() {
+                tab_removed = Some(i);
+            }
+
+            ui.add_space(COL_SPACING / 2.);
         }
     });
+
+    if let Some(i) = tab_removed {
+        state.remove_tab(i);
+    }
 }
 
 pub fn page_selector(state: &mut State, ui: &mut Ui) {

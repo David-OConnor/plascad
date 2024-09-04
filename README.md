@@ -59,6 +59,7 @@ move the cursor with arrow keys, type the letters *A*, *C*, *T*, and *G* to inse
 #### Notes:
 - Double-click to select a feature.
 - Ctrl+F to search for a sequence.
+- Middle-click on a tab to close it.
 
 - Ctrl+C and Ctrl+V to copy and paste sequences. (Can copy selected nucleotides, features, and primers)
 - Ctrl + A to select all nucleotides.

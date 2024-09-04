@@ -441,9 +441,34 @@ impl State {
         self.generic.push(Default::default());
         self.ion_concentrations.push(Default::default());
         self.path_loaded.push(Default::default());
-        self.ion_concentrations.push(Default::default());
+        self.portions.push(Default::default());
 
         self.active = self.generic.len() - 1;
+    }
+
+    pub fn remove_tab(&mut self, i: usize) {
+        let n = self.generic.len();
+
+        if n == 1 {
+            // We are closing the last tab; replace it with a blank slate.
+            self.reset();
+            return;
+        }
+
+        if i >= n {
+            return;
+        }
+
+        self.generic.remove(i);
+        self.ion_concentrations.remove(i);
+        self.path_loaded.remove(i);
+        self.portions.remove(i);
+
+        // Don't let the active tab overflow to the right; move it to the left if it would.
+        // And, don't move the active tab left only if it would underflow; this effectively moves it right.
+        if (self.active > 0 && self.active <= i && n > 1) || self.active + 1 >= n {
+            self.active -= 1;
+        }
     }
 
     /// Convenience function
@@ -640,12 +665,14 @@ impl State {
     /// Load state from a (our format) file.
     // pub fn load(path: &Path, prefs_path: &Path) -> Self {
     pub fn load(&mut self, loaded: &StateToSave, active: usize) {
-        if active >= self.generic.len() {
-            self.generic.push(Default::default());
-            self.path_loaded.push(Default::default());
-            self.ion_concentrations.push(Default::default());
-            self.portions.push(Default::default());
-        }
+        self.add_tab();
+        //
+        // if active >= self.generic.len() {
+        //     self.generic.push(Default::default());
+        //     self.path_loaded.push(Default::default());
+        //     self.ion_concentrations.push(Default::default());
+        //     self.portions.push(Default::default());
+        // }
 
         self.generic[active] = loaded.generic.clone();
         self.path_loaded[active] = loaded.path_loaded.clone();
@@ -668,6 +695,7 @@ impl State {
         self.sync_primer_metrics();
         self.sync_seq_related(None);
         self.ui.seq_input = seq_to_str(&self.get_seq());
+
         self.sync_portions();
         self.reset_selections();
     }
