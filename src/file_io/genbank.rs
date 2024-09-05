@@ -197,8 +197,8 @@ fn parse_features_primers(
         // let mut notes = HashMap::new();
         let mut notes = Vec::new();
         for (qual_key, val) in &feature.qualifiers {
-            if qual_key == "label" {
-                continue; // We handle this separately.
+            if qual_key == "label" || qual_key == "direction" {
+                continue; // We handle these separately.
             }
             if let Some(v) = val {
                 // notes.insert(qual_key.to_string(), v.clone());

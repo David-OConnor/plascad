@@ -10,7 +10,8 @@ use crate::{
     State,
 };
 
-pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 00, 110);
+pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 0, 110);
+pub const TAB_BUTTON_COLOR: Color32 = Color32::from_rgb(40, 80, 110);
 pub const DEFAULT_TAB_NAME: &str = "New plasmid";
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
@@ -28,6 +29,7 @@ pub enum Page {
     Pcr,
     Portions,
     Metadata,
+    Ligation,
     // Enzymes,
 }
 
@@ -49,6 +51,7 @@ impl Display for Page {
             Self::Proteins => "Proteins",
             Self::Portions => "Mixing portions",
             Self::Metadata => "Data",
+            Self::Ligation => "Ligation",
         }
         .to_owned();
         write!(f, "{}", str)
@@ -71,6 +74,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
             // state.reset();
             // set_window_title(&state.path_loaded[state.active], ui);
         }
+        ui.add_space(COL_SPACING);
 
         for (i, p) in state.path_loaded.iter().enumerate() {
             // Note: We currently default to file name (with extension), then
@@ -99,7 +103,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
             let button = ui.button(
                 RichText::new(tab_name)
                     .color(color)
-                    .background_color(NAV_BUTTON_COLOR),
+                    .background_color(TAB_BUTTON_COLOR),
             );
 
             if button.clicked() {
@@ -144,6 +148,7 @@ pub fn page_selector(state: &mut State, ui: &mut Ui) {
         page_button(&mut state.ui.page, Page::Proteins, ui, true);
         page_button(&mut state.ui.page, Page::Cloning, ui, true);
         page_button(&mut state.ui.page, Page::Pcr, ui, true);
+        page_button(&mut state.ui.page, Page::Ligation, ui, true);
         page_button(&mut state.ui.page, Page::Metadata, ui, true);
         page_button(&mut state.ui.page, Page::Portions, ui, true);
     });

@@ -48,10 +48,8 @@ pub const DEFAULT_DNA_FILE: &str = "export.dna";
 #[derive(Default)]
 pub struct StateToSave {
     pub generic: GenericData,
-    // insert_loc: usize,
     pub path_loaded: Option<PathBuf>,
     pub ion_concentrations: IonConcentrations,
-    // reading_frame: ReadingFrame,
     pub portions: PortionsState,
 }
 
@@ -61,7 +59,6 @@ impl Encode for StateToSave {
         self.generic.encode(encoder)?;
         self.path_loaded.encode(encoder)?;
         self.ion_concentrations.encode(encoder)?;
-        // self.reading_frame.encode(encoder)?;
         self.portions.encode(encoder)?;
 
         Ok(())
@@ -245,18 +242,23 @@ impl StateToSave {
         }
     }
 
-    // /// Used to load to state. The result is data from this struct, augmented with default values.
-    // pub fn to_state(self) -> State {
-    //     // todo: YOu will need to rethink this with multiple tabs.
-    //     State {
-    //         generic: vec![self.generic], // todo!
-    //         // cloning_insert_loc: self.insert_loc,
-    //         ion_concentrations: self.ion_concentrations,
-    //         // reading_frame: self.reading_frame,
-    //         portions: vec![self.portions], // todo!
-    //         ..Default::default()
-    //     }
-    // }
+    /// Saves in PCAD format. todo: Move to the PCAD file A/R.
+    pub fn save_to_file(&self, path: &Path) -> io::Result<()> {
+        let encoded = self.to_bytes();
+
+        let mut file = File::create(path)?;
+        file.write_all(&encoded)?;
+        Ok(())
+    }
+
+    /// Loads in PCAD format.
+    pub fn load_from_file(path: &Path) -> io::Result<Self> {
+        let mut file = File::open(path)?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)?;
+
+        Self::from_bytes(&buffer)
+    }
 }
 
 #[derive(Encode, Decode)]
@@ -468,7 +470,8 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
     if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
         match extension.to_lowercase().as_ref() {
             "pcad" => {
-                let state_loaded: io::Result<StateToSave> = load(path);
+                // let state_loaded: io::Result<StateToSave> = load(path);
+                let state_loaded = StateToSave::load_from_file(path);
                 match state_loaded {
                     Ok(s) => {
                         // s.to_state()
@@ -534,7 +537,8 @@ pub fn save_current_file(state: &State) {
             if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
                 match extension.to_lowercase().as_ref() {
                     "pcad" => {
-                        if let Err(e) = save(path, &StateToSave::from_state(state, state.active)) {
+                        // if let Err(e) = save(path, &StateToSave::from_state(state, state.active)) {
+                        if let Err(e) =  StateToSave::from_state(state, state.active).save_to_file(path) {
                             eprintln!("Error saving in PlasCAD format: {:?}", e);
                         };
                     }

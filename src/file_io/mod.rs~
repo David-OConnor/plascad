@@ -7,7 +7,6 @@ use crate::{
     sequence::{Feature, Metadata, Seq, SeqTopology},
 };
 pub mod genbank;
-mod pcad;
 pub mod save;
 pub mod snapgene;
 

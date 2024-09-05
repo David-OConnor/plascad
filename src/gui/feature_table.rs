@@ -179,7 +179,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
 
 pub fn feature_add_disp(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        if ui.button("➕ Add").clicked() {
+        if ui.button("➕ Add feature").clicked() {
             if state.ui.feature_add.start_posit == 0 {
                 state.ui.feature_add.start_posit = 1;
             }

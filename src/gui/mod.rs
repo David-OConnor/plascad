@@ -27,7 +27,6 @@ use navigation::Page;
 use crate::{
     external_websites,
     feature_db_load::find_features,
-    file_io::save::DEFAULT_SAVE_FILE,
     gui::{input::handle_input, primer_table::primer_details},
     primer::Primer,
     sequence::{Feature, FeatureType},
@@ -41,6 +40,7 @@ mod cloning;
 mod feature_overlay;
 mod feature_table;
 mod input;
+mod ligation;
 mod metadata;
 pub mod navigation;
 mod pcr;
@@ -354,6 +354,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Cloning => {
                 cloning::seq_editor_slic(state, ui);
             }
+            Page::Ligation => ligation::ligation_page(state, ui),
             Page::Proteins => protein::protein_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
             Page::Metadata => {

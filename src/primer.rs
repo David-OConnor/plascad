@@ -186,7 +186,16 @@ impl Primer {
         let num_vals_3p = if anchor < MIN_PRIMER_LEN {
             0
         } else {
-            (len_untrimmed - anchor) - MIN_PRIMER_LEN
+            if len_untrimmed > anchor {
+                let lhs = len_untrimmed - anchor;
+                if lhs > MIN_PRIMER_LEN {
+                    (len_untrimmed - anchor) - MIN_PRIMER_LEN
+                } else {
+                    0
+                }
+            } else {
+                0
+            }
         };
 
         // A nested loop: Try all combinations.

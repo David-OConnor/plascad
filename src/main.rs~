@@ -67,7 +67,6 @@ mod external_websites;
 mod feature_db_load;
 mod file_io;
 mod gui;
-mod ligation;
 mod melting_temp_calcs;
 mod pcr;
 mod portions;

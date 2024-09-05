@@ -123,9 +123,9 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
 
     // todo: Once you add this capability.
     ui.label("Clone a sequence into this one. Below, either paste the insert sequence, or select a \
-    file (GenBank, SnapGene, FASTA, or PlasCAD) containing the insert sequence. Set the insert location: \
+    file (GenBank, SnapGene, FASTA, or PlasCAD) containing the insert sequence. Ser the insert location: \
     This is the position in the vector (The currently open sequence) the insert will be placed after. Then click \"Clone\". This will \
-    create and open a new sequence, and create optimized primers for both the insert and vector.");
+    update the sequence with the insert, and create optimized primers for both the insert and vector.");
 
     ui.add_space(ROW_SPACING);
 
