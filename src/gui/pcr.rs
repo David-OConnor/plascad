@@ -152,7 +152,7 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
                             .to_vec() // todo unwrap is dicey.
                     };
 
-                    make_amplicon_tab(state, product_seq, fwd_primer, rev_primer);
+                    make_amplicon_tab(state, product_seq, range_combined, fwd_primer, rev_primer);
                 }
             } else {
                 ui.label("There must be exactly one match for each primer");

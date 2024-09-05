@@ -6,12 +6,12 @@ use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
 
 use crate::{
-    gui::{set_window_title, COL_SPACING},
+    gui::{set_window_title, COL_SPACING, ROW_SPACING},
     State,
 };
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 00, 110);
-const DEFAULT_TAB_NAME: &str = "New plasmid";
+pub const DEFAULT_TAB_NAME: &str = "New plasmid";
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum Page {
@@ -113,6 +113,21 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
 
             ui.add_space(COL_SPACING / 2.);
         }
+
+        // todo: Right-align?
+        ui.add_space(2. * ROW_SPACING);
+
+        if ui
+            .button(
+                RichText::new("Close active tab")
+                    .color(Color32::WHITE)
+                    .background_color(Color32::DARK_RED),
+            )
+            .on_hover_text("Shortcut: Middle click the tab to close it.")
+            .clicked
+        {
+            tab_removed = Some(state.active)
+        };
     });
 
     if let Some(i) = tab_removed {

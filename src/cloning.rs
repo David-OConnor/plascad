@@ -1,7 +1,7 @@
 use crate::{
     gui::navigation::{Page, PageSeq},
     primer::make_cloning_primers,
-    sequence::{Feature, FeatureDirection, FeatureType, Seq},
+    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq},
     util::RangeIncl,
     Selection, State,
 };
@@ -17,6 +17,38 @@ pub struct CloningInsertData {
     pub seq_input: String,
 }
 
+/// Given a set of freatures and the sequence their ranges map to, set up our
+/// insert sequences.
+pub fn setup_insert_seqs(state: &mut State, features: Vec<Feature>, seq: Seq) {
+    // todo: Unecessary cloning if loading from file.
+    state.ui.cloning_insert.features_loaded = features;
+    state.ui.cloning_insert.seq_loaded = seq;
+
+    // Choose the initial insert as the CDS or gene with the largest len.
+    let mut best = None;
+    let mut best_len = 0;
+    for (i, feature) in state.ui.cloning_insert.features_loaded.iter().enumerate() {
+        let len = feature.len(state.generic[state.active].seq.len());
+        if (feature.feature_type == FeatureType::CodingRegion
+            || feature.feature_type == FeatureType::Gene)
+            && len > best_len
+        {
+            best_len = len;
+            best = Some(i);
+        }
+    }
+
+    if let Some(feat_i) = best {
+        let feature = &state.ui.cloning_insert.features_loaded[feat_i];
+
+        if let Some(seq_this_ft) = feature.range.index_seq(&state.ui.cloning_insert.seq_loaded) {
+            state.ui.cloning_insert.feature_selected = best;
+            state.ui.cloning_insert.seq_insert = seq_this_ft.to_owned();
+            state.ui.cloning_insert.seq_input = seq_to_str(&seq_this_ft);
+        }
+    }
+}
+
 /// Create a new tab containing of the cloning product.
 pub fn make_product_tab(state: &mut State) {
     // Note: This segment is almost a duplicate of `State::add_tab`, but retaining the generic data.
@@ -28,7 +60,6 @@ pub fn make_product_tab(state: &mut State) {
     state.portions.push(Default::default());
 
     state.active = state.generic.len() - 1;
-    // state.add_tab();
 
     // Make sure to create cloning primers before performing the insert, or the result will be wrong.
     make_cloning_primers(state);
@@ -46,8 +77,8 @@ pub fn make_product_tab(state: &mut State) {
     // todo: Use the already existing data instead.
     state.generic[state.active].features.push(Feature {
         range: RangeIncl::new(
-            state.cloning_insert_loc + 1,
-            state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len(),
+            state.cloning_insert_loc,
+            state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len() - 1,
         ),
         label,
         feature_type: FeatureType::CodingRegion,

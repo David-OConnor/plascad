@@ -6,10 +6,10 @@ use eframe::{
 };
 
 use crate::{
-    cloning::{make_product_tab, CloningInsertData},
+    cloning::{make_product_tab, setup_insert_seqs, CloningInsertData},
     file_io::save::load_import,
-    gui::{COL_SPACING, ROW_SPACING},
-    sequence::{seq_from_str, seq_to_str, FeatureType},
+    gui::{navigation::DEFAULT_TAB_NAME, COL_SPACING, ROW_SPACING},
+    sequence::{seq_from_str, seq_to_str},
     State,
 };
 
@@ -59,6 +59,65 @@ fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
     }
 }
 
+fn insert_file_section(state: &mut State, ui: &mut Ui) {
+    ui.horizontal(|ui| {
+        ui.label("Choose insert from:");
+
+        // Add buttons for each opened tab
+        for gen in &mut state.generic {
+            let name = &gen.metadata.plasmid_name;
+            let btn_name = if name.len() > 20 {
+                format!("{}...", &name[..20].to_string())
+            } else if name.is_empty() {
+                DEFAULT_TAB_NAME.to_owned()
+            } else {
+                name.to_owned()
+            };
+
+            if ui
+                // todo: Consider something like the actual tab name system, that uses file name,
+                // todo or a default A/R
+                .button(btn_name)
+                .on_hover_text("Select an insert from this sequence")
+                .clicked()
+            {
+                // This setup, including the break and variables, prevents borrow errors.
+                let g = gen.features.clone();
+                let s = gen.seq.clone();
+                setup_insert_seqs(state, g, s);
+                break;
+            }
+        }
+
+        ui.add_space(COL_SPACING);
+        if ui
+            .button("Pick insert from file")
+            .on_hover_text(
+                "Choose a GenBank, PlasCAD, SnapGene, or FASTA file to \
+        select an insert from. FASTA files require manual index selection.",
+            )
+            .clicked()
+        {
+            state.ui.file_dialogs.cloning_load.select_file();
+        }
+
+        ui.add_space(COL_SPACING);
+
+        state.ui.file_dialogs.cloning_load.update(ui.ctx());
+
+        if let Some(path) = state.ui.file_dialogs.cloning_load.take_selected() {
+            if let Some(state_loaded) = load_import(&path) {
+                // todo: Is there a way to do this without cloning?
+                setup_insert_seqs(
+                    state,
+                    state_loaded.generic.features.clone(),
+                    state_loaded.generic.seq.clone(),
+                );
+            }
+        }
+    });
+}
+
 pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     ui.heading("SLIC and FastCloning");
 
@@ -89,54 +148,6 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(COL_SPACING);
 
-        if ui
-            .button("Pick insert from file")
-            .on_hover_text(
-                "Choose a GenBank, PlasCAD, SnapGene, or FASTA file to \
-        select an insert from. FASTA files require manual index selection.",
-            )
-            .clicked()
-        {
-            state.ui.file_dialogs.cloning_load.select_file();
-        }
-
-        ui.add_space(COL_SPACING);
-
-        state.ui.file_dialogs.cloning_load.update(ui.ctx());
-
-        if let Some(path) = state.ui.file_dialogs.cloning_load.take_selected() {
-            if let Some(state_loaded) = load_import(&path) {
-                state.ui.cloning_insert.features_loaded = state_loaded.generic.features;
-                state.ui.cloning_insert.seq_loaded = state_loaded.generic.seq;
-
-                // Choose the initial insert as the CDS or gene with the largest len.
-                let mut best = None;
-                let mut best_len = 0;
-                for (i, feature) in state.ui.cloning_insert.features_loaded.iter().enumerate() {
-                    let len = feature.len(state.generic[state.active].seq.len());
-                    if (feature.feature_type == FeatureType::CodingRegion
-                        || feature.feature_type == FeatureType::Gene)
-                        && len > best_len
-                    {
-                        best_len = len;
-                        best = Some(i);
-                    }
-                }
-
-                if let Some(feat_i) = best {
-                    let feature = &state.ui.cloning_insert.features_loaded[feat_i];
-
-                    if let Some(seq_this_ft) =
-                        feature.range.index_seq(&state.ui.cloning_insert.seq_loaded)
-                    {
-                        state.ui.cloning_insert.feature_selected = best;
-                        state.ui.cloning_insert.seq_insert = seq_this_ft.to_owned();
-                        state.ui.cloning_insert.seq_input = seq_to_str(&seq_this_ft);
-                    }
-                }
-            }
-        }
-
         if state.ui.cloning_insert.seq_insert.len() > 6 {
             if ui
                 .button(RichText::new("Clone").color(Color32::GOLD))
@@ -151,10 +162,12 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     });
 
     ui.add_space(ROW_SPACING);
+    insert_file_section(state, ui);
+
+    ui.add_space(ROW_SPACING);
     insert_selector(&mut state.ui.cloning_insert, ui);
 
     ui.add_space(ROW_SPACING);
-
     ui.horizontal(|ui| {
         ui.heading("Insert:");
         ui.label(&format!(
