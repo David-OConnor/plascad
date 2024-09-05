@@ -3,9 +3,8 @@ use std::str::FromStr;
 use eframe::egui::{Color32, ComboBox, Grid, RichText, TextEdit, Ui, Vec2};
 
 use crate::{
-    file_io::save::{save_current_file, save_new_product},
     gui::{COL_SPACING, ROW_SPACING},
-    pcr::{PolymeraseType, TempTime},
+    pcr::{make_amplicon_tab, PolymeraseType, TempTime},
     primer::{Primer, PrimerDirection, TM_TARGET},
     util::RangeIncl,
     PcrUi, State,
@@ -130,22 +129,15 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
                     .button(RichText::new("Simulate PCR").color(Color32::GOLD))
                     .clicked()
                 {
-                    // Save this vector; this file or quicksave instance will be turned into the PCR
-                    // product.
-                    save_current_file(state);
-
-                    // let fwd_primer = &state.generic[state.active].primers[state.ui.pcr.primer_fwd];
-                    // let rev_primer = &state.generic[state.active].primers[state.ui.pcr.primer_rev];
+                    let fwd_primer =
+                        state.generic[state.active].primers[state.ui.pcr.primer_fwd].clone();
+                    let rev_primer =
+                        state.generic[state.active].primers[state.ui.pcr.primer_rev].clone();
 
                     // todo: Yikes.
-                    let range_fwd = state.generic[state.active].primers[state.ui.pcr.primer_fwd]
-                        .volatile
-                        .matches[0]
-                        .range;
-                    let range_rev = state.generic[state.active].primers[state.ui.pcr.primer_rev]
-                        .volatile
-                        .matches[0]
-                        .range;
+                    let range_fwd = fwd_primer.volatile.matches[0].range;
+                    let range_rev = rev_primer.volatile.matches[0].range;
+
                     let range_combined = RangeIncl::new(range_fwd.start, range_rev.end);
 
                     let product_seq = if range_combined.start > range_combined.end {
@@ -160,32 +152,7 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
                             .to_vec() // todo unwrap is dicey.
                     };
 
-                    // if let Some(seq) = range_combined.index_seq(&state.generic.seq) {
-                    state.generic[state.active].seq = product_seq;
-                    let product_features = Vec::new();
-
-                    // Include the primers used for PCR, and features that are included in the new segment.
-                    // note that the feature indexes will need to change.
-
-                    // todo: Syntax.
-                    let product_primers = vec![
-                        state.generic[state.active].primers[state.ui.pcr.primer_fwd].clone(),
-                        state.generic[state.active].primers[state.ui.pcr.primer_rev].clone(),
-                    ];
-
-                    for feature in &state.generic[state.active].features {
-                        // todo: Implement.
-                    }
-
-                    state.generic[state.active].features = product_features;
-                    state.generic[state.active].primers = product_primers;
-
-                    state.sync_seq_related(None);
-
-                    // todo: Remove all features not included in the range.
-
-                    save_new_product("PCR product", state, ui);
-                    // }
+                    make_amplicon_tab(state, product_seq, fwd_primer, rev_primer);
                 }
             } else {
                 ui.label("There must be exactly one match for each primer");

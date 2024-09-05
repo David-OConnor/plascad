@@ -127,15 +127,13 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         match save(&path, &StateToSave::from_state(state, state.active)) {
             Ok(_) => {
                 state.path_loaded[state.active] = Some(path.to_owned());
-                state.save_prefs(); // to sync last opened.
-
                 set_window_title(&state.path_loaded[state.active], ui);
             }
             Err(e) => eprintln!("Error saving in PlasCAD format: {:?}", e),
         };
     } else if let Some(path) = state.ui.file_dialogs.export_fasta.take_selected() {
         match export_fasta(
-            &state.generic[state.active].seq,
+            &state.get_seq(),
             &state.generic[state.active].metadata.plasmid_name,
             &path,
         ) {

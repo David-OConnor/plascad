@@ -626,7 +626,6 @@ fn draw_primers(
 pub fn feature_range_sliders(state: &mut State, ui: &mut Ui) {
     if let Selection::Feature(feat_i) = &mut state.ui.selected_item {
         ui.spacing_mut().slider_width = FEATURE_SLIDER_WIDTH;
-        // let seq_len = state.get_seq().len();
         let seq_len = state.generic[state.active].seq.len();
 
         if state.generic[state.active].features.len() < *feat_i + 1 {
@@ -672,8 +671,7 @@ fn top_details(state: &mut State, ui: &mut Ui) {
 
     ui.add_space(COL_SPACING);
     ui.label("Cursor:");
-    let cursor_posit_text =
-        get_cursor_text(state.ui.cursor_seq_i, state.generic[state.active].seq.len());
+    let cursor_posit_text = get_cursor_text(state.ui.cursor_seq_i, state.get_seq().len());
     ui.heading(cursor_posit_text);
 }
 
@@ -922,7 +920,7 @@ fn draw_mini_seq(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Shape
 
     const OFFSET: Pos2 = pos2(4., 6.);
 
-    let seq_full_len = state.generic[state.active].seq.len();
+    let seq_full_len = state.get_seq().len();
 
     if seq_full_len < 10 {
         return result;
@@ -943,7 +941,7 @@ fn draw_mini_seq(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Shape
 
         let start = start as usize;
 
-        let seq = &state.generic[state.active].seq[start..end];
+        let seq = &state.get_seq()[start..end];
         let seq_text = seq_to_str(seq);
 
         result.push(ui.ctx().fonts(|fonts| {
@@ -1037,7 +1035,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             let width_min = rect_size.x < rect_size.y;
             let radius = if width_min { rect_size.x } else { rect_size.y } * CIRCLE_SIZE_RATIO;
 
-            let seq_len = state.generic[state.active].seq.len();
+            let seq_len = state.get_seq().len();
 
             let data = CircleData::new(seq_len, center, radius, to_screen);
 

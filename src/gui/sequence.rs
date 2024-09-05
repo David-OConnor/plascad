@@ -37,7 +37,7 @@ fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
         let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
         if response.changed() {
             state.generic[state.active].seq = seq_from_str(&state.ui.seq_input);
-            state.ui.seq_input = seq_to_str(&state.generic[state.active].seq);
+            state.ui.seq_input = seq_to_str(state.get_seq());
             state.sync_seq_related(None);
         }
     });
@@ -251,7 +251,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             feature_text(
                 feature_i,
                 &state.generic[state.active].features,
-                state.generic[state.active].seq.len(),
+                state.get_seq().len(),
                 ui,
             );
         }
@@ -260,7 +260,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             primer_text(
                 primer_i,
                 &state.generic[state.active].primers,
-                state.generic[state.active].seq.len(),
+                state.get_seq().len(),
                 ui,
             );
         }

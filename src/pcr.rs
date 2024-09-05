@@ -2,7 +2,11 @@
 
 use bincode::{Decode, Encode};
 
-use crate::PcrUi;
+use crate::{
+    primer::Primer,
+    sequence::{Nucleotide, Seq},
+    PcrUi, State,
+};
 
 /// This is a common pattern for PCR parameters
 #[derive(Default, Encode, Decode)]
@@ -76,4 +80,37 @@ impl PcrParams {
             num_cycles: data.num_cycles,
         }
     }
+}
+
+/// Create a new tab containing of the PCR amplicon.
+pub fn make_amplicon_tab(
+    state: &mut State,
+    product_seq: Seq,
+    fwd_primer: Primer,
+    rev_primer: Primer,
+) {
+    state.add_tab();
+
+    // if let Some(seq) = range_combined.index_seq(&state.generic.seq) {
+    state.generic[state.active].seq = product_seq;
+    let product_features = Vec::new();
+
+    // Include the primers used for PCR, and features that are included in the new segment.
+    // note that the feature indexes will need to change.
+
+    // todo: Syntax.
+    let product_primers = vec![fwd_primer, rev_primer];
+
+    // for feature in &state.generic[state.active].features {
+    // todo: Implement.
+    // }
+
+    state.generic[state.active].features = product_features;
+    state.generic[state.active].primers = product_primers;
+    state.generic[state.active].metadata.plasmid_name = "PCR amplicon".to_owned();
+
+    state.sync_seq_related(None);
+    // state.sync_primer_metrics();
+
+    // save_new_product("PCR product", state, ui);
 }

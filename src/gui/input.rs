@@ -17,8 +17,8 @@ fn handle_global(state: &mut State, ip: &InputState) -> bool {
     let mut reset = false; // avoids a borrow error.
 
     if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
-        if !state.generic[state.active].seq.is_empty() {
-            state.ui.text_selection = Some(RangeIncl::new(1, state.generic[state.active].seq.len()))
+        if !state.get_seq().is_empty() {
+            state.ui.text_selection = Some(RangeIncl::new(1, state.get_seq().len()))
         }
     }
 
@@ -165,7 +165,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
 
             // Insert nucleotides A/R.
             if let Some(mut i) = state.ui.text_cursor_i {
-                if i > state.generic[state.active].seq.len() {
+                if i > state.get_seq().len() {
                     i = 0; // todo?? Having an overflow when backspacing near origin.
                 }
 

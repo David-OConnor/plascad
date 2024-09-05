@@ -218,7 +218,7 @@ fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &SeqViewData) -> Option<u
 fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    for (i, nt) in state.generic[state.active].seq.iter().enumerate() {
+    for (i, nt) in state.get_seq().iter().enumerate() {
         let i = i + 1; // 1-based indexing.
         let pos = data.seq_i_to_px_rel(i);
 
@@ -232,9 +232,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                                        // todo: Cache this; don't run it every update.
                     if (i_orf - orf_match.frame.offset()) % 3 == 0 {
                         if let Some(aa) = AminoAcid::from_codons(
-                            state.generic[state.active].seq[i_orf..i_orf + 3]
-                                .try_into()
-                                .unwrap(),
+                            state.get_seq()[i_orf..i_orf + 3].try_into().unwrap(),
                         ) {
                             result.push(ui.ctx().fonts(|fonts| {
                                 Shape::text(
@@ -377,7 +375,7 @@ fn draw_text_cursor(cursor_i: Option<usize>, data: &SeqViewData) -> Vec<Shape> {
 pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
     let mut shapes = vec![];
 
-    let seq_len = state.generic[state.active].seq.len();
+    let seq_len = state.get_seq().len();
 
     state.ui.nt_chars_per_row = ((ui.available_width()
         - (VIEW_AREA_PAD_LEFT + VIEW_AREA_PAD_RIGHT))

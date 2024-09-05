@@ -116,8 +116,8 @@ fn origin_change(state: &mut State, ui: &mut Ui) {
             }
 
             // ui.add(
-            //     // egui::Slider::from_get_set(0.0..=state.generic[state.active].seq.len() as f32, |v| {
-            //     egui::Slider::new(&mut 0, 0..=state.generic[state.active].seq.len(), |v| {
+            //     // egui::Slider::from_get_set(0.0..=state.get_seq().len() as f32, |v| {
+            //     egui::Slider::new(&mut 0, 0..=state.get_seq().len(), |v| {
             //         if let Some(v_) = v {
             //
             //             bases_modified.push(basis_i);
@@ -280,7 +280,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                     .desired_width(280.),
             );
 
-            ui.label(format!("{} bp", state.generic[state.active].seq.len()));
+            ui.label(format!("{} bp", state.get_seq().len()));
         });
 
         ui.add_space(ROW_SPACING / 2.);
@@ -294,7 +294,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             if ui.button("Annotate").clicked() {
                 // Don't add duplicates.
-                let features = find_features(&state.generic[state.active].seq);
+                let features = find_features(&state.get_seq());
                 merge_feature_sets(&mut state.generic[state.active].features, &features)
             }
 

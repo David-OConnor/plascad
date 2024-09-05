@@ -24,6 +24,7 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
     sync::Arc,
+    time::Instant,
 };
 
 use bincode::{Decode, Encode};
@@ -82,6 +83,10 @@ mod util;
 
 type Color = (u8, u8, u8); // RGB
 
+// todo: Eventually, implement a system that automatically checks for changes, and don't
+// todo save to disk if there are no changes.
+const PREFS_SAVE_INTERVAL: u64 = 60; // Save user preferences this often, in seconds.
+
 struct PlasmidData {
     // todo : Which seq type? There are many.
     seq_expected: Seq,
@@ -99,8 +104,27 @@ fn check_all(data: &PlasmidData) {
 }
 
 impl eframe::App for State {
-    /// This is the GUI's event loop.
-    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+    /// This is the GUI's event loop. This also handles periodically saving preferences to disk.
+    /// Note that preferences are only saved if the window is active, ie mouse movement in it or similar.
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        // Note that if the window is
+        static mut LAST_PREF_SAVE: Option<Instant> = None;
+
+        let now = Instant::now();
+
+        unsafe {
+            if let Some(last_save) = LAST_PREF_SAVE {
+                if (now - last_save).as_secs() > PREFS_SAVE_INTERVAL {
+                    println!("Saving prefs");
+                    LAST_PREF_SAVE = Some(now);
+                    self.save_prefs()
+                }
+            } else {
+                // Initialize LAST_PREF_SAVE the first time it's accessed
+                LAST_PREF_SAVE = Some(now);
+            }
+        }
+
         gui::draw(self, ctx);
     }
 }
@@ -436,7 +460,7 @@ impl Default for State {
 }
 
 impl State {
-    /// Add a default-settings tab.
+    /// Add a default-settings tab, and open it.
     pub fn add_tab(&mut self) {
         self.generic.push(Default::default());
         self.ion_concentrations.push(Default::default());
@@ -471,7 +495,7 @@ impl State {
         }
     }
 
-    /// Convenience function
+    /// Convenience function, since we call this so frequently.
     pub fn get_seq(&self) -> &[Nucleotide] {
         &self.generic[self.active].seq
     }
@@ -545,14 +569,12 @@ impl State {
     }
 
     pub fn sync_reading_frame(&mut self) {
-        self.volatile.reading_frame_matches =
-            find_orf_matches(&self.generic[self.active].seq, self.reading_frame);
+        self.volatile.reading_frame_matches = find_orf_matches(self.get_seq(), self.reading_frame);
     }
 
     pub fn sync_search(&mut self) {
         if self.search_seq.len() >= MIN_SEARCH_LEN {
-            self.volatile.search_matches =
-                find_search_matches(&self.generic[self.active].seq, &self.search_seq);
+            self.volatile.search_matches = find_search_matches(self.get_seq(), &self.search_seq);
         } else {
             self.volatile.search_matches = Vec::new();
         }
@@ -649,12 +671,12 @@ impl State {
 
         sync_cr_orf_matches(self);
         self.volatile.proteins = proteins_from_seq(
-            &self.generic[self.active].seq,
+            self.get_seq(),
             &self.generic[self.active].features,
             &self.volatile.cr_orf_matches,
         );
 
-        self.ui.seq_input = seq_to_str(&self.generic[self.active].seq);
+        self.ui.seq_input = seq_to_str(self.get_seq());
     }
 
     pub fn reset_selections(&mut self) {
@@ -663,33 +685,22 @@ impl State {
     }
 
     /// Load state from a (our format) file.
-    // pub fn load(path: &Path, prefs_path: &Path) -> Self {
     pub fn load(&mut self, loaded: &StateToSave, active: usize) {
-        self.add_tab();
-        //
-        // if active >= self.generic.len() {
-        //     self.generic.push(Default::default());
-        //     self.path_loaded.push(Default::default());
-        //     self.ion_concentrations.push(Default::default());
-        //     self.portions.push(Default::default());
-        // }
+        let gen = &self.generic[self.active];
+        // Quick+Dirty check if we're on a new file. If so, replace it, vice adding a new tab.
+        if !gen.seq.is_empty()
+            || !gen.features.is_empty()
+            || !gen.primers.is_empty()
+            || !self.path_loaded[self.active].is_none()
+            || !self.portions[self.active].solutions.is_empty()
+        {
+            self.add_tab();
+        }
 
-        self.generic[active] = loaded.generic.clone();
-        self.path_loaded[active] = loaded.path_loaded.clone();
-        self.ion_concentrations[active] = loaded.ion_concentrations.clone();
-        self.portions[active] = loaded.portions.clone();
-
-        // let state_loaded: io::Result<StateToSave> = load(path);
-        // let mut result = match state_loaded {
-        //     Ok(s) => s.to_state(),
-        //     Err(_) => Default::default(),
-        // };
-
-        // self.load_prefs(prefs_path);
-
-        // todo: We only need to do this at program load; move this to the original call once you're
-        // todo up and runnign with tabs.
-        // self.restriction_enzyme_lib = load_re_library();
+        self.generic[self.active] = loaded.generic.clone();
+        self.path_loaded[self.active] = loaded.path_loaded.clone();
+        self.ion_concentrations[self.active] = loaded.ion_concentrations.clone();
+        self.portions[self.active] = loaded.portions.clone();
 
         self.sync_pcr();
         self.sync_primer_metrics();
@@ -704,7 +715,7 @@ impl State {
     pub fn copy_seq(&self) {
         // Text selection takes priority.
         if let Some(selection) = &self.ui.text_selection {
-            if let Some(seq) = selection.index_seq(&self.generic[self.active].seq) {
+            if let Some(seq) = selection.index_seq(self.get_seq()) {
                 let mut ctx = ClipboardContext::new().unwrap();
                 ctx.set_contents(seq_to_str(seq)).unwrap();
             }
@@ -714,7 +725,7 @@ impl State {
         match self.ui.selected_item {
             Selection::Feature(i) => {
                 let feature = &self.generic[self.active].features[i];
-                if let Some(seq) = feature.range.index_seq(&self.generic[self.active].seq) {
+                if let Some(seq) = feature.range.index_seq(self.get_seq()) {
                     let mut ctx = ClipboardContext::new().unwrap();
                     ctx.set_contents(seq_to_str(seq)).unwrap();
                 }

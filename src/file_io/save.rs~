@@ -466,6 +466,7 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
     let mut result = StateToSave::default();
 
     if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
+
         match extension.to_lowercase().as_ref() {
             "pcad" => {
                 let state_loaded: io::Result<StateToSave> = load(path);
@@ -583,4 +584,6 @@ pub fn save_current_file(state: &State) {
             }
         }
     }
+    // todo: You will likely more this to an automatic one.
+    state.save_prefs()
 }

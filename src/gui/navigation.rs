@@ -1,6 +1,6 @@
 //! This module contains code related to navigation buttons.
 
-use std::fmt::Display;
+use std::{fmt::Display, fs::metadata};
 
 use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
@@ -11,6 +11,7 @@ use crate::{
 };
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 00, 110);
+const DEFAULT_TAB_NAME: &str = "New plasmid";
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum Page {
@@ -72,16 +73,24 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
         }
 
         for (i, p) in state.path_loaded.iter().enumerate() {
-            // todo: DRY with page selectors.
+            // Note: We currently default to file name (with extension), then
+            // plasmid name, then a default. See if you want to default to plasmid name.
             let tab_name = match p {
                 Some(path) => path
                     .file_name()
                     .and_then(|name| name.to_str())
                     .map(|name_str| name_str.to_string())
                     .unwrap(),
-                None => "New plasmid".to_owned(),
+                None => {
+                    if !state.generic[i].metadata.plasmid_name.is_empty() {
+                        state.generic[i].metadata.plasmid_name.clone()
+                    } else {
+                        DEFAULT_TAB_NAME.to_owned()
+                    }
+                }
             };
 
+            // todo: DRY with page selectors.
             let color = if i == state.active {
                 Color32::GREEN
             } else {
@@ -95,6 +104,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
 
             if button.clicked() {
                 state.active = i;
+                set_window_title(&state.path_loaded[i], ui);
             }
 
             if button.middle_clicked() {
