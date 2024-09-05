@@ -112,7 +112,7 @@ to handle GenBank parsing and writing.
 
 
 ### When to use each file format
-If you don't have interoperability requirements, you can use PlasCAD's own file format (.pcad extension) using the *Save* and *Load* buttons. This is a binary format that results in smaller file sizes (Generally 4-10x smaller) than the others, due to using 2-bits to store each nucelotide, and a compact overal format. This is a binary format divided into packets. It's currently undocumented, but we'll add documentation later.
+If you don't have interoperability requirements, you can use PlasCAD's own file format (.pcad extension) using the *Save* and *Load* buttons. This is a binary format that results in smaller file sizes (Generally 4-10x smaller) than the others, due to using 2-bits to store each nucelotide, and a compact overal format. [WIP documention](file_spec.md).
 
 [GenBank](https://www.ncbi.nlm.nih.gov/genbank/) and SnapGene are popular formats, and provide interoperability with other software. [AddGene](https://www.addgene.org/) and other resources have files available in these formats.
 
