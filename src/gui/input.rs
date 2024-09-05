@@ -23,10 +23,9 @@ fn handle_global(state: &mut State, ip: &InputState) -> bool {
     }
 
     if ip.key_pressed(Key::S) && ip.modifiers.ctrl && !ip.modifiers.shift {
-        if let Err(e) = save(
-            &PathBuf::from(DEFAULT_SAVE_FILE),
-            &StateToSave::from_state(state, state.active),
-        ) {
+        if let Err(e) = StateToSave::from_state(state, state.active)
+            .save_to_file(&PathBuf::from(DEFAULT_SAVE_FILE))
+        {
             eprintln!("Error saving: {e}");
         }
     }

@@ -306,6 +306,7 @@ impl StateUiToSave {
     }
 }
 
+/// Save to file, using Bincode. We currently use this for preference files.
 pub fn save<T: Encode>(path: &Path, data: &T) -> io::Result<()> {
     let config = config::standard();
 
@@ -316,6 +317,7 @@ pub fn save<T: Encode>(path: &Path, data: &T) -> io::Result<()> {
     Ok(())
 }
 
+/// Load from file, using Bincode. We currently use this for preference files.
 pub fn load<T: Decode>(path: &Path) -> io::Result<T> {
     let config = config::standard();
 
@@ -450,7 +452,7 @@ pub fn save_new_product(name: &str, state: &mut State, ui: &mut Ui) {
     state.ui.file_dialogs.save.save_file();
 
     if let Some(path) = state.ui.file_dialogs.save.take_selected() {
-        match save(&path, &StateToSave::from_state(state, state.active)) {
+        match StateToSave::from_state(state, state.active).save_to_file(&path) {
             Ok(_) => {
                 state.path_loaded[state.active] = Some(path.to_owned());
                 set_window_title(&state.path_loaded[state.active], ui);
@@ -482,8 +484,8 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
 
                         return Some(result);
                     }
-                    Err(_) => {
-                        eprintln!("Error loading a PCAD file");
+                    Err(e) => {
+                        eprintln!("Error loading a PCAD file: {e}");
                     }
                 };
             }
@@ -538,8 +540,10 @@ pub fn save_current_file(state: &State) {
                 match extension.to_lowercase().as_ref() {
                     "pcad" => {
                         // if let Err(e) = save(path, &StateToSave::from_state(state, state.active)) {
-                        if let Err(e) =  StateToSave::from_state(state, state.active).save_to_file(path) {
-                            eprintln!("Error saving in PlasCAD format: {:?}", e);
+                        if let Err(e) =
+                            StateToSave::from_state(state, state.active).save_to_file(path)
+                        {
+                            eprintln!("Error saving in PlasCAD format: {}", e);
                         };
                     }
                     // Does this work for FASTQ too?
@@ -579,10 +583,9 @@ pub fn save_current_file(state: &State) {
         }
         None => {
             // Quicksave.
-            if let Err(e) = save(
-                &PathBuf::from(DEFAULT_SAVE_FILE),
-                &StateToSave::from_state(state, state.active),
-            ) {
+            if let Err(e) = StateToSave::from_state(state, state.active)
+                .save_to_file(&PathBuf::from(DEFAULT_SAVE_FILE))
+            {
                 eprintln!("Error quicksaving: {e}");
             }
         }

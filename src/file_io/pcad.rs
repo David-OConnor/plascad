@@ -11,12 +11,9 @@ use std::{io, io::ErrorKind};
 use bincode::config;
 use num_enum::TryFromPrimitive;
 
-use crate::file_io::{
-    save::{deser_seq_bin, serialize_seq_bin, StateToSave},
-    GenericData,
-};
+use crate::file_io::save::{deser_seq_bin, serialize_seq_bin, StateToSave};
 
-const START_BYTES: [u8; 2] = [0x1f, 0xb2]; // Arbitrary, used as a sanity check.
+const START_BYTES: [u8; 2] = [0xca, 0xfe]; // Arbitrary, used as a sanity check.
 const PACKET_START: u8 = 0x11;
 const PACKET_OVERHEAD: usize = 6; // packet start, packet type, message size.
 
@@ -81,15 +78,14 @@ impl Packet {
         result.extend(&len.to_be_bytes());
 
         result.push(self.type_ as u8);
-        result[6..].copy_from_slice(&self.payload); // todo: Can we avoid this clone?
+        result.extend(&self.payload);
 
         result
     }
 }
 
 impl StateToSave {
-    // Move: Add our packet-related format code to a separate file A/R. eg pcad.rs
-    /// Serialize as bytes, eg for file loading. We  use a packet-based format.
+    /// Serialize state as bytes in the PCAD format, e.g. for file saving.
     pub fn to_bytes(&self) -> Vec<u8> {
         let cfg = config::standard();
         let mut result = Vec::new();
@@ -151,6 +147,7 @@ impl StateToSave {
         result
     }
 
+    /// Deserialize state as bytes in the PCAD format, e.g. for file loading.
     pub fn from_bytes(bytes: &[u8]) -> io::Result<Self> {
         if bytes[0..2] != START_BYTES {
             return Err(io::Error::new(
@@ -167,7 +164,7 @@ impl StateToSave {
         // for(i, byte) in bytes[2..].iter().enumerate() {
         let mut i = 2;
         loop {
-            if i > bytes.len() {
+            if i + PACKET_OVERHEAD > bytes.len() {
                 break; // End of the packet.
             }
 
@@ -177,38 +174,40 @@ impl StateToSave {
 
             // Now, add packet data to our result A/R.
             match packet.type_ {
-                PacketType::Sequence => {
-                    result.generic.seq = deser_seq_bin(&packet.payload)
-                        .map_err(|_| io::Error::new(ErrorKind::InvalidData, DECODE_ERR_MSG))?;
-                }
-                PacketType::Features => {
-                    result.generic.features = bincode::decode_from_slice(&packet.payload, cfg)
-                        .map_err(|_| io::Error::new(ErrorKind::InvalidData, DECODE_ERR_MSG))?.0;
-                }
-                PacketType::Primers => {
-                    result.generic.primers = bincode::decode_from_slice(&packet.payload, cfg)
-                        .map_err(|_| io::Error::new(ErrorKind::InvalidData, DECODE_ERR_MSG))?.0;
-                }
-                PacketType::Metadata => {
-                    result.generic.metadata = bincode::decode_from_slice(&packet.payload, cfg)
-                        .map_err(|_| io::Error::new(ErrorKind::InvalidData, DECODE_ERR_MSG))?.0;
-                }
-                PacketType::Topology => {
-                    result.generic.topology = bincode::decode_from_slice(&packet.payload, cfg)
-                        .map_err(|_| io::Error::new(ErrorKind::InvalidData, DECODE_ERR_MSG))?.0;
-                }
+                PacketType::Sequence => match deser_seq_bin(&packet.payload) {
+                    Ok(v) => result.generic.seq = v,
+                    Err(e) => eprintln!("Error decoding sequence packet: {e}"),
+                },
+                PacketType::Features => match bincode::decode_from_slice(&packet.payload, cfg) {
+                    Ok(v) => result.generic.features = v.0,
+                    Err(e) => eprintln!("Error decoding features packet: {e}"),
+                },
+                PacketType::Primers => match bincode::decode_from_slice(&packet.payload, cfg) {
+                    Ok(v) => result.generic.primers = v.0,
+                    Err(e) => eprintln!("Error decoding primers packet: {e}"),
+                },
+                PacketType::Metadata => match bincode::decode_from_slice(&packet.payload, cfg) {
+                    Ok(v) => result.generic.metadata = v.0,
+                    Err(e) => eprintln!("Error decoding metadata packet: {e}"),
+                },
+                PacketType::Topology => match bincode::decode_from_slice(&packet.payload, cfg) {
+                    Ok(v) => result.generic.topology = v.0,
+                    Err(e) => eprintln!("Error decoding topology packet: {e}"),
+                },
                 PacketType::IonConcentrations => {
-                    result.ion_concentrations = bincode::decode_from_slice(&packet.payload, cfg)
-                        .map_err(|_| io::Error::new(ErrorKind::InvalidData, DECODE_ERR_MSG))?.0;
+                    match bincode::decode_from_slice(&packet.payload, cfg) {
+                        Ok(v) => result.ion_concentrations = v.0,
+                        Err(e) => eprintln!("Error decoding ion concentrations packet: {e}"),
+                    }
                 }
-                PacketType::Portions => {
-                    result.portions = bincode::decode_from_slice(&packet.payload, cfg)
-                        .map_err(|_| io::Error::new(ErrorKind::InvalidData, DECODE_ERR_MSG))?.0;
-                }
-                PacketType::PathLoaded => {
-                    result.path_loaded = bincode::decode_from_slice(&packet.payload, cfg)
-                        .map_err(|_| io::Error::new(ErrorKind::InvalidData, DECODE_ERR_MSG))?.0;
-                }
+                PacketType::Portions => match bincode::decode_from_slice(&packet.payload, cfg) {
+                    Ok(v) => result.portions = v.0,
+                    Err(e) => eprintln!("Error decoding portions packet: {e}"),
+                },
+                PacketType::PathLoaded => match bincode::decode_from_slice(&packet.payload, cfg) {
+                    Ok(v) => result.path_loaded = v.0,
+                    Err(e) => eprintln!("Error decoding Seq packet: {e}"),
+                },
             }
         }
 

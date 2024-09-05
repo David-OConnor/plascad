@@ -124,7 +124,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
             state.load(&loaded, state.active);
         }
     } else if let Some(path) = state.ui.file_dialogs.save.take_selected() {
-        match save(&path, &StateToSave::from_state(state, state.active)) {
+        match StateToSave::from_state(state, state.active).save_to_file(&path) {
             Ok(_) => {
                 state.path_loaded[state.active] = Some(path.to_owned());
                 set_window_title(&state.path_loaded[state.active], ui);
