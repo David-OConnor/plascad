@@ -1,9 +1,10 @@
 //! This module contains code related to primer (oglionucleotide) design and QC.
 
 use bincode::{Decode, Encode};
+use eframe::egui::Color32;
 
 use crate::{
-    gui::primer_table::DEFAULT_TRIM_AMT,
+    gui::{primer_table::DEFAULT_TRIM_AMT, PRIMER_FWD_COLOR, PRIMER_REV_COLOR},
     primer_metrics::PrimerMetrics,
     sequence::{
         seq_complement, seq_from_str, seq_to_str, seq_weight, Nucleotide,
@@ -50,6 +51,15 @@ pub struct AmplificationPrimers {
 pub enum PrimerDirection {
     Forward,
     Reverse,
+}
+
+impl PrimerDirection {
+    pub fn color(&self) -> Color32 {
+        match self {
+            Self::Forward => PRIMER_FWD_COLOR,
+            Self::Reverse => PRIMER_REV_COLOR,
+        }
+    }
 }
 
 #[derive(Default, Clone, Encode, Decode)]

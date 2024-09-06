@@ -52,7 +52,7 @@ pub fn draw_selection(mut selection: RangeIncl, data: &SeqViewData, ui: &mut Ui)
     result.append(&mut feature_seq_overlay(
         &selection_ranges_px,
         FeatureType::Selection,
-        (COLOR_CURSOR.r(), COLOR_CURSOR.g(), COLOR_CURSOR.b()),
+        COLOR_CURSOR,
         VERTICAL_OFFSET_FEATURE,
         FeatureDirection::None,
         "",
@@ -97,10 +97,13 @@ pub fn draw_features(
             _ => false,
         };
 
+        let (r, g, b) = feature.color();
+        let color = Color32::from_rgb(r, g, b);
+
         result.append(&mut feature_seq_overlay(
             &feature_ranges_px,
             feature.feature_type,
-            feature.color(),
+            color,
             VERTICAL_OFFSET_FEATURE,
             feature.direction,
             &feature.label(),
@@ -116,7 +119,7 @@ pub fn draw_features(
 pub fn feature_seq_overlay(
     feature_ranges_px: &[(Pos2, Pos2)],
     feature_type: FeatureType,
-    color: Color,
+    color: Color32,
     vertical_offset: f32,
     direction: FeatureDirection,
     label: &str,
@@ -126,8 +129,7 @@ pub fn feature_seq_overlay(
     if feature_ranges_px.is_empty() {
         return Vec::new();
     }
-    let (r, g, b) = color;
-    let stroke = Stroke::new(STROKE_WIDTH, Color32::from_rgb(r, g, b));
+    let stroke = Stroke::new(STROKE_WIDTH, color);
 
     let color_label = Color32::LIGHT_GREEN;
 

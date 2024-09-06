@@ -1,19 +1,16 @@
 //! Contains code for our mini view above the circlular map.
 
-use std::f32::consts::TAU;
-
-use eframe::egui::{
-    pos2, vec2, Align, Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui,
-};
+use eframe::egui::{pos2, vec2, Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui};
 
 use crate::{
     gui::{
         circle::{
             CircleData, FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH,
-            RE_WIDTH,
+            PRIMER_STROKE_WIDTH, RE_WIDTH,
         },
         COLOR_RE,
     },
+    primer::Primer,
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::Feature,
     util::{map_linear, RangeIncl},
@@ -28,7 +25,10 @@ const MINI_DISP_NT_LEN_DIV2: usize = MINI_DISP_NT_LEN / 2;
 const OFFSET: Pos2 = pos2(4., 6.);
 const FEATURE_HEIGHT: f32 = 18.;
 
-const RE_HEIGHT: f32 = 24.;
+const PRIMER_HEIGHT: f32 = 26.;
+const PRIMER_HEIGHT_DIV2: f32 = PRIMER_HEIGHT / 2.;
+const RE_HEIGHT: f32 = 28.;
+const RE_HEIGHT_DIV2: f32 = RE_HEIGHT / 2.;
 
 fn draw_features(
     features: &[Feature],
@@ -126,6 +126,99 @@ fn draw_features(
     result
 }
 
+/// todo: DRY with draw_features (Similar issue to the non-zoomed cirlc.e
+fn draw_primers(
+    primers: &[Primer],
+    data: &CircleData,
+    disp_range: RangeIncl,
+    selected_item: Selection,
+    index_to_x: impl Fn(usize) -> f32,
+    pixel_left: f32,
+    pixel_right: f32,
+    ui: &mut Ui,
+) -> Vec<Shape> {
+    let mut result = Vec::new();
+
+    for (i, primer) in primers.iter().enumerate() {
+        for prim_match in &primer.volatile.matches {
+            let mut outline_color = prim_match.direction.color();
+
+            if let Selection::Primer(sel_i) = selected_item {
+                if sel_i == i {
+                    outline_color = Color32::RED;
+                }
+            }
+
+            let stroke = Stroke::new(PRIMER_STROKE_WIDTH, outline_color);
+
+            let mut prim_range = prim_match.range;
+
+            // Handle wraps around the origin
+            if disp_range.end > data.seq_len {
+                prim_range.start += data.seq_len;
+                prim_range.end += data.seq_len;
+            }
+
+            let contains_start = disp_range.contains(prim_range.start);
+            let contains_end = disp_range.contains(prim_range.end);
+
+            // todo: Way to not make this a special case?
+            let full_size =
+                // feature_range.start < disp_range.start && feature_range.end > disp_range.end && disp_range.start < disp_range.end;
+                prim_range.start < disp_range.start && prim_range.end > disp_range.end;
+
+            if contains_start || contains_end || full_size {
+                let start_x = if contains_start {
+                    index_to_x(prim_range.start)
+                } else {
+                    pixel_left
+                };
+
+                let end_x = if contains_end {
+                    index_to_x(prim_range.end)
+                } else {
+                    pixel_right
+                };
+
+                // todo: Arrow heads.
+
+                result.push(Shape::convex_polygon(
+                    vec![
+                        data.to_screen * pos2(start_x, OFFSET.y - 0.),
+                        data.to_screen * pos2(end_x, OFFSET.y - 0.),
+                        data.to_screen * pos2(end_x, OFFSET.y + PRIMER_HEIGHT_DIV2),
+                        data.to_screen * pos2(start_x, OFFSET.y + PRIMER_HEIGHT_DIV2),
+                    ],
+                    Color32::TRANSPARENT,
+                    stroke,
+                ));
+            }
+
+            // Draw the label in the center.  todo: More locations A/R for long features
+            let center_i = (prim_range.end + prim_range.start) / 2;
+
+            if disp_range.contains(center_i) {
+                let center_x = index_to_x(center_i);
+
+                // Draw the label after the shape.
+                let label_pt = pos2(center_x, OFFSET.y + FEATURE_HEIGHT / 2.);
+
+                result.push(ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        data.to_screen * label_pt,
+                        Align2::CENTER_CENTER,
+                        &primer.name,
+                        FontId::new(16., FontFamily::Proportional),
+                        Color32::DARK_GREEN,
+                    )
+                }));
+            }
+        }
+    }
+    result
+}
+
 /// Draw RE cut sites through the circle.
 /// todo: DRY with tick drawing code.
 fn draw_re_sites(
@@ -141,7 +234,7 @@ fn draw_re_sites(
         let re = &res[re_match.lib_index];
 
         let point_bottom = pos2(index_to_x(cut_i), OFFSET.y + RE_HEIGHT);
-        let point_top = pos2(index_to_x(cut_i), OFFSET.y);
+        let point_top = pos2(index_to_x(cut_i), OFFSET.y - 0.);
 
         result.push(Shape::line_segment(
             [data.to_screen * point_bottom, data.to_screen * point_top],
@@ -232,6 +325,17 @@ pub fn draw_zoomed_in_view(data: &CircleData, state: &mut State, ui: &mut Ui) ->
             ui,
         ));
 
+        result.append(&mut draw_primers(
+            &state.generic[state.active].primers,
+            data,
+            disp_range,
+            state.ui.selected_item,
+            index_to_x,
+            pixel_left,
+            pixel_right,
+            ui,
+        ));
+
         if state.ui.seq_visibility.show_res {
             result.append(&mut draw_re_sites(
                 &state.volatile.restriction_enzyme_sites,
@@ -241,8 +345,6 @@ pub fn draw_zoomed_in_view(data: &CircleData, state: &mut State, ui: &mut Ui) ->
                 ui,
             ));
         }
-
-        // todo: Primers, and REs as well.
     }
 
     result

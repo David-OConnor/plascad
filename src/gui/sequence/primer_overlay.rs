@@ -64,18 +64,7 @@ pub fn draw_primers(
                 .map(|r| (data.seq_i_to_px_rel(r.start), data.seq_i_to_px_rel(r.end)))
                 .collect();
 
-            let color = match prim_match.direction {
-                PrimerDirection::Forward => (
-                    PRIMER_FWD_COLOR.r(),
-                    PRIMER_FWD_COLOR.g(),
-                    PRIMER_FWD_COLOR.b(),
-                ),
-                PrimerDirection::Reverse => (
-                    PRIMER_REV_COLOR.r(),
-                    PRIMER_REV_COLOR.g(),
-                    PRIMER_REV_COLOR.b(),
-                ),
-            };
+            let color = prim_match.direction.color();
 
             let selected = match selected_item {
                 Selection::Primer(j) => i == j,

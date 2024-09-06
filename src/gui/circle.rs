@@ -49,7 +49,7 @@ const RE_LABEL_OFFSET: f32 = 10.;
 const FEATURE_WIDTH_DEFAULT: f32 = 26.;
 pub const FEATURE_STROKE_WIDTH: f32 = 3.;
 const PRIMER_WIDTH: f32 = 54.;
-const PRIMER_STROKE_WIDTH: f32 = 2.;
+pub const PRIMER_STROKE_WIDTH: f32 = 2.;
 
 const TIP_LEN: f32 = 0.03; // Len of arrow tips, in radians
 const TIP_WIDTH_RATIO: f32 = 1.5; // Compared to its feature width.
@@ -447,7 +447,7 @@ fn draw_features(
 fn draw_primers(
     primers: &[Primer],
     data: &CircleData,
-    selection: Selection,
+    selected_item: Selection,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
@@ -456,10 +456,8 @@ fn draw_primers(
     let radius_inner = data.radius - PRIMER_WIDTH / 2.;
 
     for (i, primer) in primers.iter().enumerate() {
-        let primer_matches = &primer.volatile.matches;
-
         // todo: Do not run these calcs each time. Cache.
-        for prim_match in primer_matches {
+        for prim_match in &primer.volatile.matches {
             let angle_start = seq_i_to_angle(prim_match.range.start, data.seq_len);
             let angle_end = seq_i_to_angle(prim_match.range.end, data.seq_len);
             let angle_mid = (angle_start + angle_end) / 2.;
@@ -474,13 +472,9 @@ fn draw_primers(
 
             let point_mid_outer = angle_to_pixel(angle_mid, radius_outer) + data.center.to_vec2();
 
-            // todo: This color code is DRY from primer_arrow. Consolidate.
-            let mut outline_color = match prim_match.direction {
-                PrimerDirection::Forward => PRIMER_FWD_COLOR,
-                PrimerDirection::Reverse => PRIMER_REV_COLOR,
-            };
+            let mut outline_color = prim_match.direction.color();
 
-            if let Selection::Primer(sel_i) = selection {
+            if let Selection::Primer(sel_i) = selected_item {
                 if sel_i == i {
                     outline_color = Color32::RED;
                 }
