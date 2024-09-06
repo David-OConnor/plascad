@@ -85,6 +85,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
                             ReagentType::SodiumHydroxide,
                             ReagentType::BromophenolBlue,
                             ReagentType::Dtt,
+                            ReagentType::MagnesiumChloride,
                         ] {
                             ui.selectable_value(&mut reagent.type_, type_, type_.to_string());
                         }

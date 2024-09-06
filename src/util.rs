@@ -6,7 +6,7 @@ use eframe::egui::{pos2, Pos2};
 use crate::{
     file_io::save::DEFAULT_SAVE_FILE,
     gui::{
-        seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
+        sequence::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
         WINDOW_TITLE,
     },
     sequence::{seq_complement, Feature, Nucleotide},

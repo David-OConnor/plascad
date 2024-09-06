@@ -32,10 +32,10 @@ impl Nucleotide {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Encode, Decode, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Nucleotide {
-    A = 0,
-    T = 1,
-    G = 2,
-    C = 3,
+    T = 0b00,
+    C = 0b01,
+    A = 0b10,
+    G = 0b11,
 }
 
 impl Nucleotide {
@@ -355,6 +355,14 @@ impl Default for Feature {
 }
 
 impl Feature {
+    pub fn label(&self) -> String {
+        if self.label.is_empty() {
+            self.feature_type.to_string()
+        } else {
+            self.label.clone()
+        }
+    }
+
     /// Get the color to draw; type color, unless overridden.
     pub fn color(&self) -> Color {
         match self.color_override {

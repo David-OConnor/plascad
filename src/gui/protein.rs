@@ -12,7 +12,7 @@ use crate::{
     external_websites::{
         load_pdb_data, load_pdb_structure, open_pdb, open_pdb_3d_view, PdbData, PdbSearchResult,
     },
-    gui::{circle::TICK_COLOR, seq_view::BACKGROUND_COLOR, COL_SPACING, ROW_SPACING},
+    gui::{circle::TICK_COLOR, BACKGROUND_COLOR, COL_SPACING, ROW_SPACING},
     sequence::FeatureType,
     State,
 };

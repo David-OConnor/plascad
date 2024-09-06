@@ -164,8 +164,6 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
 }
 
 pub fn pcr_page(state: &mut State, ui: &mut Ui) {
-    ui.add_space(ROW_SPACING);
-
     pcr_sim(state, ui);
     ui.add_space(ROW_SPACING * 2.);
 

@@ -12,11 +12,14 @@ use eframe::{
 use crate::{
     amino_acids::AminoAcid,
     gui::{
-        feature_from_index,
-        feature_overlay::{draw_features, draw_selection},
-        get_cursor_text,
+        feature_from_index, get_cursor_text,
         navigation::page_button,
-        primer_arrow, select_feature, COL_SPACING,
+        select_feature,
+        sequence::{
+            feature_overlay::{draw_features, draw_selection},
+            primer_overlay,
+        },
+        BACKGROUND_COLOR, COLOR_RE, COLOR_SEQ, COLOR_SEQ_DIMMED, COL_SPACING,
     },
     sequence::ReadingFrame,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl},
@@ -25,16 +28,11 @@ use crate::{
 
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
-pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
-// (0xAD, 0xD8, 0xE6)
-pub const COLOR_SEQ_DIMMED: Color32 = Color32::from_rgb(140, 160, 165); // Eg dim when there are search results
 pub const COLOR_CODING_REGION: Color32 = Color32::from_rgb(255, 0, 170);
-pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
+
 pub const COLOR_CURSOR: Color32 = Color32::from_rgb(255, 255, 0);
 pub const COLOR_SEARCH_RESULTS: Color32 = Color32::from_rgb(255, 255, 130);
 pub const COLOR_SELECTED_NTS: Color32 = Color32::from_rgb(255, 60, 255);
-
-pub const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
 
 pub const NT_WIDTH_PX: f32 = 8.; // todo: Automatic way? This is valid for monospace font, size 14.
 pub const VIEW_AREA_PAD_LEFT: f32 = 60.; // Bigger to accomodate the index display.
@@ -461,7 +459,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                 shapes.extend(draw_seq_indexes(&data, ui));
 
                 if state.ui.seq_visibility.show_primers {
-                    shapes.append(&mut primer_arrow::draw_primers(
+                    shapes.append(&mut primer_overlay::draw_primers(
                         &state.generic[state.active].primers,
                         state.ui.selected_item,
                         &data,

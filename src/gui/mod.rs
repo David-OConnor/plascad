@@ -36,8 +36,8 @@ use crate::{
 };
 
 mod circle;
+mod circle_zoomed;
 mod cloning;
-mod feature_overlay;
 mod feature_table;
 mod input;
 mod ligation;
@@ -45,13 +45,10 @@ mod metadata;
 pub mod navigation;
 mod pcr;
 mod portions;
-mod primer_arrow;
 pub mod primer_table;
 mod protein;
 pub mod save;
-pub mod seq_view;
 pub mod sequence;
-// pub for a few consts
 
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 1_000.;
@@ -66,6 +63,13 @@ pub const SPLIT_SCREEN_MAX_HEIGHT: f32 = 3.5;
 
 pub const PRIMER_FWD_COLOR: Color32 = Color32::from_rgb(255, 0, 255);
 pub const PRIMER_REV_COLOR: Color32 = Color32::LIGHT_YELLOW;
+
+pub const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
+
+pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
+// (0xAD, 0xD8, 0xE6)
+pub const COLOR_SEQ_DIMMED: Color32 = Color32::from_rgb(140, 160, 165); // Eg dim when there are search results
+pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
 
 pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
     ui.label(label);

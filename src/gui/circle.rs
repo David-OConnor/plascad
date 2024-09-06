@@ -13,18 +13,13 @@ use eframe::{
 
 use crate::{
     gui::{
-        feature_from_index,
-        feature_table::feature_table,
-        get_cursor_text,
-        navigation::NAV_BUTTON_COLOR,
-        select_feature,
-        seq_view::{COLOR_RE, COLOR_SEQ},
-        COL_SPACING, PRIMER_FWD_COLOR, PRIMER_REV_COLOR, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
+        circle_zoomed, feature_from_index, feature_table::feature_table, get_cursor_text,
+        navigation::NAV_BUTTON_COLOR, select_feature, COLOR_RE, COLOR_SEQ, COL_SPACING,
+        PRIMER_FWD_COLOR, PRIMER_REV_COLOR, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
     },
     primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::{seq_to_str, Feature, FeatureDirection, FeatureType},
-    util::RangeIncl,
     Selection, State,
 };
 
@@ -35,16 +30,16 @@ const BACKBONE_WIDTH: f32 = 10.;
 
 pub const TICK_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
 const TICK_WIDTH: f32 = 2.;
-const RE_WIDTH: f32 = 2.;
+pub const RE_WIDTH: f32 = 2.;
 const TICK_SPACING: usize = 500; // Nucleotides between ticks
 
 const TICK_LEN: f32 = 90.; // in pixels.
 const TICK_LEN_DIV_2: f32 = TICK_LEN / 2.;
 const TICK_LABEL_OFFSET: f32 = 12.;
 
-const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
+pub const FEATURE_OUTLINE_COLOR: Color32 = Color32::from_rgb(200, 200, 255);
 // const FEATURE_OUTLINE_HIGHLIGHTED: Color32 = Color32::from_rgb(200, 200, 255);
-const FEATURE_OUTLINE_SELECTED: Color32 = Color32::RED;
+pub const FEATURE_OUTLINE_SELECTED: Color32 = Color32::RED;
 
 const RE_LEN: f32 = 50.; // in pixels.
 const RE_LEN_DIV_2: f32 = RE_LEN / 2.;
@@ -52,6 +47,7 @@ const RE_LABEL_OFFSET: f32 = 10.;
 
 // We may use per-feature-type widths, but have this for now.
 const FEATURE_WIDTH_DEFAULT: f32 = 26.;
+pub const FEATURE_STROKE_WIDTH: f32 = 3.;
 const PRIMER_WIDTH: f32 = 54.;
 const PRIMER_STROKE_WIDTH: f32 = 2.;
 
@@ -73,8 +69,10 @@ const FEATURE_SLIDER_WIDTH: f32 = 180.;
 // way to draw concave shapes.
 const MAX_ARC_FILL: f32 = 230.;
 
+const VERITICAL_CIRCLE_OFFSET: f32 = 20.; // Useful for leaving room for the zoomed view.
+
 /// These aguments define the circle, and are used in many places in this module.
-struct CircleData {
+pub struct CircleData {
     pub seq_len: usize,
     pub center: Pos2,
     pub radius: f32,
@@ -99,75 +97,6 @@ impl CircleData {
         }
     }
 }
-
-// // todo: Experimenting with making a `Mesh`, so we can fill it.
-// /// Tessellate a single [`ArcPieShape`] into a [`Mesh`].
-// ///
-// /// * `arc_pie_shape`: the arc or pie to tessellate.
-// /// * `out`: triangles are appended to this.
-// pub fn tessellate_arc_pie(shape: &mut Shape, out: &mut Mesh) {
-//     // let ArcPieShape {
-//     //     center,
-//     //     radius,
-//     //     start_angle,
-//     //     end_angle,
-//     //     closed,
-//     //     fill,
-//     //     stroke,
-//     // } = arc_pie_shape;
-//
-//     if radius <= 0.0
-//         || start_angle == end_angle
-//         || stroke.width <= 0.0 && (!closed || fill == Color32::TRANSPARENT)
-//     {
-//         return;
-//     }
-//
-//     if shape.options.coarse_tessellation_culling
-//         && !self
-//         .clip_rect
-//         .expand(radius + stroke.width)
-//         .contains(center)
-//     {
-//         return;
-//     }
-//
-//     // If the arc is a full circle, we can just use the circle function.
-//     if (end_angle - start_angle).abs() >= std::f32::consts::TAU {
-//         let stroke_color = match stroke.color {
-//             ColorMode::Solid(color) => color,
-//             ColorMode::UV(callback) => {
-//                 // TODO(emilk): Currently, CircleShape does not support PathStroke.
-//                 // As a workaround, the stroke color is set to the center color.
-//                 // This needs to be revisited once CircleShape gains PathStroke support.
-//                 callback(Rect::from_center_size(center, Vec2::splat(radius)), center)
-//             }
-//         };
-//         let stroke = Stroke::new(stroke.width, stroke_color);
-//         let circle = CircleShape {
-//             center,
-//             radius,
-//             fill,
-//             stroke,
-//         };
-//         return shape.tessellate_circle(circle, out);
-//     }
-//
-//     shape.scratchpad_path.clear();
-//
-//     if closed {
-//         shape.scratchpad_path
-//             .add_pie(center, radius, start_angle, end_angle);
-//         shape.scratchpad_path.fill(shape.feathering, fill, out);
-//         shape.scratchpad_path
-//             .stroke_closed(shape.feathering, &stroke, out);
-//     } else {
-//         shape.scratchpad_path
-//             .add_arc(center, radius, start_angle, end_angle);
-//         shape.scratchpad_path
-//             .stroke_open(shape.feathering, &stroke, out);
-//     }
-// }
 
 /// Create points for an arc. Can be used with line_segment to draw the arc.
 /// Two of these can be used with convex_polygon to make a filled  arc segment.
@@ -391,7 +320,6 @@ fn draw_features(
 
         // todo: Sort out how to handle feature widths. Byy type?
         let feature_width = FEATURE_WIDTH_DEFAULT;
-        let feature_stroke_width = 3.;
         // todo: Sort out color, as you have a note elsewhere. Type or custom? Type with avail override?
 
         let (r, g, b) = feature.color();
@@ -409,7 +337,7 @@ fn draw_features(
             _ => FEATURE_OUTLINE_COLOR,
         };
 
-        let stroke = Stroke::new(feature_stroke_width, stroke_color);
+        let stroke = Stroke::new(FEATURE_STROKE_WIDTH, stroke_color);
 
         let angle_start = seq_i_to_angle(feature.range.start, data.seq_len);
         let mut angle_end = seq_i_to_angle(feature.range.end, data.seq_len);
@@ -477,12 +405,6 @@ fn draw_features(
             label_pt += vec2(0., TICK_LABEL_OFFSET);
         }
 
-        let label = if feature.label.is_empty() {
-            &feature.feature_type.to_string()
-        } else {
-            &feature.label
-        };
-
         // todo: Rotate, and place the label inside the arc segment. Unfortunately, rotating text
         // todo is currently difficult with EGUI.
 
@@ -494,7 +416,7 @@ fn draw_features(
                 fonts,
                 data.to_screen * label_pt,
                 label_align,
-                label,
+                &feature.label(),
                 FontId::new(14., FontFamily::Proportional),
                 stroke.color,
             )
@@ -914,8 +836,9 @@ fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Sh
     result
 }
 
+// todo: Delete
 /// Draw a small view of the sequence under the cursor.
-fn draw_mini_seq(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Shape> {
+fn _draw_mini_seq(data: &CircleData, state: &State, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
     const OFFSET: Pos2 = pos2(4., 6.);
@@ -1014,24 +937,19 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
         .fill(BACKGROUND_COLOR)
         .show(ui, |ui| {
             let (response, _painter) = {
-                // todo: Sort this out to make effective use of the space. Check the examples
-
-                // todo: avail height showing 0.
                 let desired_size = vec2(ui.available_width(), ui.available_height());
-
-                // let (_id, rect) = ui.allocate_space(desired_size);
-
                 ui.allocate_painter(desired_size, Sense::click())
             };
 
             let to_screen = RectTransform::from_to(
+                // Rect::from_min_size(pos2(0., -VERITICAL_CIRCLE_OFFSET), response.rect.size()),
                 Rect::from_min_size(Pos2::ZERO, response.rect.size()),
                 response.rect,
             );
 
             let rect_size = response.rect.size();
 
-            let center = pos2(rect_size.x / 2., rect_size.y / 2.);
+            let center = pos2(rect_size.x / 2., rect_size.y / 2. + VERITICAL_CIRCLE_OFFSET);
             let width_min = rect_size.x < rect_size.y;
             let radius = if width_min { rect_size.x } else { rect_size.y } * CIRCLE_SIZE_RATIO;
 
@@ -1091,8 +1009,8 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
             shapes.append(&mut draw_center_text(&data, state, ui));
 
-            // todo: Filter option for this mini seq disp
-            shapes.append(&mut draw_mini_seq(&data, state, ui));
+            // shapes.append(&mut draw_mini_seq(&data, state, ui));
+            shapes.append(&mut circle_zoomed::draw_zoomed_in_view(&data, state, ui));
 
             ui.painter().extend(shapes);
         });

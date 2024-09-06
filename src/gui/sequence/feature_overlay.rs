@@ -1,4 +1,4 @@
-//! This module is related to drawing features on the sequence view. It is similar to `primer_arrow.rs`.
+//! This module is related to drawing features on the sequence view. It is similar to `primer_overlay`.
 
 // todo: Abstract out diffs between this and the primer arrow; avoid repeated code.
 
@@ -10,8 +10,8 @@ use eframe::{
 };
 
 use crate::{
-    gui::{
-        primer_arrow::{HEIGHT, LABEL_OFFSET, SLANT_DIV2, STROKE_WIDTH},
+    gui::sequence::{
+        primer_overlay::{HEIGHT, LABEL_OFFSET, SLANT_DIV2, STROKE_WIDTH},
         seq_view::{SeqViewData, COLOR_CURSOR, NT_WIDTH_PX, SEQ_ROW_SPACING_PX},
     },
     sequence::{
@@ -92,12 +92,6 @@ pub fn draw_features(
             .map(|r| (data.seq_i_to_px_rel(r.start), data.seq_i_to_px_rel(r.end)))
             .collect();
 
-        let label = if feature.label.is_empty() {
-            &feature.feature_type.to_string()
-        } else {
-            &feature.label
-        };
-
         let selected = match selected_item {
             Selection::Feature(j) => i == j,
             _ => false,
@@ -109,7 +103,7 @@ pub fn draw_features(
             feature.color(),
             VERTICAL_OFFSET_FEATURE,
             feature.direction,
-            label,
+            &feature.label(),
             selected,
             ui,
         ));

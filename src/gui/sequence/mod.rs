@@ -14,7 +14,7 @@ use crate::{
         feature_table::{direction_picker, feature_table},
         navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
         primer_table::primer_details,
-        seq_view::sequence_vis,
+        sequence::seq_view::sequence_vis,
         PRIMER_FWD_COLOR, SPLIT_SCREEN_MAX_HEIGHT,
     },
     primer::{Primer, PrimerData},
@@ -26,6 +26,10 @@ use crate::{
     gui::{COL_SPACING, ROW_SPACING},
     State,
 };
+
+mod feature_overlay;
+mod primer_overlay;
+pub mod seq_view;
 
 fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {

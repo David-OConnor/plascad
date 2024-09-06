@@ -219,7 +219,8 @@ impl Display for ReagentType {
             Self::SodiumHydroxide => "NaOH".to_owned(),
             Self::BromophenolBlue => "Bromophenol blue".to_owned(),
             Self::Dtt => "DTT".to_owned(),
-            Self::MagnesiumChloride => "MgCl₂".to_owned(),
+            Self::MagnesiumChloride => ""
+
         };
 
         write!(f, "{}", str)
