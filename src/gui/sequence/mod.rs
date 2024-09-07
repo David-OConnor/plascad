@@ -113,9 +113,9 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
                         seq.len() - text_sel.start + 1,
                     );
 
-                    range.index_seq(&compl).unwrap_or_default()
+                    range.index_seq(compl).unwrap_or_default()
                 }
-                _ => text_sel.index_seq(&seq).unwrap_or_default(),
+                _ => text_sel.index_seq(seq).unwrap_or_default(),
             }
             .to_vec();
 
@@ -227,7 +227,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         };
 
         if state.ui.search_input.len() >= MIN_SEARCH_LEN {
-            let len = state.volatile.search_matches.len();
+            let len = state.volatile[state.active].search_matches.len();
             let text = if len == 1 {
                 "1 match".to_string()
             } else {

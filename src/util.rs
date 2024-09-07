@@ -54,7 +54,7 @@ impl RangeIncl {
     }
 
     /// A wrap-based extension to `index_seq`.
-    pub fn index_seq_wrap<'a, T: Clone>(&self, seq: &'a [T]) -> Option<Vec<T>> {
+    pub fn index_seq_wrap<T: Clone>(&self, seq: &[T]) -> Option<Vec<T>> {
         if self.start < 1 || self.end > seq.len() || self.start <= self.end {
             return None;
         }
@@ -317,7 +317,7 @@ pub fn _seq_similarity(seq_a: &[Nucleotide], seq_b: &[Nucleotide]) -> f32 {
     // Using seq_a's len has consequences
     let mut matches = 0;
     for i in 0..seq_a.len() {
-        if seq_a[i] == seq_b[1] {
+        if seq_a[i] == seq_b[i] {
             matches += 1;
         }
     }
@@ -370,7 +370,7 @@ pub fn get_window_title(path: &Path) -> String {
         .map(|name_str| name_str.to_string())
         .unwrap();
 
-    if &filename == DEFAULT_SAVE_FILE {
+    if filename == DEFAULT_SAVE_FILE {
         WINDOW_TITLE.to_owned()
     } else {
         filename

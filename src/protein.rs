@@ -151,7 +151,7 @@ pub fn aggrescan(seq: &[AminoAcid]) {}
 // todo: Move this somewhere more appropriate, then store in state_volatile.
 /// Find the most likely reading frame for each coding region.
 pub fn sync_cr_orf_matches(state: &mut State) {
-    state.volatile.cr_orf_matches = Vec::new();
+    state.volatile[state.active].cr_orf_matches = Vec::new();
 
     // These matches are for all frames.
     let mut region_matches = Vec::new();
@@ -196,7 +196,9 @@ pub fn sync_cr_orf_matches(state: &mut State) {
 
         match orf_match {
             Some(m) => {
-                state.volatile.cr_orf_matches.push((i, m.clone()));
+                state.volatile[state.active]
+                    .cr_orf_matches
+                    .push((i, m.clone()));
             }
             None => {}
         }

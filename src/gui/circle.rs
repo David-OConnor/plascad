@@ -570,7 +570,14 @@ fn top_details(state: &mut State, ui: &mut Ui) {
     // display_filters(&mut state.ui, ui);
     // We re-impl display_filters to, to avoid having reading frames. Change A/R.
 
-    ui.label("RE sites:");
+    let name = if state.ui.re.unique_cutters_only {
+        "Single cut sites"
+    } else {
+        "RE sites"
+    }
+    .to_owned();
+
+    ui.label(name);
     ui.checkbox(&mut state.ui.seq_visibility.show_res, "");
     ui.add_space(COL_SPACING / 2.);
 
@@ -638,7 +645,7 @@ fn draw_re_sites(
     let mut result = Vec::new();
     for (i, re_match) in re_matches.iter().enumerate() {
         if unique_cutters_only && re_match.match_count > 1 {
-            continue
+            continue;
         }
 
         let cut_i = re_match.seq_index + 1; // to display in the right place.
@@ -999,7 +1006,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             // tood: Check mark to edit this visibility on the page
             if state.ui.seq_visibility.show_res {
                 shapes.append(&mut draw_re_sites(
-                    &state.volatile.restriction_enzyme_matches,
+                    &state.volatile[state.active].restriction_enzyme_matches,
                     &state.restriction_enzyme_lib,
                     &data,
                     state.ui.re.unique_cutters_only,

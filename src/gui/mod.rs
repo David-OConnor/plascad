@@ -233,13 +233,13 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
                 }
 
                 if !toggled_off {
-                    state.ui.selected_item = if primer_i.is_none() {
+                    state.ui.selected_item = if let Some(v) = primer_i {
+                        Selection::Primer(v)
+                    } else {
                         match feature_i {
                             Some(i) => Selection::Feature(i),
                             None => Selection::None,
                         }
-                    } else {
-                        Selection::Primer(primer_i.unwrap())
                     }
                 }
             }

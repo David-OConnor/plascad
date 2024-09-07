@@ -199,7 +199,7 @@ impl Display for ReagentType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             Self::Custom(_) => "Custom".to_owned(),
-            Self::Solution(_) => format!("Solution").to_owned(), // todo
+            Self::Solution(_) => "Solution".to_owned(), // todo
             Self::SodiumChloride => "NaCl".to_owned(),
             Self::SodiumPhosphateMonobasic => "NaH₂PO₄ (Mono)".to_owned(),
             Self::SodiumPhosphateDibasic => "Na₂HPO₄ (Di)".to_owned(),

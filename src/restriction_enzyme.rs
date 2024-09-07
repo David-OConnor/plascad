@@ -6,10 +6,13 @@
 //! Note: This module only currently includes a selection of popular REs, and only ones that match
 //! exact NTs.
 
-use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+};
 
 use crate::sequence::{
+    seq_to_str,
     Nucleotide::{self, A, C, G, T},
     Seq,
 };
@@ -77,6 +80,22 @@ impl RestrictionEnzyme {
             cut_after,
         }
     }
+
+    /// A depiction of where to cut.
+    pub fn cut_depiction(&self) -> String {
+        let mut nt_chars = seq_to_str(&self.seq);
+
+        let mut result = String::new();
+
+        for (i, nt_char) in nt_chars.chars().enumerate() {
+            result.push(nt_char);
+            if i as u8 == self.cut_after {
+                result.push('|');
+            }
+        }
+
+        result
+    }
 }
 
 /// Go through a sequence, and attempt to match each lib in our RE lib to the sequence, in both directions
@@ -96,7 +115,7 @@ pub fn find_re_matches(seq: &[Nucleotide], lib: &[RestrictionEnzyme]) -> Vec<ReM
                 result.push(ReMatch {
                     lib_index,
                     seq_index: i + 1, // +1 indexing.
-                    match_count: 0, // Updated below.
+                    match_count: 0,   // Updated below.
                 });
 
                 if match_counts.contains_key(&lib_index) {

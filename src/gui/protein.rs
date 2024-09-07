@@ -174,7 +174,7 @@ fn pdb_links(data: &PdbData, ui: &mut Ui) {
 }
 
 fn draw_proteins(state: &mut State, ui: &mut Ui) {
-    for protein in &mut state.volatile.proteins {
+    for protein in &mut state.volatile[state.active].proteins {
         ui.horizontal(|ui| {
             ui.heading(RichText::new(&protein.feature.label).color(Color32::LIGHT_BLUE));
 

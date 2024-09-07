@@ -62,9 +62,13 @@ impl SeqViewData {
 fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    for (i_match, re_match) in state.volatile.restriction_enzyme_matches.iter().enumerate() {
+    for (i_match, re_match) in state.volatile[state.active]
+        .restriction_enzyme_matches
+        .iter()
+        .enumerate()
+    {
         if state.ui.re.unique_cutters_only && re_match.match_count > 1 {
-            continue
+            continue;
         }
 
         if re_match.lib_index + 1 > state.restriction_enzyme_lib.len() {
@@ -87,8 +91,10 @@ fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
         // Move the label position left if there is a nearby RE site on the right.
         // todo: Not appearing to be working well.
         let mut neighbor_on_right = false;
-        for (i_other, re_match_other) in
-            state.volatile.restriction_enzyme_matches.iter().enumerate()
+        for (i_other, re_match_other) in state.volatile[state.active]
+            .restriction_enzyme_matches
+            .iter()
+            .enumerate()
         {
             if i_other != i_match
                 && re_match_other.seq_index > re_match.seq_index
@@ -127,7 +133,14 @@ fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
 /// Checkboxes to show or hide features.
 pub fn display_filters(state_ui: &mut StateUi, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        ui.label("RE sites:");
+        let name = if state_ui.re.unique_cutters_only {
+            "Single cut sites"
+        } else {
+            "RE sites"
+        }
+        .to_owned();
+
+        ui.label(name);
         ui.checkbox(&mut state_ui.seq_visibility.show_res, "");
         ui.add_space(COL_SPACING / 2.);
 
@@ -227,7 +240,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
 
         let mut in_rf = false;
         if state.ui.seq_visibility.show_reading_frame {
-            for orf_match in &state.volatile.reading_frame_matches {
+            for orf_match in &state.volatile[state.active].reading_frame_matches {
                 if orf_match.range.contains(i) {
                     // todo: This only works for forward reading frames.
 
@@ -263,7 +276,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
 
             let mut highlighted = false;
             if state.ui.seq_visibility.show_reading_frame {
-                for rf in &state.volatile.reading_frame_matches {
+                for rf in &state.volatile[state.active].reading_frame_matches {
                     if rf.range.contains(i) {
                         r = COLOR_CODING_REGION;
                         highlighted = true;
@@ -313,7 +326,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             }
 
             // This overrides reading frame matches and text selection.
-            for search_result in &state.volatile.search_matches {
+            for search_result in &state.volatile[state.active].search_matches {
                 // Origin wrap.
                 if search_result.range.end < search_result.range.start {
                     if RangeIncl::new(0, search_result.range.end).contains(i)
@@ -331,7 +344,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             }
 
             // Dim normal text if there are search results.
-            if state.volatile.search_matches.len() > 0 && !highlighted {
+            if state.volatile[state.active].search_matches.len() > 0 && !highlighted {
                 r = COLOR_SEQ_DIMMED;
             }
 

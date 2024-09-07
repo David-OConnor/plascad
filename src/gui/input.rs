@@ -112,14 +112,14 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
         // Check for file drop
         if let Some(dropped_files) = ip.raw.dropped_files.first() {
             if let Some(path) = &dropped_files.path {
-                if let Some(loaded) = load_import(&path) {
+                if let Some(loaded) = load_import(path) {
                     state.load(&loaded, state.active);
                     reset_window_title = true;
                 }
             }
         }
 
-        if handle_global(state, &ip) {
+        if handle_global(state, ip) {
             reset_window_title = true;
         }
 
@@ -137,7 +137,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
             // This is a bit awk; borrow errors.
             let mut move_cursor: Option<i32> = None;
             // todo: How can we control the rate?
-            if let Some(_) = &mut state.ui.text_cursor_i {
+            if state.ui.text_cursor_i.is_some() {
                 if ip.key_pressed(Key::ArrowLeft) {
                     move_cursor = Some(-1);
                 }

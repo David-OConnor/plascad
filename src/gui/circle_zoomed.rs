@@ -22,12 +22,16 @@ use crate::{
 const MINI_DISP_NT_LEN: usize = 400;
 const MINI_DISP_NT_LEN_DIV2: usize = MINI_DISP_NT_LEN / 2;
 
+const CENTER_Y: f32 = 18.;
 const OFFSET: Pos2 = pos2(4., 6.);
+const Y_START: f32 = OFFSET.y + CENTER_Y;
+
 const FEATURE_HEIGHT: f32 = 18.;
+const FEATURE_HEIGHT_DIV2: f32 = FEATURE_HEIGHT / 2.;
 
 const PRIMER_HEIGHT: f32 = 26.;
 const PRIMER_HEIGHT_DIV2: f32 = PRIMER_HEIGHT / 2.;
-const RE_HEIGHT: f32 = 28.;
+const RE_HEIGHT: f32 = 30.;
 const RE_HEIGHT_DIV2: f32 = RE_HEIGHT / 2.;
 
 fn draw_features(
@@ -92,10 +96,10 @@ fn draw_features(
 
             result.push(Shape::convex_polygon(
                 vec![
-                    data.to_screen * pos2(start_x, OFFSET.y),
-                    data.to_screen * pos2(end_x, OFFSET.y),
-                    data.to_screen * pos2(end_x, OFFSET.y + FEATURE_HEIGHT),
-                    data.to_screen * pos2(start_x, OFFSET.y + FEATURE_HEIGHT),
+                    data.to_screen * pos2(start_x, Y_START - FEATURE_HEIGHT_DIV2),
+                    data.to_screen * pos2(end_x, Y_START - FEATURE_HEIGHT_DIV2),
+                    data.to_screen * pos2(end_x, Y_START + FEATURE_HEIGHT_DIV2),
+                    data.to_screen * pos2(start_x, Y_START + FEATURE_HEIGHT_DIV2),
                 ],
                 Color32::from_rgb(r, g, b),
                 stroke,
@@ -109,7 +113,7 @@ fn draw_features(
             let center_x = index_to_x(center_i);
 
             // Draw the label after the shape.
-            let label_pt = pos2(center_x, OFFSET.y + FEATURE_HEIGHT / 2.);
+            let label_pt = pos2(center_x, OFFSET.y + CENTER_Y);
 
             result.push(ui.ctx().fonts(|fonts| {
                 Shape::text(
@@ -184,10 +188,10 @@ fn draw_primers(
 
                 result.push(Shape::convex_polygon(
                     vec![
-                        data.to_screen * pos2(start_x, OFFSET.y - 0.),
-                        data.to_screen * pos2(end_x, OFFSET.y - 0.),
-                        data.to_screen * pos2(end_x, OFFSET.y + PRIMER_HEIGHT),
-                        data.to_screen * pos2(start_x, OFFSET.y + PRIMER_HEIGHT),
+                        data.to_screen * pos2(start_x, Y_START - PRIMER_HEIGHT_DIV2),
+                        data.to_screen * pos2(end_x, Y_START - PRIMER_HEIGHT_DIV2),
+                        data.to_screen * pos2(end_x, Y_START + PRIMER_HEIGHT_DIV2),
+                        data.to_screen * pos2(start_x, Y_START + PRIMER_HEIGHT_DIV2),
                     ],
                     Color32::TRANSPARENT,
                     stroke,
@@ -201,7 +205,7 @@ fn draw_primers(
                 let center_x = index_to_x(center_i);
 
                 // Draw the label after the shape.
-                let label_pt = pos2(center_x, OFFSET.y + PRIMER_HEIGHT + 8.);
+                let label_pt = pos2(center_x, Y_START + PRIMER_HEIGHT_DIV2 + 8.);
 
                 result.push(ui.ctx().fonts(|fonts| {
                     Shape::text(
@@ -232,21 +236,21 @@ fn draw_re_sites(
     let mut result = Vec::new();
     for (i, re_match) in re_matches.iter().enumerate() {
         if unique_cutters_only && re_match.match_count > 1 {
-            continue
+            continue;
         }
 
         let cut_i = re_match.seq_index + 1; // to display in the right place.
         let re = &res[re_match.lib_index];
 
-        let point_bottom = pos2(index_to_x(cut_i), OFFSET.y + RE_HEIGHT);
-        let point_top = pos2(index_to_x(cut_i), OFFSET.y - 0.);
+        let point_top = pos2(index_to_x(cut_i), Y_START - RE_HEIGHT_DIV2);
+        let point_bottom = pos2(index_to_x(cut_i), Y_START + RE_HEIGHT_DIV2);
 
         result.push(Shape::line_segment(
             [data.to_screen * point_bottom, data.to_screen * point_top],
             Stroke::new(RE_WIDTH, COLOR_RE),
         ));
 
-        let (mut label_pt, label_align) = (point_top + vec2(20., 0.), Align2::LEFT_CENTER);
+        let (mut label_pt, label_align) = (point_top + vec2(20., -2.), Align2::LEFT_CENTER);
 
         // Alternate label vertical position, to reduce changes of overlaps.
         if i % 2 == 0 {
@@ -343,9 +347,9 @@ pub fn draw_zoomed_in_view(data: &CircleData, state: &mut State, ui: &mut Ui) ->
 
         if state.ui.seq_visibility.show_res {
             result.append(&mut draw_re_sites(
-                &state.volatile.restriction_enzyme_matches,
+                &state.volatile[state.active].restriction_enzyme_matches,
                 &state.restriction_enzyme_lib,
-                &data,
+                data,
                 index_to_x,
                 state.ui.re.unique_cutters_only,
                 ui,

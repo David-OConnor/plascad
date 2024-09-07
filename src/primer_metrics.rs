@@ -246,10 +246,8 @@ impl Primer {
             repeats: self.calc_repeats(),
             ..Default::default()
         };
-        let dual_ended = match self.volatile.tune_setting {
-            TuneSetting::Both(_) => true,
-            _ => false,
-        };
+
+        let dual_ended = matches!(self.volatile.tune_setting, TuneSetting::Both(_));
         result.update_scores(dual_ended);
 
         Some(result)

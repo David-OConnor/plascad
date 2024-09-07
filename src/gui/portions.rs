@@ -59,7 +59,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
 
         for (j, reagent) in solution.reagents.iter_mut().enumerate() {
             ui.horizontal(|ui| {
-                let type_prev = reagent.type_.clone();
+                let type_prev = reagent.type_;
                 ComboBox::from_id_source(100 + i * 100 + j)
                     .width(140.)
                     .selected_text(reagent.type_.to_string())
@@ -112,7 +112,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
                     );
                 }
 
-                let prep_prev = reagent.prep.clone();
+                let prep_prev = reagent.prep;
                 ComboBox::from_id_source(2000 + i * 100 + j)
                     .width(80.)
                     .selected_text(reagent.prep.to_string())

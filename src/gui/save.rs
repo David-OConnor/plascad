@@ -133,7 +133,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
         };
     } else if let Some(path) = state.ui.file_dialogs.export_fasta.take_selected() {
         match export_fasta(
-            &state.get_seq(),
+            state.get_seq(),
             &state.generic[state.active].metadata.plasmid_name,
             &path,
         ) {

@@ -423,6 +423,7 @@ impl Default for Selection {
 #[derive(Default)]
 struct StateVolatile {
     restriction_enzyme_matches: Vec<ReMatch>,
+    re_digestion_products: Vec<Seq>,
     reading_frame_matches: Vec<ReadingFrameMatch>,
     tag_matches: Vec<TagMatch>,
     search_matches: Vec<SearchMatch>,
@@ -446,15 +447,16 @@ struct State {
     /// Used to determine how the save function works, among other things.
     /// Index corresponds to `active`.
     path_loaded: Vec<Option<PathBuf>>,
-    /// Index corresponds to `octive`.
+    /// Index corresponds to `active`.
     portions: Vec<PortionsState>,
+    /// Index corresponds to `active`.
+    volatile: Vec<StateVolatile>,
     /// Used for PCR. Index corresponds to `active`.
     ion_concentrations: Vec<IonConcentrations>,
     cloning_insert_loc: usize,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
     reading_frame: ReadingFrame,
-    volatile: StateVolatile,
     search_seq: Seq,
 }
 
@@ -484,6 +486,7 @@ impl State {
         self.ion_concentrations.push(Default::default());
         self.path_loaded.push(Default::default());
         self.portions.push(Default::default());
+        self.volatile.push(Default::default());
 
         self.active = self.generic.len() - 1;
 
@@ -528,6 +531,7 @@ impl State {
         self.volatile = Default::default();
         self.path_loaded[self.active] = Default::default();
         self.portions[self.active] = Default::default();
+        self.volatile[self.active] = Default::default();
         // todo: Ideally we reset the window title  here, but we've having trouble with variable
         // todo scope in the input function.
 
@@ -583,9 +587,9 @@ impl State {
 
     /// Identify restriction enzyme sites in the sequence
     pub fn sync_re_sites(&mut self) {
-        self.volatile.restriction_enzyme_matches = Vec::new();
+        self.volatile[self.active].restriction_enzyme_matches = Vec::new();
 
-        self.volatile
+        self.volatile[self.active]
             .restriction_enzyme_matches
             .append(&mut find_re_matches(
                 &self.generic[self.active].seq,
@@ -593,20 +597,22 @@ impl State {
             ));
 
         // This sorting aids in our up/down label alternation in the display.
-        self.volatile
+        self.volatile[self.active]
             .restriction_enzyme_matches
             .sort_by(|a, b| a.seq_index.cmp(&b.seq_index));
     }
 
     pub fn sync_reading_frame(&mut self) {
-        self.volatile.reading_frame_matches = find_orf_matches(self.get_seq(), self.reading_frame);
+        self.volatile[self.active].reading_frame_matches =
+            find_orf_matches(self.get_seq(), self.reading_frame);
     }
 
     pub fn sync_search(&mut self) {
         if self.search_seq.len() >= MIN_SEARCH_LEN {
-            self.volatile.search_matches = find_search_matches(self.get_seq(), &self.search_seq);
+            self.volatile[self.active].search_matches =
+                find_search_matches(self.get_seq(), &self.search_seq);
         } else {
-            self.volatile.search_matches = Vec::new();
+            self.volatile[self.active].search_matches = Vec::new();
         }
     }
 
@@ -620,18 +626,18 @@ impl State {
         for primer in &mut self.generic[self.active].primers {
             primer.run_calcs(&self.ion_concentrations[self.active]);
             //
-            // primer.volatile.sequence_input = seq_to_str(&primer.sequence);
+            // primer.volatile[self.active].sequence_input = seq_to_str(&primer.sequence);
             //
             //
-            // if let Some(metrics) = &mut primer.volatile.metrics {
-            //     let dual_ended = match primer.volatile.tune_setting {
+            // if let Some(metrics) = &mut primer.volatile[self.active].metrics {
+            //     let dual_ended = match primer.volatile[self.active].tune_setting {
             //         TuneSetting::Both(_) => true,
             //         _ => false,
             //     };
             //
             //     metrics.update_scores(dual_ended);
             // }
-            // if primer.volatile.metrics.is_none() {
+            // if primer.volatile[self.active].metrics.is_none() {
             //     primer.run_calcs(&self.ion_concentrations);
             // }
         }
@@ -662,11 +668,11 @@ impl State {
         // Now, you have to update features affected by this insertion, shifting them right A/R.
         for feature in &mut self.generic[self.active].features {
             if feature.range.start > insert_i {
-                feature.range.start = feature.range.start + insert.len();
+                feature.range.start += insert.len();
             }
 
             if feature.range.end > insert_i {
-                feature.range.end = feature.range.end + insert.len();
+                feature.range.end += insert.len();
             }
         }
 
@@ -687,10 +693,10 @@ impl State {
         // Now, you have to update features affected by this insertion, shifting them left A/R.
         for feature in &mut self.generic[self.active].features {
             if feature.range.start > range.end {
-                feature.range.start = feature.range.start - count;
+                feature.range.start -= count;
             }
             if feature.range.end > range.end {
-                feature.range.end = feature.range.end - count;
+                feature.range.end -= count;
             }
         }
 
@@ -705,10 +711,10 @@ impl State {
         self.sync_search();
 
         sync_cr_orf_matches(self);
-        self.volatile.proteins = proteins_from_seq(
+        self.volatile[self.active].proteins = proteins_from_seq(
             self.get_seq(),
             &self.generic[self.active].features,
-            &self.volatile.cr_orf_matches,
+            &self.volatile[self.active].cr_orf_matches,
         );
 
         self.ui.seq_input = seq_to_str(self.get_seq());
@@ -730,17 +736,21 @@ impl State {
             || !self.portions[self.active].solutions.is_empty()
         {
             self.add_tab();
+        } else {
+            self.volatile.push(Default::default());
         }
 
-        self.generic[self.active] = loaded.generic.clone();
-        self.path_loaded[self.active] = loaded.path_loaded.clone();
-        self.ion_concentrations[self.active] = loaded.ion_concentrations.clone();
-        self.portions[self.active] = loaded.portions.clone();
+        self.generic[self.active].clone_from(&loaded.generic);
+        self.path_loaded[self.active].clone_from(&loaded.path_loaded);
+        self.ion_concentrations[self.active].clone_from(&loaded.ion_concentrations);
+        self.portions[self.active].clone_from(&loaded.portions);
+
+        self.volatile[self.active] = Default::default();
 
         self.sync_pcr();
         self.sync_primer_metrics();
         self.sync_seq_related(None);
-        self.ui.seq_input = seq_to_str(&self.get_seq());
+        self.ui.seq_input = seq_to_str(self.get_seq());
 
         self.sync_portions();
         self.reset_selections();
@@ -796,7 +806,7 @@ fn main() {
         let args: Vec<String> = env::args().collect();
         if args.len() > 1 {
             let temp = &args[1];
-            p = PathBuf::from_str(&temp).unwrap();
+            p = PathBuf::from_str(temp).unwrap();
             loaded_from_arg = true;
         }
 
