@@ -632,10 +632,15 @@ fn draw_re_sites(
     re_matches: &[ReMatch],
     res: &[RestrictionEnzyme],
     data: &CircleData,
+    unique_cutters_only: bool,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
     for (i, re_match) in re_matches.iter().enumerate() {
+        if unique_cutters_only && re_match.match_count > 1 {
+            continue
+        }
+
         let cut_i = re_match.seq_index + 1; // to display in the right place.
         let re = &res[re_match.lib_index];
         let angle = seq_i_to_angle(cut_i + re.cut_after as usize, data.seq_len);
@@ -997,6 +1002,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                     &state.volatile.restriction_enzyme_matches,
                     &state.restriction_enzyme_lib,
                     &data,
+                    state.ui.re.unique_cutters_only,
                     ui,
                 ));
             }

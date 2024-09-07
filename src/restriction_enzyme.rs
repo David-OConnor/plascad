@@ -6,6 +6,7 @@
 //! Note: This module only currently includes a selection of popular REs, and only ones that match
 //! exact NTs.
 
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 use crate::sequence::{
@@ -36,10 +37,14 @@ pub enum NucleotideGeneral {
     K,
 }
 
+#[derive(Debug)]
 pub struct ReMatch {
     pub lib_index: usize,
     /// Cuts after this index, in the "forward" direction.
     pub seq_index: usize,
+    /// todo: Experimenting
+    /// The number of matches found for this RE.
+    pub match_count: usize,
 }
 
 #[derive(Eq)]
@@ -78,6 +83,8 @@ impl RestrictionEnzyme {
 pub fn find_re_matches(seq: &[Nucleotide], lib: &[RestrictionEnzyme]) -> Vec<ReMatch> {
     let mut result = Vec::new();
 
+    let mut match_counts = HashMap::new(); // lib index, count
+
     for (lib_index, re) in lib.iter().enumerate() {
         let seq_len = seq.len();
         for i in 0..seq_len {
@@ -89,10 +96,23 @@ pub fn find_re_matches(seq: &[Nucleotide], lib: &[RestrictionEnzyme]) -> Vec<ReM
                 result.push(ReMatch {
                     lib_index,
                     seq_index: i + 1, // +1 indexing.
+                    match_count: 0, // Updated below.
                 });
+
+                if match_counts.contains_key(&lib_index) {
+                    *match_counts.get_mut(&lib_index).unwrap() += 1;
+                } else {
+                    match_counts.insert(lib_index, 1);
+                }
             }
         }
     }
+
+    // Apply match counts.
+    for re_match in &mut result {
+        re_match.match_count = match_counts[&re_match.lib_index];
+    }
+
     result
 }
 

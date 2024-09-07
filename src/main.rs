@@ -302,11 +302,19 @@ impl Default for FileDialogs {
 }
 
 /// UI state for restriction enzymes.
-#[derive(Default)]
 struct ReUi {
     /// Inner: RE name
     selected: Vec<String>,
     unique_cutters_only: bool,
+}
+
+impl Default for ReUi {
+    fn default() -> Self {
+        Self {
+            selected: Default::default(),
+            unique_cutters_only: true,
+        }
+    }
 }
 
 /// Values defined here generally aren't worth saving to file etc.

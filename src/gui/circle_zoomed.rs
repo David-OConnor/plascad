@@ -226,10 +226,15 @@ fn draw_re_sites(
     res: &[RestrictionEnzyme],
     data: &CircleData,
     index_to_x: impl Fn(usize) -> f32,
+    unique_cutters_only: bool,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
     for (i, re_match) in re_matches.iter().enumerate() {
+        if unique_cutters_only && re_match.match_count > 1 {
+            continue
+        }
+
         let cut_i = re_match.seq_index + 1; // to display in the right place.
         let re = &res[re_match.lib_index];
 
@@ -342,6 +347,7 @@ pub fn draw_zoomed_in_view(data: &CircleData, state: &mut State, ui: &mut Ui) ->
                 &state.restriction_enzyme_lib,
                 &data,
                 index_to_x,
+                state.ui.re.unique_cutters_only,
                 ui,
             ));
         }

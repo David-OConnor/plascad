@@ -13,3 +13,7 @@ workspace.xml
 *.dna
 *.xml
 *.pp
+
+# I'm not sure what is generating these.
+*.rs~
+*.md~

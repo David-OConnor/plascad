@@ -63,6 +63,10 @@ fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
     for (i_match, re_match) in state.volatile.restriction_enzyme_matches.iter().enumerate() {
+        if state.ui.re.unique_cutters_only && re_match.match_count > 1 {
+            continue
+        }
+
         if re_match.lib_index + 1 > state.restriction_enzyme_lib.len() {
             continue;
         }
