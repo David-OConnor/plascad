@@ -270,11 +270,19 @@ pub struct StateUiToSave {
     selected_item: Selection,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
-    last_file_opened: Option<PathBuf>,
+    last_files_opened: Vec<PathBuf>,
 }
 
 impl StateUiToSave {
-    pub fn from_state(state: &StateUi, path_loaded: &Option<PathBuf>) -> Self {
+    pub fn from_state(state: &StateUi, paths_loaded: &[Option<PathBuf>]) -> Self {
+        // Remove the empty paths.
+        let mut last_files_opened = Vec::new();
+        for p in paths_loaded {
+            if let Some(path) = p {
+                last_files_opened.push(path.to_owned());
+            }
+        }
+
         Self {
             page: state.page,
             page_seq: state.page_seq,
@@ -283,12 +291,12 @@ impl StateUiToSave {
             selected_item: state.selected_item,
             seq_visibility: state.seq_visibility.clone(),
             hide_map_feature_editor: state.hide_map_feature_editor,
-            last_file_opened: path_loaded.clone(),
+            last_files_opened,
         }
     }
 
     /// Used to load to state. The result is data from this struct, augmented with default values.
-    pub fn to_state(&self) -> (StateUi, Option<PathBuf>) {
+    pub fn to_state(&self) -> (StateUi, Vec<PathBuf>) {
         (
             StateUi {
                 page: self.page,
@@ -301,7 +309,7 @@ impl StateUiToSave {
                 // last_file_opened: self.last_file_opened.clone(),
                 ..Default::default()
             },
-            self.last_file_opened.clone(),
+            self.last_files_opened.clone(),
         )
     }
 }

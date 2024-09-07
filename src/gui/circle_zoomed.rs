@@ -186,8 +186,8 @@ fn draw_primers(
                     vec![
                         data.to_screen * pos2(start_x, OFFSET.y - 0.),
                         data.to_screen * pos2(end_x, OFFSET.y - 0.),
-                        data.to_screen * pos2(end_x, OFFSET.y + PRIMER_HEIGHT_DIV2),
-                        data.to_screen * pos2(start_x, OFFSET.y + PRIMER_HEIGHT_DIV2),
+                        data.to_screen * pos2(end_x, OFFSET.y + PRIMER_HEIGHT),
+                        data.to_screen * pos2(start_x, OFFSET.y + PRIMER_HEIGHT),
                     ],
                     Color32::TRANSPARENT,
                     stroke,
@@ -201,7 +201,7 @@ fn draw_primers(
                 let center_x = index_to_x(center_i);
 
                 // Draw the label after the shape.
-                let label_pt = pos2(center_x, OFFSET.y + FEATURE_HEIGHT / 2.);
+                let label_pt = pos2(center_x, OFFSET.y + PRIMER_HEIGHT + 8.);
 
                 result.push(ui.ctx().fonts(|fonts| {
                     Shape::text(
@@ -210,7 +210,7 @@ fn draw_primers(
                         Align2::CENTER_CENTER,
                         &primer.name,
                         FontId::new(16., FontFamily::Proportional),
-                        Color32::DARK_GREEN,
+                        Color32::LIGHT_GREEN
                     )
                 }));
             }

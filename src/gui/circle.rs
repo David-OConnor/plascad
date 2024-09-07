@@ -69,7 +69,7 @@ const FEATURE_SLIDER_WIDTH: f32 = 180.;
 // way to draw concave shapes.
 const MAX_ARC_FILL: f32 = 230.;
 
-const VERITICAL_CIRCLE_OFFSET: f32 = 20.; // Useful for leaving room for the zoomed view.
+const VERITICAL_CIRCLE_OFFSET: f32 = 22.; // Useful for leaving room for the zoomed view.
 
 /// These aguments define the circle, and are used in many places in this module.
 pub struct CircleData {

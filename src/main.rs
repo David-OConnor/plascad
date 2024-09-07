@@ -521,18 +521,26 @@ impl State {
     }
 
     /// Load UI and related data not related to a specific sequence.
+    /// This will also open all files specified in the saved UI state.
     pub fn load_prefs(&mut self, path: &Path) {
         let ui_loaded: io::Result<StateUiToSave> = load(path);
 
         if let Ok(ui) = ui_loaded {
-            (self.ui, self.path_loaded[self.active]) = ui.to_state();
+            let (ui, paths_loaded) = ui.to_state();
+            self.ui = ui;
+
+            for path in &paths_loaded {
+                if let Some(loaded) = load_import(&path) {
+                    self.load(&loaded, self.active);
+                }
+            }
         }
     }
 
     pub fn save_prefs(&self) {
         if let Err(e) = save(
             &PathBuf::from(DEFAULT_PREFS_FILE),
-            &StateUiToSave::from_state(&self.ui, &self.path_loaded[self.active]),
+            &StateUiToSave::from_state(&self.ui, &self.path_loaded),
         ) {
             eprintln!("Error saving prefs: {e}");
         }
@@ -757,9 +765,11 @@ fn main() {
     state.restriction_enzyme_lib = load_re_library();
 
     // Initial load  hierarchy:
-    // - Path argument (eg file association)
-    // - Last opened file
+    // - Path argument (e.g. file association)
+    // - Last opened files
     // - Quicksave
+
+    let mut loaded_from_arg = false;
     let (path, window_title_initial) = {
         let mut p = PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap();
 
@@ -770,22 +780,22 @@ fn main() {
         if args.len() > 1 {
             let temp = &args[1];
             p = PathBuf::from_str(&temp).unwrap();
-        } else {
-            if let Some(path_last) = &state.path_loaded[state.active] {
-                p = path_last.clone();
-            }
+            loaded_from_arg = true;
         }
 
         let window_title = get_window_title(&p);
         (p, window_title)
     };
 
-    if let Some(loaded) = load_import(&path) {
-        state.load(&loaded, state.active);
+    // Load from the argument or quicksave A/R.
+    if loaded_from_arg || state.path_loaded.is_empty() {
+        if let Some(loaded) = load_import(&path) {
+            state.load(&loaded, state.active);
+        }
     }
+
     state.sync_seq_related(None);
 
-    // state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
     state.reset_selections();
 
     let icon_bytes: &[u8] = include_bytes!("resources/icon.png");
