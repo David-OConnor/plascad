@@ -304,6 +304,7 @@ impl Default for FileDialogs {
 /// UI state for restriction enzymes.
 struct ReUi {
     /// Inner: RE name
+    /// todo: This is a trap for multiple tabs.
     selected: Vec<String>,
     unique_cutters_only: bool,
 }

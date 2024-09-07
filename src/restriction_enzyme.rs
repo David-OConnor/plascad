@@ -90,7 +90,7 @@ impl RestrictionEnzyme {
         for (i, nt_char) in nt_chars.chars().enumerate() {
             result.push(nt_char);
             if i as u8 == self.cut_after {
-                result.push('|');
+                result.push_str(" | ");
             }
         }
 

@@ -2,14 +2,15 @@
 
 use std::collections::HashMap;
 
-use eframe::egui::{Color32, RichText, Ui};
-
+use eframe::egui::{Color32, Frame, Pos2, Rect, RichText, Sense, Ui, vec2};
+use eframe::emath::RectTransform;
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
     ligation::digest,
     sequence::seq_to_str,
     State,
 };
+use crate::gui::BACKGROUND_COLOR;
 
 pub fn ligation_page(state: &mut State, ui: &mut Ui) {
     // todo: Cache this A/R
@@ -88,7 +89,30 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
             .clicked()
         {
             state.volatile[state.active].re_digestion_products =
-                digest(&state.ui.re.selected, state.get_seq());
+                digest(&state.ui.re.selected, &state.volatile[state.active].restriction_enzyme_matches,
+                       &state.restriction_enzyme_lib, state.get_seq(), state.generic[state.active].topology);
         }
     }
+
+    for frag in &state.volatile[state.active].re_digestion_products {
+        ui.label(format!("{} - {:?}", frag.len(), seq_to_str(frag)));
+    }
+
+    Frame::canvas(ui.style())
+        .fill(BACKGROUND_COLOR)
+        .show(ui, |ui| {
+            let (response, _painter) = {
+                let desired_size = vec2(ui.available_width(), ui.available_height());
+                ui.allocate_painter(desired_size, Sense::click())
+            };
+
+            let to_screen = RectTransform::from_to(
+                // Rect::from_min_size(pos2(0., -VERITICAL_CIRCLE_OFFSET), response.rect.size()),
+                Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+                response.rect,
+            );
+
+            let rect_size = response.rect.size();
+        });
+
 }
