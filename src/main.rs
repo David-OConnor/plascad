@@ -48,6 +48,7 @@ use crate::{
         GenericData,
     },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_WIDTH},
+    ligation::LigationFragment,
     pcr::{PcrParams, PolymeraseType},
     portions::PortionsState,
     primer::TM_TARGET,
@@ -60,7 +61,6 @@ use crate::{
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
-use crate::ligation::LigationFragment;
 
 mod amino_acids;
 mod cloning;

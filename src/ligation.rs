@@ -1,60 +1,73 @@
 //! This module contains code related to ligation. For example, using restriction enzymes to
 //! combine or otherwise edit DNA segments.
 
-use crate::{sequence::Nucleotide, Seq};
-use crate::restriction_enzyme::{ReMatch, RestrictionEnzyme};
-use crate::sequence::SeqTopology;
-
+use crate::{
+    restriction_enzyme::{ReMatch, RestrictionEnzyme},
+    sequence::{Nucleotide, SeqTopology},
+    Seq,
+};
 
 pub struct LigationFragment {
     pub seq: Seq,
-    pub re_left: RestrictionEnzyme,
-    pub re_right: RestrictionEnzyme,
+    /// None if the end of a linear fragment.
+    pub re_left: Option<RestrictionEnzyme>,
+    pub re_right: Option<RestrictionEnzyme>,
 }
 
 /// Digest the sequence with one or more REs.
 /// `matches` here is all matches; we filter by selected here.
-pub fn digest(selected: &[String], matches: &[ReMatch], re_lib: &[RestrictionEnzyme], seq: &[Nucleotide],
-              topology: SeqTopology) -> Vec<LigationFragment> {
+pub fn digest(
+    selected: &[String],
+    matches: &[ReMatch],
+    re_lib: &[RestrictionEnzyme],
+    seq: &[Nucleotide],
+    topology: SeqTopology,
+) -> Vec<LigationFragment> {
     let mut result = Vec::new();
 
-    let mut cut_locs = Vec::new();
+    // Cut index, RE. If from the start or end of the seq, it's none.
+    let mut cuts = Vec::new();
+
     for re_match in matches {
-        if re_match.lib_index +1 > re_lib.len() {
+        if re_match.lib_index + 1 > re_lib.len() {
             eprintln!("Error with RE lib");
             continue;
         }
         let re = &re_lib[re_match.lib_index];
 
         if !selected.contains(&re.name) {
-            continue
+            continue;
         }
 
-        cut_locs.push(re_match.seq_index);
+        cuts.push((re_match.seq_index, re.clone()));
     }
 
-    if cut_locs.is_empty() {
+    if cuts.is_empty() {
         return result;
     }
 
-    let mut cut_loc = cut_locs[0];
+    let mut cut = &cuts[0];
     let mut cuts_i = 0;
     let mut current_fragment = Vec::new();
 
-    for seq_i in cut_loc..seq.len() {
+    for seq_i in cut.0..seq.len() {
         let nt = seq[seq_i];
 
-        if seq_i == cut_loc {
+        if seq_i == cut.0 {
             if !current_fragment.is_empty() {
-                result.push(current_fragment.clone());
+                result.push(LigationFragment {
+                    seq: current_fragment.clone(),
+                    re_left: Some(cuts[cuts_i - 1].1.clone()),
+                    re_right: Some(cut.1.clone()),
+                });
             }
 
             current_fragment = Vec::new();
 
-            if cuts_i + 1 < cut_locs.len() {
+            if cuts_i + 1 < cuts.len() {
                 cuts_i += 1;
             }
-            cut_loc = cut_locs[cuts_i];
+            cut = &cuts[cuts_i];
         }
         current_fragment.push(nt);
     }
@@ -62,31 +75,39 @@ pub fn digest(selected: &[String], matches: &[ReMatch], re_lib: &[RestrictionEnz
     match topology {
         SeqTopology::Circular => {
             // Create the final fragment, between the last and first cut sites.
-            for seq_i in 0..cut_locs[0] {
+            for seq_i in 0..cuts[0].0 {
                 let nt = seq[seq_i];
                 current_fragment.push(nt);
 
-                if seq_i == cut_locs[0] {
+                if seq_i == cuts[0].0 {
                     break;
-                    // result.push(current_fragment.clone());
-                    //
-                    // current_fragment = Vec::new();
-                    //
-                    // if cuts_i + 1 < cut_locs.len() {
-                    //     cuts_i += 1;
-                    // }
-                    // cut_loc = cut_locs[cuts_i];
                 }
             }
-            // todo: This isn't right. Continue to the first cut site.
             // From the last cut site to the first, wrapping through the origin.
-            result.push(current_fragment);
+            result.push(LigationFragment {
+                seq: current_fragment,
+                re_left: Some(cuts[cuts.len() - 1].1.clone()),
+                re_right: Some(cuts[0].1.clone()),
+            });
         }
         SeqTopology::Linear => {
             // From the origin to the first cut site.
-            result.push(seq[..cut_locs[0]].to_vec());
+            result.push(
+                LigationFragment {
+                    seq: seq[..cuts[0].0].to_vec(),
+                    re_left: None,
+                    re_right: Some(cuts[0].1.clone()),
+                }
+            );
+
             // From the last cut site to the end.
-            result.push(current_fragment);
+            result.push(
+                LigationFragment {
+                    seq: current_fragment,
+                    re_left: Some(cuts[cuts.len() - 1].1.clone()),
+                    re_right: None,
+                }
+            );
         }
     }
 

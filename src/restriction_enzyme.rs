@@ -10,7 +10,7 @@ use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
 };
-
+use crate::primer::PrimerDirection;
 use crate::sequence::{
     seq_to_str,
     Nucleotide::{self, A, C, G, T},
@@ -45,12 +45,13 @@ pub struct ReMatch {
     pub lib_index: usize,
     /// Cuts after this index, in the "forward" direction.
     pub seq_index: usize,
+    // pub direction: PrimerDirection,
     /// todo: Experimenting
     /// The number of matches found for this RE.
     pub match_count: usize,
 }
 
-#[derive(Eq)]
+#[derive(Clone, Eq)]
 pub struct RestrictionEnzyme {
     pub name: String,
     /// From the 5' end.
@@ -104,6 +105,8 @@ pub fn find_re_matches(seq: &[Nucleotide], lib: &[RestrictionEnzyme]) -> Vec<ReM
 
     let mut match_counts = HashMap::new(); // lib index, count
 
+    // todo: Reverse?
+
     for (lib_index, re) in lib.iter().enumerate() {
         let seq_len = seq.len();
         for i in 0..seq_len {
@@ -114,6 +117,7 @@ pub fn find_re_matches(seq: &[Nucleotide], lib: &[RestrictionEnzyme]) -> Vec<ReM
             if re.seq == seq[i..i + re.seq.len()] {
                 result.push(ReMatch {
                     lib_index,
+                    // direction: PrimerDirection::Forward,
                     seq_index: i + 1, // +1 indexing.
                     match_count: 0,   // Updated below.
                 });
