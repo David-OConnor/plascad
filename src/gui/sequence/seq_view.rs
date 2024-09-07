@@ -62,7 +62,7 @@ impl SeqViewData {
 fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    for (i_match, re_match) in state.volatile.restriction_enzyme_sites.iter().enumerate() {
+    for (i_match, re_match) in state.volatile.restriction_enzyme_matches.iter().enumerate() {
         if re_match.lib_index + 1 > state.restriction_enzyme_lib.len() {
             continue;
         }
@@ -83,7 +83,8 @@ fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
         // Move the label position left if there is a nearby RE site on the right.
         // todo: Not appearing to be working well.
         let mut neighbor_on_right = false;
-        for (i_other, re_match_other) in state.volatile.restriction_enzyme_sites.iter().enumerate()
+        for (i_other, re_match_other) in
+            state.volatile.restriction_enzyme_matches.iter().enumerate()
         {
             if i_other != i_match
                 && re_match_other.seq_index > re_match.seq_index

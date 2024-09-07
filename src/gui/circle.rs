@@ -994,7 +994,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             // tood: Check mark to edit this visibility on the page
             if state.ui.seq_visibility.show_res {
                 shapes.append(&mut draw_re_sites(
-                    &state.volatile.restriction_enzyme_sites,
+                    &state.volatile.restriction_enzyme_matches,
                     &state.restriction_enzyme_lib,
                     &data,
                     ui,

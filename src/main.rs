@@ -116,7 +116,6 @@ impl eframe::App for State {
         unsafe {
             if let Some(last_save) = LAST_PREF_SAVE {
                 if (now - last_save).as_secs() > PREFS_SAVE_INTERVAL {
-                    println!("Saving prefs");
                     LAST_PREF_SAVE = Some(now);
                     self.save_prefs()
                 }
@@ -302,6 +301,14 @@ impl Default for FileDialogs {
     }
 }
 
+/// UI state for restriction enzymes.
+#[derive(Default)]
+struct ReUi {
+    /// Inner: RE name
+    selected: Vec<String>,
+    unique_cutters_only: bool,
+}
+
 /// Values defined here generally aren't worth saving to file etc.
 struct StateUi {
     // todo: Make separate primer cols and primer data; data in state. primer_cols are pre-formatted
@@ -350,6 +357,7 @@ struct StateUi {
     // todo: Protein ui A/R
     aa_ident_disp: AaIdent,
     pdb_error_received: bool,
+    re: ReUi,
 }
 
 impl Default for StateUi {
@@ -384,6 +392,7 @@ impl Default for StateUi {
             quick_feature_add_dir: Default::default(),
             aa_ident_disp: AaIdent::ThreeLetters,
             pdb_error_received: false,
+            re: Default::default(),
         }
     }
 }
@@ -405,7 +414,7 @@ impl Default for Selection {
 /// a good fit for `StateUi`. This is, generally, calculated data from persistent staet.
 #[derive(Default)]
 struct StateVolatile {
-    restriction_enzyme_sites: Vec<ReMatch>,
+    restriction_enzyme_matches: Vec<ReMatch>,
     reading_frame_matches: Vec<ReadingFrameMatch>,
     tag_matches: Vec<TagMatch>,
     search_matches: Vec<SearchMatch>,
@@ -566,10 +575,10 @@ impl State {
 
     /// Identify restriction enzyme sites in the sequence
     pub fn sync_re_sites(&mut self) {
-        self.volatile.restriction_enzyme_sites = Vec::new();
+        self.volatile.restriction_enzyme_matches = Vec::new();
 
         self.volatile
-            .restriction_enzyme_sites
+            .restriction_enzyme_matches
             .append(&mut find_re_matches(
                 &self.generic[self.active].seq,
                 &self.restriction_enzyme_lib,
@@ -577,7 +586,7 @@ impl State {
 
         // This sorting aids in our up/down label alternation in the display.
         self.volatile
-            .restriction_enzyme_sites
+            .restriction_enzyme_matches
             .sort_by(|a, b| a.seq_index.cmp(&b.seq_index));
     }
 

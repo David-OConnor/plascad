@@ -210,7 +210,7 @@ fn draw_primers(
                         Align2::CENTER_CENTER,
                         &primer.name,
                         FontId::new(16., FontFamily::Proportional),
-                        Color32::LIGHT_GREEN
+                        Color32::LIGHT_GREEN,
                     )
                 }));
             }
@@ -338,7 +338,7 @@ pub fn draw_zoomed_in_view(data: &CircleData, state: &mut State, ui: &mut Ui) ->
 
         if state.ui.seq_visibility.show_res {
             result.append(&mut draw_re_sites(
-                &state.volatile.restriction_enzyme_sites,
+                &state.volatile.restriction_enzyme_matches,
                 &state.restriction_enzyme_lib,
                 &data,
                 index_to_x,
