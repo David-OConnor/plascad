@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use eframe::egui::{Color32, Frame, Pos2, Rect, RichText, Sense, Ui, vec2};
+use eframe::egui::{Color32, Frame, Pos2, pos2, Rect, RichText, Sense, Shape, Stroke, Ui, vec2};
 use eframe::emath::RectTransform;
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
@@ -11,6 +11,14 @@ use crate::{
     State,
 };
 use crate::gui::BACKGROUND_COLOR;
+use crate::gui::circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH};
+
+const OFFSET_X: f32 = 10.;
+const OFFSET_Y: f32 = 30.;
+
+const PRODUCT_ROW_SPACING: f32 = 60.;
+const FRAG_DISP_HEIGHT: f32 = 26.;
+const FRAG_DISP_HEIGHT_DIV2: f32 = FRAG_DISP_HEIGHT / 2.;
 
 pub fn ligation_page(state: &mut State, ui: &mut Ui) {
     // todo: Cache this A/R
@@ -94,8 +102,11 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
         }
     }
 
+    // todo: YOu need to draw complementary strands and overhangs.
+    // todo: Likely just rectangles for the strands, with the RE sites as the only letters. For both ends.
+
     for frag in &state.volatile[state.active].re_digestion_products {
-        ui.label(format!("{} - {:?}", frag.len(), seq_to_str(frag)));
+        ui.label(format!("{} - {}", frag.len(), seq_to_str(frag)));
     }
 
     Frame::canvas(ui.style())
@@ -113,6 +124,34 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
             );
 
             let rect_size = response.rect.size();
+
+            let mut shapes = Vec::new();
+
+            let frag_color  = Color32::LIGHT_BLUE; // todo A/R
+
+            let stroke = Stroke::new(FEATURE_STROKE_WIDTH, FEATURE_OUTLINE_COLOR);
+
+            let mut row_px = OFFSET_Y;
+            for frag in &state.volatile[state.active].re_digestion_products {
+
+                let start_x = OFFSET_X;
+                let end_x = frag.seq.len() as f32 * 2.; // todo: Rough.
+
+                shapes.push(Shape::convex_polygon(
+                    vec![
+                        to_screen * pos2(start_x, row_px - FRAG_DISP_HEIGHT_DIV2),
+                        to_screen * pos2(end_x, row_px - FRAG_DISP_HEIGHT_DIV2),
+                        to_screen * pos2(end_x, row_px + FRAG_DISP_HEIGHT_DIV2),
+                        to_screen * pos2(start_x, row_px + FRAG_DISP_HEIGHT_DIV2),
+                    ],
+                    frag_color,
+                    stroke,
+                ));
+
+                row_px +=PRODUCT_ROW_SPACING;
+            }
+
+            ui.painter().extend(shapes);
         });
 
 }

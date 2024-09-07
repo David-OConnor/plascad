@@ -60,6 +60,7 @@ use crate::{
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
+use crate::ligation::LigationFragment;
 
 mod amino_acids;
 mod cloning;
@@ -424,7 +425,7 @@ impl Default for Selection {
 #[derive(Default)]
 struct StateVolatile {
     restriction_enzyme_matches: Vec<ReMatch>,
-    re_digestion_products: Vec<Seq>,
+    re_digestion_products: Vec<LigationFragment>,
     reading_frame_matches: Vec<ReadingFrameMatch>,
     tag_matches: Vec<TagMatch>,
     search_matches: Vec<SearchMatch>,

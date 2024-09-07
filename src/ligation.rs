@@ -5,9 +5,17 @@ use crate::{sequence::Nucleotide, Seq};
 use crate::restriction_enzyme::{ReMatch, RestrictionEnzyme};
 use crate::sequence::SeqTopology;
 
+
+pub struct LigationFragment {
+    pub seq: Seq,
+    pub re_left: RestrictionEnzyme,
+    pub re_right: RestrictionEnzyme,
+}
+
 /// Digest the sequence with one or more REs.
 /// `matches` here is all matches; we filter by selected here.
-pub fn digest(selected: &[String], matches: &[ReMatch], re_lib: &[RestrictionEnzyme], seq: &[Nucleotide], topology: SeqTopology) -> Vec<Seq> {
+pub fn digest(selected: &[String], matches: &[ReMatch], re_lib: &[RestrictionEnzyme], seq: &[Nucleotide],
+              topology: SeqTopology) -> Vec<LigationFragment> {
     let mut result = Vec::new();
 
     let mut cut_locs = Vec::new();
