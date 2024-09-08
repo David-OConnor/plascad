@@ -10,12 +10,7 @@ use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
 };
-use crate::primer::PrimerDirection;
-use crate::sequence::{
-    seq_to_str,
-    Nucleotide::{self, A, C, G, T},
-    Seq,
-};
+use crate::sequence::{seq_to_str, Nucleotide::{self, A, C, G, T}, Seq, seq_complement};
 
 /// Unlike `Nucleotide`, this includes wildcards
 #[derive(Clone, Copy)]
@@ -97,6 +92,65 @@ impl RestrictionEnzyme {
 
         result
     }
+
+    /// Find the overhanging NTs 5' of a sequence's top strand.
+    pub fn overhang_top_left(&self) -> Vec<Nucleotide> {
+        let cut = self.cut_after as usize + 1;
+        let len = self.seq.len();
+
+        if cut > len {
+            Vec::new() // No overhang on the top strand.
+        }  else {
+            self.seq[cut..len - cut].to_vec()
+        }
+    }
+
+    pub fn overhang_top_right(&self) -> Vec<Nucleotide> {
+        let cut = self.cut_after as usize + 1;
+        let len = self.seq.len();
+
+        if cut > len {
+            self.seq[len - cut..cut].to_vec()
+        }  else {
+            Vec::new() // No overhang on the top strand.
+        }
+    }
+
+    pub fn overhang_bottom_left(&self) -> Vec<Nucleotide> {
+        // todo: DRY implementation of reverse without compl
+        let x = self.overhang_top_right();
+        let mut result = x.to_vec();
+
+        for nt in &mut result {
+            *nt = match *nt {
+                A => T,
+                T => A,
+                C => G,
+                G => C,
+            };
+        }
+
+        result
+    }
+
+    pub fn overhang_bottom_right(&self) -> Vec<Nucleotide> {
+        // todo: DRY implementation of reverse without compl
+        let x = self.overhang_top_left();
+        let mut result = x.to_vec();
+
+        for nt in &mut result {
+            *nt = match *nt {
+                A => T,
+                T => A,
+                C => G,
+                G => C,
+            };
+        }
+
+        result
+        // seq_complement(&self.overhang_top_left())
+    }
+
 }
 
 /// Go through a sequence, and attempt to match each lib in our RE lib to the sequence, in both directions

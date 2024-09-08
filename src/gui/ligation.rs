@@ -68,41 +68,75 @@ fn draw_graphics(products: &[LigationFragment], ui: &mut Ui) {
 
 
                 // Draw the RE ends.
-                let label_pt_left_fwd = pos2(start_x - 10., row_px - 10.);
-                let label_pt_right_fwd = pos2(end_x + 10., row_px - 10.);
+                let label_pt_left_top = pos2(start_x - 10., row_px - 10.);
+                let label_pt_right_top = pos2(end_x + 10., row_px - 10.);
 
-                let label_pt_left_rev = pos2(start_x - 10., row_px + 10.);
-                let label_pt_right_rev = pos2(end_x + 10., row_px + 10.);
+                let label_pt_left_bottom = pos2(start_x - 10., row_px + 10.);
+                let label_pt_right_bottom = pos2(end_x + 10., row_px + 10.);
 
-                let re_text_left_fwd = match &frag.re_left {
-                    Some(re) => re.cut_depiction(),
+                let re_text_left_top = match &frag.re_left {
+                    Some(re) => seq_to_str(&re.overhang_top_left()),
                     None => String::new()
                 };
 
-                let re_text_right_fwd = match &frag.re_right {
-                    Some(re) => re.cut_depiction(),
+                let re_text_right_top = match &frag.re_right {
+                    Some(re) => seq_to_str(&re.overhang_top_right()),
                     None => String::new()
                 };
 
-                // Left, fwd
+                let re_text_left_bottom = match &frag.re_left {
+                    Some(re) => seq_to_str(&re.overhang_bottom_left()),
+                    None => String::new()
+                };
+
+                let re_text_right_bottom = match &frag.re_right {
+                    Some(re) => seq_to_str(&re.overhang_bottom_right()),
+                    None => String::new()
+                };
+
+                // Left, top
                 shapes.push(ui.ctx().fonts(|fonts| {
                     Shape::text(
                         fonts,
-                        to_screen * label_pt_left_fwd,
+                        to_screen * label_pt_left_top,
                         Align2::RIGHT_CENTER,
-                        &re_text_left_fwd,
+                        &re_text_left_top,
                         FontId::new(14., FontFamily::Proportional),
                         Color32::LIGHT_YELLOW,
                     )
                 }));
 
-                // Right, fwd
+                // Right, top
                 shapes.push(ui.ctx().fonts(|fonts| {
                     Shape::text(
                         fonts,
-                        to_screen * label_pt_right_fwd,
+                        to_screen * label_pt_right_top,
                         Align2::LEFT_CENTER,
-                        &re_text_right_fwd,
+                        &re_text_right_top,
+                        FontId::new(14., FontFamily::Proportional),
+                        Color32::LIGHT_YELLOW,
+                    )
+                }));
+
+                // Left, bottom
+                shapes.push(ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        to_screen * label_pt_left_bottom,
+                        Align2::RIGHT_CENTER,
+                        &re_text_left_bottom,
+                        FontId::new(14., FontFamily::Proportional),
+                        Color32::LIGHT_YELLOW,
+                    )
+                }));
+
+                // Right, bottom
+                shapes.push(ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        to_screen * label_pt_right_bottom,
+                        Align2::LEFT_CENTER,
+                        &re_text_right_bottom,
                         FontId::new(14., FontFamily::Proportional),
                         Color32::LIGHT_YELLOW,
                     )
