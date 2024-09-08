@@ -10,7 +10,12 @@ use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
 };
-use crate::sequence::{seq_to_str, Nucleotide::{self, A, C, G, T}, Seq, seq_complement};
+
+use crate::sequence::{
+    seq_complement, seq_to_str,
+    Nucleotide::{self, A, C, G, T},
+    Seq,
+};
 
 /// Unlike `Nucleotide`, this includes wildcards
 #[derive(Clone, Copy)]
@@ -98,13 +103,8 @@ impl RestrictionEnzyme {
         let cut = self.cut_after as usize + 1;
         let len = self.seq.len();
 
-        println!("CUT: {cut} len: {len}");
-
-        // todo: Update the below fn with this too?
-        if cut > len {
-            Vec::new() // No overhang on the top strand.
-        }  else if cut > len - cut {
-            self.seq[cut..len].to_vec()
+        if cut as isize - 2 >= len as isize / 2 {
+            Vec::new() // No overhang on this strand.
         } else {
             self.seq[cut..len - cut].to_vec()
         }
@@ -114,10 +114,10 @@ impl RestrictionEnzyme {
         let cut = self.cut_after as usize + 1;
         let len = self.seq.len();
 
-        if cut > len {
+        if cut as isize - 2 < len as isize / 2 {
+            Vec::new() // No overhang on this strand.
+        } else {
             self.seq[len - cut..cut].to_vec()
-        }  else {
-            Vec::new() // No overhang on the top strand.
         }
     }
 
@@ -145,7 +145,6 @@ impl RestrictionEnzyme {
         result
         // seq_complement(&self.overhang_top_left())
     }
-
 }
 
 /// Go through a sequence, and attempt to match each lib in our RE lib to the sequence, in both directions

@@ -92,22 +92,18 @@ pub fn digest(
         }
         SeqTopology::Linear => {
             // From the origin to the first cut site.
-            result.push(
-                LigationFragment {
-                    seq: seq[..cuts[0].0].to_vec(),
-                    re_left: None,
-                    re_right: Some(cuts[0].1.clone()),
-                }
-            );
+            result.push(LigationFragment {
+                seq: seq[..cuts[0].0].to_vec(),
+                re_left: None,
+                re_right: Some(cuts[0].1.clone()),
+            });
 
             // From the last cut site to the end.
-            result.push(
-                LigationFragment {
-                    seq: current_fragment,
-                    re_left: Some(cuts[cuts.len() - 1].1.clone()),
-                    re_right: None,
-                }
-            );
+            result.push(LigationFragment {
+                seq: current_fragment,
+                re_left: Some(cuts[cuts.len() - 1].1.clone()),
+                re_right: None,
+            });
         }
     }
 

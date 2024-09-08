@@ -2,31 +2,30 @@
 
 use eframe::{
     egui::{
-        Align2, Color32, FontFamily, FontId, Frame, pos2, Pos2, Rect, ScrollArea, Sense, Shape,
-        Stroke, Ui, vec2,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
+        Shape, Stroke, Ui,
     },
     emath::RectTransform,
     epaint::PathStroke,
 };
-use crate::Nucleotide;
 
 use crate::{
     amino_acids::AminoAcid,
     gui::{
-        BACKGROUND_COLOR, COL_SPACING,
-        COLOR_RE,
-        COLOR_SEQ,
-        COLOR_SEQ_DIMMED,
-        feature_from_index, get_cursor_text, navigation::page_button, select_feature, sequence::{
+        feature_from_index, get_cursor_text,
+        navigation::page_button,
+        select_feature,
+        sequence::{
             feature_overlay::{draw_features, draw_selection},
             primer_overlay,
         },
+        BACKGROUND_COLOR, COLOR_RE, COLOR_SEQ, COLOR_SEQ_DIMMED, COL_SPACING,
     },
-    Selection,
-    State, StateUi, util::{get_row_ranges, pixel_to_seq_i, RangeIncl, seq_i_to_pixel},
+    reading_frame::ReadingFrame,
+    sequence::seq_complement,
+    util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl},
+    Nucleotide, Selection, State, StateUi,
 };
-use crate::reading_frame::ReadingFrame;
-use crate::sequence::seq_complement;
 
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
@@ -248,17 +247,20 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
 
                     let i_orf = i - 1; // Back to 0-based indexing for this.
 
-                                       // todo: Cache this; don't run it every update.
+                    // todo: Cache this; don't run it every update.
                     if (i_orf - orf_match.frame.offset()) % 3 == 0 {
-                        let mut codons: [Nucleotide; 3] = state.get_seq()[i_orf..i_orf + 3].try_into().unwrap();
+                        let mut codons: [Nucleotide; 3] =
+                            state.get_seq()[i_orf..i_orf + 3].try_into().unwrap();
 
                         if state.reading_frame.is_reverse() {
-                            codons = [codons[2].complement(), codons[1].complement(), codons[0].complement()];
+                            codons = [
+                                codons[2].complement(),
+                                codons[1].complement(),
+                                codons[0].complement(),
+                            ];
                         }
 
-                        if let Some(aa) = AminoAcid::from_codons(
-                            codons
-                        ) {
+                        if let Some(aa) = AminoAcid::from_codons(codons) {
                             result.push(ui.ctx().fonts(|fonts| {
                                 Shape::text(
                                     fonts,

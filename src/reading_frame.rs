@@ -1,9 +1,16 @@
-use bincode::{Decode, Encode};
 use std::fmt::Display;
-use crate::sequence;
-use crate::sequence::{Nucleotide, Seq};
-use crate::sequence::Nucleotide::{A, G, T};
-use crate::util::RangeIncl;
+
+use bincode::{Decode, Encode};
+
+use crate::{
+    sequence,
+    sequence::{
+        Nucleotide,
+        Nucleotide::{A, G, T},
+        Seq,
+    },
+    util::RangeIncl,
+};
 
 /// Of the 6 possible reading frames.
 #[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
@@ -104,7 +111,9 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
         if frame_open.is_none() && nts == START_CODON {
             frame_open = Some(i);
         // } else if frame_open.is_some() && stop_codons.contains(nts.try_into().unwrap()) {
-        } else if frame_open.is_some() && (stop_codons.contains(nts.try_into().unwrap()) || seq_len_full - i <= 3) {
+        } else if frame_open.is_some()
+            && (stop_codons.contains(nts.try_into().unwrap()) || seq_len_full - i <= 3)
+        {
             // If we reach the end of the sequence, consider it closed.
             // todo: Handle circular around the origin. Ie, don't auto-close in that case.
             // + 1 for our 1-based seq name convention.

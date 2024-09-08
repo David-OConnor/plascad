@@ -7,9 +7,9 @@ use eframe::egui::{Color32, RichText, Ui};
 
 use crate::{
     gui::{set_window_title, COL_SPACING, ROW_SPACING},
+    sequence::seq_to_str,
     State,
 };
-use crate::sequence::seq_to_str;
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 0, 110);
 pub const TAB_BUTTON_COLOR: Color32 = Color32::from_rgb(40, 80, 110);
@@ -113,8 +113,8 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
 
                 // todo: Apt state sync fn for this?
                 state.ui.seq_input = seq_to_str(state.get_seq()); // todo: Move seq_input to an indexed vector?
-                // todo: Cache these instead?
-                // state.sync_seq_related(None);
+                                                                  // todo: Cache these instead?
+                                                                  // state.sync_seq_related(None);
             }
 
             if button.middle_clicked() {

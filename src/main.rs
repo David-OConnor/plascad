@@ -32,7 +32,7 @@ use cloning::CloningInsertData;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::{FileDialog, FileDialogConfig};
-use file_io::save::{DEFAULT_SAVE_FILE, load, load_import, StateToSave};
+use file_io::save::{load, load_import, StateToSave, DEFAULT_SAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
 use protein::Protein;
@@ -42,11 +42,11 @@ use sequence::Seq;
 use crate::{
     amino_acids::AaIdent,
     file_io::{
-        GenericData,
         save::{
-            DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE, DEFAULT_PREFS_FILE, save,
-            StateUiToSave,
+            save, StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
+            DEFAULT_PREFS_FILE,
         },
+        GenericData,
     },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_WIDTH},
     ligation::LigationFragment,
@@ -56,8 +56,8 @@ use crate::{
     protein::{proteins_from_seq, sync_cr_orf_matches},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        FeatureDirection, FeatureType, find_search_matches, MIN_SEARCH_LEN,
-        Nucleotide, SearchMatch, seq_to_str,
+        find_search_matches, seq_to_str, FeatureDirection, FeatureType, Nucleotide, SearchMatch,
+        MIN_SEARCH_LEN,
     },
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
@@ -76,6 +76,7 @@ mod portions;
 mod primer;
 mod primer_metrics;
 mod protein;
+mod reading_frame;
 mod restriction_enzyme;
 mod save_compat;
 mod sequence;
@@ -83,7 +84,6 @@ mod solution_helper;
 mod tags;
 mod toxic_proteins;
 mod util;
-mod reading_frame;
 
 type Color = (u8, u8, u8); // RGB
 
@@ -798,7 +798,6 @@ fn main() {
     state.restriction_enzyme_lib = load_re_library();
 
     state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
-
 
     // Initial load  hierarchy:
     // - Path argument (e.g. file association)

@@ -1,21 +1,23 @@
 //! GUI code related to ligation operations.
 
 use eframe::{
-    egui::{pos2, vec2, Color32, Frame, Pos2, Rect, RichText, Sense, Shape, Stroke, Ui},
+    egui::{
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, ScrollArea,
+        Sense, Shape, Stroke, Ui,
+    },
     emath::RectTransform,
 };
-use eframe::egui::{Align2, FontFamily, FontId, ScrollArea};
+
 use crate::{
     gui::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH},
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
-    ligation::digest,
+    ligation::{digest, LigationFragment},
     sequence::seq_to_str,
+    util::map_linear,
     State,
 };
-use crate::ligation::LigationFragment;
-use crate::util::map_linear;
 
 // This X offset must have room for the RE Nts displayed on the left.
 const OFFSET_X: f32 = 80.;
@@ -55,14 +57,16 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
             let left_edge_px = OFFSET_X;
             let right_edge_px = ui.available_width() - OFFSET_X - 20.;
 
-
-
             for frag in products {
                 let start_x = OFFSET_X;
                 let end_x = start_x + frag.seq.len() as f32 * 2.; // todo: Rough.
 
                 // todo: This approach won't work when adding in fragments from other sequences.
-                let end_x = map_linear(frag.seq.len() as f32, (0., seq_len as f32), (left_edge_px, right_edge_px));
+                let end_x = map_linear(
+                    frag.seq.len() as f32,
+                    (0., seq_len as f32),
+                    (left_edge_px, right_edge_px),
+                );
 
                 // println!("VEC: {:?}",                    vec![
                 //     pos2(start_x, row_px - FRAG_DISP_HEIGHT_DIV2),
@@ -84,7 +88,6 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                     stroke,
                 ));
 
-
                 let box_center = pos2((end_x + start_x) / 2., row_px);
 
                 // Draw the RE ends.
@@ -96,22 +99,22 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
 
                 let re_text_left_top = match &frag.re_left {
                     Some(re) => seq_to_str(&re.overhang_top_left()),
-                    None => String::new()
+                    None => String::new(),
                 };
 
                 let re_text_right_top = match &frag.re_right {
                     Some(re) => seq_to_str(&re.overhang_top_right()),
-                    None => String::new()
+                    None => String::new(),
                 };
 
                 let re_text_left_bottom = match &frag.re_left {
                     Some(re) => seq_to_str(&re.overhang_bottom_left()),
-                    None => String::new()
+                    None => String::new(),
                 };
 
                 let re_text_right_bottom = match &frag.re_right {
                     Some(re) => seq_to_str(&re.overhang_bottom_right()),
-                    None => String::new()
+                    None => String::new(),
                 };
 
                 // todo: Allow viewing and copying fragment seqs, eg from selecting them.
@@ -248,8 +251,8 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
         });
 
         if !state.ui.re.unique_cutters_only { // No point in displaying count for unique cutters; always 1.
-            // todo: Show count.
-            // ui.label(format!(": {}"));
+             // todo: Show count.
+             // ui.label(format!(": {}"));
         }
     }
 
@@ -276,10 +279,11 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
     //     ui.label(format!("{} - {}", frag.seq.len(), seq_to_str(&frag.seq)));
     // }
 
-    ScrollArea::vertical()
-        .id_source(100)
-        .show(ui, |ui| {
-            draw_graphics(&state.volatile[state.active].re_digestion_products, state.get_seq().len(), ui);
-        });
-
+    ScrollArea::vertical().id_source(100).show(ui, |ui| {
+        draw_graphics(
+            &state.volatile[state.active].re_digestion_products,
+            state.get_seq().len(),
+            ui,
+        );
+    });
 }

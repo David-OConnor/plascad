@@ -6,12 +6,10 @@ use bincode::{Decode, Encode};
 use crate::{
     amino_acids::AminoAcid,
     external_websites::PdbData,
-    sequence::{
-        Feature, FeatureType, Nucleotide,
-    },
+    reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch},
+    sequence::{Feature, FeatureType, Nucleotide},
     State,
 };
-use crate::reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch};
 
 pub const WATER_WEIGHT: f32 = 18.015; // g/mol. We subtract these when calculating a protein's weight.
 

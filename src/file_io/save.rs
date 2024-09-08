@@ -7,14 +7,13 @@ use std::{
     fs::File,
     io,
     io::{ErrorKind, Read, Write},
-    path::{Path, PathBuf}
-    ,
+    path::{Path, PathBuf},
 };
 
 use bincode::{
     config,
-    Decode,
-    Encode, error::{DecodeError, EncodeError},
+    error::{DecodeError, EncodeError},
+    Decode, Encode,
 };
 use bio::io::fasta;
 use chrono::NaiveDate;
@@ -24,17 +23,17 @@ use crate::{
     feature_db_load::find_features,
     file_io::{
         genbank::{export_genbank, import_genbank},
-        GenericData,
         snapgene::{export_snapgene, import_snapgene},
+        GenericData,
     },
     gui::{
         navigation::{Page, PageSeq, PageSeqTop},
         set_window_title,
     },
-    PcrUi,
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
-    Selection, sequence::{Feature, Metadata, Nucleotide, Seq, SeqTopology}, SeqVisibility, State, StateUi,
+    sequence::{Feature, Metadata, Nucleotide, Seq, SeqTopology},
+    PcrUi, Selection, SeqVisibility, State, StateUi,
 };
 pub const DEFAULT_SAVE_FILE: &str = "quicksave.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";

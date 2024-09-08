@@ -5,11 +5,10 @@ use chrono::NaiveDate;
 use num_enum::TryFromPrimitive;
 
 use crate::{
-    Color
-    ,
     primer::PrimerDirection,
     sequence::Nucleotide::{A, C, G, T},
     util::{match_subseq, RangeIncl},
+    Color,
 };
 pub const MIN_SEARCH_LEN: usize = 3;
 
