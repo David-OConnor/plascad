@@ -224,7 +224,7 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
             MediaPrepInput::Plates((plate_size, num)) => {
                 ui.label("Plate diameter:");
 
-                let dia_prev = plate_size.clone();
+                let dia_prev = *plate_size;
                 ComboBox::from_id_source(3_001)
                     .width(70.)
                     .selected_text(plate_size.to_string())

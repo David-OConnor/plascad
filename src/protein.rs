@@ -173,7 +173,7 @@ pub fn sync_cr_orf_matches(state: &mut State) {
         }
 
         // Don't show binding tags.
-        let label_lower = feature.label.to_lowercase().replace(" ", "");
+        let label_lower = feature.label.to_lowercase().replace(' ', "");
         if label_lower.contains("xhis") || label_lower.contains("×his") {
             continue;
         }
@@ -193,13 +193,10 @@ pub fn sync_cr_orf_matches(state: &mut State) {
             }
         }
 
-        match orf_match {
-            Some(m) => {
-                state.volatile[state.active]
-                    .cr_orf_matches
-                    .push((i, m.clone()));
-            }
-            None => {}
+        if let Some(m) = orf_match {
+            state.volatile[state.active]
+                .cr_orf_matches
+                .push((i, m.clone()));
         }
     }
 }

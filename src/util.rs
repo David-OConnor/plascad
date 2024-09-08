@@ -119,7 +119,7 @@ fn seq_i_to_col_row(seq_i: usize, row_ranges: &[RangeIncl]) -> (usize, usize) {
     for (row_, range) in row_ranges.iter().enumerate() {
         if range.contains(seq_i) {
             row = row_;
-            row_range = range.clone();
+            row_range = *range;
             break;
         }
     }

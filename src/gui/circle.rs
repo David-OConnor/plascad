@@ -67,7 +67,7 @@ const FEATURE_SLIDER_WIDTH: f32 = 180.;
 
 // We limit each filled concave shape to a circumfrence segment this long, as part of a workaround to EGUI not having a great
 // way to draw concave shapes.
-const MAX_ARC_FILL: f32 = 230.;
+const _MAX_ARC_FILL: f32 = 230.;
 
 const VERITICAL_CIRCLE_OFFSET: f32 = 22.; // Useful for leaving room for the zoomed view.
 
@@ -416,7 +416,7 @@ fn draw_features(
                 fonts,
                 data.to_screen * label_pt,
                 label_align,
-                &feature.label(),
+                feature.label(),
                 FontId::new(14., FontFamily::Proportional),
                 stroke.color,
             )
@@ -640,16 +640,23 @@ fn draw_re_sites(
     res: &[RestrictionEnzyme],
     data: &CircleData,
     unique_cutters_only: bool,
+    sticky_ends_only: bool,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
     for (i, re_match) in re_matches.iter().enumerate() {
-        if unique_cutters_only && re_match.match_count > 1 {
+        if re_match.lib_index + 1 > res.len() {
+            continue;
+        }
+        let re = &res[re_match.lib_index];
+
+        if (unique_cutters_only && re_match.match_count > 1)
+            || (sticky_ends_only && re.makes_blunt_ends())
+        {
             continue;
         }
 
         let cut_i = re_match.seq_index + 1; // to display in the right place.
-        let re = &res[re_match.lib_index];
         let angle = seq_i_to_angle(cut_i + re.cut_after as usize, data.seq_len);
 
         let point_inner = angle_to_pixel(angle, data.radius - RE_LEN_DIV_2) + data.center.to_vec2();
@@ -723,7 +730,7 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
         // Don't let a note overflow. Note: Wrapping would be preferred to this cutoff.
         let max_len = (0.2 * data.radius) as usize; // Note: This depends on font size.
                                                     // Newlines will interfere with our current line-spacing system.
-        let text: String = format!("{}: {}", note.0, note.1.replace("\n", " "))
+        let text: String = format!("{}: {}", note.0, note.1.replace('\n', " "))
             .chars()
             .take(max_len)
             .collect();
@@ -1010,6 +1017,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                     &state.restriction_enzyme_lib,
                     &data,
                     state.ui.re.unique_cutters_only,
+                    state.ui.re.sticky_ends_only,
                     ui,
                 ));
             }

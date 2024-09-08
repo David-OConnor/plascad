@@ -44,7 +44,7 @@ pub fn setup_insert_seqs(state: &mut State, features: Vec<Feature>, seq: Seq) {
         if let Some(seq_this_ft) = feature.range.index_seq(&state.ui.cloning_insert.seq_loaded) {
             state.ui.cloning_insert.feature_selected = best;
             state.ui.cloning_insert.seq_insert = seq_this_ft.to_owned();
-            state.ui.cloning_insert.seq_input = seq_to_str(&seq_this_ft);
+            state.ui.cloning_insert.seq_input = seq_to_str(seq_this_ft);
         }
     }
 }
@@ -86,7 +86,7 @@ pub fn make_product_tab(state: &mut State) {
         ..Default::default()
     });
 
-    state.generic[state.active].metadata.plasmid_name = "Cloning product".to_owned();
+    "Cloning product".clone_into(&mut state.generic[state.active].metadata.plasmid_name);
 
     state.ui.page = Page::Map;
     state.ui.page_seq = PageSeq::View;

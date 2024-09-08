@@ -189,8 +189,7 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
                         state.ui.pdb_error_received = false;
                         protein.pdb_data = pdb_data;
                     }
-                    Err(e) => {
-                        // eprintln!("Error fetching PDB results: {e}");
+                    Err(_) => {
                         eprintln!("Error fetching PDB results");
                         state.ui.pdb_error_received = true;
                     }

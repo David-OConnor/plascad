@@ -497,7 +497,7 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
             }
             // Does this work for FASTQ too?
             "fasta" | "fa" => {
-                if let Ok((seq, id, description)) = import_fasta(&path) {
+                if let Ok((seq, id, description)) = import_fasta(path) {
                     result.generic.seq = seq;
                     result.generic.metadata.plasmid_name = id;
                     result.generic.metadata.comments = vec![description];
@@ -512,7 +512,7 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
                 }
             }
             "dna" => {
-                if let Ok(data) = import_snapgene(&path) {
+                if let Ok(data) = import_snapgene(path) {
                     result.generic = data;
                     // We do not mark the path as opened if using SnapGene, since we currently can not
                     // fully understand the format, nor make a native file SnapGene can open.
@@ -522,7 +522,7 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
                 }
             }
             "gb" | "gbk" => {
-                if let Ok(data) = import_genbank(&path) {
+                if let Ok(data) = import_genbank(path) {
                     result.generic = data;
                     result.path_loaded = Some(path.to_owned());
                     return Some(result);

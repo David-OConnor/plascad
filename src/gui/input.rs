@@ -201,7 +201,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                         Event::Copy => {}
                         Event::Paste(pasted_text) => {
                             if !state.ui.text_edit_active {
-                                state.insert_nucleotides(&seq_from_str(&pasted_text), i);
+                                state.insert_nucleotides(&seq_from_str(pasted_text), i);
                                 move_cursor = Some(pasted_text.len() as i32);
                             }
                         }

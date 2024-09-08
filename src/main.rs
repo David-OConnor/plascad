@@ -310,6 +310,8 @@ struct ReUi {
     /// todo: This is a trap for multiple tabs.
     selected: Vec<String>,
     unique_cutters_only: bool,
+    /// No blunt ends; must produce overhangs.
+    sticky_ends_only: bool,
 }
 
 impl Default for ReUi {
@@ -317,6 +319,7 @@ impl Default for ReUi {
         Self {
             selected: Default::default(),
             unique_cutters_only: true,
+            sticky_ends_only: false,
         }
     }
 }
@@ -466,7 +469,7 @@ struct State {
 
 impl Default for State {
     fn default() -> Self {
-        Self {
+        let mut result = Self {
             ui: Default::default(),
             active: Default::default(),
             generic: vec![Default::default()],
@@ -479,7 +482,12 @@ impl Default for State {
             reading_frame: Default::default(),
             volatile: Default::default(),
             search_seq: Default::default(),
-        }
+        };
+
+        // Load the RE lib before prefs, because prefs may include loading of previously-opened files,
+        // which then trigger RE match syncs.
+        result.restriction_enzyme_lib = load_re_library();
+        result
     }
 }
 
@@ -555,7 +563,7 @@ impl State {
             self.ui = ui;
 
             for path in &paths_loaded {
-                if let Some(loaded) = load_import(&path) {
+                if let Some(loaded) = load_import(path) {
                     self.load(&loaded, self.active);
                 }
             }
@@ -736,7 +744,7 @@ impl State {
         if !gen.seq.is_empty()
             || !gen.features.is_empty()
             || !gen.primers.is_empty()
-            || !self.path_loaded[self.active].is_none()
+            || self.path_loaded[self.active].is_some()
             || !self.portions[self.active].solutions.is_empty()
         {
             self.add_tab();
@@ -792,10 +800,6 @@ impl State {
 
 fn main() {
     let mut state = State::default();
-
-    // Load the RE lib before prefs, because prefs may include loading of previously-opened files,
-    // which then trigger RE match syncs.
-    state.restriction_enzyme_lib = load_re_library();
 
     state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
 

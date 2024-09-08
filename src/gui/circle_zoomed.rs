@@ -120,7 +120,7 @@ fn draw_features(
                     fonts,
                     data.to_screen * label_pt,
                     Align2::CENTER_CENTER,
-                    &feature.label(),
+                    feature.label(),
                     FontId::new(16., FontFamily::Proportional),
                     Color32::DARK_GREEN,
                 )

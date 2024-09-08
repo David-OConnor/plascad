@@ -318,7 +318,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                     .button(RichText::new(text).color(Color32::GOLD))
                     .clicked()
                 {
-                    external_websites::blast(&state);
+                    external_websites::blast(state);
                 }
             }
 

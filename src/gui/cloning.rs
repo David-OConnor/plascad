@@ -32,7 +32,6 @@ fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
                         data.feature_selected = Some(i);
 
                         if let Some(seq_this_ft) = feature.range.index_seq(&data.seq_loaded) {
-                            data.seq_insert = seq_this_ft.to_owned();
                             seq_this_ft.clone_into(&mut data.seq_insert);
                         }
                     }

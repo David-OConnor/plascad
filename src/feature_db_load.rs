@@ -53,7 +53,7 @@ pub fn find_his_tags(seq: &[Nucleotide]) -> Vec<Feature> {
         ReadingFrame::Rev2,
     ] {
         let offset = orf.offset();
-        let seq_ = orf.arrange_seq(&seq);
+        let seq_ = orf.arrange_seq(seq);
         let len = seq_.len();
 
         let mut tag_open = None; // Inner: Start index.

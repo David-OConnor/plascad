@@ -216,7 +216,7 @@ fn parse_features_primers(
 
                     range.index_seq(&compl).unwrap_or_default()
                 }
-                _ => range.index_seq(&seq).unwrap_or_default(),
+                _ => range.index_seq(seq).unwrap_or_default(),
             }
             .to_vec();
 

@@ -35,10 +35,7 @@ impl ReadingFrame {
 
     pub fn is_reverse(&self) -> bool {
         // todo: Enum
-        match self {
-            Self::Fwd0 | Self::Fwd1 | Self::Fwd2 => false,
-            _ => true,
-        }
+        !matches!(self, Self::Fwd0 | Self::Fwd1 | Self::Fwd2)
     }
 
     /// Get a seqeuence of the full sequence in the appropriate direction, and with the appropriate offset.

@@ -518,10 +518,7 @@ impl TuneSetting {
     }
 
     pub fn tunable(&self) -> bool {
-        match self {
-            Self::Disabled => false,
-            _ => true,
-        }
+        !matches!(self, Self::Disabled)
     }
 }
 

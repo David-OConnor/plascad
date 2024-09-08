@@ -97,24 +97,23 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                 let label_pt_left_bottom = pos2(start_x - 10., row_px + 10.);
                 let label_pt_right_bottom = pos2(end_x + 10., row_px + 10.);
 
-                let re_text_left_top = match &frag.re_left {
-                    Some(re) => seq_to_str(&re.overhang_top_left()),
-                    None => String::new(),
+                let (re_text_left_top, re_text_left_bottom, re_name_left) = match &frag.re_left {
+                    Some(re) => (
+                        seq_to_str(&re.overhang_top_left()),
+                        seq_to_str(&re.overhang_bottom_left()),
+                        re.name.clone(),
+                    ),
+                    None => (String::new(), String::new(), String::new()),
                 };
 
-                let re_text_right_top = match &frag.re_right {
-                    Some(re) => seq_to_str(&re.overhang_top_right()),
-                    None => String::new(),
-                };
-
-                let re_text_left_bottom = match &frag.re_left {
-                    Some(re) => seq_to_str(&re.overhang_bottom_left()),
-                    None => String::new(),
-                };
-
-                let re_text_right_bottom = match &frag.re_right {
-                    Some(re) => seq_to_str(&re.overhang_bottom_right()),
-                    None => String::new(),
+                let (re_text_right_top, re_text_right_bottom, re_name_right) = match &frag.re_right
+                {
+                    Some(re) => (
+                        seq_to_str(&re.overhang_top_right()),
+                        seq_to_str(&re.overhang_bottom_right()),
+                        re.name.clone(),
+                    ),
+                    None => (String::new(), String::new(), String::new()),
                 };
 
                 // todo: Allow viewing and copying fragment seqs, eg from selecting them.
@@ -179,6 +178,21 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                     )
                 }));
 
+                // Text description of which enzymes were used.
+                let enzyme_text = format!("{}  |  {}", re_name_left, re_name_right);
+                let enzyme_text_pos = to_screen * pos2(end_x + 70., row_px);
+
+                shapes.push(ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        enzyme_text_pos,
+                        Align2::LEFT_CENTER,
+                        &enzyme_text,
+                        FontId::new(16., FontFamily::Proportional),
+                        Color32::LIGHT_RED,
+                    )
+                }));
+
                 row_px += PRODUCT_ROW_SPACING;
             }
 
@@ -194,11 +208,14 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
 
         ui.label("Unique cutters only:");
         ui.checkbox(&mut state.ui.re.unique_cutters_only, "");
+        ui.add_space(COL_SPACING * 2.);
+
+        ui.label("Sticky ends only:");
+        ui.checkbox(&mut state.ui.re.sticky_ends_only, "");
     });
 
     ui.add_space(ROW_SPACING);
 
-    // todo: Only show unique cutters A/R. And/or in the list of sites.
     // let mut res_matched = HashMap::new(); // Re, match count
     let mut res_matched = Vec::new();
     for re_match in &state.volatile[state.active].restriction_enzyme_matches {
@@ -209,7 +226,9 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
         let re = &state.restriction_enzyme_lib[re_match.lib_index];
 
         if !res_matched.contains(&re) {
-            if state.ui.re.unique_cutters_only && re_match.match_count > 1 {
+            if (state.ui.re.unique_cutters_only && re_match.match_count > 1)
+                || (state.ui.re.sticky_ends_only && re.makes_blunt_ends())
+            {
                 continue;
             }
             res_matched.push(re);
@@ -247,7 +266,7 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
             }
 
             ui.add_space(COL_SPACING);
-            ui.label(format!("{}", re.cut_depiction()));
+            ui.label(re.cut_depiction());
         });
 
         if !state.ui.re.unique_cutters_only { // No point in displaying count for unique cutters; always 1.

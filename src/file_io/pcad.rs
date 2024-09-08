@@ -156,8 +156,6 @@ impl StateToSave {
             ));
         }
 
-        const DECODE_ERR_MSG: &str = "Error parsing a packet component";
-
         let cfg = config::standard();
         let mut result = StateToSave::default();
 
@@ -169,7 +167,7 @@ impl StateToSave {
             }
 
             let bytes_remaining = &bytes[i..];
-            let packet = Packet::from_bytes(&bytes_remaining)?;
+            let packet = Packet::from_bytes(bytes_remaining)?;
             i += PACKET_OVERHEAD + packet.payload.len();
 
             // Now, add packet data to our result A/R.

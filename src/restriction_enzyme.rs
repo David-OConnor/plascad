@@ -82,6 +82,10 @@ impl RestrictionEnzyme {
         }
     }
 
+    pub fn makes_blunt_ends(&self) -> bool {
+        self.cut_after as isize + 1 == self.seq.len() as isize / 2
+    }
+
     /// A depiction of where to cut.
     pub fn cut_depiction(&self) -> String {
         let mut nt_chars = seq_to_str(&self.seq);

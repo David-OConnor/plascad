@@ -68,14 +68,17 @@ fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
         .iter()
         .enumerate()
     {
-        if state.ui.re.unique_cutters_only && re_match.match_count > 1 {
-            continue;
-        }
-
         if re_match.lib_index + 1 > state.restriction_enzyme_lib.len() {
             continue;
         }
         let re = &state.restriction_enzyme_lib[re_match.lib_index];
+
+        if (state.ui.re.unique_cutters_only && re_match.match_count > 1)
+            || (state.ui.re.sticky_ends_only && re.makes_blunt_ends())
+        {
+            continue;
+        }
+
         let cut_i = re_match.seq_index + 1; // to display in the right place.
         let cut_pos = data.seq_i_to_px_rel(cut_i + re.cut_after as usize);
 
