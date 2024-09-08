@@ -9,6 +9,7 @@ use crate::{
     gui::{set_window_title, COL_SPACING, ROW_SPACING},
     State,
 };
+use crate::sequence::seq_to_str;
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 0, 110);
 pub const TAB_BUTTON_COLOR: Color32 = Color32::from_rgb(40, 80, 110);
@@ -51,7 +52,7 @@ impl Display for Page {
             Self::Proteins => "Proteins",
             Self::Portions => "Mixing portions",
             Self::Metadata => "Data",
-            Self::Ligation => "Ligation",
+            Self::Ligation => "Digest/Ligate",
         }
         .to_owned();
         write!(f, "{}", str)
@@ -109,6 +110,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
             if button.clicked() {
                 state.active = i;
                 set_window_title(&state.path_loaded[i], ui);
+                state.ui.seq_input = seq_to_str(state.get_seq()); // todo: Move seq_input to an indexed vector?
             }
 
             if button.middle_clicked() {

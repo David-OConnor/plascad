@@ -4,7 +4,7 @@ use eframe::{
     egui::{pos2, vec2, Color32, Frame, Pos2, Rect, RichText, Sense, Shape, Stroke, Ui},
     emath::RectTransform,
 };
-use eframe::egui::{Align2, FontFamily, FontId};
+use eframe::egui::{Align2, FontFamily, FontId, ScrollArea};
 use crate::{
     gui::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH},
@@ -15,6 +15,7 @@ use crate::{
     State,
 };
 use crate::ligation::LigationFragment;
+use crate::util::map_linear;
 
 // This X offset must have room for the RE Nts displayed on the left.
 const OFFSET_X: f32 = 80.;
@@ -25,7 +26,7 @@ const FRAG_DISP_HEIGHT: f32 = 30.;
 const FRAG_DISP_HEIGHT_DIV2: f32 = FRAG_DISP_HEIGHT / 2.;
 
 /// Draw a graphical depiction of digestion products.
-fn draw_graphics(products: &[LigationFragment], ui: &mut Ui) {
+fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
     Frame::canvas(ui.style())
         .fill(BACKGROUND_COLOR)
         .show(ui, |ui| {
@@ -50,10 +51,27 @@ fn draw_graphics(products: &[LigationFragment], ui: &mut Ui) {
 
             let mut row_px = OFFSET_Y;
 
+            // Scale pixel length based on the full sequence length.
+            let left_edge_px = OFFSET_X;
+            let right_edge_px = ui.available_width() - OFFSET_X - 20.;
+
+
 
             for frag in products {
                 let start_x = OFFSET_X;
-                let end_x = frag.seq.len() as f32 * 2.; // todo: Rough.
+                let end_x = start_x + frag.seq.len() as f32 * 2.; // todo: Rough.
+
+                // todo: This approach won't work when adding in fragments from other sequences.
+                let end_x = map_linear(frag.seq.len() as f32, (0., seq_len as f32), (left_edge_px, right_edge_px));
+
+                // println!("VEC: {:?}",                    vec![
+                //     pos2(start_x, row_px - FRAG_DISP_HEIGHT_DIV2),
+                //     pos2(end_x, row_px - FRAG_DISP_HEIGHT_DIV2),
+                //     pos2(end_x, row_px + FRAG_DISP_HEIGHT_DIV2),
+                //     pos2(start_x, row_px + FRAG_DISP_HEIGHT_DIV2),
+                // ]);
+
+                // return; // todo temp
 
                 shapes.push(Shape::convex_polygon(
                     vec![
@@ -66,6 +84,8 @@ fn draw_graphics(products: &[LigationFragment], ui: &mut Ui) {
                     stroke,
                 ));
 
+
+                let box_center = pos2((end_x + start_x) / 2., row_px);
 
                 // Draw the RE ends.
                 let label_pt_left_top = pos2(start_x - 10., row_px - 10.);
@@ -93,6 +113,20 @@ fn draw_graphics(products: &[LigationFragment], ui: &mut Ui) {
                     Some(re) => seq_to_str(&re.overhang_bottom_right()),
                     None => String::new()
                 };
+
+                // todo: Allow viewing and copying fragment seqs, eg from selecting them.
+
+                // Draw info like fragment length inside the boxes.
+                shapes.push(ui.ctx().fonts(|fonts| {
+                    Shape::text(
+                        fonts,
+                        to_screen * box_center,
+                        Align2::CENTER_CENTER,
+                        &format!("{} bp", frag.seq.len()),
+                        FontId::new(16., FontFamily::Proportional),
+                        Color32::BLACK,
+                    )
+                }));
 
                 // Left, top
                 shapes.push(ui.ctx().fonts(|fonts| {
@@ -238,9 +272,14 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
     // todo: YOu need to draw complementary strands and overhangs.
     // todo: Likely just rectangles for the strands, with the RE sites as the only letters. For both ends.
 
-    for frag in &state.volatile[state.active].re_digestion_products {
-        ui.label(format!("{} - {}", frag.seq.len(), seq_to_str(&frag.seq)));
-    }
+    // for frag in &state.volatile[state.active].re_digestion_products {
+    //     ui.label(format!("{} - {}", frag.seq.len(), seq_to_str(&frag.seq)));
+    // }
 
-    draw_graphics(&state.volatile[state.active].re_digestion_products , ui);
+    ScrollArea::vertical()
+        .id_source(100)
+        .show(ui, |ui| {
+            draw_graphics(&state.volatile[state.active].re_digestion_products, state.get_seq().len(), ui);
+        });
+
 }

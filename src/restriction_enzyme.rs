@@ -98,9 +98,14 @@ impl RestrictionEnzyme {
         let cut = self.cut_after as usize + 1;
         let len = self.seq.len();
 
+        println!("CUT: {cut} len: {len}");
+
+        // todo: Update the below fn with this too?
         if cut > len {
             Vec::new() // No overhang on the top strand.
-        }  else {
+        }  else if cut > len - cut {
+            self.seq[cut..len].to_vec()
+        } else {
             self.seq[cut..len - cut].to_vec()
         }
     }
@@ -122,12 +127,7 @@ impl RestrictionEnzyme {
         let mut result = x.to_vec();
 
         for nt in &mut result {
-            *nt = match *nt {
-                A => T,
-                T => A,
-                C => G,
-                G => C,
-            };
+            *nt = nt.complement();
         }
 
         result
@@ -139,12 +139,7 @@ impl RestrictionEnzyme {
         let mut result = x.to_vec();
 
         for nt in &mut result {
-            *nt = match *nt {
-                A => T,
-                T => A,
-                C => G,
-                G => C,
-            };
+            *nt = nt.complement();
         }
 
         result

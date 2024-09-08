@@ -7,15 +7,16 @@
 use crate::{
     amino_acids::AminoAcid,
     sequence::{
-        seq_from_str, Feature,
-        FeatureType::{
+        Feature, FeatureType::{
             self, AntibioticResistance, CodingRegion, Ori, Promoter, ProteinBind, RibosomeBindSite,
             Terminator,
         },
-        Nucleotide, ReadingFrame, Seq,
+        Nucleotide,
+        Seq, seq_from_str,
     },
     util::{match_subseq, RangeIncl},
 };
+use crate::reading_frame::ReadingFrame;
 
 struct FeatureMapItem {
     name: String,

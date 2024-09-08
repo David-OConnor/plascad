@@ -7,14 +7,14 @@ use std::{
     fs::File,
     io,
     io::{ErrorKind, Read, Write},
-    path::{Path, PathBuf},
-    str::FromStr,
+    path::{Path, PathBuf}
+    ,
 };
 
 use bincode::{
     config,
-    error::{DecodeError, EncodeError},
-    Decode, Encode,
+    Decode,
+    Encode, error::{DecodeError, EncodeError},
 };
 use bio::io::fasta;
 use chrono::NaiveDate;
@@ -24,19 +24,18 @@ use crate::{
     feature_db_load::find_features,
     file_io::{
         genbank::{export_genbank, import_genbank},
-        snapgene::{export_snapgene, import_snapgene},
         GenericData,
+        snapgene::{export_snapgene, import_snapgene},
     },
     gui::{
         navigation::{Page, PageSeq, PageSeqTop},
         set_window_title,
     },
+    PcrUi,
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
-    sequence::{Feature, Metadata, Nucleotide, ReadingFrame, Seq, SeqTopology},
-    PcrUi, Selection, SeqVisibility, State, StateUi,
+    Selection, sequence::{Feature, Metadata, Nucleotide, Seq, SeqTopology}, SeqVisibility, State, StateUi,
 };
-
 pub const DEFAULT_SAVE_FILE: &str = "quicksave.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";
 
@@ -498,7 +497,7 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
                 };
             }
             // Does this work for FASTQ too?
-            "fasta" => {
+            "fasta" | "fa" => {
                 if let Ok((seq, id, description)) = import_fasta(&path) {
                     result.generic.seq = seq;
                     result.generic.metadata.plasmid_name = id;

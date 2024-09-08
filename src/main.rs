@@ -32,20 +32,21 @@ use cloning::CloningInsertData;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::{FileDialog, FileDialogConfig};
-use file_io::save::{load, load_import, StateToSave, DEFAULT_SAVE_FILE};
+use file_io::save::{DEFAULT_SAVE_FILE, load, load_import, StateToSave};
 use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
 use protein::Protein;
+use reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch};
 use sequence::Seq;
 
 use crate::{
     amino_acids::AaIdent,
     file_io::{
-        save::{
-            save, StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
-            DEFAULT_PREFS_FILE,
-        },
         GenericData,
+        save::{
+            DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE, DEFAULT_PREFS_FILE, save,
+            StateUiToSave,
+        },
     },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_WIDTH},
     ligation::LigationFragment,
@@ -55,8 +56,8 @@ use crate::{
     protein::{proteins_from_seq, sync_cr_orf_matches},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
     sequence::{
-        find_orf_matches, find_search_matches, seq_to_str, FeatureDirection, FeatureType,
-        Nucleotide, ReadingFrame, ReadingFrameMatch, SearchMatch, MIN_SEARCH_LEN,
+        FeatureDirection, FeatureType, find_search_matches, MIN_SEARCH_LEN,
+        Nucleotide, SearchMatch, seq_to_str,
     },
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
@@ -82,6 +83,7 @@ mod solution_helper;
 mod tags;
 mod toxic_proteins;
 mod util;
+mod reading_frame;
 
 type Color = (u8, u8, u8); // RGB
 
@@ -326,7 +328,7 @@ struct StateUi {
     page: Page,
     page_seq: PageSeq,
     page_seq_top: PageSeqTop,
-    seq_input: String,
+    seq_input: String, // todo: Consider moving this to volatile.
     pcr: PcrUi,
     feature_add: StateFeatureAdd,
     // primer_selected: Option<usize>, // primer page only.
@@ -790,8 +792,13 @@ impl State {
 
 fn main() {
     let mut state = State::default();
-    state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+
+    // Load the RE lib before prefs, because prefs may include loading of previously-opened files,
+    // which then trigger RE match syncs.
     state.restriction_enzyme_lib = load_re_library();
+
+    state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
+
 
     // Initial load  hierarchy:
     // - Path argument (e.g. file association)
