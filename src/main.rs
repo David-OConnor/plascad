@@ -308,7 +308,9 @@ impl Default for FileDialogs {
 struct ReUi {
     /// Inner: RE name
     /// todo: This is a trap for multiple tabs.
-    selected: Vec<String>,
+    res_selected: Vec<String>,
+    /// Which tabs' sequences to digest.
+    tabs_selected: Vec<usize>,
     unique_cutters_only: bool,
     /// No blunt ends; must produce overhangs.
     sticky_ends_only: bool,
@@ -317,7 +319,8 @@ struct ReUi {
 impl Default for ReUi {
     fn default() -> Self {
         Self {
-            selected: Default::default(),
+            res_selected: Default::default(),
+            tabs_selected: Default::default(),
             unique_cutters_only: true,
             sticky_ends_only: false,
         }
@@ -597,7 +600,7 @@ impl State {
         self.pcr = PcrParams::new(&self.ui.pcr);
     }
 
-    /// Identify restriction enzyme sites in the sequence
+    /// Identify restriction enzyme sites in the sequence.
     pub fn sync_re_sites(&mut self) {
         self.volatile[self.active].restriction_enzyme_matches = Vec::new();
 

@@ -1,15 +1,22 @@
 use std::{path::PathBuf, str::FromStr};
 
 use eframe::{
-    egui::{Frame, RichText, Stroke, TextEdit, Ui},
+    egui::{pos2, vec2, Frame, Pos2, Rect, RichText, Sense, Shape, Stroke, TextEdit, Ui},
+    emath::RectTransform,
     epaint::Color32,
 };
 
 use crate::{
     cloning::{make_product_tab, setup_insert_seqs, CloningInsertData},
     file_io::save::load_import,
-    gui::{navigation::DEFAULT_TAB_NAME, COL_SPACING, ROW_SPACING},
+    gui,
+    gui::{
+        circle_zoomed::{draw_linear_map, OFFSET},
+        navigation::{get_tabs, DEFAULT_TAB_NAME},
+        BACKGROUND_COLOR, COL_SPACING, LINEAR_MAP_HEIGHT, ROW_SPACING,
+    },
     sequence::{seq_from_str, seq_to_str},
+    util::map_linear,
     State,
 };
 
@@ -63,23 +70,17 @@ fn insert_file_section(state: &mut State, ui: &mut Ui) {
         ui.label("Choose insert from:");
 
         // Add buttons for each opened tab
-        for gen in &mut state.generic {
-            let name = &gen.metadata.plasmid_name;
-            let btn_name = if name.len() > 20 {
-                format!("{}...", &name[..20].to_string())
-            } else if name.is_empty() {
-                DEFAULT_TAB_NAME.to_owned()
-            } else {
-                name.to_owned()
-            };
-
+        for (name, i) in get_tabs(
+            &state.path_loaded,
+            &state.generic[state.active].metadata,
+            true,
+        ) {
             if ui
-                // todo: Consider something like the actual tab name system, that uses file name,
-                // todo or a default A/R
-                .button(btn_name)
+                .button(name)
                 .on_hover_text("Select an insert from this sequence")
                 .clicked()
             {
+                let gen = &state.generic[i];
                 // This setup, including the break and variables, prevents borrow errors.
                 let g = gen.features.clone();
                 let s = gen.seq.clone();
@@ -117,6 +118,71 @@ fn insert_file_section(state: &mut State, ui: &mut Ui) {
     });
 }
 
+/// Draw a mini sequence display in its own canvas. Zoomed in on the cloning insert location, and with
+/// a line drawn on it.
+pub fn seq_lin_disp_cloning(state: &State, ui: &mut Ui) {
+    Frame::canvas(ui.style())
+        .fill(BACKGROUND_COLOR)
+        .show(ui, |ui| {
+            let (response, _painter) = {
+                let desired_size = vec2(ui.available_width(), LINEAR_MAP_HEIGHT);
+                ui.allocate_painter(desired_size, Sense::click())
+            };
+
+            let to_screen = RectTransform::from_to(
+                Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+                response.rect,
+            );
+
+            const NT_WIDTH: usize = 100;
+
+            // todo: More DRY
+            let index_left = (state.cloning_insert_loc as isize - (NT_WIDTH / 2) as isize)
+                .rem_euclid(state.get_seq().len() as isize) as usize; // Rust awk % on negative values.
+            let index_right = (state.cloning_insert_loc + NT_WIDTH / 2) % state.get_seq().len();
+
+            let mut shapes =
+                draw_linear_map(&state, &to_screen, index_left, index_right, false, ui);
+
+            // todo: More DRY.
+            let pixel_left = OFFSET.x;
+            let pixel_right = ui.available_width() - 2. * OFFSET.x;
+
+            // todo: This segment is DRY from draw_linear_map. Standalone fn etcx. {}    let index_to_x = |mut i: usize| {
+            let index_to_x = |mut i: usize| {
+                // This handles the case when the zoomed-in view is near the top; the left index
+                // will be near the end of the sequence, incorrectly calculating the portion-through in
+                // the linear map.
+                let right = if index_left > index_right {
+                    if i < index_right {
+                        // Ie, we are to the right of the origin.
+                        i += state.get_seq().len()
+                    }
+
+                    index_right + state.get_seq().len()
+                } else {
+                    index_right
+                };
+
+                map_linear(
+                    i as f32,
+                    (index_left as f32, right as f32),
+                    (pixel_left, pixel_right),
+                )
+            };
+
+            // Draw the insertion site.
+            let point_top = pos2(index_to_x(state.cloning_insert_loc), 10.);
+            let point_bottom = pos2(index_to_x(state.cloning_insert_loc), 30.);
+
+            shapes.push(Shape::line_segment(
+                [to_screen * point_bottom, to_screen * point_top],
+                Stroke::new(3., Color32::YELLOW),
+            ));
+            ui.painter().extend(shapes);
+        });
+}
+
 pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     ui.heading("SLIC and FastCloning");
 
@@ -133,7 +199,9 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     // current (vector) file will be saved, and the new cloning product file will be opened.",
     // );
 
-    ui.add_space(ROW_SPACING);
+    // todo: Zoomed in on insert loc, and draw insert loc.
+    seq_lin_disp_cloning(state, ui);
+    ui.add_space(ROW_SPACING / 2.);
 
     ui.horizontal(|ui| {
         ui.label("Insert location: ");

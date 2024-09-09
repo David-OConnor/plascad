@@ -1,19 +1,57 @@
 //! This module contains code related to navigation buttons.
 
-use std::{fmt::Display, fs::metadata};
+use std::{fmt::Display, fs::metadata, path::PathBuf};
 
 use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
 
 use crate::{
     gui::{set_window_title, COL_SPACING, ROW_SPACING},
-    sequence::seq_to_str,
+    sequence::{seq_to_str, Metadata},
     State,
 };
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 0, 110);
 pub const TAB_BUTTON_COLOR: Color32 = Color32::from_rgb(40, 80, 110);
 pub const DEFAULT_TAB_NAME: &str = "New plasmid";
+
+/// Used in several GUI components to get data from open tabs.
+/// Note: For name, we currently default to file name (with extension), then
+/// plasmid name, then a default. See if you want to default to plasmid name.
+///
+/// Returns the name, and the tab index.
+pub fn get_tabs(
+    paths: &[Option<PathBuf>],
+    metadata: &Metadata,
+    abbrev_name: bool,
+) -> Vec<(String, usize)> {
+    let mut result = Vec::new();
+
+    for (i, p) in paths.iter().enumerate() {
+        let mut name = match p {
+            Some(path) => path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(|name_str| name_str.to_string())
+                .unwrap(),
+            None => {
+                if !metadata.plasmid_name.is_empty() {
+                    metadata.plasmid_name.clone()
+                } else {
+                    DEFAULT_TAB_NAME.to_owned()
+                }
+            }
+        };
+
+        if abbrev_name && name.len() > 20 {
+            name = format!("{}...", &name[..20].to_string())
+        }
+
+        result.push((name, i));
+    }
+
+    result
+}
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum Page {
@@ -77,24 +115,11 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
         }
         ui.add_space(COL_SPACING);
 
-        for (i, p) in state.path_loaded.iter().enumerate() {
-            // Note: We currently default to file name (with extension), then
-            // plasmid name, then a default. See if you want to default to plasmid name.
-            let tab_name = match p {
-                Some(path) => path
-                    .file_name()
-                    .and_then(|name| name.to_str())
-                    .map(|name_str| name_str.to_string())
-                    .unwrap(),
-                None => {
-                    if !state.generic[i].metadata.plasmid_name.is_empty() {
-                        state.generic[i].metadata.plasmid_name.clone()
-                    } else {
-                        DEFAULT_TAB_NAME.to_owned()
-                    }
-                }
-            };
-
+        for (name, i) in get_tabs(
+            &state.path_loaded,
+            &state.generic[state.active].metadata,
+            false,
+        ) {
             // todo: DRY with page selectors.
             let color = if i == state.active {
                 Color32::GREEN
@@ -102,7 +127,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
                 Color32::WHITE
             };
             let button = ui.button(
-                RichText::new(tab_name)
+                RichText::new(name)
                     .color(color)
                     .background_color(TAB_BUTTON_COLOR),
             );

@@ -3,13 +3,13 @@ use std::str::FromStr;
 use eframe::egui::{Color32, ComboBox, Grid, RichText, TextEdit, Ui, Vec2};
 
 use crate::{
+    gui,
     gui::{COL_SPACING, ROW_SPACING},
     pcr::{make_amplicon_tab, PolymeraseType, TempTime},
     primer::{Primer, PrimerDirection, TM_TARGET},
     util::RangeIncl,
     PcrUi, State,
 };
-
 fn temp_time_disp(tt: &TempTime, label: &str, ui: &mut Ui) {
     ui.label(&format!("{label}:"));
     ui.label(RichText::new(format!("{}°C", tt.temp)).color(Color32::LIGHT_BLUE));
@@ -83,6 +83,9 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
     }
 
     ui.heading("PCR product generation");
+
+    gui::seq_lin_disp(state, ui, false);
+    ui.add_space(ROW_SPACING / 2.);
 
     if num_primers >= 2 {
         ui.horizontal(|ui| {

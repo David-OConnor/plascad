@@ -29,14 +29,14 @@ impl Tag {
 // T7 term: GCTAGTTATTGCTCAGCGG
 // T7 term take 2: ctagcataaccccttggggcctctaaacgggtcttgaggggttttttg
 
-pub fn find_tag_matches(seq: &[Nucleotide], lib: &[Tag]) -> Vec<TagMatch> {
+pub fn _find_tag_matches(seq: &[Nucleotide], lib: &[Tag]) -> Vec<TagMatch> {
     let mut result = Vec::new();
 
     result
 }
 
 /// Load a set of common Restriction enzymes. Call this at program start, to load into a state field.
-pub fn load_tag_library() -> Vec<Tag> {
+pub fn _load_tag_library() -> Vec<Tag> {
     vec![
         // todo: Hisx6+x,
         // todo: T7 promoter

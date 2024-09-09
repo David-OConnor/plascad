@@ -1,8 +1,12 @@
 //! Contains code for our mini view above the circlular map.
 
-use eframe::egui::{pos2, vec2, Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui};
+use eframe::{
+    egui::{pos2, vec2, Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui},
+    emath::RectTransform,
+};
 
 use crate::{
+    file_io::GenericData,
     gui::{
         circle::{
             CircleData, FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH,
@@ -19,11 +23,11 @@ use crate::{
 
 // How many nucleotides the zoomed-in display at the top of the page represents.
 // A smaller value corresponds to a more zoomed-in display.
-const MINI_DISP_NT_LEN: usize = 400;
-const MINI_DISP_NT_LEN_DIV2: usize = MINI_DISP_NT_LEN / 2;
+pub const MINI_DISP_NT_LEN: usize = 400;
+// const MINI_DISP_NT_LEN_DIV2: usize = MINI_DISP_NT_LEN / 2;
 
 const CENTER_Y: f32 = 18.;
-const OFFSET: Pos2 = pos2(4., 6.);
+pub const OFFSET: Pos2 = pos2(4., 6.);
 const Y_START: f32 = OFFSET.y + CENTER_Y;
 
 const FEATURE_HEIGHT: f32 = 18.;
@@ -36,7 +40,8 @@ const RE_HEIGHT_DIV2: f32 = RE_HEIGHT / 2.;
 
 fn draw_features(
     features: &[Feature],
-    data: &CircleData,
+    seq_len: usize,
+    to_screen: &RectTransform,
     disp_range: RangeIncl,
     selected_item: Selection,
     index_to_x: impl Fn(usize) -> f32,
@@ -64,9 +69,9 @@ fn draw_features(
         let mut feature_range = feature.range;
 
         // Handle wraps around the origin
-        if disp_range.end > data.seq_len {
-            feature_range.start += data.seq_len;
-            feature_range.end += data.seq_len;
+        if disp_range.end > seq_len {
+            feature_range.start += seq_len;
+            feature_range.end += seq_len;
         }
 
         let contains_start = disp_range.contains(feature_range.start);
@@ -96,10 +101,10 @@ fn draw_features(
 
             result.push(Shape::convex_polygon(
                 vec![
-                    data.to_screen * pos2(start_x, Y_START - FEATURE_HEIGHT_DIV2),
-                    data.to_screen * pos2(end_x, Y_START - FEATURE_HEIGHT_DIV2),
-                    data.to_screen * pos2(end_x, Y_START + FEATURE_HEIGHT_DIV2),
-                    data.to_screen * pos2(start_x, Y_START + FEATURE_HEIGHT_DIV2),
+                    to_screen * pos2(start_x, Y_START - FEATURE_HEIGHT_DIV2),
+                    to_screen * pos2(end_x, Y_START - FEATURE_HEIGHT_DIV2),
+                    to_screen * pos2(end_x, Y_START + FEATURE_HEIGHT_DIV2),
+                    to_screen * pos2(start_x, Y_START + FEATURE_HEIGHT_DIV2),
                 ],
                 Color32::from_rgb(r, g, b),
                 stroke,
@@ -118,7 +123,7 @@ fn draw_features(
             result.push(ui.ctx().fonts(|fonts| {
                 Shape::text(
                     fonts,
-                    data.to_screen * label_pt,
+                    to_screen * label_pt,
                     Align2::CENTER_CENTER,
                     feature.label(),
                     FontId::new(16., FontFamily::Proportional),
@@ -133,7 +138,8 @@ fn draw_features(
 /// todo: DRY with draw_features (Similar issue to the non-zoomed cirlc.e
 fn draw_primers(
     primers: &[Primer],
-    data: &CircleData,
+    seq_len: usize,
+    to_screen: &RectTransform,
     disp_range: RangeIncl,
     selected_item: Selection,
     index_to_x: impl Fn(usize) -> f32,
@@ -158,9 +164,9 @@ fn draw_primers(
             let mut prim_range = prim_match.range;
 
             // Handle wraps around the origin
-            if disp_range.end > data.seq_len {
-                prim_range.start += data.seq_len;
-                prim_range.end += data.seq_len;
+            if disp_range.end > seq_len {
+                prim_range.start += seq_len;
+                prim_range.end += seq_len;
             }
 
             let contains_start = disp_range.contains(prim_range.start);
@@ -188,10 +194,10 @@ fn draw_primers(
 
                 result.push(Shape::convex_polygon(
                     vec![
-                        data.to_screen * pos2(start_x, Y_START - PRIMER_HEIGHT_DIV2),
-                        data.to_screen * pos2(end_x, Y_START - PRIMER_HEIGHT_DIV2),
-                        data.to_screen * pos2(end_x, Y_START + PRIMER_HEIGHT_DIV2),
-                        data.to_screen * pos2(start_x, Y_START + PRIMER_HEIGHT_DIV2),
+                        to_screen * pos2(start_x, Y_START - PRIMER_HEIGHT_DIV2),
+                        to_screen * pos2(end_x, Y_START - PRIMER_HEIGHT_DIV2),
+                        to_screen * pos2(end_x, Y_START + PRIMER_HEIGHT_DIV2),
+                        to_screen * pos2(start_x, Y_START + PRIMER_HEIGHT_DIV2),
                     ],
                     Color32::TRANSPARENT,
                     stroke,
@@ -210,7 +216,7 @@ fn draw_primers(
                 result.push(ui.ctx().fonts(|fonts| {
                     Shape::text(
                         fonts,
-                        data.to_screen * label_pt,
+                        to_screen * label_pt,
                         Align2::CENTER_CENTER,
                         &primer.name,
                         FontId::new(16., FontFamily::Proportional),
@@ -228,7 +234,7 @@ fn draw_primers(
 fn draw_re_sites(
     re_matches: &[ReMatch],
     res: &[RestrictionEnzyme],
-    data: &CircleData,
+    to_screen: &RectTransform,
     index_to_x: impl Fn(usize) -> f32,
     unique_cutters_only: bool,
     ui: &mut Ui,
@@ -246,7 +252,7 @@ fn draw_re_sites(
         let point_bottom = pos2(index_to_x(cut_i), Y_START + RE_HEIGHT_DIV2);
 
         result.push(Shape::line_segment(
-            [data.to_screen * point_bottom, data.to_screen * point_top],
+            [to_screen * point_bottom, to_screen * point_top],
             Stroke::new(RE_WIDTH, COLOR_RE),
         ));
 
@@ -260,7 +266,7 @@ fn draw_re_sites(
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
                 fonts,
-                data.to_screen * label_pt,
+                to_screen * label_pt,
                 label_align,
                 &re.name,
                 FontId::new(16., FontFamily::Proportional),
@@ -271,9 +277,15 @@ fn draw_re_sites(
     result
 }
 
-/// Draw a zoomed-in view around the cursor. For now, this shows features, primers, and index ticks.
-/// todo: Trim down params A/R to be more specific.
-pub fn draw_zoomed_in_view(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Shape> {
+/// A general purpose linear sequence view, used on several pages.
+pub fn draw_linear_map(
+    state: &State,
+    to_screen: &RectTransform,
+    index_left: usize,
+    index_right: usize,
+    show_re_sites: bool,
+    ui: &mut Ui,
+) -> Vec<Shape> {
     let mut result = Vec::new();
 
     let seq_full_len = state.get_seq().len();
@@ -282,79 +294,103 @@ pub fn draw_zoomed_in_view(data: &CircleData, state: &mut State, ui: &mut Ui) ->
         return result;
     }
 
+    let pixel_left = OFFSET.x;
+    let pixel_right = ui.available_width() - 2. * OFFSET.x;
+
+    let mut disp_range = RangeIncl::new(index_left, index_right);
+
+    // Handle wraps around the origin.
+    if disp_range.start > disp_range.end {
+        disp_range.end += seq_full_len;
+    }
+
+    // Based on the display range, map index to a pixel position.
+    let index_to_x = |mut i: usize| {
+        // This handles the case when the zoomed-in view is near the top; the left index
+        // will be near the end of the sequence, incorrectly calculating the portion-through in
+        // the linear map.
+        let right = if index_left > index_right {
+            if i < index_right {
+                // Ie, we are to the right of the origin.
+                i += seq_full_len
+            }
+
+            index_right + seq_full_len
+        } else {
+            index_right
+        };
+
+        map_linear(
+            i as f32,
+            (index_left as f32, right as f32),
+            (pixel_left, pixel_right),
+        )
+    };
+
+    result.append(&mut draw_features(
+        &state.generic[state.active].features,
+        seq_full_len,
+        to_screen,
+        disp_range,
+        state.ui.selected_item,
+        index_to_x,
+        pixel_left,
+        pixel_right,
+        ui,
+    ));
+
+    result.append(&mut draw_primers(
+        &state.generic[state.active].primers,
+        seq_full_len,
+        to_screen,
+        disp_range,
+        state.ui.selected_item,
+        index_to_x,
+        pixel_left,
+        pixel_right,
+        ui,
+    ));
+
+    if state.ui.seq_visibility.show_res && show_re_sites {
+        result.append(&mut draw_re_sites(
+            &state.volatile[state.active].restriction_enzyme_matches,
+            &state.restriction_enzyme_lib,
+            to_screen,
+            index_to_x,
+            state.ui.re.unique_cutters_only,
+            ui,
+        ));
+    }
+
+    result
+}
+
+/// Draw a zoomed-in view around the cursor. For now, this shows features, primers, and index ticks.
+/// set `nt_len` to the sequence len if displaying the whole sequence. Set it to a smaller value for a zoomed in view.
+pub fn draw_circle_lin_view(
+    data: &CircleData,
+    state: &mut State,
+    nt_len: usize,
+    ui: &mut Ui,
+) -> Vec<Shape> {
+    let mut result = Vec::new();
+
     if let Some(i) = state.ui.cursor_seq_i {
         // Find the bounds of the indices to display; we use them to map indices to pixels for this
         // mini-display.
         // todo: Only if circular.
-        let index_left = (i as isize - MINI_DISP_NT_LEN_DIV2 as isize)
-            .rem_euclid(data.seq_len as isize) as usize; // Rust awk % on negative values.
-        let index_right = (i + MINI_DISP_NT_LEN_DIV2) % data.seq_len;
+        let index_left =
+            (i as isize - (nt_len / 2) as isize).rem_euclid(data.seq_len as isize) as usize; // Rust awk % on negative values.
+        let index_right = (i + nt_len / 2) % data.seq_len;
 
-        let pixel_left = OFFSET.x;
-        let pixel_right = ui.available_width() - 2. * OFFSET.x;
-
-        let mut disp_range = RangeIncl::new(index_left, index_right);
-
-        // Based on the display range, map index to a pixel position.
-        let index_to_x = |mut i: usize| {
-            // This handles the case when the zoomed-in view is near the top; the left index
-            // will be near the end of the sequence, incorrectly calculating the portion-through in
-            // the linear map.
-            let right = if index_left > index_right {
-                if i < index_right {
-                    // Ie, we are to the right of the origin.
-                    i += data.seq_len
-                }
-
-                index_right + data.seq_len
-            } else {
-                index_right
-            };
-
-            map_linear(
-                i as f32,
-                (index_left as f32, right as f32),
-                (pixel_left, pixel_right),
-            )
-        };
-
-        // Handle wraps around the origin.
-        if disp_range.start > disp_range.end {
-            disp_range.end += data.seq_len;
-        }
-
-        result.append(&mut draw_features(
-            &state.generic[state.active].features,
-            data,
-            disp_range,
-            state.ui.selected_item,
-            index_to_x,
-            pixel_left,
-            pixel_right,
+        result.append(&mut draw_linear_map(
+            &state,
+            &data.to_screen,
+            index_left,
+            index_right,
+            true,
             ui,
         ));
-
-        result.append(&mut draw_primers(
-            &state.generic[state.active].primers,
-            data,
-            disp_range,
-            state.ui.selected_item,
-            index_to_x,
-            pixel_left,
-            pixel_right,
-            ui,
-        ));
-
-        if state.ui.seq_visibility.show_res {
-            result.append(&mut draw_re_sites(
-                &state.volatile[state.active].restriction_enzyme_matches,
-                &state.restriction_enzyme_lib,
-                data,
-                index_to_x,
-                state.ui.re.unique_cutters_only,
-                ui,
-            ));
-        }
     }
 
     result

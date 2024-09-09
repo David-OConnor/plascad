@@ -19,7 +19,10 @@ use std::path::PathBuf;
 
 use eframe::{
     egui,
-    egui::{pos2, Color32, Context, RichText, TextEdit, Ui, ViewportCommand},
+    egui::{
+        pos2, vec2, Color32, Context, Frame, Pos2, Rect, RichText, Sense, TextEdit, Ui,
+        ViewportCommand,
+    },
     emath::RectTransform,
 };
 use navigation::Page;
@@ -27,7 +30,7 @@ use navigation::Page;
 use crate::{
     external_websites,
     feature_db_load::find_features,
-    gui::{input::handle_input, primer_table::primer_details},
+    gui::{circle_zoomed::draw_linear_map, input::handle_input, primer_table::primer_details},
     primer::Primer,
     sequence::{Feature, FeatureType},
     util,
@@ -70,6 +73,9 @@ pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
 // (0xAD, 0xD8, 0xE6)
 pub const COLOR_SEQ_DIMMED: Color32 = Color32::from_rgb(140, 160, 165); // Eg dim when there are search results
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
+
+// If using a dedicated canvas for a linear map.
+pub const LINEAR_MAP_HEIGHT: f32 = 60.;
 
 pub fn int_field(val: &mut usize, label: &str, ui: &mut Ui) {
     ui.label(label);
@@ -369,4 +375,31 @@ pub fn draw(state: &mut State, ctx: &Context) {
             // });
         }
     });
+}
+
+/// Draw a mini sequence display in its own canvas. Used on several pages.
+pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool) {
+    Frame::canvas(ui.style())
+        .fill(BACKGROUND_COLOR)
+        .show(ui, |ui| {
+            let (response, _painter) = {
+                let desired_size = vec2(ui.available_width(), LINEAR_MAP_HEIGHT);
+                ui.allocate_painter(desired_size, Sense::click())
+            };
+
+            let to_screen = RectTransform::from_to(
+                Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+                response.rect,
+            );
+
+            let shapes = draw_linear_map(
+                &state,
+                &to_screen,
+                0,
+                state.get_seq().len() - 1,
+                show_re_sites,
+                ui,
+            );
+            ui.painter().extend(shapes);
+        });
 }

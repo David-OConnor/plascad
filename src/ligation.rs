@@ -109,3 +109,12 @@ pub fn digest(
 
     result
 }
+
+/// Ligate multiple fragments together, in each combination.
+pub fn ligate(fragments: &[LigationFragment]) -> Vec<Seq> {
+    let mut result = Vec::new();
+
+    for frag in fragments {}
+
+    result
+}

@@ -11,9 +11,10 @@ use eframe::{
 use crate::{
     gui::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH},
-        BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
+        navigation::get_tabs,
+        seq_lin_disp, BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
-    ligation::{digest, LigationFragment},
+    ligation::{digest, ligate, LigationFragment},
     sequence::seq_to_str,
     util::map_linear,
     State,
@@ -203,7 +204,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
 pub fn ligation_page(state: &mut State, ui: &mut Ui) {
     // todo: Cache this A/R
     ui.horizontal(|ui| {
-        ui.heading("Digestion and ligration");
+        ui.heading("Digestion and ligation");
         ui.add_space(COL_SPACING * 2.);
 
         ui.label("Unique cutters only:");
@@ -213,6 +214,8 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
         ui.label("Sticky ends only:");
         ui.checkbox(&mut state.ui.re.sticky_ends_only, "");
     });
+
+    seq_lin_disp(state, ui, true);
 
     ui.add_space(ROW_SPACING);
 
@@ -236,60 +239,132 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
     }
 
     ui.horizontal(|ui| {
+        ui.heading("Opened files to digest");
+        ui.add_space(COL_SPACING);
+
+        for (name, i) in get_tabs(
+            &state.path_loaded,
+            &state.generic[state.active].metadata,
+            true,
+        ) {
+            // todo: DRY with page selectors and Cloning.
+            let color = if state.ui.re.tabs_selected.contains(&i) {
+                Color32::GREEN
+            } else {
+                Color32::WHITE
+            };
+            let button = ui.button(
+                RichText::new(name).color(color), // .background_color(TAB_BUTTON_COLOR),
+            );
+
+            if button.clicked() {
+                if state.ui.re.tabs_selected.contains(&i) {
+                    // todo: DRY with res_selected below.
+                    for (j, tab_i) in state.ui.re.tabs_selected.iter().enumerate() {
+                        if i == *tab_i {
+                            state.ui.re.tabs_selected.remove(j);
+                            break;
+                        }
+                    }
+                } else {
+                    state.ui.re.tabs_selected.push(i);
+                }
+            }
+
+            ui.add_space(COL_SPACING / 2.);
+        }
+    });
+    ui.add_space(ROW_SPACING);
+
+    // todo: Highlight common (and later, compatible) RE matches among fragments.
+
+    ui.horizontal(|ui| {
         ui.heading("Restriction enzymes matched");
         ui.add_space(COL_SPACING);
 
         ui.label("Click to select for digestion.");
     });
 
-    for re in res_matched {
-        let selected = state.ui.re.selected.contains(&re.name);
+    let res_per_row = 8; // todo: Based on screen width etc.
+    let num_re_rows = res_matched.len() / res_per_row + 1;
 
-        let color = if selected {
-            Color32::LIGHT_GREEN
-        } else {
-            Color32::WHITE
-        };
-
+    for row_i in 0..num_re_rows {
+        // todo: YOu must make this wrap, or take a different approach.
         ui.horizontal(|ui| {
-            if ui.button(RichText::new(&re.name).color(color)).clicked {
-                if selected {
-                    for (i, name) in state.ui.re.selected.iter().enumerate() {
-                        if name == &re.name {
-                            state.ui.re.selected.remove(i);
-                            break;
-                        }
-                    }
-                } else {
-                    state.ui.re.selected.push(re.name.clone());
+            for col_i in 0..res_per_row {
+                let index = row_i * res_per_row + col_i;
+                if index + 1 > res_matched.len() {
+                    break;
                 }
+                let re = res_matched[index];
+
+                let selected = state.ui.re.res_selected.contains(&re.name);
+
+                let color = if selected {
+                    Color32::LIGHT_GREEN
+                } else {
+                    Color32::WHITE
+                };
+
+                if ui.button(RichText::new(&re.name).color(color)).clicked {
+                    if selected {
+                        for (i, name) in state.ui.re.res_selected.iter().enumerate() {
+                            if name == &re.name {
+                                state.ui.re.res_selected.remove(i);
+                                break;
+                            }
+                        }
+                    } else {
+                        state.ui.re.res_selected.push(re.name.clone());
+                    }
+                }
+
+                ui.add_space(COL_SPACING / 2.);
+                ui.label(re.cut_depiction());
+
+                //
+                // if !state.ui.re.unique_cutters_only { // No point in displaying count for unique cutters; always 1.
+                //      // todo: Show count.
+                //      // ui.label(format!(": {}"));
+                // }
             }
-
             ui.add_space(COL_SPACING);
-            ui.label(re.cut_depiction());
         });
-
-        if !state.ui.re.unique_cutters_only { // No point in displaying count for unique cutters; always 1.
-             // todo: Show count.
-             // ui.label(format!(": {}"));
-        }
     }
 
-    if !state.ui.re.selected.is_empty() {
-        ui.add_space(ROW_SPACING);
-        if ui
-            .button(RichText::new("Digest").color(Color32::GOLD))
-            .clicked()
+    ui.add_space(ROW_SPACING);
+
+    ui.horizontal(|ui| {
+        if !state.ui.re.res_selected.is_empty() {
+            if ui
+                .button(RichText::new("Digest").color(Color32::GOLD))
+                .clicked()
+            {
+                state.volatile[state.active].re_digestion_products = digest(
+                    &state.ui.re.res_selected,
+                    &state.volatile[state.active].restriction_enzyme_matches,
+                    &state.restriction_enzyme_lib,
+                    state.get_seq(),
+                    state.generic[state.active].topology,
+                );
+            }
+        }
+
+        if !state.volatile[state.active]
+            .re_digestion_products
+            .is_empty()
         {
-            state.volatile[state.active].re_digestion_products = digest(
-                &state.ui.re.selected,
-                &state.volatile[state.active].restriction_enzyme_matches,
-                &state.restriction_enzyme_lib,
-                state.get_seq(),
-                state.generic[state.active].topology,
-            );
+            ui.add_space(COL_SPACING);
+            if ui
+                .button(RichText::new("Ligate").color(Color32::GOLD))
+                .clicked()
+            {
+                // state.volatile[state.active].re_ligation_products = ligate(
+                //     &state.volatile[state.active].re_digestion_products,
+                // );
+            }
         }
-    }
+    });
 
     // todo: YOu need to draw complementary strands and overhangs.
     // todo: Likely just rectangles for the strands, with the RE sites as the only letters. For both ends.
