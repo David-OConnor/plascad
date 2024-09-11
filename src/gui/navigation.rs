@@ -23,13 +23,14 @@ pub const DEFAULT_TAB_NAME: &str = "New plasmid";
 /// Returns the name, and the tab index.
 pub fn get_tabs(
     paths: &[Option<PathBuf>],
-    metadata: &Metadata,
+    // plasmid_names: &[&str],
+    plasmid_names: &[&str],
     abbrev_name: bool,
 ) -> Vec<(String, usize)> {
     let mut result = Vec::new();
 
     for (i, p) in paths.iter().enumerate() {
-        let name = name_from_path(p, metadata, abbrev_name);
+        let name = name_from_path(p, plasmid_names[i], abbrev_name);
         result.push((name, i));
     }
 
@@ -97,12 +98,12 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
             // set_window_title(&state.path_loaded[state.active], ui);
         }
         ui.add_space(COL_SPACING);
-
-        for (name, i) in get_tabs(
-            &state.path_loaded,
-            &state.generic[state.active].metadata,
-            false,
-        ) {
+        let plasmid_names: &Vec<_> = &state
+            .generic
+            .iter()
+            .map(|v| v.metadata.plasmid_name.as_str())
+            .collect();
+        for (name, i) in get_tabs(&state.path_loaded, plasmid_names, false) {
             // todo: DRY with page selectors.
             let color = if i == state.active {
                 Color32::GREEN

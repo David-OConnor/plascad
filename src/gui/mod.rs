@@ -19,10 +19,7 @@ use std::path::PathBuf;
 
 use eframe::{
     egui,
-    egui::{
-        pos2, vec2, Color32, Context, Frame, Pos2, Rect, RichText, Sense, TextEdit, Ui,
-        ViewportCommand,
-    },
+    egui::{pos2, Color32, Context, RichText, TextEdit, Ui, ViewportCommand},
     emath::RectTransform,
 };
 use navigation::Page;
@@ -30,7 +27,7 @@ use navigation::Page;
 use crate::{
     external_websites,
     feature_db_load::find_features,
-    gui::{circle_zoomed::draw_linear_map, input::handle_input, primer_table::primer_details},
+    gui::{input::handle_input, primer_table::primer_details},
     primer::Primer,
     sequence::{Feature, FeatureType},
     util,
@@ -39,11 +36,11 @@ use crate::{
 };
 
 mod circle;
-mod circle_zoomed;
 mod cloning;
 mod feature_table;
 mod input;
 mod ligation;
+mod lin_maps;
 mod metadata;
 pub mod navigation;
 mod pcr;
@@ -375,32 +372,4 @@ pub fn draw(state: &mut State, ctx: &Context) {
             // });
         }
     });
-}
-
-/// Draw a mini sequence display in its own canvas. Used on several pages.
-pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool, active: usize) {
-    Frame::canvas(ui.style())
-        .fill(BACKGROUND_COLOR)
-        .show(ui, |ui| {
-            let (response, _painter) = {
-                let desired_size = vec2(ui.available_width(), LINEAR_MAP_HEIGHT);
-                ui.allocate_painter(desired_size, Sense::click())
-            };
-
-            let to_screen = RectTransform::from_to(
-                Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-                response.rect,
-            );
-
-            let shapes = draw_linear_map(
-                &state,
-                &to_screen,
-                0,
-                state.get_seq().len() - 1,
-                show_re_sites,
-                active,
-                ui,
-            );
-            ui.painter().extend(shapes);
-        });
 }

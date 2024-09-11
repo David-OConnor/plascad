@@ -1,18 +1,20 @@
 //! Contains code for our mini view above the circlular map.
 
 use eframe::{
-    egui::{pos2, vec2, Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui},
+    egui::{
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, Sense, Shape, Stroke,
+        Ui,
+    },
     emath::RectTransform,
 };
 
 use crate::{
-    file_io::GenericData,
     gui::{
         circle::{
             CircleData, FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH,
             PRIMER_STROKE_WIDTH, RE_WIDTH,
         },
-        COLOR_RE,
+        BACKGROUND_COLOR, COLOR_RE, LINEAR_MAP_HEIGHT,
     },
     primer::Primer,
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
@@ -278,6 +280,7 @@ fn draw_re_sites(
 }
 
 /// A general purpose linear sequence view, used on several pages.
+/// This shows features, primers, and index ticks.
 pub fn draw_linear_map(
     state: &State,
     to_screen: &RectTransform,
@@ -366,35 +369,66 @@ pub fn draw_linear_map(
     result
 }
 
-/// Draw a zoomed-in view around the cursor. For now, this shows features, primers, and index ticks.
+/// Draw a zoomed-in view around the cursor. We use this as the mini view on the circular map page, and on the cloning
+/// to show the vector insert point.
 /// set `nt_len` to the sequence len if displaying the whole sequence. Set it to a smaller value for a zoomed in view.
-pub fn draw_circle_lin_view(
-    data: &CircleData,
-    state: &mut State,
+pub fn lin_map_zoomed(
+    state: &State,
+    to_screen: &RectTransform,
+    nt_center: usize,
     nt_len: usize,
     active: usize,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    if let Some(i) = state.ui.cursor_seq_i {
-        // Find the bounds of the indices to display; we use them to map indices to pixels for this
-        // mini-display.
-        // todo: Only if circular.
-        let index_left =
-            (i as isize - (nt_len / 2) as isize).rem_euclid(data.seq_len as isize) as usize; // Rust awk % on negative values.
-        let index_right = (i + nt_len / 2) % data.seq_len;
+    let seq_len = state.generic[active].seq.len();
 
-        result.append(&mut draw_linear_map(
-            &state,
-            &data.to_screen,
-            index_left,
-            index_right,
-            true,
-            active,
-            ui,
-        ));
-    }
+    // Find the bounds of the indices to display; we use them to map indices to pixels for this
+    // mini-display.
+    // todo: Only if circular.
+    let index_left =
+        (nt_center as isize - (nt_len / 2) as isize).rem_euclid(seq_len as isize) as usize; // Rust awk % on negative values.
+    let index_right = (nt_center + nt_len / 2) % seq_len;
+
+    result.append(&mut draw_linear_map(
+        &state,
+        to_screen,
+        index_left,
+        index_right,
+        true,
+        active,
+        ui,
+    ));
 
     result
+}
+
+/// Draw a mini sequence display in its own canvas. This displays the entire sequence, and is used on several pages.
+/// We use this where we are not drawing on an existing canvas.
+pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool, active: usize) {
+    Frame::canvas(ui.style())
+        .fill(BACKGROUND_COLOR)
+        .show(ui, |ui| {
+            let (response, _painter) = {
+                let desired_size = vec2(ui.available_width(), LINEAR_MAP_HEIGHT);
+                ui.allocate_painter(desired_size, Sense::click())
+            };
+
+            let to_screen = RectTransform::from_to(
+                Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+                response.rect,
+            );
+
+            let shapes = draw_linear_map(
+                &state,
+                &to_screen,
+                0,
+                state.generic[active].seq.len() - 1,
+                show_re_sites,
+                active,
+                ui,
+            );
+            ui.painter().extend(shapes);
+        });
 }

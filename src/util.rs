@@ -387,7 +387,7 @@ pub fn get_window_title(path: &Path) -> String {
 }
 
 /// A short, descriptive name for a given opened tab.
-pub fn name_from_path(path: &Option<PathBuf>, metadata: &Metadata, abbrev_name: bool) -> String {
+pub fn name_from_path(path: &Option<PathBuf>, plasmid_name: &str, abbrev_name: bool) -> String {
     let mut name = match path {
         Some(path) => path
             .file_name()
@@ -395,8 +395,8 @@ pub fn name_from_path(path: &Option<PathBuf>, metadata: &Metadata, abbrev_name: 
             .map(|name_str| name_str.to_string())
             .unwrap(),
         None => {
-            if !metadata.plasmid_name.is_empty() {
-                metadata.plasmid_name.clone()
+            if !plasmid_name.is_empty() {
+                plasmid_name.to_owned()
             } else {
                 DEFAULT_TAB_NAME.to_owned()
             }

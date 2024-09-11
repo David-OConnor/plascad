@@ -11,7 +11,7 @@ use crate::{
     file_io::save::load_import,
     gui,
     gui::{
-        circle_zoomed::{draw_linear_map, OFFSET},
+        lin_maps::{draw_linear_map, lin_map_zoomed, OFFSET},
         navigation::{get_tabs, DEFAULT_TAB_NAME},
         BACKGROUND_COLOR, COL_SPACING, LINEAR_MAP_HEIGHT, ROW_SPACING,
     },
@@ -69,10 +69,17 @@ fn insert_file_section(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.label("Choose insert from:");
 
+        let plasmid_names: &Vec<_> = &state
+            .generic
+            .iter()
+            .map(|v| v.metadata.plasmid_name.as_str())
+            .collect();
+
         // Add buttons for each opened tab
         for (name, i) in get_tabs(
             &state.path_loaded,
-            &state.generic[state.active].metadata,
+            // &state.generic[state.active].metadata,
+            plasmid_names,
             true,
         ) {
             if ui
@@ -136,22 +143,20 @@ pub fn seq_lin_disp_cloning(state: &State, ui: &mut Ui) {
 
             const NT_WIDTH: usize = 400;
 
-            // todo: More DRY
-            let index_left = (state.cloning_insert_loc as isize - (NT_WIDTH / 2) as isize)
-                .rem_euclid(state.get_seq().len() as isize) as usize; // Rust awk % on negative values.
-            let index_right = (state.cloning_insert_loc + NT_WIDTH / 2) % state.get_seq().len();
-
-            let mut shapes = draw_linear_map(
+            let mut shapes = lin_map_zoomed(
                 &state,
                 &to_screen,
-                index_left,
-                index_right,
-                false,
+                state.cloning_insert_loc,
+                NT_WIDTH,
                 state.active,
                 ui,
             );
 
-            // todo: More DRY.
+            // todo: The DRY sections below are related to drawing the vertical line at the insert point.
+
+            let index_left = (state.cloning_insert_loc as isize - (NT_WIDTH / 2) as isize)
+                .rem_euclid(state.get_seq().len() as isize) as usize; // Rust awk % on negative values.
+            let index_right = (state.cloning_insert_loc + NT_WIDTH / 2) % state.get_seq().len();
             let pixel_left = OFFSET.x;
             let pixel_right = ui.available_width() - 2. * OFFSET.x;
 
@@ -186,6 +191,7 @@ pub fn seq_lin_disp_cloning(state: &State, ui: &mut Ui) {
                 [to_screen * point_bottom, to_screen * point_top],
                 Stroke::new(3., Color32::YELLOW),
             ));
+
             ui.painter().extend(shapes);
         });
 }

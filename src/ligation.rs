@@ -124,8 +124,16 @@ pub fn ligate(fragments: &[LigationFragment]) -> Vec<Seq> {
 
     for frag in fragments {
         if let Some(re_l) = &frag.re_left {
-            let nt_overhang_a: Vec<_> = re_l.overhang_top_left().iter().map(|nt| nt.complement()).collect();
-            let nt_overhang_b: Vec<_> = re_l.overhang_top_right().iter().map(|nt| nt.complement()).collect();
+            let nt_overhang_a: Vec<_> = re_l
+                .overhang_top_left()
+                .iter()
+                .map(|nt| nt.complement())
+                .collect();
+            let nt_overhang_b: Vec<_> = re_l
+                .overhang_top_right()
+                .iter()
+                .map(|nt| nt.complement())
+                .collect();
 
             // Match complements on the same diagonal: top left-to-top-left
             for frag_2 in fragments {

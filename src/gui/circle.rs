@@ -13,10 +13,10 @@ use eframe::{
 
 use crate::{
     gui::{
-        circle_zoomed, circle_zoomed::MINI_DISP_NT_LEN, feature_from_index,
-        feature_table::feature_table, get_cursor_text, navigation::NAV_BUTTON_COLOR,
-        select_feature, COLOR_RE, COLOR_SEQ, COL_SPACING, PRIMER_FWD_COLOR, PRIMER_REV_COLOR,
-        ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
+        feature_from_index, feature_table::feature_table, get_cursor_text, lin_maps,
+        lin_maps::MINI_DISP_NT_LEN, navigation::NAV_BUTTON_COLOR, select_feature, COLOR_RE,
+        COLOR_SEQ, COL_SPACING, PRIMER_FWD_COLOR, PRIMER_REV_COLOR, ROW_SPACING,
+        SPLIT_SCREEN_MAX_HEIGHT,
     },
     primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
@@ -1025,14 +1025,16 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
             shapes.append(&mut draw_center_text(&data, state, ui));
 
-            // shapes.append(&mut draw_mini_seq(&data, state, ui));
-            shapes.append(&mut circle_zoomed::draw_circle_lin_view(
-                &data,
-                state,
-                MINI_DISP_NT_LEN,
-                state.active,
-                ui,
-            ));
+            if let Some(cursor_i) = state.ui.cursor_seq_i {
+                shapes.append(&mut lin_maps::lin_map_zoomed(
+                    state,
+                    &data.to_screen,
+                    cursor_i,
+                    MINI_DISP_NT_LEN,
+                    state.active,
+                    ui,
+                ));
+            }
 
             ui.painter().extend(shapes);
         });

@@ -543,7 +543,6 @@ impl State {
             self.ui.re.tabs_selected.remove(j);
         }
 
-
         // Don't let the active tab overflow to the right; move it to the left if it would.
         // And, don't move the active tab left only if it would underflow; this effectively moves it right.
         if (self.active > 0 && self.active <= i && n > 1) || self.active + 1 >= n {

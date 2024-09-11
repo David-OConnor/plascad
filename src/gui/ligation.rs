@@ -1,6 +1,6 @@
 //! GUI code related to ligation operations.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use eframe::{
     egui::{
@@ -13,14 +13,13 @@ use eframe::{
 use crate::{
     gui::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH},
+        lin_maps::seq_lin_disp,
         navigation::get_tabs,
-        seq_lin_disp,
-        sequence::seq_view::COLOR_CURSOR,
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
-    ligation::{digest, ligate, LigationFragment},
-    restriction_enzyme::{ReMatch, RestrictionEnzyme},
-    sequence::seq_to_str,
+    ligation::{digest, LigationFragment},
+    restriction_enzyme::RestrictionEnzyme,
+    sequence::{seq_to_str, Metadata},
     util::{map_linear, name_from_path},
     ReUi, State, StateVolatile,
 };
@@ -321,10 +320,65 @@ fn find_re_matches<'a>(
     res
 }
 
+fn tab_selection(
+    tabs: &mut Vec<usize>,
+    path_loaded: &[Option<PathBuf>],
+    plasmid_names: &[&str],
+    ui: &mut Ui,
+) -> bool {
+    let mut clear_res = false;
+
+    ui.horizontal(|ui| {
+        ui.heading("Opened files to digest");
+        ui.add_space(COL_SPACING);
+
+        for (name, i) in get_tabs(path_loaded, plasmid_names, true) {
+            // todo: DRY with page selectors and Cloning.
+            let color = if tabs.contains(&i) {
+                Color32::GREEN
+            } else {
+                Color32::WHITE
+            };
+            let button = ui.button(
+                RichText::new(name).color(color), // .background_color(TAB_BUTTON_COLOR),
+            );
+
+            if button.clicked() {
+                if tabs.contains(&i) {
+                    // todo: DRY with res_selected below.
+                    for (j, tab_i) in tabs.iter().enumerate() {
+                        if i == *tab_i {
+                            tabs.remove(j);
+                            // This is crude; we only need to re-select REs that were enabled by this tab.
+                            clear_res = true;
+                            break;
+                        }
+                    }
+                } else {
+                    tabs.push(i);
+                }
+            }
+
+            ui.add_space(COL_SPACING / 2.);
+        }
+    });
+    clear_res
+}
+
 pub fn ligation_page(state: &mut State, ui: &mut Ui) {
-    let screen_height = ui.ctx().available_rect().height();
+    // todo: Scrolling is not working
     ScrollArea::vertical().id_source(100).show(ui, |ui| {
-        // todo: Cache this A/R
+        // todo: Cache calcs in this fn A/R
+        // Adjust the nucleotide width of digest bars based on the longest sequence selected.
+        let mut longest_seq = 0;
+        for active in &state.ui.re.tabs_selected {
+            if state.generic[*active].seq.len() > longest_seq {
+                longest_seq = state.generic[*active].seq.len();
+            }
+        }
+
+        let res_matched = find_re_matches(&state.ui.re, &state.volatile, &state.restriction_enzyme_lib);
+
         ui.horizontal(|ui| {
             ui.heading("Digestion and ligation");
             ui.add_space(COL_SPACING * 2.);
@@ -343,51 +397,13 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
         });
         ui.add_space(ROW_SPACING);
 
-        // Adjust the nucleotide width of digest bars based on the longest sequence selected.
-        let mut longest_seq = 0;
-        for active in &state.ui.re.tabs_selected {
-            if state.generic[*active].seq.len() > longest_seq {
-                longest_seq = state.generic[*active].seq.len();
-            }
+        let plasmid_names: &Vec<_> = &state.generic.iter().map(|v| v.metadata.plasmid_name.as_str()).collect();
+
+        let clear_res = tab_selection(&mut state.ui.re.tabs_selected, &state.path_loaded, plasmid_names, ui);
+        if clear_res {
+            state.ui.re.res_selected = Vec::new();
         }
-        let res_matched = find_re_matches(&state.ui.re, &state.volatile, &state.restriction_enzyme_lib);
 
-        ui.horizontal(|ui| {
-            ui.heading("Opened files to digest");
-            ui.add_space(COL_SPACING);
-
-            for (name, i) in get_tabs(
-                &state.path_loaded,
-                &state.generic[state.active].metadata,
-                true,
-            ) {
-                // todo: DRY with page selectors and Cloning.
-                let color = if state.ui.re.tabs_selected.contains(&i) {
-                    Color32::GREEN
-                } else {
-                    Color32::WHITE
-                };
-                let button = ui.button(
-                    RichText::new(name).color(color), // .background_color(TAB_BUTTON_COLOR),
-                );
-
-                if button.clicked() {
-                    if state.ui.re.tabs_selected.contains(&i) {
-                        // todo: DRY with res_selected below.
-                        for (j, tab_i) in state.ui.re.tabs_selected.iter().enumerate() {
-                            if i == *tab_i {
-                                state.ui.re.tabs_selected.remove(j);
-                                break;
-                            }
-                        }
-                    } else {
-                        state.ui.re.tabs_selected.push(i);
-                    }
-                }
-
-                ui.add_space(COL_SPACING / 2.);
-            }
-        });
         ui.add_space(ROW_SPACING / 2.);
 
         for active in &state.ui.re.tabs_selected {
@@ -457,7 +473,7 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
                     for active in &state.ui.re.tabs_selected {
                         let source_name = name_from_path(
                             &state.path_loaded[*active],
-                            &state.generic[*active].metadata,
+                            &state.generic[*active].metadata.plasmid_name,
                             true,
                         );
                         products.extend(digest(
