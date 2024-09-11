@@ -309,7 +309,8 @@ struct ReUi {
     /// Inner: RE name
     /// todo: This is a trap for multiple tabs.
     res_selected: Vec<String>,
-    /// Which tabs' sequences to digest.
+    /// Which tabs' sequences to digest. Note that the index of this vec doesn't matter; the values, which
+    /// point to indices elsewhere, does.
     tabs_selected: Vec<usize>,
     unique_cutters_only: bool,
     /// No blunt ends; must produce overhangs.
@@ -530,6 +531,18 @@ impl State {
         self.ion_concentrations.remove(i);
         self.path_loaded.remove(i);
         self.portions.remove(i);
+        self.volatile.remove(i);
+
+        let mut tab_i_removed = None;
+        for (j, tab) in self.ui.re.tabs_selected.iter().enumerate() {
+            if *tab == i {
+                tab_i_removed = Some(j);
+            }
+        }
+        if let Some(j) = tab_i_removed {
+            self.ui.re.tabs_selected.remove(j);
+        }
+
 
         // Don't let the active tab overflow to the right; move it to the left if it would.
         // And, don't move the active tab left only if it would underflow; this effectively moves it right.

@@ -120,7 +120,26 @@ pub fn digest(
 pub fn ligate(fragments: &[LigationFragment]) -> Vec<Seq> {
     let mut result = Vec::new();
 
-    for frag in fragments {}
+    // todo: Where do you cut off the recursion?
+
+    for frag in fragments {
+        if let Some(re_l) = &frag.re_left {
+            let nt_overhang_a: Vec<_> = re_l.overhang_top_left().iter().map(|nt| nt.complement()).collect();
+            let nt_overhang_b: Vec<_> = re_l.overhang_top_right().iter().map(|nt| nt.complement()).collect();
+
+            // Match complements on the same diagonal: top left-to-top-left
+            for frag_2 in fragments {
+                if let Some(re_2_l) = &frag_2.re_left {
+                    if re_2_l.overhang_top_left() == nt_overhang_a {
+                        // result.push(&frag.seq.iter().chain(&frag_2.seq.iter()).collect());
+                        let mut ligated = frag.seq.clone();
+                        ligated.extend(frag_2.seq.clone());
+                        result.push(ligated);
+                    }
+                }
+            }
+        }
+    }
 
     result
 }
