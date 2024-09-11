@@ -494,15 +494,16 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
                 .re_digestion_products
                 .is_empty()
             {
-                ui.add_space(COL_SPACING);
-                if ui
-                    .button(RichText::new("Ligate").color(Color32::GOLD))
-                    .clicked()
-                {
-                    // state.volatile[state.active].re_ligation_products = ligate(
-                    //     &state.volatile[state.active].re_digestion_products,
-                    // );
-                }
+                // todo: Put back when ready
+                // ui.add_space(COL_SPACING);
+                // if ui
+                //     .button(RichText::new("Ligate").color(Color32::GOLD))
+                //     .clicked()
+                // {
+                //     // state.volatile[state.active].re_ligation_products = ligate(
+                //     //     &state.volatile[state.active].re_digestion_products,
+                //     // );
+                // }
             }
         });
 

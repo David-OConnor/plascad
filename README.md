@@ -146,6 +146,9 @@ Displays a hydropathy chart of each amino acid, showing how hydrophobic each reg
 Optionally loads data from the [RCSB Protein Data Bank](https://www.rcsb.org) (via [PDB's API](https://data.rcsb.org/#data-api)). Finds proteins that match each coding region. From these, it can automatically open a browser to PDB's entry on this protein, its 3D viewer, or download structure data (i.e. atomic coordinates). 
 
 
+### Restriction enzyme digest
+Can select appropriate restriction enzymes for one or more DNA sequences, and create digestion products. Ligation coming soon.
+
 ### Mixing portions assistant
 Given a designed solution with molarity concentrations, calculates the mass and volumes required to make the solution. Includes the molecular weights of common reagents. Can set up solutions mixed from custom precursor solutions.
 
