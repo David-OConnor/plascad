@@ -16,7 +16,7 @@ use crate::{
         },
         BACKGROUND_COLOR, COLOR_RE, LINEAR_MAP_HEIGHT,
     },
-    primer::Primer,
+    primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::Feature,
     util::{map_linear, RangeIncl},
@@ -84,9 +84,10 @@ fn draw_features(
             // feature_range.start < disp_range.start && feature_range.end > disp_range.end && disp_range.start < disp_range.end;
             feature_range.start < disp_range.start && feature_range.end > disp_range.end;
 
-        if contains_start || contains_end || full_size {
-            let (r, g, b) = feature.color();
+        let (r, g, b) = feature.color();
+        let color = Color32::from_rgb(r, g, b);
 
+        if contains_start || contains_end || full_size {
             let start_x = if contains_start {
                 index_to_x(feature_range.start)
             } else {
@@ -108,7 +109,7 @@ fn draw_features(
                     to_screen * pos2(end_x, Y_START + FEATURE_HEIGHT_DIV2),
                     to_screen * pos2(start_x, Y_START + FEATURE_HEIGHT_DIV2),
                 ],
-                Color32::from_rgb(r, g, b),
+                color,
                 stroke,
             ));
         }
@@ -128,7 +129,7 @@ fn draw_features(
                     to_screen * label_pt,
                     Align2::CENTER_CENTER,
                     feature.label(),
-                    FontId::new(16., FontFamily::Proportional),
+                    FontId::new(13., FontFamily::Proportional),
                     Color32::DARK_GREEN,
                 )
             }));
@@ -213,7 +214,12 @@ fn draw_primers(
                 let center_x = index_to_x(center_i);
 
                 // Draw the label after the shape.
-                let label_pt = pos2(center_x, Y_START + PRIMER_HEIGHT_DIV2 + 8.);
+                let label_v_offset = match prim_match.direction {
+                    PrimerDirection::Forward => -18.,
+                    PrimerDirection::Reverse => 18.,
+                };
+                // let label_pt = pos2(center_x, Y_START + PRIMER_HEIGHT_DIV2 + label_v_offset);
+                let label_pt = pos2(center_x, OFFSET.y + CENTER_Y + label_v_offset);
 
                 result.push(ui.ctx().fonts(|fonts| {
                     Shape::text(
@@ -221,8 +227,8 @@ fn draw_primers(
                         to_screen * label_pt,
                         Align2::CENTER_CENTER,
                         &primer.name,
-                        FontId::new(16., FontFamily::Proportional),
-                        Color32::LIGHT_GREEN,
+                        FontId::new(13., FontFamily::Proportional),
+                        outline_color,
                     )
                 }));
             }
