@@ -284,11 +284,12 @@ pub fn draw_linear_map(
     index_left: usize,
     index_right: usize,
     show_re_sites: bool,
+    active: usize,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    let seq_full_len = state.get_seq().len();
+    let seq_full_len = state.generic[active].seq.len();
 
     if seq_full_len < 10 {
         return result;
@@ -328,7 +329,7 @@ pub fn draw_linear_map(
     };
 
     result.append(&mut draw_features(
-        &state.generic[state.active].features,
+        &state.generic[active].features,
         seq_full_len,
         to_screen,
         disp_range,
@@ -340,7 +341,7 @@ pub fn draw_linear_map(
     ));
 
     result.append(&mut draw_primers(
-        &state.generic[state.active].primers,
+        &state.generic[active].primers,
         seq_full_len,
         to_screen,
         disp_range,
@@ -353,7 +354,7 @@ pub fn draw_linear_map(
 
     if state.ui.seq_visibility.show_res && show_re_sites {
         result.append(&mut draw_re_sites(
-            &state.volatile[state.active].restriction_enzyme_matches,
+            &state.volatile[active].restriction_enzyme_matches,
             &state.restriction_enzyme_lib,
             to_screen,
             index_to_x,
@@ -371,6 +372,7 @@ pub fn draw_circle_lin_view(
     data: &CircleData,
     state: &mut State,
     nt_len: usize,
+    active: usize,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
@@ -389,6 +391,7 @@ pub fn draw_circle_lin_view(
             index_left,
             index_right,
             true,
+            active,
             ui,
         ));
     }

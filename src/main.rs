@@ -314,6 +314,8 @@ struct ReUi {
     unique_cutters_only: bool,
     /// No blunt ends; must produce overhangs.
     sticky_ends_only: bool,
+    /// Only show REs that are present in at least two sequences.
+    multiple_seqs: bool,
 }
 
 impl Default for ReUi {
@@ -323,6 +325,7 @@ impl Default for ReUi {
             tabs_selected: Default::default(),
             unique_cutters_only: true,
             sticky_ends_only: false,
+            multiple_seqs: true,
         }
     }
 }

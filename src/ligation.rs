@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub struct LigationFragment {
+    pub source_name: String,
     pub seq: Seq,
     /// None if the end of a linear fragment.
     pub re_left: Option<RestrictionEnzyme>,
@@ -17,6 +18,7 @@ pub struct LigationFragment {
 /// Digest the sequence with one or more REs.
 /// `matches` here is all matches; we filter by selected here.
 pub fn digest(
+    source_name: &str,
     selected: &[String],
     matches: &[ReMatch],
     re_lib: &[RestrictionEnzyme],
@@ -56,6 +58,7 @@ pub fn digest(
         if seq_i == cut.0 {
             if !current_fragment.is_empty() {
                 result.push(LigationFragment {
+                    source_name: source_name.to_owned(),
                     seq: current_fragment.clone(),
                     re_left: Some(cuts[cuts_i - 1].1.clone()),
                     re_right: Some(cut.1.clone()),
@@ -85,6 +88,7 @@ pub fn digest(
             }
             // From the last cut site to the first, wrapping through the origin.
             result.push(LigationFragment {
+                source_name: source_name.to_owned(),
                 seq: current_fragment,
                 re_left: Some(cuts[cuts.len() - 1].1.clone()),
                 re_right: Some(cuts[0].1.clone()),
@@ -93,6 +97,7 @@ pub fn digest(
         SeqTopology::Linear => {
             // From the origin to the first cut site.
             result.push(LigationFragment {
+                source_name: source_name.to_owned(),
                 seq: seq[..cuts[0].0].to_vec(),
                 re_left: None,
                 re_right: Some(cuts[0].1.clone()),
@@ -100,6 +105,7 @@ pub fn digest(
 
             // From the last cut site to the end.
             result.push(LigationFragment {
+                source_name: source_name.to_owned(),
                 seq: current_fragment,
                 re_left: Some(cuts[cuts.len() - 1].1.clone()),
                 re_right: None,

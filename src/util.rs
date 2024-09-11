@@ -1,4 +1,10 @@
-use std::{cmp::min, collections::HashSet, fmt, io, io::ErrorKind, path::Path};
+use std::{
+    cmp::min,
+    collections::HashSet,
+    fmt, io,
+    io::ErrorKind,
+    path::{Path, PathBuf},
+};
 
 use bincode::{Decode, Encode};
 use eframe::egui::{pos2, Pos2};
@@ -6,14 +12,17 @@ use eframe::egui::{pos2, Pos2};
 use crate::{
     file_io::save::DEFAULT_SAVE_FILE,
     gui::{
+        navigation::DEFAULT_TAB_NAME,
         sequence::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
         WINDOW_TITLE,
     },
-    sequence::{seq_complement, Feature, Nucleotide},
+    sequence::{seq_complement, Feature, Metadata, Nucleotide},
     Color, State,
 };
 
 const FEATURE_ANNOTATION_MATCH_THRESH: f32 = 0.95;
+// When abbreviating a path, show no more than this many characters.
+const PATH_ABBREV_MAX_LEN: usize = 16;
 
 /// A replacement for std::RangeInclusive, but copy type, and directly-accessible (mutable) fields.
 /// An official replacement is eventually coming, but not for a while likely.
@@ -375,4 +384,28 @@ pub fn get_window_title(path: &Path) -> String {
     } else {
         filename
     }
+}
+
+/// A short, descriptive name for a given opened tab.
+pub fn name_from_path(path: &Option<PathBuf>, metadata: &Metadata, abbrev_name: bool) -> String {
+    let mut name = match path {
+        Some(path) => path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name_str| name_str.to_string())
+            .unwrap(),
+        None => {
+            if !metadata.plasmid_name.is_empty() {
+                metadata.plasmid_name.clone()
+            } else {
+                DEFAULT_TAB_NAME.to_owned()
+            }
+        }
+    };
+
+    if abbrev_name && name.len() > PATH_ABBREV_MAX_LEN {
+        name = format!("{}...", &name[..PATH_ABBREV_MAX_LEN].to_string())
+    }
+
+    name
 }

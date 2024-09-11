@@ -8,6 +8,7 @@ use eframe::egui::{Color32, RichText, Ui};
 use crate::{
     gui::{set_window_title, COL_SPACING, ROW_SPACING},
     sequence::{seq_to_str, Metadata},
+    util::name_from_path,
     State,
 };
 
@@ -28,25 +29,7 @@ pub fn get_tabs(
     let mut result = Vec::new();
 
     for (i, p) in paths.iter().enumerate() {
-        let mut name = match p {
-            Some(path) => path
-                .file_name()
-                .and_then(|name| name.to_str())
-                .map(|name_str| name_str.to_string())
-                .unwrap(),
-            None => {
-                if !metadata.plasmid_name.is_empty() {
-                    metadata.plasmid_name.clone()
-                } else {
-                    DEFAULT_TAB_NAME.to_owned()
-                }
-            }
-        };
-
-        if abbrev_name && name.len() > 20 {
-            name = format!("{}...", &name[..20].to_string())
-        }
-
+        let name = name_from_path(p, metadata, abbrev_name);
         result.push((name, i));
     }
 

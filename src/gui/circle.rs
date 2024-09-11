@@ -1030,6 +1030,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                 &data,
                 state,
                 MINI_DISP_NT_LEN,
+                state.active,
                 ui,
             ));
 

@@ -110,6 +110,10 @@ impl RestrictionEnzyme {
         if cut as isize - 2 >= len as isize / 2 {
             Vec::new() // No overhang on this strand.
         } else {
+            if len - cut > cut {
+                return Vec::new();
+            }
+
             self.seq[cut..len - cut].to_vec()
         }
     }

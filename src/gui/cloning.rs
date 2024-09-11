@@ -134,15 +134,22 @@ pub fn seq_lin_disp_cloning(state: &State, ui: &mut Ui) {
                 response.rect,
             );
 
-            const NT_WIDTH: usize = 100;
+            const NT_WIDTH: usize = 400;
 
             // todo: More DRY
             let index_left = (state.cloning_insert_loc as isize - (NT_WIDTH / 2) as isize)
                 .rem_euclid(state.get_seq().len() as isize) as usize; // Rust awk % on negative values.
             let index_right = (state.cloning_insert_loc + NT_WIDTH / 2) % state.get_seq().len();
 
-            let mut shapes =
-                draw_linear_map(&state, &to_screen, index_left, index_right, false, ui);
+            let mut shapes = draw_linear_map(
+                &state,
+                &to_screen,
+                index_left,
+                index_right,
+                false,
+                state.active,
+                ui,
+            );
 
             // todo: More DRY.
             let pixel_left = OFFSET.x;
@@ -172,8 +179,8 @@ pub fn seq_lin_disp_cloning(state: &State, ui: &mut Ui) {
             };
 
             // Draw the insertion site.
-            let point_top = pos2(index_to_x(state.cloning_insert_loc), 10.);
-            let point_bottom = pos2(index_to_x(state.cloning_insert_loc), 30.);
+            let point_top = pos2(index_to_x(state.cloning_insert_loc), 4.);
+            let point_bottom = pos2(index_to_x(state.cloning_insert_loc), 44.);
 
             shapes.push(Shape::line_segment(
                 [to_screen * point_bottom, to_screen * point_top],

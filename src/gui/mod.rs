@@ -378,7 +378,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
 }
 
 /// Draw a mini sequence display in its own canvas. Used on several pages.
-pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool) {
+pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool, active: usize) {
     Frame::canvas(ui.style())
         .fill(BACKGROUND_COLOR)
         .show(ui, |ui| {
@@ -398,6 +398,7 @@ pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool) {
                 0,
                 state.get_seq().len() - 1,
                 show_re_sites,
+                active,
                 ui,
             );
             ui.painter().extend(shapes);
