@@ -9,8 +9,7 @@ use std::{
     io::{self, ErrorKind},
     path::Path,
 };
-
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike};
 use gb_io::{
     self,
     reader::SeqReader,
@@ -118,6 +117,37 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
     ))
 }
 
+/// Parse Genbank ranges. This is broken out into a separate function to allow for recursion.
+fn parse_ranges(location: &Location, direction: &mut FeatureDirection) -> Vec<RangeIncl> {
+    match location {
+        // gb_io seems to list the start of the range as 1 too early; compensate.
+        Location::Range(start, end) => vec![RangeIncl::new(start.0 as usize + 1, end.0 as usize)],
+        Location::Complement(inner) => match **inner {
+            Location::Range(start, end) => {
+                *direction = FeatureDirection::Reverse;
+                vec![RangeIncl::new(start.0 as usize + 1, end.0 as usize)]
+            }
+            _ => {
+                eprintln!("Unexpected gb_io compl range type: {:?}", location);
+                vec![RangeIncl::new(1, 1)]
+            }
+        },
+        Location::Join(sub_locs) => {
+            // Note: Recursion, with no safety.
+            let mut result = Vec::new();
+            for sub_loc in sub_locs {
+                result.extend(&parse_ranges(sub_loc, direction));
+            }
+            result
+        }
+        _ => {
+            eprintln!("Unexpected gb_io range type: {:?}", location);
+            vec![RangeIncl::new(1, 1)]
+        }
+    }
+}
+
+
 /// Parse features and primers, from GenBank's feature list.
 fn parse_features_primers(
     features: &[gb_io::seq::Feature],
@@ -137,24 +167,9 @@ fn parse_features_primers(
         let mut direction = FeatureDirection::None;
         let mut label = String::new();
 
-        let mut range = match &feature.location {
-            // gb_io seems to list the start of the range as 1 too early; compensate.
-            Location::Range(start, end) => RangeIncl::new(start.0 as usize + 1, end.0 as usize),
-            Location::Complement(inner) => match **inner {
-                Location::Range(start, end) => {
-                    direction = FeatureDirection::Reverse;
-                    RangeIncl::new(start.0 as usize + 1, end.0 as usize)
-                }
-                _ => {
-                    eprintln!("Unexpected gb_io compl range type: {:?}", feature.location);
-                    RangeIncl::new(1, 1)
-                }
-            },
-            _ => {
-                eprintln!("Unexpected gb_io range type: {:?}", feature.location);
-                RangeIncl::new(1, 1)
-            }
-        };
+        // We map multiple ranges, eg in the case of a GenBank `join` range type, to multiple features,
+        // as our features currently only support a single range.
+        let mut ranges = parse_ranges(&feature.location, &mut direction);
 
         for v in feature.qualifier_values("label".into()) {
             v.clone_into(&mut label);
@@ -188,11 +203,6 @@ fn parse_features_primers(
             }
         }
 
-        // Passing through the origin, most likely. Loop around past the end.
-        if range.end < range.start {
-            range = RangeIncl::new(range.start, seq.len() + range.end);
-        }
-
         // Parse notes from qualifiers other than label and direction.
         // let mut notes = HashMap::new();
         let mut notes = Vec::new();
@@ -206,46 +216,54 @@ fn parse_features_primers(
             }
         }
 
-        // GenBank stores primer bind sites (Which we treat as volatile), vice primer sequences.
-        // Infer the sequence using the bind indices, and the main sequence.
-        if feature_type == FeatureType::Primer {
-            let sequence = match direction {
-                FeatureDirection::Reverse => {
-                    let range =
-                        RangeIncl::new(seq.len() - (range.end - 1), seq.len() - (range.start - 1));
-
-                    range.index_seq(&compl).unwrap_or_default()
-                }
-                _ => range.index_seq(seq).unwrap_or_default(),
+        // See note above about adding a feature (or primer) per GB range.
+        for range in &mut ranges {
+            // Passing through the origin, most likely. Loop around past the end.
+            if range.end < range.start {
+                *range = RangeIncl::new(range.start, seq.len() + range.end);
             }
-            .to_vec();
 
-            // Perhaps improper way of storing primer descriptions
+            // GenBank stores primer bind sites (Which we treat as volatile), vice primer sequences.
+            // Infer the sequence using the bind indices, and the main sequence.
+            if feature_type == FeatureType::Primer {
+                let sequence = match direction {
+                    FeatureDirection::Reverse => {
+                        let range =
+                            RangeIncl::new(seq.len() - (range.end - 1), seq.len() - (range.start - 1));
 
-            let description = if notes.is_empty() {
-                None
-            } else {
-                Some(notes[0].1.clone())
-            };
+                        range.index_seq(&compl).unwrap_or_default()
+                    }
+                    _ => range.index_seq(seq).unwrap_or_default(),
+                }
+                    .to_vec();
 
-            let volatile = PrimerData::new(&sequence);
-            primers.push(Primer {
-                sequence,
-                name: label,
-                description,
-                volatile,
-            });
-            continue;
+                // Perhaps improper way of storing primer descriptions
+
+                let description = if notes.is_empty() {
+                    None
+                } else {
+                    Some(notes[0].1.clone())
+                };
+
+                let volatile = PrimerData::new(&sequence);
+                primers.push(Primer {
+                    sequence,
+                    name: label.clone(),
+                    description,
+                    volatile,
+                });
+                continue;
+            }
+
+            result_ft.push(Feature {
+                range: *range,
+                feature_type,
+                direction,
+                label: label.clone(),
+                color_override: None,
+                notes: notes.clone(),
+            })
         }
-
-        result_ft.push(Feature {
-            range,
-            feature_type,
-            direction,
-            label,
-            color_override: None,
-            notes,
-        })
     }
 
     (result_ft, primers)

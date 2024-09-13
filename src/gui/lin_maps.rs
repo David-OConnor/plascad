@@ -162,7 +162,7 @@ fn draw_primers(
                 }
             }
 
-            let stroke = Stroke::new(PRIMER_STROKE_WIDTH, outline_color);
+            let stroke = Stroke::new(1., outline_color);
 
             let mut prim_range = prim_match.range;
 
@@ -215,8 +215,8 @@ fn draw_primers(
 
                 // Draw the label after the shape.
                 let label_v_offset = match prim_match.direction {
-                    PrimerDirection::Forward => -18.,
-                    PrimerDirection::Reverse => 18.,
+                    PrimerDirection::Forward => -20.,
+                    PrimerDirection::Reverse => 20.,
                 };
                 // let label_pt = pos2(center_x, Y_START + PRIMER_HEIGHT_DIV2 + label_v_offset);
                 let label_pt = pos2(center_x, OFFSET.y + CENTER_Y + label_v_offset);

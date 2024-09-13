@@ -49,6 +49,7 @@ pub mod primer_table;
 mod protein;
 pub mod save;
 pub mod sequence;
+mod autocloning;
 
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 1_000.;
@@ -368,6 +369,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 metadata::metadata_page(&mut state.generic[state.active].metadata, ui)
             }
             Page::Portions => portions::portions_page(&mut state.portions[state.active], ui),
+            Page::AutoCloning => autocloning::autocloning_page(state, ui),
             _ => (),
             // });
         }

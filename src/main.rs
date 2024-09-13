@@ -62,6 +62,7 @@ use crate::{
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
+use crate::backbones::{Backbone, load_backbone_library};
 
 mod amino_acids;
 mod cloning;
@@ -84,6 +85,7 @@ mod solution_helper;
 mod tags;
 mod toxic_proteins;
 mod util;
+mod backbones;
 
 type Color = (u8, u8, u8); // RGB
 
@@ -470,6 +472,7 @@ struct State {
     cloning_insert_loc: usize,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
+    backbone_lib: Vec<Backbone>,
     reading_frame: ReadingFrame,
     search_seq: Seq,
 }
@@ -486,6 +489,7 @@ impl Default for State {
             cloning_insert_loc: 1,
             pcr: Default::default(),
             restriction_enzyme_lib: Default::default(),
+            backbone_lib: Default::default(),
             reading_frame: Default::default(),
             volatile: Default::default(),
             search_seq: Default::default(),
@@ -494,6 +498,7 @@ impl Default for State {
         // Load the RE lib before prefs, because prefs may include loading of previously-opened files,
         // which then trigger RE match syncs.
         result.restriction_enzyme_lib = load_re_library();
+        result.backbone_lib = load_backbone_library();
         result
     }
 }
