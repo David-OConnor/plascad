@@ -15,7 +15,7 @@ use crate::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH},
         lin_maps::seq_lin_disp,
         navigation::get_tabs,
-        BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
+        select_color_text, BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
     ligation::{digest, LigationFragment},
     restriction_enzyme::RestrictionEnzyme,
@@ -234,7 +234,6 @@ fn find_re_matches<'a>(
     volatile: &[StateVolatile],
     lib: &'a [RestrictionEnzyme],
 ) -> Vec<&'a RestrictionEnzyme> {
-    // let mut result = Vec::new();
     // RE, unique cutter, number of sequences found in.
     // let mut res_with_count: Vec<(&RestrictionEnzyme, bool, usize)> = Vec::new();
     // todo: Cache the results of this fn; don't run it continously!
@@ -250,7 +249,7 @@ fn find_re_matches<'a>(
             }
             let re = &lib[re_match.lib_index];
 
-            if (data.sticky_ends_only && re.makes_blunt_ends()) {
+            if data.sticky_ends_only && re.makes_blunt_ends() {
                 continue;
             }
 
@@ -334,13 +333,10 @@ fn tab_selection(
 
         for (name, i) in get_tabs(path_loaded, plasmid_names, true) {
             // todo: DRY with page selectors and Cloning.
-            let color = if tabs.contains(&i) {
-                Color32::GREEN
-            } else {
-                Color32::WHITE
-            };
+            let selected = tabs.contains(&i);
+
             let button = ui.button(
-                RichText::new(name).color(color), // .background_color(TAB_BUTTON_COLOR),
+                select_color_text(&name, selected), // .background_color(TAB_BUTTON_COLOR),
             );
 
             if button.clicked() {
@@ -365,6 +361,26 @@ fn tab_selection(
     clear_res
 }
 
+// todo
+/// Remove selected res if they are filtered out.
+fn filter_res_selected(data: &mut ReUi, lib: &[RestrictionEnzyme]) {
+    for name in &mut data.res_selected {
+        let mut re = None;
+        for re_ in lib {
+            if &re_.name == name {
+                re = Some(re_.clone());
+                break;
+            }
+            if re.is_none() {
+                eprintln!("Error: Unable to find matching RE");
+                break;
+            }
+        }
+
+        let re = re.unwrap();
+    }
+}
+
 pub fn ligation_page(state: &mut State, ui: &mut Ui) {
     // todo: Scrolling is not working
     ScrollArea::vertical().id_source(100).show(ui, |ui| {
@@ -377,23 +393,43 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
             }
         }
 
+        // todo: Don't run this every frame!
         let res_matched = find_re_matches(&state.ui.re, &state.volatile, &state.restriction_enzyme_lib);
 
         ui.horizontal(|ui| {
             ui.heading("Digestion and ligation");
             ui.add_space(COL_SPACING * 2.);
 
+            let mut changed_filters = false;
+
             ui.label("Unique cutters only:").on_hover_text("Only display restriction enzymes that cut a sequence exactly once. (Affects display on other pages as well).");
-            ui.checkbox(&mut state.ui.re.unique_cutters_only, "");
+            if ui.checkbox(&mut state.ui.re.unique_cutters_only, "").changed() {
+                changed_filters = true;
+            };
+
             ui.add_space(COL_SPACING);
 
             ui.label("Sticky ends only:").on_hover_text("Only display restriction enzymes that produce overhangs (sticky ends). Don't show ones that produce blunt ends. (Affects display on other pages as well).");
-            ui.checkbox(&mut state.ui.re.sticky_ends_only, "");
+            if ui.checkbox(&mut state.ui.re.sticky_ends_only, "").changed() {
+                changed_filters = true;
+            };
+
             ui.add_space(COL_SPACING);
 
             ui.label("2+ sequences only:");
-            ui.checkbox(&mut state.ui.re.multiple_seqs, "").on_hover_text("Only display restriction enzymes that cut two or more selected sequences, if applicable.");
+            if ui.checkbox(&mut state.ui.re.multiple_seqs, "")
+                .on_hover_text("Only display restriction enzymes that cut two or more selected sequences, if applicable.")
+                .changed() {
+                changed_filters = true;
+            };
+
             ui.add_space(COL_SPACING);
+
+            // If we've changed filters, update REs selected IRT these filtersx.
+            if changed_filters {
+                // filter_res_selected(&mut state.ui.re, &state.restriction_enzyme_lib);
+            }
+
         });
         ui.add_space(ROW_SPACING);
 
@@ -434,13 +470,7 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
 
                     let selected = state.ui.re.res_selected.contains(&re.name);
 
-                    let color = if selected {
-                        Color32::LIGHT_GREEN
-                    } else {
-                        Color32::WHITE
-                    };
-
-                    if ui.button(RichText::new(&re.name).color(color)).clicked {
+                    if ui.button(select_color_text(&re.name, selected)).clicked {
                         if selected {
                             for (i, name) in state.ui.re.res_selected.iter().enumerate() {
                                 if name == &re.name {

@@ -17,7 +17,7 @@ pub struct CloningInsertData {
     pub seq_input: String,
 }
 
-/// Given a set of freatures and the sequence their ranges map to, set up our
+/// Given a set of features and the sequence their ranges map to, set up our
 /// insert sequences.
 pub fn setup_insert_seqs(state: &mut State, features: Vec<Feature>, seq: Seq) {
     // todo: Unecessary cloning if loading from file.

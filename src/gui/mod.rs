@@ -35,6 +35,7 @@ use crate::{
     Selection, State,
 };
 
+mod autocloning;
 mod circle;
 mod cloning;
 mod feature_table;
@@ -49,7 +50,6 @@ pub mod primer_table;
 mod protein;
 pub mod save;
 pub mod sequence;
-mod autocloning;
 
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 1_000.;
@@ -282,10 +282,10 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
             ui.add_space(COL_SPACING / 2.);
 
-            ui.label("Name: ");
+            ui.label("Name:");
             ui.add(
                 TextEdit::singleline(&mut state.generic[state.active].metadata.plasmid_name)
-                    .desired_width(280.),
+                    .desired_width(260.),
             );
 
             ui.label(format!("{} bp", state.get_seq().len()));
@@ -374,4 +374,14 @@ pub fn draw(state: &mut State, ctx: &Context) {
             // });
         }
     });
+}
+
+pub fn select_color_text(text: &str, selected: bool) -> RichText {
+    let color = if selected {
+        Color32::LIGHT_GREEN
+    } else {
+        Color32::WHITE
+    };
+
+    RichText::new(text).color(color)
 }

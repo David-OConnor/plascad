@@ -9,7 +9,8 @@ use std::{
     io::{self, ErrorKind},
     path::Path,
 };
-use chrono::{Datelike};
+
+use chrono::Datelike;
 use gb_io::{
     self,
     reader::SeqReader,
@@ -147,7 +148,6 @@ fn parse_ranges(location: &Location, direction: &mut FeatureDirection) -> Vec<Ra
     }
 }
 
-
 /// Parse features and primers, from GenBank's feature list.
 fn parse_features_primers(
     features: &[gb_io::seq::Feature],
@@ -228,14 +228,16 @@ fn parse_features_primers(
             if feature_type == FeatureType::Primer {
                 let sequence = match direction {
                     FeatureDirection::Reverse => {
-                        let range =
-                            RangeIncl::new(seq.len() - (range.end - 1), seq.len() - (range.start - 1));
+                        let range = RangeIncl::new(
+                            seq.len() - (range.end - 1),
+                            seq.len() - (range.start - 1),
+                        );
 
                         range.index_seq(&compl).unwrap_or_default()
                     }
                     _ => range.index_seq(seq).unwrap_or_default(),
                 }
-                    .to_vec();
+                .to_vec();
 
                 // Perhaps improper way of storing primer descriptions
 

@@ -41,6 +41,7 @@ use sequence::Seq;
 
 use crate::{
     amino_acids::AaIdent,
+    backbones::{load_backbone_library, Backbone},
     file_io::{
         save::{
             save, StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
@@ -62,9 +63,9 @@ use crate::{
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
-use crate::backbones::{Backbone, load_backbone_library};
 
 mod amino_acids;
+mod backbones;
 mod cloning;
 mod external_websites;
 mod feature_db_load;
@@ -85,7 +86,6 @@ mod solution_helper;
 mod tags;
 mod toxic_proteins;
 mod util;
-mod backbones;
 
 type Color = (u8, u8, u8); // RGB
 
@@ -475,6 +475,8 @@ struct State {
     backbone_lib: Vec<Backbone>,
     reading_frame: ReadingFrame,
     search_seq: Seq,
+    /// For auto-cloning
+    backbone_selected: Option<usize>,
 }
 
 impl Default for State {
@@ -493,6 +495,7 @@ impl Default for State {
             reading_frame: Default::default(),
             volatile: Default::default(),
             search_seq: Default::default(),
+            backbone_selected: Default::default(),
         };
 
         // Load the RE lib before prefs, because prefs may include loading of previously-opened files,

@@ -6,7 +6,7 @@ use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
 
 use crate::{
-    gui::{set_window_title, COL_SPACING, ROW_SPACING},
+    gui::{select_color_text, set_window_title, COL_SPACING, ROW_SPACING},
     sequence::{seq_to_str, Metadata},
     util::name_from_path,
     State,
@@ -72,12 +72,12 @@ impl Display for Page {
             Self::Pcr => "PCR",
             Self::Features => "Features",
             Self::Primers => "Primers",
-            Self::Cloning => "SLIC/FC cloning",
+            Self::Cloning => "PCR cloning",
             Self::Proteins => "Proteins",
-            Self::Portions => "Mixing portions",
+            Self::Portions => "Mixing",
             Self::Metadata => "Data",
-            Self::Ligation => "Digest/Ligate",
-            Self::AutoCloning => "Auto cloning",
+            Self::Ligation => "Digest",
+            Self::AutoCloning => "Assisted cloning",
         }
         .to_owned();
         write!(f, "{}", str)
@@ -108,15 +108,9 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
             .collect();
         for (name, i) in get_tabs(&state.path_loaded, plasmid_names, false) {
             // todo: DRY with page selectors.
-            let color = if i == state.active {
-                Color32::GREEN
-            } else {
-                Color32::WHITE
-            };
+
             let button = ui.button(
-                RichText::new(name)
-                    .color(color)
-                    .background_color(TAB_BUTTON_COLOR),
+                select_color_text(&name, i == state.active).background_color(TAB_BUTTON_COLOR),
             );
 
             if button.clicked() {
@@ -174,16 +168,9 @@ pub fn page_selector(state: &mut State, ui: &mut Ui) {
 }
 
 pub fn page_button<T: PartialEq + ToString>(page_state: &mut T, page: T, ui: &mut Ui, space: bool) {
-    let color = if *page_state == page {
-        Color32::GREEN
-    } else {
-        Color32::WHITE
-    };
-
     if ui
         .button(
-            RichText::new(page.to_string())
-                .color(color)
+            select_color_text(&page.to_string(), *page_state == page)
                 .background_color(NAV_BUTTON_COLOR),
         )
         .clicked()

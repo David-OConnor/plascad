@@ -21,7 +21,7 @@ use crate::{
 };
 
 /// Draw a selector for the insert, based on loading from a file.
-fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
+pub fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
     for (i, feature) in data.features_loaded.iter().enumerate() {
         let mut border_width = 0.;
         if let Some(j) = data.feature_selected {
@@ -65,7 +65,7 @@ fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
     }
 }
 
-fn insert_file_section(state: &mut State, ui: &mut Ui) {
+pub fn insert_file_section(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.label("Choose insert from:");
 
@@ -76,12 +76,7 @@ fn insert_file_section(state: &mut State, ui: &mut Ui) {
             .collect();
 
         // Add buttons for each opened tab
-        for (name, i) in get_tabs(
-            &state.path_loaded,
-            // &state.generic[state.active].metadata,
-            plasmid_names,
-            true,
-        ) {
+        for (name, i) in get_tabs(&state.path_loaded, plasmid_names, true) {
             if ui
                 .button(name)
                 .on_hover_text("Select an insert from this sequence")

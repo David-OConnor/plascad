@@ -163,6 +163,9 @@ pub enum ReagentType {
     BromophenolBlue,
     Dtt,
     MagnesiumChloride,
+    Glycine,
+    Sds,
+    Tris,
 }
 
 impl ReagentType {
@@ -191,6 +194,9 @@ impl ReagentType {
             Self::BromophenolBlue => 669.96,
             Self::Dtt => 154.25,
             Self::MagnesiumChloride => 95.211,
+            Self::Glycine => 75.07,
+            Self::Sds => 288.5,
+            Self::Tris => 121.14,
         }
     }
 }
@@ -220,6 +226,9 @@ impl Display for ReagentType {
             Self::BromophenolBlue => "Bromophenol blue".to_owned(),
             Self::Dtt => "DTT".to_owned(),
             Self::MagnesiumChloride => "MgCl₂".to_owned(),
+            Self::Sds => "SDS".to_owned(),
+            Self::Glycine => "Glycine".to_owned(),
+            Self::Tris => "Tris".to_owned(),
         };
 
         write!(f, "{}", str)
