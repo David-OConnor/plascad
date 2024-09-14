@@ -17,11 +17,12 @@ use crate::{
         navigation::get_tabs,
         select_color_text, BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
+    ligation,
     ligation::{digest, LigationFragment},
     restriction_enzyme::RestrictionEnzyme,
-    sequence::{seq_to_str, Metadata},
+    sequence::seq_to_str,
     util::{map_linear, name_from_path},
-    ReUi, State, StateVolatile,
+    ReUi, State,
 };
 
 // This X offset must have room for the RE Nts displayed on the left.
@@ -228,97 +229,6 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
         });
 }
 
-/// We filter for restriction enzymes based on preferences set. We do this in several stages.
-fn find_re_matches<'a>(
-    data: &ReUi,
-    volatile: &[StateVolatile],
-    lib: &'a [RestrictionEnzyme],
-) -> Vec<&'a RestrictionEnzyme> {
-    // RE, unique cutter, number of sequences found in.
-    // let mut res_with_count: Vec<(&RestrictionEnzyme, bool, usize)> = Vec::new();
-    // todo: Cache the results of this fn; don't run it continously!
-    // todo: Do this once it's working.
-
-    // Find the list of all unique RE names involved
-    let mut res = Vec::new();
-
-    for active in &data.tabs_selected {
-        for re_match in &volatile[*active].restriction_enzyme_matches {
-            if re_match.lib_index + 1 >= lib.len() {
-                continue;
-            }
-            let re = &lib[re_match.lib_index];
-
-            if data.sticky_ends_only && re.makes_blunt_ends() {
-                continue;
-            }
-
-            if !res.contains(&re) {
-                res.push(&re);
-            }
-        }
-    }
-
-    // Filter by multiple sequences, if set.
-    if data.multiple_seqs {
-        if data.tabs_selected.len() < 2 {
-            return res; // Only apply this filter if there are two or more tabs.
-        }
-
-        let mut new = Vec::new();
-
-        for re in res {
-            let mut count = 0;
-            for active in &data.tabs_selected {
-                for re_match in &volatile[*active].restriction_enzyme_matches {
-                    let re_this = &lib[re_match.lib_index];
-                    if re_this == re {
-                        count += 1;
-                    }
-                }
-            }
-            if count >= 2 {
-                new.push(re);
-            }
-        }
-
-        res = new;
-    }
-
-    // Treating this as must be unique in each seq. If it's two or more times in any given sequence, don't
-    // add it.
-    if data.unique_cutters_only {
-        let mut new = Vec::new();
-
-        for re in res {
-            let mut unique = true;
-
-            for active in &data.tabs_selected {
-                let mut count = 0;
-
-                for re_match in &volatile[*active].restriction_enzyme_matches {
-                    let re_this = &lib[re_match.lib_index];
-                    if re_this == re {
-                        count += 1;
-                    }
-                }
-                if count > 1 {
-                    unique = false;
-                    break;
-                }
-            }
-
-            if unique {
-                new.push(re);
-            }
-        }
-
-        res = new;
-    }
-
-    res
-}
-
 fn tab_selection(
     tabs: &mut Vec<usize>,
     path_loaded: &[Option<PathBuf>],
@@ -393,8 +303,8 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
             }
         }
 
-        // todo: Don't run this every frame!
-        let res_matched = find_re_matches(&state.ui.re, &state.volatile, &state.restriction_enzyme_lib);
+        // todo: Don't run this every frame! Store in state, and update it only when something notable changes.
+        let res_matched = ligation::filter_res(&state.ui.re, &state.volatile, &state.restriction_enzyme_lib);
 
         ui.horizontal(|ui| {
             ui.heading("Digestion and ligation");
@@ -482,9 +392,8 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
                             state.ui.re.res_selected.push(re.name.clone());
                         }
                     }
-
-                    ui.add_space(COL_SPACING / 2.);
                     ui.label(re.cut_depiction());
+                    ui.add_space(COL_SPACING / 2.);
                 }
                 ui.add_space(COL_SPACING);
             });

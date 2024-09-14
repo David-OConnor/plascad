@@ -65,6 +65,7 @@ use crate::{
 };
 
 mod amino_acids;
+mod autocloning;
 mod backbones;
 mod cloning;
 mod external_websites;
@@ -476,7 +477,11 @@ struct State {
     reading_frame: ReadingFrame,
     search_seq: Seq,
     /// For auto-cloning
+    /// todo: Auto-cloning sub-section A/R for these
     backbone_selected: Option<usize>,
+    /// For autocloning
+    // cloning_res_matched:Vec<usize>, // todo: A/R
+    cloning_res_matched: Vec<RestrictionEnzyme>,
 }
 
 impl Default for State {
@@ -496,6 +501,7 @@ impl Default for State {
             volatile: Default::default(),
             search_seq: Default::default(),
             backbone_selected: Default::default(),
+            cloning_res_matched: Default::default(),
         };
 
         // Load the RE lib before prefs, because prefs may include loading of previously-opened files,

@@ -1,6 +1,7 @@
-use eframe::egui::RichText;
+use eframe::egui::{RichText, Ui};
 
 use crate::{
+    autocloning::find_re_candidates,
     gui::{
         cloning::{insert_file_section, insert_selector},
         select_color_text, ROW_SPACING,
@@ -8,7 +9,7 @@ use crate::{
     State,
 };
 
-pub fn autocloning_page(state: &mut State, ui: &mut eframe::egui::Ui) {
+pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
     ui.heading("Assisted cloning");
     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
     to clone the insert into the backbone.");
@@ -39,5 +40,19 @@ pub fn autocloning_page(state: &mut State, ui: &mut eframe::egui::Ui) {
                 state.backbone_selected = Some(i);
             }
         });
+    }
+
+    if let Some(bb_i) = state.backbone_selected {
+        // todo: Cache any calcs you are currently doing here.
+        if bb_i >= state.backbone_lib.len() {
+            eprintln!("Invalid index in backbone lib");
+            return;
+        }
+        let backbone = &state.backbone_lib[bb_i];
+        state.cloning_res_matched = find_re_candidates(
+            &backbone,
+            &state.ui.cloning_insert.seq_insert,
+            &state.restriction_enzyme_lib,
+        );
     }
 }

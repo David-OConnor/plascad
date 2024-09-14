@@ -545,7 +545,7 @@ pub fn feature_range_sliders(state: &mut State, ui: &mut Ui) {
         ui.spacing_mut().slider_width = FEATURE_SLIDER_WIDTH;
         let seq_len = state.generic[state.active].seq.len();
 
-        if state.generic[state.active].features.len() < *feat_i + 1 {
+        if *feat_i >= state.generic[state.active].features.len() {
             eprintln!("Invalid selected feature");
             state.ui.selected_item = Selection::None;
         } else {
@@ -810,7 +810,7 @@ fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Sh
             result.append(&mut draw_feature_text(feature, data, ui));
         }
         Selection::Primer(prim_i) => {
-            if prim_i + 1 > state.generic[state.active].primers.len() {
+            if *prim_i >= state.generic[state.active].primers.len() {
                 eprintln!("Invalid primer.");
                 return result;
             }
@@ -820,7 +820,7 @@ fn draw_center_text(data: &CircleData, state: &mut State, ui: &mut Ui) -> Vec<Sh
         Selection::None => {
             match &state.ui.feature_hover {
                 Some(feat_i) => {
-                    if state.generic[state.active].features.len() + 1 < *feat_i {
+                    if *feat_i >= state.generic[state.active].features.len() {
                         eprintln!("Invalid hover feature");
                     }
                     let feature = &state.generic[state.active].features[*feat_i];

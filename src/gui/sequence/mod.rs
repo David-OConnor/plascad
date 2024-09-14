@@ -49,7 +49,7 @@ fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
 
 /// Displays text of the feature under the cursor, or selected, as required.
 fn feature_text(i: usize, features: &[Feature], seq_len: usize, ui: &mut Ui) {
-    if features.len() < i + 1 {
+    if i >= features.len() {
         eprintln!("Invalid selected feature");
         return; // todo: Ideally set the feature to none.
     }
@@ -67,7 +67,7 @@ fn feature_text(i: usize, features: &[Feature], seq_len: usize, ui: &mut Ui) {
 }
 
 fn primer_text(i: usize, primers: &[Primer], seq_len: usize, ui: &mut Ui) {
-    if primers.len() < i + 1 {
+    if i >= primers.len() {
         eprintln!("Invalid selected primer");
         return; // todo: Ideally set the feature to none.
     }

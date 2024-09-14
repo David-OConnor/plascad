@@ -47,7 +47,7 @@ pub fn blast(state: &State) {
         }
         None => match state.ui.selected_item {
             Selection::Feature(feat_i) => {
-                if data.features.len() < feat_i + 1 {
+                if feat_i >= data.features.len() {
                     eprintln!("Invalid selected feature");
                     None
                 } else {
@@ -56,7 +56,7 @@ pub fn blast(state: &State) {
                 }
             }
             Selection::Primer(prim_i) => {
-                if data.primers.len() < prim_i + 1 {
+                if prim_i >= data.primers.len() {
                     eprintln!("Invalid selected primer");
                     None
                 } else {

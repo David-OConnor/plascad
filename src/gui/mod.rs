@@ -14,6 +14,8 @@
 //!
 //! Also maybe: http://jslegers.github.io/emoji-icon-font/
 //! https://fonts.google.com/noto/specimen/Noto+Emoji
+//!
+//! Note: business logic should be kept out of this module (and its sub-modules), when practical.
 
 use std::path::PathBuf;
 

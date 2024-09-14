@@ -4,7 +4,7 @@
 use crate::{
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::{Nucleotide, SeqTopology},
-    Seq,
+    ReUi, Seq, StateVolatile,
 };
 
 pub struct LigationFragment {
@@ -31,8 +31,8 @@ pub fn digest(
     let mut cuts = Vec::new();
 
     for re_match in matches {
-        if re_match.lib_index + 1 > re_lib.len() {
-            eprintln!("Error with RE lib");
+        if re_match.lib_index >= re_lib.len() {
+            eprintln!("Invalid RE selected.");
             continue;
         }
         let re = &re_lib[re_match.lib_index];
@@ -147,6 +147,106 @@ pub fn ligate(fragments: &[LigationFragment]) -> Vec<Seq> {
                 }
             }
         }
+    }
+
+    result
+}
+
+/// Filter restriction enzymes to ones that appear in at least two sequences.
+pub fn filter_multiple_seqs<'a>(
+    res: &'a mut Vec<&RestrictionEnzyme>,
+    tabs_selected: &[usize],
+    volatile: &[StateVolatile],
+    lib: &'a [RestrictionEnzyme],
+) {
+    // Only apply this filter if there are two or more tabs.
+    if tabs_selected.len() < 2 {
+        return;
+    }
+
+    res.retain(|&re| {
+        let mut count = 0;
+
+        for active in tabs_selected {
+            for re_match in &volatile[*active].restriction_enzyme_matches {
+                let re_this = &lib[re_match.lib_index];
+                if re_this == re {
+                    count += 1;
+                    break;
+                }
+            }
+        }
+        count >= 2
+    });
+}
+
+/// Filter restriction enzymes to ones that are unique cutters, if applicable.
+pub fn filter_unique_cutters<'a>(
+    res: &'a mut Vec<&RestrictionEnzyme>,
+    tabs_selected: &[usize],
+    volatile: &[StateVolatile],
+    lib: &'a [RestrictionEnzyme],
+) {
+    res.retain(|&re| {
+        for active in tabs_selected {
+            let mut count = 0;
+
+            for re_match in &volatile[*active].restriction_enzyme_matches {
+                let re_this = &lib[re_match.lib_index];
+                if re_this == re {
+                    count += 1;
+                }
+            }
+
+            // If `count > 1`, this enzyme is not unique, return `false` to remove it
+            if count > 1 {
+                return false;
+            }
+        }
+
+        // If the enzyme is unique in all `tabs_selected`, return `true` to keep it
+        true
+    });
+}
+
+/// We filter for restriction enzymes based on preferences set. We do this in several stages.
+/// Note that this function includes filter characteristics that inolve matches across
+/// multiple opened tabs (sequences).
+pub fn filter_res<'a>(
+    data: &ReUi,
+    volatile: &[StateVolatile],
+    lib: &'a [RestrictionEnzyme],
+) -> Vec<&'a RestrictionEnzyme> {
+    // RE, unique cutter, number of sequences found in.
+    // Find the list of all unique RE names involved
+    let mut result = Vec::new();
+
+    for active in &data.tabs_selected {
+        for re_match in &volatile[*active].restriction_enzyme_matches {
+            if re_match.lib_index >= lib.len() {
+                eprintln!("Invalid restriction enzyme");
+                continue;
+            }
+            let re = &lib[re_match.lib_index];
+
+            if data.sticky_ends_only && re.makes_blunt_ends() {
+                continue;
+            }
+
+            if !result.contains(&re) {
+                result.push(&re);
+            }
+        }
+    }
+
+    if data.multiple_seqs {
+        filter_multiple_seqs(&mut result, &data.tabs_selected, volatile, lib);
+    }
+
+    // If `unique_cutters_only` is selected, each RE must be unique in each sequence. If it's two or more times in any given sequence, don't
+    // add it.
+    if data.unique_cutters_only {
+        filter_unique_cutters(&mut result, &data.tabs_selected, volatile, lib);
     }
 
     result
