@@ -152,23 +152,52 @@ pub fn ligate(fragments: &[LigationFragment]) -> Vec<Seq> {
     result
 }
 
+pub fn find_common_res<'a>(
+    re_match_set: &[&Vec<ReMatch>], // By tab
+    lib: &'a [RestrictionEnzyme],
+    sticky_ends_only: bool
+) -> Vec<&'a RestrictionEnzyme>{
+    let mut result = Vec::new();
+    for re_matches in &re_match_set {
+        for re_match in *re_matches {
+            if re_match.lib_index >= lib.len() {
+                eprintln!("Invalid restriction enzyme");
+                continue;
+            }
+            let re = &lib[re_match.lib_index];
+
+            if sticky_ends_only && re.makes_blunt_ends() {
+                continue;
+            }
+
+            if !result.contains(&re) {
+                result.push(&re);
+            }
+        }
+    }
+
+    result
+}
+
 /// Filter restriction enzymes to ones that appear in at least two sequences.
 pub fn filter_multiple_seqs<'a>(
     res: &'a mut Vec<&RestrictionEnzyme>,
-    tabs_selected: &[usize],
-    volatile: &[StateVolatile],
+    re_match_set: &[&Vec<ReMatch>], // By tab
     lib: &'a [RestrictionEnzyme],
 ) {
     // Only apply this filter if there are two or more tabs.
-    if tabs_selected.len() < 2 {
+    // if tabs_selected.len() < 2 {
+    if re_match_set.len() < 2 {
         return;
     }
 
     res.retain(|&re| {
         let mut count = 0;
 
-        for active in tabs_selected {
-            for re_match in &volatile[*active].restriction_enzyme_matches {
+        // for active in tabs_selected {
+        //     for re_match in &volatile[*active].restriction_enzyme_matches {
+        for re_matches in re_match_set {
+            for re_match in *re_matches {
                 let re_this = &lib[re_match.lib_index];
                 if re_this == re {
                     count += 1;
@@ -183,15 +212,14 @@ pub fn filter_multiple_seqs<'a>(
 /// Filter restriction enzymes to ones that are unique cutters, if applicable.
 pub fn filter_unique_cutters<'a>(
     res: &'a mut Vec<&RestrictionEnzyme>,
-    tabs_selected: &[usize],
-    volatile: &[StateVolatile],
+    re_match_set: &[&Vec<ReMatch>], // By tab
     lib: &'a [RestrictionEnzyme],
 ) {
     res.retain(|&re| {
-        for active in tabs_selected {
-            let mut count = 0;
-
-            for re_match in &volatile[*active].restriction_enzyme_matches {
+        for re_matches in re_match_set {
+            let mut count = 0; // Note when we reset this count.
+            for re_match in *re_matches {
+                // for re_match in &volatile[*active].restriction_enzyme_matches {
                 let re_this = &lib[re_match.lib_index];
                 if re_this == re {
                     count += 1;
@@ -199,7 +227,7 @@ pub fn filter_unique_cutters<'a>(
             }
 
             // If `count > 1`, this enzyme is not unique, return `false` to remove it
-            if count > 1 {
+            if count != 1 {
                 return false;
             }
         }
@@ -217,36 +245,21 @@ pub fn filter_res<'a>(
     volatile: &[StateVolatile],
     lib: &'a [RestrictionEnzyme],
 ) -> Vec<&'a RestrictionEnzyme> {
-    // RE, unique cutter, number of sequences found in.
-    // Find the list of all unique RE names involved
-    let mut result = Vec::new();
-
+    let mut re_match_set = Vec::new(); // By tab
     for active in &data.tabs_selected {
-        for re_match in &volatile[*active].restriction_enzyme_matches {
-            if re_match.lib_index >= lib.len() {
-                eprintln!("Invalid restriction enzyme");
-                continue;
-            }
-            let re = &lib[re_match.lib_index];
-
-            if data.sticky_ends_only && re.makes_blunt_ends() {
-                continue;
-            }
-
-            if !result.contains(&re) {
-                result.push(&re);
-            }
-        }
+        re_match_set.push(&volatile[*active].restriction_enzyme_matches);
     }
 
+    let mut result = find_common_res(&re_match_set, lib, data.sticky_ends_only);
+
     if data.multiple_seqs {
-        filter_multiple_seqs(&mut result, &data.tabs_selected, volatile, lib);
+        filter_multiple_seqs(&mut result, &re_match_set, lib);
     }
 
     // If `unique_cutters_only` is selected, each RE must be unique in each sequence. If it's two or more times in any given sequence, don't
     // add it.
     if data.unique_cutters_only {
-        filter_unique_cutters(&mut result, &data.tabs_selected, volatile, lib);
+        filter_unique_cutters(&mut result, &re_match_set, lib);
     }
 
     result

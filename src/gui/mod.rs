@@ -380,7 +380,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
 
 pub fn select_color_text(text: &str, selected: bool) -> RichText {
     let color = if selected {
-        Color32::LIGHT_GREEN
+        Color32::GREEN
     } else {
         Color32::WHITE
     };
