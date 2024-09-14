@@ -73,6 +73,7 @@ pub const COLOR_SEQ: Color32 = Color32::LIGHT_BLUE;
 // (0xAD, 0xD8, 0xE6)
 pub const COLOR_SEQ_DIMMED: Color32 = Color32::from_rgb(140, 160, 165); // Eg dim when there are search results
 pub const COLOR_RE: Color32 = Color32::LIGHT_RED;
+pub const COLOR_RE_HIGHLIGHTED: Color32 = Color32::YELLOW;
 
 // If using a dedicated canvas for a linear map.
 pub const LINEAR_MAP_HEIGHT: f32 = 60.;

@@ -3,7 +3,7 @@
 
 use crate::{backbones::Backbone, restriction_enzyme::RestrictionEnzyme, sequence::Nucleotide, StateVolatile};
 use crate::ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res};
-use crate::restriction_enzyme::ReMatch;
+use crate::restriction_enzyme::{find_re_matches, ReMatch};
 use crate::util::RangeIncl;
 
 /// For a given insert and vector, find suitable  restriction enzymes for cloning
@@ -11,7 +11,7 @@ use crate::util::RangeIncl;
 /// todo: Combine this filter code with that in ligation.
 pub fn find_re_candidates<'a>(
     backbone: &Backbone,
-    // seq_insert: &[Nucleotide],
+    seq_insert: &[Nucleotide],
     // re_match_sets: &[&[ReMatch]],
     // insert_tab: usize,
     // insert_range: RangeIncl,
@@ -19,13 +19,14 @@ pub fn find_re_candidates<'a>(
     volatile: &[StateVolatile],
 // ) -> Vec<&'a RestrictionEnzyme> {
 ) -> Vec<RestrictionEnzyme> {
-    let mut result = Vec::new();
-
     // Note: The first part of this function is similar to how we filter REs for digest on the digest/ligation page.
-    let mut re_match_set = Vec::new(); // By tab
-    for active in [0, 1] { // todo: Fix this.
-        re_match_set.push(&volatile[*active].restriction_enzyme_matches); // todo: Fix this.
-    }
+
+    // todo: You need to make sure the insert your passing is not just the insert itself, but
+    // todo includes areas around it!
+    let matches_insert = find_re_matches(seq_insert, lib);
+    let matches_backbone = find_re_matches(&backbone.seq, lib);
+
+    let re_match_set = [&matches_insert, &matches_backbone];
 
     // Add the insert:
     // re_match_sets.push(&volatile[*active].restriction_enzyme_matches);

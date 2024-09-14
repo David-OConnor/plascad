@@ -311,7 +311,8 @@ impl Default for FileDialogs {
 struct ReUi {
     /// Inner: RE name
     /// todo: This is a trap for multiple tabs.
-    res_selected: Vec<String>,
+    // res_selected: Vec<String>,
+    res_selected: Vec<RestrictionEnzyme>,
     /// Which tabs' sequences to digest. Note that the index of this vec doesn't matter; the values, which
     /// point to indices elsewhere, does.
     tabs_selected: Vec<usize>,

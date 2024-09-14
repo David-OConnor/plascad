@@ -271,25 +271,26 @@ fn tab_selection(
     clear_res
 }
 
-// todo
-/// Remove selected res if they are filtered out.
-fn filter_res_selected(data: &mut ReUi, lib: &[RestrictionEnzyme]) {
-    for name in &mut data.res_selected {
-        let mut re = None;
-        for re_ in lib {
-            if &re_.name == name {
-                re = Some(re_.clone());
-                break;
-            }
-            if re.is_none() {
-                eprintln!("Error: Unable to find matching RE");
-                break;
-            }
-        }
-
-        let re = re.unwrap();
-    }
-}
+// // todo
+// /// Remove selected res if they are filtered out.
+// fn filter_res_selected(data: &mut ReUi, lib: &[RestrictionEnzyme]) {
+//     for name in &mut data.res_selected {
+//         let mut re = None;
+//         for re_ in lib {
+//             // if &re_.name == name {
+//             if &re_.name == name {
+//                 re = Some(re_.clone());
+//                 break;
+//             }
+//             if re.is_none() {
+//                 eprintln!("Error: Unable to find matching RE");
+//                 break;
+//             }
+//         }
+//
+//         let re = re.unwrap();
+//     }
+// }
 
 pub fn ligation_page(state: &mut State, ui: &mut Ui) {
     // todo: Scrolling is not working
@@ -352,8 +353,19 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(ROW_SPACING / 2.);
 
+        // // todo: This is potentially un-ideal computationally. Note that the name-based code is stored permanently.
+        // // todo: NOte that this is just for the highlights. todo: Just store teh whole Re Match instead of names as state.ui.res_selected.
+        // let mut res_sel = Vec::new();
+        // for name in &state.ui.re.res_selected {
+        //     for re in &state.restriction_enzyme_lib {
+        //         if name == &re.name {
+        //             res_sel.push(re);
+        //         }
+        //     }
+        // }
+
         for active in &state.ui.re.tabs_selected {
-            seq_lin_disp(state, ui, true, *active);
+            seq_lin_disp(state, ui, true, *active, &state.ui.re.res_selected);
             ui.add_space(ROW_SPACING/2.);
         }
 
@@ -378,18 +390,18 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
                     }
                     let re = res_matched[index];
 
-                    let selected = state.ui.re.res_selected.contains(&re.name);
+                    let selected = state.ui.re.res_selected.contains(&re);
 
                     if ui.button(select_color_text(&re.name, selected)).clicked {
                         if selected {
-                            for (i, name) in state.ui.re.res_selected.iter().enumerate() {
-                                if name == &re.name {
+                            for (i, re_sel) in state.ui.re.res_selected.iter().enumerate() {
+                                if re_sel == re {
                                     state.ui.re.res_selected.remove(i);
                                     break;
                                 }
                             }
                         } else {
-                            state.ui.re.res_selected.push(re.name.clone());
+                            state.ui.re.res_selected.push(re.clone());
                         }
                     }
                     ui.label(re.cut_depiction());

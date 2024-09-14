@@ -19,7 +19,7 @@ pub struct LigationFragment {
 /// `matches` here is all matches; we filter by selected here.
 pub fn digest(
     source_name: &str,
-    selected: &[String],
+    selected: &[RestrictionEnzyme],
     matches: &[ReMatch],
     re_lib: &[RestrictionEnzyme],
     seq: &[Nucleotide],
@@ -37,7 +37,7 @@ pub fn digest(
         }
         let re = &re_lib[re_match.lib_index];
 
-        if !selected.contains(&re.name) {
+        if !selected.contains(&re) {
             continue;
         }
 
@@ -158,7 +158,7 @@ pub fn find_common_res<'a>(
     sticky_ends_only: bool
 ) -> Vec<&'a RestrictionEnzyme>{
     let mut result = Vec::new();
-    for re_matches in &re_match_set {
+    for re_matches in re_match_set {
         for re_match in *re_matches {
             if re_match.lib_index >= lib.len() {
                 eprintln!("Invalid restriction enzyme");
@@ -209,7 +209,7 @@ pub fn filter_multiple_seqs<'a>(
     });
 }
 
-/// Filter restriction enzymes to ones that are unique cutters, if applicable.
+/// Filter restriction enzymes to ones that are unique cutters on all the given sequences.
 pub fn filter_unique_cutters<'a>(
     res: &'a mut Vec<&RestrictionEnzyme>,
     re_match_set: &[&Vec<ReMatch>], // By tab

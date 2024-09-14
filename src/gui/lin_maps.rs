@@ -22,6 +22,7 @@ use crate::{
     util::{map_linear, RangeIncl},
     Selection, State,
 };
+use crate::gui::COLOR_RE_HIGHLIGHTED;
 
 // How many nucleotides the zoomed-in display at the top of the page represents.
 // A smaller value corresponds to a more zoomed-in display.
@@ -39,6 +40,8 @@ const PRIMER_HEIGHT: f32 = 26.;
 const PRIMER_HEIGHT_DIV2: f32 = PRIMER_HEIGHT / 2.;
 const RE_HEIGHT: f32 = 30.;
 const RE_HEIGHT_DIV2: f32 = RE_HEIGHT / 2.;
+const RE_HEIGHT_HIGHLIGHTED: f32 = 40.;
+const RE_HEIGHT_HIGHLIGHTED_DIV2: f32 = RE_HEIGHT_HIGHLIGHTED / 2.;
 
 fn draw_features(
     features: &[Feature],
@@ -241,30 +244,43 @@ fn draw_primers(
 /// todo: DRY with tick drawing code.
 fn draw_re_sites(
     re_matches: &[ReMatch],
-    res: &[RestrictionEnzyme],
+    lib: &[RestrictionEnzyme],
     to_screen: &RectTransform,
     index_to_x: impl Fn(usize) -> f32,
     unique_cutters_only: bool,
+    sticky_ends_only: bool,
+    selected: &[RestrictionEnzyme],
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
     for (i, re_match) in re_matches.iter().enumerate() {
-        if unique_cutters_only && re_match.match_count > 1 {
+        if re_match.lib_index >= lib.len() {
+            eprintln!("Invalid RE selected");
+            return result;
+        }
+        let re = &lib[re_match.lib_index];
+
+        if (unique_cutters_only && re_match.match_count > 1) || (sticky_ends_only && re.makes_blunt_ends()) {
             continue;
         }
 
         let cut_i = re_match.seq_index + 1; // to display in the right place.
-        let re = &res[re_match.lib_index];
 
-        let point_top = pos2(index_to_x(cut_i), Y_START - RE_HEIGHT_DIV2);
-        let point_bottom = pos2(index_to_x(cut_i), Y_START + RE_HEIGHT_DIV2);
+        let (font_size, color, height, label_offset) = if selected.contains(&re) {
+            (16., COLOR_RE_HIGHLIGHTED, RE_HEIGHT_HIGHLIGHTED_DIV2, 2.)
+        } else {
+            (13., COLOR_RE, RE_HEIGHT_DIV2, -2.)
+        };
+
+        let point_top = pos2(index_to_x(cut_i), Y_START - height);
+        let point_bottom = pos2(index_to_x(cut_i), Y_START + height);
 
         result.push(Shape::line_segment(
             [to_screen * point_bottom, to_screen * point_top],
-            Stroke::new(RE_WIDTH, COLOR_RE),
+            Stroke::new(RE_WIDTH, color),
         ));
 
-        let (mut label_pt, label_align) = (point_top + vec2(20., -2.), Align2::LEFT_CENTER);
+        let (mut label_pt, label_align) = (point_top + vec2(20., label_offset), Align2::LEFT_CENTER);
 
         // Alternate label vertical position, to reduce changes of overlaps.
         if i % 2 == 0 {
@@ -277,8 +293,8 @@ fn draw_re_sites(
                 to_screen * label_pt,
                 label_align,
                 &re.name,
-                FontId::new(16., FontFamily::Proportional),
-                COLOR_RE,
+                FontId::new(font_size, FontFamily::Proportional),
+                color,
             )
         }));
     }
@@ -294,6 +310,7 @@ pub fn draw_linear_map(
     index_right: usize,
     show_re_sites: bool,
     active: usize,
+    res_highlighted: &[RestrictionEnzyme],
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
@@ -368,6 +385,8 @@ pub fn draw_linear_map(
             to_screen,
             index_to_x,
             state.ui.re.unique_cutters_only,
+            state.ui.re.sticky_ends_only,
+            res_highlighted,
             ui,
         ));
     }
@@ -404,6 +423,7 @@ pub fn lin_map_zoomed(
         index_right,
         true,
         active,
+        &Vec::new(), // todo: Highlighted REs?
         ui,
     ));
 
@@ -412,7 +432,7 @@ pub fn lin_map_zoomed(
 
 /// Draw a mini sequence display in its own canvas. This displays the entire sequence, and is used on several pages.
 /// We use this where we are not drawing on an existing canvas.
-pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool, active: usize) {
+pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool, active: usize, res_highlighted: &[RestrictionEnzyme]) {
     Frame::canvas(ui.style())
         .fill(BACKGROUND_COLOR)
         .show(ui, |ui| {
@@ -433,6 +453,7 @@ pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool, active: usi
                 state.generic[active].seq.len() - 1,
                 show_re_sites,
                 active,
+                res_highlighted,
                 ui,
             );
             ui.painter().extend(shapes);

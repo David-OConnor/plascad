@@ -51,9 +51,12 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
         let backbone = &state.backbone_lib[bb_i];
 
         // todo: Move where this is run so it's only run when appropriate! May need some additiosn to the state sync fns as well.
+
+        // todo: You need to make sure the insert your passing is not just the insert itself, but
+        // todo includes areas around it!
         state.cloning_res_matched = find_re_candidates(
             &backbone,
-            // &state.ui.cloning_insert.seq_insert,
+            &state.ui.cloning_insert.seq_insert,
             &state.restriction_enzyme_lib,
             &state.volatile,
         );

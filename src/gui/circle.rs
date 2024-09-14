@@ -646,8 +646,9 @@ fn draw_re_sites(
 ) -> Vec<Shape> {
     let mut result = Vec::new();
     for (i, re_match) in re_matches.iter().enumerate() {
-        if re_match.lib_index + 1 > res.len() {
-            continue;
+        if re_match.lib_index >= res.len() {
+            eprintln!("Invalid RE selected");
+            return result;
         }
         let re = &res[re_match.lib_index];
 

@@ -68,8 +68,9 @@ fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
         .iter()
         .enumerate()
     {
-        if re_match.lib_index + 1 > state.restriction_enzyme_lib.len() {
-            continue;
+        if re_match.lib_index >= state.restriction_enzyme_lib.len() {
+            eprintln!("Invalid RE selected");
+            return result;
         }
         let re = &state.restriction_enzyme_lib[re_match.lib_index];
 

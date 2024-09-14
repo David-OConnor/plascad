@@ -40,7 +40,7 @@ pub enum NucleotideGeneral {
     K,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ReMatch {
     pub lib_index: usize,
     /// Cuts after this index, in the "forward" direction.
@@ -155,13 +155,13 @@ impl RestrictionEnzyme {
     }
 }
 
-/// Go through a sequence, and attempt to match each lib in our RE lib to the sequence, in both directions
+/// Go through a sequence, and attempt to match each enzyme in our RE library to the sequence.
+/// Note/todo: We currently only search in the forward direction; this works if all enzymes in our
+/// todo library are symmetric.
 pub fn find_re_matches(seq: &[Nucleotide], lib: &[RestrictionEnzyme]) -> Vec<ReMatch> {
     let mut result = Vec::new();
 
     let mut match_counts = HashMap::new(); // lib index, count
-
-    // todo: Reverse?
 
     for (lib_index, re) in lib.iter().enumerate() {
         let seq_len = seq.len();
