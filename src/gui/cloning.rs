@@ -16,12 +16,14 @@ use crate::{
         BACKGROUND_COLOR, COL_SPACING, LINEAR_MAP_HEIGHT, ROW_SPACING,
     },
     sequence::{seq_from_str, seq_to_str},
-    util::map_linear,
+    util::{map_linear, RangeIncl},
     State,
 };
 
 /// Draw a selector for the insert, based on loading from a file.
-pub fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
+/// This buffer is in nucleotides, and is on either side of the insert. A buffer of 4-6 nts is ideal
+/// for restriction-enzyme cloning, while no buffer is required for PCR-based cloning.
+pub fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) {
     for (i, feature) in data.features_loaded.iter().enumerate() {
         let mut border_width = 0.;
         if let Some(j) = data.feature_selected {
@@ -38,7 +40,22 @@ pub fn insert_selector(data: &mut CloningInsertData, ui: &mut Ui) {
                     if ui.button("Select").clicked {
                         data.feature_selected = Some(i);
 
-                        if let Some(seq_this_ft) = feature.range.index_seq(&data.seq_loaded) {
+                        // todo: Handle wraps with this for circular plasmids instead of truncating.
+                        let start = if buffer + 1 < feature.range.start {
+                            feature.range.start - buffer
+                        } else {
+                            1
+                        };
+
+                        let end_ = feature.range.end + buffer;
+                        let end = if end_ + 1 < data.seq_loaded.len() {
+                            end_
+                        } else {
+                            data.seq_loaded.len()
+                        };
+
+                        let buffered_range = RangeIncl::new(start, end);
+                        if let Some(seq_this_ft) = buffered_range.index_seq(&data.seq_loaded) {
                             seq_this_ft.clone_into(&mut data.seq_insert);
                         }
                     }
@@ -240,7 +257,8 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
     insert_file_section(state, ui);
 
     ui.add_space(ROW_SPACING);
-    insert_selector(&mut state.ui.cloning_insert, ui);
+    // Note: Unlike RE cloning, we don't want a buffer region, hence passing 0 here.
+    insert_selector(&mut state.ui.cloning_insert, 0, ui);
 
     ui.add_space(ROW_SPACING);
     ui.horizontal(|ui| {

@@ -155,8 +155,8 @@ pub fn ligate(fragments: &[LigationFragment]) -> Vec<Seq> {
 pub fn find_common_res<'a>(
     re_match_set: &[&Vec<ReMatch>], // By tab
     lib: &'a [RestrictionEnzyme],
-    sticky_ends_only: bool
-) -> Vec<&'a RestrictionEnzyme>{
+    sticky_ends_only: bool,
+) -> Vec<&'a RestrictionEnzyme> {
     let mut result = Vec::new();
     for re_matches in re_match_set {
         for re_match in *re_matches {
@@ -227,7 +227,7 @@ pub fn filter_unique_cutters<'a>(
             }
 
             // If `count > 1`, this enzyme is not unique, return `false` to remove it
-            if count != 1 {
+            if count > 1 {
                 return false;
             }
         }

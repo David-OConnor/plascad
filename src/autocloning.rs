@@ -1,14 +1,24 @@
 //! Used for a semi-automated cloning process that chooses a suitable backbone and restriction enzymes
 //! or primers.
 
-use crate::{backbones::Backbone, restriction_enzyme::RestrictionEnzyme, sequence::Nucleotide, StateVolatile};
-use crate::ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res};
-use crate::restriction_enzyme::{find_re_matches, ReMatch};
-use crate::util::RangeIncl;
+// todo: For His tags, ensure they are in frame.
 
-/// For a given insert and vector, find suitable  restriction enzymes for cloning
+use crate::{
+    backbones::Backbone,
+    ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
+    restriction_enzyme::{find_re_matches, RestrictionEnzyme},
+    sequence::Nucleotide,
+    StateVolatile,
+};
+
+/// Include this many nucleotides to the left, and right of each insert, when searching for RE sites.
+/// note: 4-6 nucleotides may be an ideal buffer. Note that this should be conservatively long.
+pub const RE_INSERT_BUFFER: usize = 22;
+
+/// For a given insert and vector, find suitable  restriction enzymes for cloning.
+/// Make sure that the insert sequence is properly buffered to allow for RE matching outside
+/// of the coding region (etc)'s range, upstream of this.
 /// todo: Fow now, we limit our options to unique-match, single-cutters.
-/// todo: Combine this filter code with that in ligation.
 pub fn find_re_candidates<'a>(
     backbone: &Backbone,
     seq_insert: &[Nucleotide],
@@ -17,22 +27,14 @@ pub fn find_re_candidates<'a>(
     // insert_range: RangeIncl,
     lib: &'a [RestrictionEnzyme],
     volatile: &[StateVolatile],
-// ) -> Vec<&'a RestrictionEnzyme> {
+    // ) -> Vec<&'a RestrictionEnzyme> {
 ) -> Vec<RestrictionEnzyme> {
     // Note: The first part of this function is similar to how we filter REs for digest on the digest/ligation page.
 
-    // todo: You need to make sure the insert your passing is not just the insert itself, but
-    // todo includes areas around it!
     let matches_insert = find_re_matches(seq_insert, lib);
     let matches_backbone = find_re_matches(&backbone.seq, lib);
 
     let re_match_set = [&matches_insert, &matches_backbone];
-
-    // Add the insert:
-    // re_match_sets.push(&volatile[*active].restriction_enzyme_matches);
-
-    // Add the backbone:
-    // re_match_sets.push(&volatile[*active].restriction_enzyme_matches);
 
     // Set up our initial REs: Ones that match both the backbone, and insert. (anywhere, for now)
     let mut result = find_common_res(&re_match_set, lib, true);

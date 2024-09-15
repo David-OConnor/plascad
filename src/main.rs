@@ -41,7 +41,7 @@ use sequence::Seq;
 
 use crate::{
     amino_acids::AaIdent,
-    backbones::{load_backbone_library, Backbone},
+    backbones::{load_backbone_library, Backbone, BackboneFilters},
     file_io::{
         save::{
             save, StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
@@ -384,6 +384,7 @@ struct StateUi {
     aa_ident_disp: AaIdent,
     pdb_error_received: bool,
     re: ReUi,
+    backbone_filters: BackboneFilters,
 }
 
 impl Default for StateUi {
@@ -419,6 +420,7 @@ impl Default for StateUi {
             aa_ident_disp: AaIdent::ThreeLetters,
             pdb_error_received: false,
             re: Default::default(),
+            backbone_filters: Default::default(),
         }
     }
 }

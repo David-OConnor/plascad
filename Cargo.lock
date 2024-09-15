@@ -2701,6 +2701,8 @@ dependencies = [
  "quick-xml 0.36.1",
  "serde",
  "serde_json",
+ "strum",
+ "strum_macros",
  "ureq",
  "url",
  "webbrowser",

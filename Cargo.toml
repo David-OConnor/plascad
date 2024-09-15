@@ -63,6 +63,10 @@ copypasta = "^0.10.1"
 # ureq = { version = "^3.0.0", features = ["tls"], default-features = false }  # todo: This is getting a major release update to 3.0 soon.
 ureq = { version = "^2.10.1", features = ["tls"], default-features = false }  # todo: This is getting a major release update to 3.0 soon.
 
+# todo: Check sup-deps/binary impact etc
+strum = "^0.26.3"
+strum_macros = "^0.26.4"
+
 [build-dependencies]
 # These are for embedding an application icon, on Windows.
 winresource = "^0.1.17"

@@ -14,7 +14,7 @@ use crate::{
             CircleData, FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH,
             PRIMER_STROKE_WIDTH, RE_WIDTH,
         },
-        BACKGROUND_COLOR, COLOR_RE, LINEAR_MAP_HEIGHT,
+        BACKGROUND_COLOR, COLOR_RE, COLOR_RE_HIGHLIGHTED, LINEAR_MAP_HEIGHT,
     },
     primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
@@ -22,7 +22,6 @@ use crate::{
     util::{map_linear, RangeIncl},
     Selection, State,
 };
-use crate::gui::COLOR_RE_HIGHLIGHTED;
 
 // How many nucleotides the zoomed-in display at the top of the page represents.
 // A smaller value corresponds to a more zoomed-in display.
@@ -260,7 +259,9 @@ fn draw_re_sites(
         }
         let re = &lib[re_match.lib_index];
 
-        if (unique_cutters_only && re_match.match_count > 1) || (sticky_ends_only && re.makes_blunt_ends()) {
+        if (unique_cutters_only && re_match.match_count > 1)
+            || (sticky_ends_only && re.makes_blunt_ends())
+        {
             continue;
         }
 
@@ -280,7 +281,8 @@ fn draw_re_sites(
             Stroke::new(RE_WIDTH, color),
         ));
 
-        let (mut label_pt, label_align) = (point_top + vec2(20., label_offset), Align2::LEFT_CENTER);
+        let (mut label_pt, label_align) =
+            (point_top + vec2(20., label_offset), Align2::LEFT_CENTER);
 
         // Alternate label vertical position, to reduce changes of overlaps.
         if i % 2 == 0 {
@@ -432,7 +434,13 @@ pub fn lin_map_zoomed(
 
 /// Draw a mini sequence display in its own canvas. This displays the entire sequence, and is used on several pages.
 /// We use this where we are not drawing on an existing canvas.
-pub fn seq_lin_disp(state: &State, ui: &mut Ui, show_re_sites: bool, active: usize, res_highlighted: &[RestrictionEnzyme]) {
+pub fn seq_lin_disp(
+    state: &State,
+    ui: &mut Ui,
+    show_re_sites: bool,
+    active: usize,
+    res_highlighted: &[RestrictionEnzyme],
+) {
     Frame::canvas(ui.style())
         .fill(BACKGROUND_COLOR)
         .show(ui, |ui| {
