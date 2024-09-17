@@ -1,7 +1,7 @@
 //! Used for a semi-automated cloning process that chooses a suitable backbone and restriction enzymes
 //! or primers.
 
-// todo: For His tags, ensure they are in frame.
+//! todo: Allow users to enter custom backbones.
 
 use crate::{
     backbones::Backbone,
@@ -14,6 +14,74 @@ use crate::{
 /// Include this many nucleotides to the left, and right of each insert, when searching for RE sites.
 /// note: 4-6 nucleotides may be an ideal buffer. Note that this should be conservatively long.
 pub const RE_INSERT_BUFFER: usize = 22;
+
+/// Attempt to insert the sequence this far downstream of the RBS. 5-10 is ideal.
+pub const RBS_BUFFER: usize = 7;
+
+pub const RBS_BUFFER_MIN: usize = 4;
+pub const RBS_BUFFER_MAX: usize = 11;
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum Status {
+    Pass,
+    Fail,
+}
+
+impl Default for Status {
+    fn default() -> Self {
+        Self::Fail
+    }
+}
+
+#[derive(Default)]
+pub struct AutocloneStatus {
+    pub rbs_dist: Status,
+    pub downstream_of_promoter: Status,
+    pub direction: Status,
+    pub tag_frame: Status,
+    // pub primer_quality: Status,
+    // pub re_dist: Status,
+}
+
+impl AutocloneStatus {
+    pub fn new(backbone: &Backbone, insert_loc: usize, insert_len: usize) -> Self {
+        let dist = insert_loc - backbone.rbs.end;
+        // todo:  Handle wraps.
+        let rbs_dist = if dist >= RBS_BUFFER_MIN && dist <= RBS_BUFFER_MAX {
+            Status::Pass
+        } else {
+            Status::Fail
+        };
+
+        // todo: Handle wraps.
+        let downstream_of_promoter = if insert_loc > backbone.promoter.end {
+            Status::Pass
+        } else {
+            Status::Fail
+        };
+
+        let direction = Status::Pass; // todo
+
+        let tag_frame = match backbone.his_tag {
+            Some(tag_range) => {
+                let dist_from_start_codon = (tag_range.start - insert_loc) + insert_len;
+                if dist_from_start_codon % 3 == 0 {
+                    Status::Pass
+                } else {
+                    Status::Fail
+                }
+            }
+            None => Status::Pass,
+        };
+
+        Self {
+            rbs_dist,
+            downstream_of_promoter,
+            direction,
+            tag_frame,
+        }
+    }
+}
 
 /// For a given insert and vector, find suitable  restriction enzymes for cloning.
 /// Make sure that the insert sequence is properly buffered to allow for RE matching outside

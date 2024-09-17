@@ -5,13 +5,11 @@ use std::{fmt, fmt::Formatter};
 use strum_macros::EnumIter;
 
 use crate::{
-    sequence::{seq_from_str, Feature},
+    autocloning::RBS_BUFFER,
+    sequence::{seq_from_str, Feature, SeqTopology},
     util::RangeIncl,
     Seq,
 };
-
-/// Attempt to insert the sequence this far downstream of the RBS. 5-10 is ideal.
-pub const RBS_BUFFER: usize = 7;
 
 #[derive(Clone, Copy, PartialEq, EnumIter)]
 pub enum AntibioticResistance {
@@ -121,7 +119,9 @@ pub struct Backbone {
     pub expression_system: ExpressionSystem,
     pub genes_included: Vec<BackboneGene>,
     pub copy_number: CopyNumber,
-    pub his_tagged: bool, // todo: Infer from features?
+    /// Note: This only refers to a His tag on the vector; not the insert.
+    pub his_tag: Option<RangeIncl>,
+    pub seq_topology: SeqTopology,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -132,7 +132,7 @@ pub enum CloningTechnique {
 
 impl Backbone {
     /// Find the vector insertion point.
-    pub fn pcr_insertion_pt(&self, technique: CloningTechnique) -> Option<usize> {
+    pub fn insertion_pt(&self, technique: CloningTechnique) -> Option<usize> {
         match technique {
             CloningTechnique::RestrictionEnzyme => None,
             CloningTechnique::Pcr => {
@@ -185,7 +185,7 @@ impl<'a> BackboneFilters {
                 }
             }
 
-            if self.his_tagged && !bb.his_tagged {
+            if self.his_tagged && !bb.his_tag.is_some() {
                 continue;
             }
 
@@ -211,7 +211,8 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             expression_system: ExpressionSystem::T7,
             genes_included: Vec::new(),
             copy_number: CopyNumber::Low,
-            his_tagged: true,
+            his_tag: Some(RangeIncl::new(4171, 4188)),
+            seq_topology: SeqTopology::Circular,
         },
         Backbone {
             name: "pET LIC cloning vector (2A-T)".to_owned(),
@@ -224,7 +225,8 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             expression_system: ExpressionSystem::T7,
             genes_included: Vec::new(),
             copy_number: CopyNumber::Low,
-            his_tagged: false,
+            his_tag: None,
+            seq_topology: SeqTopology::Circular,
         },
     ]
 }

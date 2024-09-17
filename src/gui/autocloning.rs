@@ -1,13 +1,17 @@
 use core::fmt;
 
-use eframe::egui::{ComboBox, Ui};
+use eframe::egui::{Color32, ComboBox, RichText, Ui};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
+const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;
+const FAIL_COLOR: Color32 = Color32::LIGHT_RED;
+
 use crate::{
-    autocloning::{find_re_candidates, RE_INSERT_BUFFER},
+    autocloning::{find_re_candidates, AutocloneStatus, Status, RE_INSERT_BUFFER},
     backbones,
-    backbones::{BackboneFilters, ExpressionHost},
+    backbones::{BackboneFilters, CloningTechnique, ExpressionHost},
+    cloning::make_product_tab,
     gui::{
         cloning::{insert_file_section, insert_selector},
         lin_maps::seq_lin_disp,
@@ -40,6 +44,47 @@ fn filter_selector<T: fmt::Display + PartialEq + Copy + IntoEnumIterator>(
             }
         });
     ui.add_space(COL_SPACING);
+}
+
+fn text_from_status(status: Status) -> RichText {
+    match status {
+        Status::Pass => RichText::new("Pass").color(PASS_COLOR),
+        Status::Fail => RichText::new("Fail").color(FAIL_COLOR),
+    }
+}
+
+fn checklist(status: &AutocloneStatus, ui: &mut Ui) {
+    ui.heading("Product checklist:");
+
+    ui.horizontal(|ui| {
+        // ui.label("Reading frame:").on_hover_text("The coding region is in-frame with respect to (todo:  RBS? Promoter?)");
+        // ui.label(RichText::new("Fail").color(FAIL_COLOR));
+        // ui.add_space(COL_SPACING);
+
+        ui.label("Distance from RBS:").on_hover_text("Insert point is a suitabel distance (eg 5-10 nucleotides) downstream of the Ribosome Bind Site.");
+        ui.label(text_from_status(status.rbs_dist));
+        ui.add_space(COL_SPACING);
+
+        ui.label("Downstream of promoter:").on_hover_text("Is downstream of the appropriate expression promoter.");
+        ui.label(text_from_status(status.downstream_of_promoter));
+        ui.add_space(COL_SPACING);
+
+        ui.label("Direction:");
+        ui.label(text_from_status(status.direction));
+        ui.add_space(COL_SPACING);
+
+        ui.label("In frame with His tag:");
+        ui.label(text_from_status(status.tag_frame));
+        ui.add_space(COL_SPACING);
+
+        // ui.label("Primer quality:");
+        // ui.label(RichText::new("Fail").color(FAIL_COLOR));
+        // ui.add_space(COL_SPACING);
+        //
+        // ui.label("RE distance:");
+        // ui.label(RichText::new("Fail").color(FAIL_COLOR));
+        // ui.add_space(COL_SPACING);
+    });
 }
 
 fn backbone_filters(filters: &mut BackboneFilters, ui: &mut Ui) {
@@ -132,6 +177,32 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
 
         for candidate in &state.cloning_res_matched {
             ui.label(&candidate.name);
+        }
+
+        ui.add_space(ROW_SPACING);
+
+        if let Some(insert_pt) = backbone.insertion_pt(CloningTechnique::Pcr) {
+            ui.horizontal(|ui| {
+                ui.label("Insert location:");
+                ui.label(RichText::new(format!("{insert_pt}")).color(Color32::LIGHT_BLUE));
+            });
+        }
+        ui.add_space(ROW_SPACING);
+
+        // todo: Only if there is a result
+        if true {
+            ui.add_space(ROW_SPACING);
+            checklist(&state.autoclone_status, ui);
+
+            ui.add_space(ROW_SPACING);
+
+            if ui
+                .button(RichText::new("Clone").color(Color32::GOLD))
+                .clicked()
+            {
+                // todo: Not quite right.
+                make_product_tab(state);
+            }
         }
     }
 }

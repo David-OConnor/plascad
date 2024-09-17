@@ -41,6 +41,7 @@ use sequence::Seq;
 
 use crate::{
     amino_acids::AaIdent,
+    autocloning::AutocloneStatus,
     backbones::{load_backbone_library, Backbone, BackboneFilters},
     file_io::{
         save::{
@@ -485,6 +486,7 @@ struct State {
     /// For autocloning
     // cloning_res_matched:Vec<usize>, // todo: A/R
     cloning_res_matched: Vec<RestrictionEnzyme>,
+    autoclone_status: AutocloneStatus, // todo: Should this be an option?
 }
 
 impl Default for State {
@@ -505,6 +507,7 @@ impl Default for State {
             search_seq: Default::default(),
             backbone_selected: Default::default(),
             cloning_res_matched: Default::default(),
+            autoclone_status: Default::default(),
         };
 
         // Load the RE lib before prefs, because prefs may include loading of previously-opened files,
