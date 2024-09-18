@@ -503,7 +503,7 @@ impl Default for State {
             restriction_enzyme_lib: Default::default(),
             backbone_lib: Default::default(),
             reading_frame: Default::default(),
-            volatile: Default::default(),
+            volatile: vec![Default::default()],
             search_seq: Default::default(),
             backbone_selected: Default::default(),
             cloning_res_matched: Default::default(),
@@ -637,6 +637,10 @@ impl State {
 
     /// Identify restriction enzyme sites in the sequence.
     pub fn sync_re_sites(&mut self) {
+        if self.active >= self.volatile.len() {
+            eprintln!("Error: Volatile len too short for RE sync.");
+            return;
+        }
         self.volatile[self.active].restriction_enzyme_matches = Vec::new();
 
         self.volatile[self.active]

@@ -104,7 +104,7 @@ fn backbone_filters(filters: &mut BackboneFilters, ui: &mut Ui) {
 }
 
 pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
-    ui.heading("Assisted cloning");
+    ui.heading("Assisted cloning (Work in progress)");
     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
     to clone the insert into the backbone.");
 
