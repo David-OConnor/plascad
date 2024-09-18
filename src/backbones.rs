@@ -132,7 +132,7 @@ pub enum CloningTechnique {
 
 impl Backbone {
     /// Find the vector insertion point.
-    pub fn insertion_pt(&self, technique: CloningTechnique) -> Option<usize> {
+    pub fn insert_loc(&self, technique: CloningTechnique) -> Option<usize> {
         match technique {
             CloningTechnique::RestrictionEnzyme => None,
             CloningTechnique::Pcr => {

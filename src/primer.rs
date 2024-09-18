@@ -282,34 +282,25 @@ impl Primer {
 pub fn design_slic_fc_primers(
     seq_vector: &Seq,
     seq_insert: &Seq,
-    insert_loc: usize,
+    mut insert_loc: usize,
 ) -> Option<SlicPrimers> {
     let seq_len_vector = seq_vector.len();
     let seq_len_insert = seq_insert.len();
 
-    if insert_loc > seq_len_vector {
-        eprintln!("Invalid insert loc. Loc: {insert_loc}, vector: {seq_len_vector}");
-        // todo: Return an error, and show that in the UI.
-        return None;
-    }
+    // todo: This likely doesn't handle the off-by-one dynamic.
+    insert_loc = insert_loc % seq_len_vector; // Wrap around the origin (circular plasmids)
 
     let vector_reversed = seq_complement(seq_vector);
     let insert_reversed = seq_complement(seq_insert);
 
-    // todo: You should wrap the vector if the insert loc is near the edges. Clamping
-    // todo as we do will produce incorrect behavior.
-
-    let insert_loc_reversed = seq_len_vector - insert_loc;
+    let insert_loc_reversed = seq_len_vector - insert_loc + 1;
 
     let (seq_vector_fwd, seq_vector_rev) = {
-        let mut end = insert_loc + UNTRIMMED_LEN_VECTOR;
-        end = end.clamp(0, seq_len_vector);
-
-        let mut end_reversed = insert_loc_reversed + UNTRIMMED_LEN_VECTOR;
-        end_reversed = end_reversed.clamp(0, seq_len_vector);
+        let mut end = (insert_loc + UNTRIMMED_LEN_VECTOR) % seq_len_vector;
+        let mut end_reversed = (insert_loc_reversed + UNTRIMMED_LEN_VECTOR) % seq_len_vector;
 
         (
-            seq_vector[insert_loc..end].to_owned(),
+            seq_vector[insert_loc - 1..end].to_owned(),
             vector_reversed[insert_loc_reversed..end_reversed].to_owned(),
         )
     };
@@ -629,7 +620,7 @@ pub fn make_cloning_primers(state: &mut State) {
             primers.vector_rev,
         ]);
 
-        state.sync_primer_matches(None); // note: Not requried to run on all primers.
+        state.sync_primer_matches(None);
     }
 }
 

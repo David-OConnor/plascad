@@ -1,6 +1,6 @@
 use core::fmt;
 
-use eframe::egui::{Color32, ComboBox, RichText, Ui};
+use eframe::egui::{Color32, ComboBox, RichText, Ui, Grid, Vec2};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -53,16 +53,16 @@ fn text_from_status(status: Status) -> RichText {
     }
 }
 
-fn checklist(status: &AutocloneStatus, ui: &mut Ui) {
+fn checklist(status: &AutocloneStatus, rbs_dist: isize, ui: &mut Ui) {
     ui.heading("Product checklist:");
 
     ui.horizontal(|ui| {
         // ui.label("Reading frame:").on_hover_text("The coding region is in-frame with respect to (todo:  RBS? Promoter?)");
         // ui.label(RichText::new("Fail").color(FAIL_COLOR));
-        // ui.add_space(COL_SPACING);
 
         ui.label("Distance from RBS:").on_hover_text("Insert point is a suitabel distance (eg 5-10 nucleotides) downstream of the Ribosome Bind Site.");
         ui.label(text_from_status(status.rbs_dist));
+        ui.label(format!("({rbs_dist}nt)"));
         ui.add_space(COL_SPACING);
 
         ui.label("Downstream of promoter:").on_hover_text("Is downstream of the appropriate expression promoter.");
@@ -126,9 +126,8 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     let mut backbones_filtered = state.ui.backbone_filters.apply(&state.backbone_lib);
-
-    for (i, backbone) in backbones_filtered.iter().enumerate() {
-        ui.horizontal(|ui| {
+    Grid::new("0").spacing(Vec2::new(60., 6.)).show(ui, |ui| {
+        for (i, backbone) in backbones_filtered.iter().enumerate() {
             let selected = match state.backbone_selected {
                 Some(b) => b == i,
                 None => false,
@@ -150,24 +149,40 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
                     }
                 }
             }
-        });
-    }
+            ui.end_row();
+        }
+
+    });
 
     if let Some(bb_i) = state.backbone_selected {
-        // todo: Cache any calcs you are currently doing here.
         if bb_i >= state.backbone_lib.len() {
             eprintln!("Invalid index in backbone lib");
             return;
         }
         let backbone = &state.backbone_lib[bb_i];
 
-        // todo: Move where this is run so it's only run when appropriate! May need some additiosn to the state sync fns as well.
+        // todo: Cache all relevant calcs you are currently doing here! For example, only when you change vector,
+        // todo: or when the sequence changes. (Eg with state sync fns)
         state.cloning_res_matched = find_re_candidates(
             &backbone,
             &state.ui.cloning_insert.seq_insert,
             &state.restriction_enzyme_lib,
             &state.volatile,
         );
+
+        if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
+            state.cloning_insert_loc = insert_loc;
+        }
+
+        state.autoclone_status = AutocloneStatus::new(
+            &backbone,
+            state.cloning_insert_loc,
+            state.ui.cloning_insert.seq_insert.len()
+        );
+
+        let rbs_dist = state.cloning_insert_loc as isize - backbone.rbs.end as isize;
+
+        // todo: End calcs to cache.
 
         ui.add_space(ROW_SPACING);
         ui.label("Restriction enzymes:");
@@ -181,10 +196,10 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(ROW_SPACING);
 
-        if let Some(insert_pt) = backbone.insertion_pt(CloningTechnique::Pcr) {
+        if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
             ui.horizontal(|ui| {
-                ui.label("Insert location:");
-                ui.label(RichText::new(format!("{insert_pt}")).color(Color32::LIGHT_BLUE));
+                ui.label("Insert location (PCR):");
+                ui.label(RichText::new(format!("{insert_loc}")).color(Color32::LIGHT_BLUE));
             });
         }
         ui.add_space(ROW_SPACING);
@@ -192,12 +207,12 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
         // todo: Only if there is a result
         if true {
             ui.add_space(ROW_SPACING);
-            checklist(&state.autoclone_status, ui);
+            checklist(&state.autoclone_status, rbs_dist, ui);
 
             ui.add_space(ROW_SPACING);
 
             if ui
-                .button(RichText::new("Clone").color(Color32::GOLD))
+                .button(RichText::new("Clone (PCR)").color(Color32::GOLD))
                 .clicked()
             {
                 // todo: Not quite right.

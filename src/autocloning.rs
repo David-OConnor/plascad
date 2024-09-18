@@ -18,8 +18,8 @@ pub const RE_INSERT_BUFFER: usize = 22;
 /// Attempt to insert the sequence this far downstream of the RBS. 5-10 is ideal.
 pub const RBS_BUFFER: usize = 7;
 
-pub const RBS_BUFFER_MIN: usize = 4;
-pub const RBS_BUFFER_MAX: usize = 11;
+pub const RBS_BUFFER_MIN: isize = 4;
+pub const RBS_BUFFER_MAX: isize = 11;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Status {
@@ -45,7 +45,7 @@ pub struct AutocloneStatus {
 
 impl AutocloneStatus {
     pub fn new(backbone: &Backbone, insert_loc: usize, insert_len: usize) -> Self {
-        let dist = insert_loc - backbone.rbs.end;
+        let dist = insert_loc as isize - backbone.rbs.end as isize;
         // todo:  Handle wraps.
         let rbs_dist = if dist >= RBS_BUFFER_MIN && dist <= RBS_BUFFER_MAX {
             Status::Pass

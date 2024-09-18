@@ -58,15 +58,16 @@ pub fn make_product_tab(state: &mut State) {
         .push(state.ion_concentrations[state.active].clone());
     state.path_loaded.push(None);
     state.portions.push(Default::default());
+    state.volatile.push(Default::default());
 
     state.active = state.generic.len() - 1;
 
     // Make sure to create cloning primers before performing the insert, or the result will be wrong.
     make_cloning_primers(state);
 
-    // todo: Unecessary clone
-    let insert = state.ui.cloning_insert.seq_insert.clone();
-    state.insert_nucleotides(&insert, state.cloning_insert_loc);
+    // todo: Unecessary clone? Due to borrow rules.
+    let insert = &state.ui.cloning_insert.seq_insert.clone();
+    state.insert_nucleotides(insert, state.cloning_insert_loc);
 
     let label = match state.ui.cloning_insert.feature_selected {
         Some(i) => state.ui.cloning_insert.features_loaded[i].label.clone(),
