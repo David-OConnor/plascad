@@ -4,9 +4,9 @@ use bincode::{Decode, Encode};
 
 use crate::{
     melting_temp_calcs,
-    primer::{calc_gc, IonConcentrations, Primer, TuneSetting, MIN_PRIMER_LEN},
+    primer::{IonConcentrations, Primer, TuneSetting, MIN_PRIMER_LEN},
     sequence::{
-        Nucleotide,
+        calc_gc, Nucleotide,
         Nucleotide::{C, G},
     },
     util::{map_linear, remove_duplicates},

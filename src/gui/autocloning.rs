@@ -1,6 +1,6 @@
 use core::fmt;
 
-use eframe::egui::{Color32, ComboBox, RichText, Ui, Grid, Vec2};
+use eframe::egui::{Color32, ComboBox, Grid, RichText, Ui, Vec2};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
@@ -151,7 +151,6 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
             }
             ui.end_row();
         }
-
     });
 
     if let Some(bb_i) = state.backbone_selected {
@@ -177,7 +176,7 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
         state.autoclone_status = AutocloneStatus::new(
             &backbone,
             state.cloning_insert_loc,
-            state.ui.cloning_insert.seq_insert.len()
+            state.ui.cloning_insert.seq_insert.len(),
         );
 
         let rbs_dist = state.cloning_insert_loc as isize - backbone.rbs.end as isize;

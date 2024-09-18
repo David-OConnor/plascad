@@ -32,7 +32,7 @@ use cloning::CloningInsertData;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::{FileDialog, FileDialogConfig};
-use file_io::save::{load, load_import, StateToSave, DEFAULT_SAVE_FILE};
+use file_io::save::{load, load_import, StateToSave, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
 use protein::Protein;
@@ -254,7 +254,7 @@ impl Default for FileDialogs {
                 Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
             )
             .default_file_filter("PlasCAD files")
-            .default_file_name(DEFAULT_SAVE_FILE)
+            .default_file_name(QUICKSAVE_FILE)
             .id("0");
 
         let import = FileDialog::with_config(cfg_import.clone())
@@ -532,6 +532,9 @@ impl State {
         // Sync items that aren't stored as part of tabs.
         self.sync_re_sites();
         self.sync_reading_frame();
+
+        // So this tab opens on a new program run.
+        self.save_prefs()
     }
 
     pub fn remove_tab(&mut self, i: usize) {
@@ -568,6 +571,9 @@ impl State {
         if (self.active > 0 && self.active <= i && n > 1) || self.active + 1 >= n {
             self.active -= 1;
         }
+
+        // So these tabs don't open on the next program run.
+        self.save_prefs()
     }
 
     /// Convenience function, since we call this so frequently.
@@ -578,7 +584,6 @@ impl State {
     /// Reset data; we currently use this for making "new" data.
     pub fn reset(&mut self) {
         self.generic[self.active] = Default::default();
-        self.volatile = Default::default();
         self.path_loaded[self.active] = Default::default();
         self.portions[self.active] = Default::default();
         self.volatile[self.active] = Default::default();
@@ -852,7 +857,7 @@ fn main() {
 
     let mut loaded_from_arg = false;
     let (path, window_title_initial) = {
-        let mut p = PathBuf::from_str(DEFAULT_SAVE_FILE).unwrap();
+        let mut p = PathBuf::from_str(QUICKSAVE_FILE).unwrap();
 
         // Windows and possibly other operating systems, if attempting to use your program to natively
         // open a file type, will use command line arguments to indicate this. Determine if the program
@@ -868,9 +873,17 @@ fn main() {
         (p, window_title)
     };
 
+    let mut prev_paths_loaded = false;
+    for path in &state.path_loaded {
+        if path.is_some() {
+            prev_paths_loaded = true;
+        }
+    }
+
     // Load from the argument or quicksave A/R.
-    if loaded_from_arg || state.path_loaded.is_empty() {
+    if loaded_from_arg || !prev_paths_loaded {
         if let Some(loaded) = load_import(&path) {
+            println!("LOADING QS");
             state.load(&loaded, state.active);
         }
     }

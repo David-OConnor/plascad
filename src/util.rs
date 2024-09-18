@@ -10,7 +10,7 @@ use bincode::{Decode, Encode};
 use eframe::egui::{pos2, Pos2};
 
 use crate::{
-    file_io::save::DEFAULT_SAVE_FILE,
+    file_io::save::QUICKSAVE_FILE,
     gui::{
         navigation::DEFAULT_TAB_NAME,
         sequence::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
@@ -379,7 +379,7 @@ pub fn get_window_title(path: &Path) -> String {
         .map(|name_str| name_str.to_string())
         .unwrap();
 
-    if filename == DEFAULT_SAVE_FILE {
+    if filename == QUICKSAVE_FILE {
         WINDOW_TITLE.to_owned()
     } else {
         filename

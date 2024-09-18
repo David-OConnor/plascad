@@ -6,11 +6,7 @@ use eframe::egui::Color32;
 use crate::{
     gui::{primer_table::DEFAULT_TRIM_AMT, PRIMER_FWD_COLOR, PRIMER_REV_COLOR},
     primer_metrics::PrimerMetrics,
-    sequence::{
-        seq_complement, seq_from_str, seq_to_str, seq_weight, Nucleotide,
-        Nucleotide::{C, G},
-        Seq,
-    },
+    sequence::{seq_complement, seq_from_str, seq_to_str, seq_weight, Nucleotide, Seq},
     util::{match_subseq, RangeIncl},
     State,
 };
@@ -511,19 +507,6 @@ impl TuneSetting {
     pub fn tunable(&self) -> bool {
         !matches!(self, Self::Disabled)
     }
-}
-
-/// Calculate GC portion, on a scale of 0 to 1.
-/// This is a standalone fn, as it's used outside of Primer methods.
-pub fn calc_gc(seq: &[Nucleotide]) -> f32 {
-    let mut num_gc = 0;
-    for nt in seq {
-        if *nt == C || *nt == G {
-            num_gc += 1;
-        }
-    }
-
-    num_gc as f32 / seq.len() as f32
 }
 
 /// We run this to generate cloning primers when clicking the button

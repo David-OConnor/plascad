@@ -411,6 +411,10 @@ pub fn lin_map_zoomed(
 
     let seq_len = state.generic[active].seq.len();
 
+    if seq_len == 0 {
+        return result; // Avoid Divide-by-0
+    }
+
     // Find the bounds of the indices to display; we use them to map indices to pixels for this
     // mini-display.
     // todo: Only if circular.
@@ -441,6 +445,11 @@ pub fn seq_lin_disp(
     active: usize,
     res_highlighted: &[RestrictionEnzyme],
 ) {
+    let seq_len = state.generic[active].seq.len();
+    if seq_len == 0 {
+        return; // Prevents -1 error.
+    }
+
     Frame::canvas(ui.style())
         .fill(BACKGROUND_COLOR)
         .show(ui, |ui| {
@@ -458,7 +467,7 @@ pub fn seq_lin_disp(
                 &state,
                 &to_screen,
                 0,
-                state.generic[active].seq.len() - 1,
+                seq_len - 1,
                 show_re_sites,
                 active,
                 res_highlighted,

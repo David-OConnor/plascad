@@ -5,7 +5,7 @@ use std::{mem, path::PathBuf};
 use eframe::egui::{Event, InputState, Key, PointerButton, Ui};
 
 use crate::{
-    file_io::save::{load_import, save, StateToSave, DEFAULT_SAVE_FILE},
+    file_io::save::{load_import, save, StateToSave, QUICKSAVE_FILE},
     gui::{navigation::Page, set_window_title},
     sequence::{seq_from_str, Nucleotide},
     util::RangeIncl,
@@ -24,7 +24,7 @@ fn handle_global(state: &mut State, ip: &InputState) -> bool {
 
     if ip.key_pressed(Key::S) && ip.modifiers.ctrl && !ip.modifiers.shift {
         if let Err(e) = StateToSave::from_state(state, state.active)
-            .save_to_file(&PathBuf::from(DEFAULT_SAVE_FILE))
+            .save_to_file(&PathBuf::from(QUICKSAVE_FILE))
         {
             eprintln!("Error saving: {e}");
         }

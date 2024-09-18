@@ -10,8 +10,11 @@
 //! for QC TM, weight, and other properties. It includes detailed sources and methods.
 
 use crate::{
-    primer::{calc_gc, IonConcentrations, MIN_PRIMER_LEN},
-    sequence::Nucleotide::{self, A, C, G, T},
+    primer::{IonConcentrations, MIN_PRIMER_LEN},
+    sequence::{
+        calc_gc,
+        Nucleotide::{self, A, C, G, T},
+    },
 };
 
 const R: f32 = 1.987; // Universal gas constant (Cal/C * Mol)

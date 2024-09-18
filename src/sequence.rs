@@ -1,7 +1,6 @@
 use std::{fmt::Display, io};
 
 use bincode::{Decode, Encode};
-use chrono::NaiveDate;
 use num_enum::TryFromPrimitive;
 
 use crate::{
@@ -440,4 +439,10 @@ pub fn seq_weight(seq: &[Nucleotide]) -> f32 {
     result -= 61.96;
 
     result
+}
+
+/// Calculate GC portion of a sequence, on a scale of 0 to 1.
+pub fn calc_gc(seq: &[Nucleotide]) -> f32 {
+    let num_gc = seq.iter().filter(|&&nt| nt == C || nt == G).count();
+    num_gc as f32 / seq.len() as f32
 }

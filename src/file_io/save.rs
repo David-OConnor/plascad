@@ -35,7 +35,7 @@ use crate::{
     sequence::{Feature, Metadata, Nucleotide, Seq, SeqTopology},
     PcrUi, Selection, SeqVisibility, State, StateUi,
 };
-pub const DEFAULT_SAVE_FILE: &str = "quicksave.pcad";
+pub const QUICKSAVE_FILE: &str = "quicksave.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";
 
 pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
@@ -590,7 +590,7 @@ pub fn save_current_file(state: &State) {
         None => {
             // Quicksave.
             if let Err(e) = StateToSave::from_state(state, state.active)
-                .save_to_file(&PathBuf::from(DEFAULT_SAVE_FILE))
+                .save_to_file(&PathBuf::from(QUICKSAVE_FILE))
             {
                 eprintln!("Error quicksaving: {e}");
             }

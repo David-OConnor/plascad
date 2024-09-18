@@ -166,9 +166,15 @@ pub fn seq_lin_disp_cloning(state: &State, ui: &mut Ui) {
 
             // todo: The DRY sections below are related to drawing the vertical line at the insert point.
 
+            let seq_len = state.get_seq().len();
+
+            if seq_len == 0 {
+                return; // Avoid divide-by-0
+            }
+
             let index_left = (state.cloning_insert_loc as isize - (NT_WIDTH / 2) as isize)
-                .rem_euclid(state.get_seq().len() as isize) as usize; // Rust awk % on negative values.
-            let index_right = (state.cloning_insert_loc + NT_WIDTH / 2) % state.get_seq().len();
+                .rem_euclid(seq_len as isize) as usize; // Rust awk % on negative values.
+            let index_right = (state.cloning_insert_loc + NT_WIDTH / 2) % seq_len;
             let pixel_left = OFFSET.x;
             let pixel_right = ui.available_width() - 2. * OFFSET.x;
 
@@ -180,10 +186,10 @@ pub fn seq_lin_disp_cloning(state: &State, ui: &mut Ui) {
                 let right = if index_left > index_right {
                     if i < index_right {
                         // Ie, we are to the right of the origin.
-                        i += state.get_seq().len()
+                        i += seq_len
                     }
 
-                    index_right + state.get_seq().len()
+                    index_right + seq_len
                 } else {
                     index_right
                 };
