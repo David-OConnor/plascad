@@ -4,6 +4,9 @@ use eframe::egui::{Color32, ComboBox, Grid, RichText, Ui, Vec2};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
+use crate::gui::find_features;
+use crate::util::merge_feature_sets;
+
 const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;
 const FAIL_COLOR: Color32 = Color32::LIGHT_RED;
 
@@ -214,8 +217,11 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
                 .button(RichText::new("Clone (PCR)").color(Color32::GOLD))
                 .clicked()
             {
-                // todo: Not quite right.
-                make_product_tab(state);
+                make_product_tab(state, Some(backbone.make_generic_data()));
+                // Annotate the vector, for now at least.
+                let features = find_features(&state.get_seq());
+                // We assume the product has been made active.
+                merge_feature_sets(&mut state.generic[state.active].features, &features)
             }
         }
     }

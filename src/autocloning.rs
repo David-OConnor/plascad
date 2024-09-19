@@ -1,5 +1,8 @@
 //! Used for a semi-automated cloning process that chooses a suitable backbone and restriction enzymes
 //! or primers.
+//!
+//! todo: Make sure you're QCing and filtering for expression system.
+//!
 
 //! todo: Allow users to enter custom backbones.
 
@@ -37,6 +40,7 @@ impl Default for Status {
 pub struct AutocloneStatus {
     pub rbs_dist: Status,
     pub downstream_of_promoter: Status,
+    // todo: Check for terminator?
     pub direction: Status,
     pub tag_frame: Status,
     // pub primer_quality: Status,

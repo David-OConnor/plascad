@@ -253,7 +253,7 @@ pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
             {
                 // Save this vector; this file or quicksave instance will be turned into the cloning
                 // product.
-                make_product_tab(state);
+                make_product_tab(state, None);
             }
         }
     });

@@ -6,7 +6,8 @@ use strum_macros::EnumIter;
 
 use crate::{
     autocloning::RBS_BUFFER,
-    sequence::{seq_from_str, Feature, SeqTopology},
+    file_io::GenericData,
+    sequence::{seq_from_str, Feature, FeatureType, SeqTopology},
     util::RangeIncl,
     Seq,
 };
@@ -136,10 +137,24 @@ impl Backbone {
         match technique {
             CloningTechnique::RestrictionEnzyme => None,
             CloningTechnique::Pcr => {
-                //Initial hack: A fixed distance downstream of the RBS.
-                // todo: Next: Verify in-frame.
 
-                Some(self.rbs.end + RBS_BUFFER)
+                // If a His tag is present, choose a location that's in-frame.
+                let result = match self.his_tag {
+                    Some(his) => {
+                        let mut loc = self.rbs.end + RBS_BUFFER - 1;
+
+                        while (his.start - loc + 1) % 3 != 0 {
+                            loc += 1;
+                        }
+
+                        loc
+                    }
+                    None => {
+                        self.rbs.end + RBS_BUFFER
+                    }
+                };
+
+                Some(result)
             }
         }
     }
@@ -147,6 +162,50 @@ impl Backbone {
     pub fn addgene_url(&self) -> Option<String> {
         self.addgene_id
             .map(|id| format!("https://www.addgene.org/{id}/"))
+    }
+
+    /// Used for constructing new generic/baseline data.
+    pub fn make_generic_data(&self) -> GenericData {
+        let mut features = vec![
+            Feature {
+                range: self.promoter,
+                feature_type: FeatureType::Promoter,
+                direction: Default::default(), // todo
+                label: "Promoter".to_string(),
+                color_override: None,
+                notes: vec![],
+            },
+            Feature {
+                range: self.rbs,
+                feature_type: FeatureType::RibosomeBindSite,
+                direction: Default::default(), // todo
+                label: "RBS".to_string(),
+                color_override: None,
+                notes: vec![],
+            },
+        ];
+        if let Some(his) = self.his_tag {
+            features.push(Feature {
+                range: his,
+                feature_type: FeatureType::CodingRegion,
+                direction: Default::default(), // todo
+                label: "His tag".to_string(),
+                color_override: None,
+                notes: vec![],
+            })
+        }
+
+        GenericData {
+            seq: self.seq.clone(),
+            topology: self.seq_topology,
+            // todo: You may need to pass features as a param, or store them with the backbone fields directly,
+            // todo to support fields we don't enforce or use.
+
+            // todo: Ie, we should include Ori, AB resistance etc.
+            features,
+            primers: Vec::new(),
+            metadata: Default::default(), // todo: A/R
+        }
     }
 }
 

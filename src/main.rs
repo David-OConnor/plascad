@@ -828,6 +828,10 @@ impl State {
 
         match self.ui.selected_item {
             Selection::Feature(i) => {
+                if i >= self.generic[self.active].features.len() {
+                    eprintln!("Invalid feature in selection");
+                    return;
+                }
                 let feature = &self.generic[self.active].features[i];
                 if let Some(seq) = feature.range.index_seq(self.get_seq()) {
                     let mut ctx = ClipboardContext::new().unwrap();

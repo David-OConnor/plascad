@@ -1,4 +1,5 @@
 use crate::{
+    file_io::GenericData,
     gui::navigation::{Page, PageSeq},
     primer::make_cloning_primers,
     sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq},
@@ -50,9 +51,17 @@ pub fn setup_insert_seqs(state: &mut State, features: Vec<Feature>, seq: Seq) {
 }
 
 /// Create a new tab containing of the cloning product.
-pub fn make_product_tab(state: &mut State) {
+/// Optionally allow passing a new set of generic data to use, eg a backbone. If not present,
+/// the current tab's will be used.
+pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
     // Note: This segment is almost a duplicate of `State::add_tab`, but retaining the generic data.
-    state.generic.push(state.generic[state.active].clone());
+
+    let generic = match generic {
+        Some(gen) => gen,
+        None => state.generic[state.active].clone(),
+    };
+
+    state.generic.push(generic);
     state
         .ion_concentrations
         .push(state.ion_concentrations[state.active].clone());
