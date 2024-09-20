@@ -5,7 +5,7 @@ use std::{mem, path::PathBuf};
 use eframe::egui::{Event, InputState, Key, PointerButton, Ui};
 
 use crate::{
-    file_io::save::{load_import, save, StateToSave, QUICKSAVE_FILE},
+    file_io::save::{load_import, StateToSave, QUICKSAVE_FILE},
     gui::{navigation::Page, set_window_title},
     sequence::{seq_from_str, Nucleotide},
     util::RangeIncl,
@@ -16,7 +16,7 @@ use crate::{
 fn handle_global(state: &mut State, ip: &InputState) -> bool {
     let mut reset = false; // avoids a borrow error.
 
-    if ip.key_pressed(Key::A) && ip.modifiers.ctrl {
+    if ip.key_pressed(Key::A) && ip.modifiers.ctrl && !state.ui.text_edit_active {
         if !state.get_seq().is_empty() {
             state.ui.text_selection = Some(RangeIncl::new(1, state.get_seq().len()))
         }
@@ -123,6 +123,10 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
             reset_window_title = true;
         }
 
+        if state.ui.text_edit_active && !reset_window_title {
+            return;
+        }
+
         // This event match is not specific to the seqe page
         for event in &ip.events {
             match event {
@@ -169,7 +173,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                 }
 
                 let i = i + 1; // Insert after this nucleotide; not before.
-                               // Don't allow accidental nt insertion when the user is entering into the search bar.
+                // Don't allow accidental nt insertion when the user is entering into the search bar.
 
                 // Add NTs.
                 if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
@@ -200,10 +204,8 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                         }
                         Event::Copy => {}
                         Event::Paste(pasted_text) => {
-                            if !state.ui.text_edit_active {
-                                state.insert_nucleotides(&seq_from_str(pasted_text), i);
-                                move_cursor = Some(pasted_text.len() as i32);
-                            }
+                            state.insert_nucleotides(&seq_from_str(pasted_text), i);
+                            move_cursor = Some(pasted_text.len() as i32);
                         }
                         _ => (),
                     }
@@ -227,17 +229,15 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                 move_cursor = Some(-1);
             }
 
-            if !state.ui.text_edit_active {
-                if let Some(i) = &mut state.ui.text_cursor_i {
-                    if let Some(amt) = move_cursor {
-                        let val = *i as i32 + amt;
-                        // If val is 0, the cursor is before the first character; this is OK.
-                        // If it's < 0, we will get an overflow when converting to usize.
-                        if val >= 0 {
-                            let new_posit = val as usize;
-                            if new_posit <= state.generic[state.active].seq.len() {
-                                *i = new_posit;
-                            }
+            if let Some(i) = &mut state.ui.text_cursor_i {
+                if let Some(amt) = move_cursor {
+                    let val = *i as i32 + amt;
+                    // If val is 0, the cursor is before the first character; this is OK.
+                    // If it's < 0, we will get an overflow when converting to usize.
+                    if val >= 0 {
+                        let new_posit = val as usize;
+                        if new_posit <= state.generic[state.active].seq.len() {
+                            *i = new_posit;
                         }
                     }
                 }

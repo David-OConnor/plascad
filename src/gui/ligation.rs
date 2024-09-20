@@ -19,10 +19,9 @@ use crate::{
     },
     ligation,
     ligation::{digest, LigationFragment},
-    restriction_enzyme::RestrictionEnzyme,
     sequence::seq_to_str,
     util::{map_linear, name_from_path},
-    ReUi, State,
+    State,
 };
 
 // This X offset must have room for the RE Nts displayed on the left.
@@ -83,7 +82,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                 };
 
                 let start_x = OFFSET_X;
-                let end_x = start_x + frag.seq.len() as f32 * 2.; // todo: Rough.
+                // let end_x = start_x + frag.seq.len() as f32 * 2.; // todo: Rough.
 
                 // todo: This approach won't work when adding in fragments from other sequences.
                 let end_x = map_linear(

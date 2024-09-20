@@ -3,10 +3,7 @@
 use eframe::egui::{Pos2, Shape, Ui};
 
 use crate::{
-    gui::{
-        sequence::{feature_overlay, seq_view::SeqViewData},
-        PRIMER_FWD_COLOR, PRIMER_REV_COLOR,
-    },
+    gui::sequence::{feature_overlay, seq_view::SeqViewData},
     primer::{Primer, PrimerDirection},
     sequence::FeatureType,
     util,

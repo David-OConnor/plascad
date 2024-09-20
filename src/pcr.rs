@@ -5,7 +5,7 @@ use bincode::{Decode, Encode};
 use crate::{
     gui::navigation::{Page, PageSeq},
     primer::Primer,
-    sequence::{Nucleotide, Seq},
+    sequence::Seq,
     util::RangeIncl,
     PcrUi, State,
 };

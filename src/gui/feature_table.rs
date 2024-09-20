@@ -1,7 +1,7 @@
 //! GUI code for the features editor and related.
 
 use eframe::egui::{
-    Color32, ComboBox, CursorIcon, Frame, RichText, ScrollArea, Sense, Stroke, TextEdit, Ui,
+    Color32, ComboBox, CursorIcon, Frame, RichText, ScrollArea, Stroke, TextEdit, Ui,
 };
 
 use crate::{

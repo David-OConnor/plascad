@@ -2,7 +2,7 @@ use crate::{
     file_io::GenericData,
     gui::navigation::{Page, PageSeq},
     primer::make_cloning_primers,
-    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq},
+    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Seq},
     util::RangeIncl,
     Selection, State,
 };

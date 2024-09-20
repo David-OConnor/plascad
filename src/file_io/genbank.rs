@@ -10,7 +10,6 @@ use std::{
     path::Path,
 };
 
-use chrono::Datelike;
 use gb_io::{
     self,
     reader::SeqReader,

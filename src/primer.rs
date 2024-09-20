@@ -292,8 +292,8 @@ pub fn design_slic_fc_primers(
     let insert_loc_reversed = seq_len_vector - insert_loc + 1;
 
     let (seq_vector_fwd, seq_vector_rev) = {
-        let mut end = (insert_loc + UNTRIMMED_LEN_VECTOR) % seq_len_vector;
-        let mut end_reversed = (insert_loc_reversed + UNTRIMMED_LEN_VECTOR) % seq_len_vector;
+        let end = (insert_loc + UNTRIMMED_LEN_VECTOR) % seq_len_vector;
+        let end_reversed = (insert_loc_reversed + UNTRIMMED_LEN_VECTOR) % seq_len_vector;
 
         (
             seq_vector[insert_loc - 1..end].to_owned(),
@@ -471,7 +471,7 @@ impl TuneSetting {
     /// If the 5p end is tunable, get its valu.
     pub fn val_5p(&self) -> Option<usize> {
         match self {
-            Self::Only5(mut v) => Some(v),
+            Self::Only5(v) => Some(*v),
             Self::Both(v) => Some(v.1),
             _ => None,
         }
@@ -480,7 +480,7 @@ impl TuneSetting {
     /// If the 5p end is tunable, get its value.
     pub fn val_3p(&self) -> Option<usize> {
         match self {
-            Self::Only3(mut v) => Some(v),
+            Self::Only3(v) => Some(*v),
             Self::Both(v) => Some(v.2),
             _ => None,
         }

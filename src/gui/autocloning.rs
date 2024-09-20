@@ -2,18 +2,15 @@ use core::fmt;
 
 use eframe::egui::{Color32, ComboBox, Grid, RichText, Ui, Vec2};
 use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
 
-use crate::gui::find_features;
-use crate::util::merge_feature_sets;
+use crate::{gui::find_features, util::merge_feature_sets};
 
 const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;
 const FAIL_COLOR: Color32 = Color32::LIGHT_RED;
 
 use crate::{
     autocloning::{find_re_candidates, AutocloneStatus, Status, RE_INSERT_BUFFER},
-    backbones,
-    backbones::{BackboneFilters, CloningTechnique, ExpressionHost},
+    backbones::{BackboneFilters, CloningTechnique},
     cloning::make_product_tab,
     gui::{
         cloning::{insert_file_section, insert_selector},

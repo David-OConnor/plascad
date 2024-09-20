@@ -42,7 +42,7 @@ impl ReadingFrame {
     /// The result will always start in frame. It will be trimmed if offset > 0.
     /// todo: THis makes a clone. Can we instead do a slice?
     pub fn arrange_seq(&self, seq: &[Nucleotide]) -> Seq {
-        let mut offset = self.offset();
+        let offset = self.offset();
 
         if self.is_reverse() {
             sequence::seq_complement(seq)[offset..].to_vec()

@@ -10,10 +10,7 @@ use eframe::{
 
 use crate::{
     gui::{
-        circle::{
-            CircleData, FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH,
-            PRIMER_STROKE_WIDTH, RE_WIDTH,
-        },
+        circle::{FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH, RE_WIDTH},
         BACKGROUND_COLOR, COLOR_RE, COLOR_RE_HIGHLIGHTED, LINEAR_MAP_HEIGHT,
     },
     primer::{Primer, PrimerDirection},

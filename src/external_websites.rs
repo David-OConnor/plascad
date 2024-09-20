@@ -7,8 +7,8 @@ use std::{io, time::Duration};
 
 use bincode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
-use serde_json::{self, Value};
-use ureq::{self, Agent, AgentBuilder};
+use serde_json::{self};
+use ureq::{self, Agent};
 use url::Url;
 
 use crate::{
@@ -190,13 +190,13 @@ pub struct PdbData {
 pub struct ReqError {}
 
 impl From<ureq::Error> for ReqError {
-    fn from(err: ureq::Error) -> Self {
+    fn from(_err: ureq::Error) -> Self {
         Self {}
     }
 }
 
 impl From<io::Error> for ReqError {
-    fn from(err: io::Error) -> Self {
+    fn from(_err: io::Error) -> Self {
         Self {}
     }
 }

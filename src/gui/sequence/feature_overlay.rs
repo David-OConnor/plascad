@@ -20,7 +20,7 @@ use crate::{
         FeatureType,
     },
     util::{get_feature_ranges, RangeIncl},
-    Color, Selection,
+    Selection,
 };
 
 const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?

@@ -16,7 +16,7 @@ use crate::{
         sequence::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
         WINDOW_TITLE,
     },
-    sequence::{seq_complement, Feature, Metadata, Nucleotide},
+    sequence::{seq_complement, Feature, Nucleotide},
     Color, State,
 };
 

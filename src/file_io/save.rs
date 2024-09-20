@@ -16,7 +16,6 @@ use bincode::{
     Decode, Encode,
 };
 use bio::io::fasta;
-use chrono::NaiveDate;
 use eframe::egui::Ui;
 
 use crate::{

@@ -1,7 +1,5 @@
 //! This module contains GUI code related to the sequence view.
 
-use std::error::Error;
-
 use eframe::egui::{text::CursorRange, Color32, Frame, RichText, ScrollArea, TextEdit, Ui};
 
 // todo: monospace font for all seqs.
@@ -140,9 +138,6 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
             .add(TextEdit::singleline(&mut state.ui.quick_feature_add_name).desired_width(80.))
             .gained_focus()
         {
-            // Disable character entries in the sequence.
-            // state.ui.search_active = true;
-            // state.ui.text_cursor_i = None;
             state.ui.text_edit_active = true; // Disable character entries in the sequence.
         }
 
@@ -207,6 +202,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
 
         if state.ui.highlight_search_input {
             state.ui.highlight_search_input = false;
+            state.ui.text_edit_active = true; // Disable character entries in the sequence.
             response.request_focus();
 
             output.cursor_range = Some(CursorRange::select_all(&output.galley));
@@ -215,9 +211,11 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
 
         if response.gained_focus() {
             state.ui.text_edit_active = true; // Disable character entries in the sequence.
+            println!("GF");
         }
 
         if response.changed {
+            state.ui.text_edit_active = true;
             state.search_seq = seq_from_str(&state.ui.search_input);
             state.ui.search_input = seq_to_str(&state.search_seq); // Ensures only valid NTs are present.
 

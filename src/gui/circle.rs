@@ -15,10 +15,9 @@ use crate::{
     gui::{
         feature_from_index, feature_table::feature_table, get_cursor_text, lin_maps,
         lin_maps::MINI_DISP_NT_LEN, navigation::NAV_BUTTON_COLOR, select_feature, COLOR_RE,
-        COLOR_SEQ, COL_SPACING, PRIMER_FWD_COLOR, PRIMER_REV_COLOR, ROW_SPACING,
-        SPLIT_SCREEN_MAX_HEIGHT,
+        COLOR_SEQ, COL_SPACING, PRIMER_FWD_COLOR, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
     },
-    primer::{Primer, PrimerDirection},
+    primer::Primer,
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::{seq_to_str, Feature, FeatureDirection, FeatureType},
     Selection, State,

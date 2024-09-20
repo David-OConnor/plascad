@@ -373,7 +373,6 @@ pub fn draw(state: &mut State, ctx: &Context) {
             }
             Page::Portions => portions::portions_page(&mut state.portions[state.active], ui),
             Page::AutoCloning => autocloning::autocloning_page(state, ui),
-            _ => (),
             // });
         }
     });

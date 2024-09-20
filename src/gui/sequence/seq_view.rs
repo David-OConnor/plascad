@@ -22,7 +22,6 @@ use crate::{
         BACKGROUND_COLOR, COLOR_RE, COLOR_SEQ, COLOR_SEQ_DIMMED, COL_SPACING,
     },
     reading_frame::ReadingFrame,
-    sequence::seq_complement,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl},
     Nucleotide, Selection, State, StateUi,
 };
@@ -217,7 +216,7 @@ fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &SeqViewData) -> Option<u
 
             // See note on the pad below; this is for clicking before seq start.
             if p_abs.x > (VIEW_AREA_PAD_LEFT - 2. * NT_WIDTH_PX) && p_abs.y > 0. {
-                let mut result = pixel_to_seq_i(p_abs, &data.row_ranges);
+                let result = pixel_to_seq_i(p_abs, &data.row_ranges);
                 if let Some(i) = result {
                     if i > data.seq_len + 2 {
                         // This pad allows setting the cursor a bit past the seq end.

@@ -1,5 +1,3 @@
-use std::{path::PathBuf, str::FromStr};
-
 use eframe::{
     egui::{pos2, vec2, Frame, Pos2, Rect, RichText, Sense, Shape, Stroke, TextEdit, Ui},
     emath::RectTransform,
@@ -9,10 +7,9 @@ use eframe::{
 use crate::{
     cloning::{make_product_tab, setup_insert_seqs, CloningInsertData},
     file_io::save::load_import,
-    gui,
     gui::{
-        lin_maps::{draw_linear_map, lin_map_zoomed, OFFSET},
-        navigation::{get_tabs, DEFAULT_TAB_NAME},
+        lin_maps::{lin_map_zoomed, OFFSET},
+        navigation::get_tabs,
         BACKGROUND_COLOR, COL_SPACING, LINEAR_MAP_HEIGHT, ROW_SPACING,
     },
     sequence::{seq_from_str, seq_to_str},

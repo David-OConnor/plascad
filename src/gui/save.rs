@@ -9,7 +9,7 @@ use crate::{
     file_io::{
         genbank::export_genbank,
         save,
-        save::{export_fasta, load_import, save, StateToSave},
+        save::{export_fasta, load_import, StateToSave},
         snapgene::export_snapgene,
     },
     gui::set_window_title,

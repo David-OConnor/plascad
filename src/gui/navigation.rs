@@ -1,13 +1,13 @@
 //! This module contains code related to navigation buttons.
 
-use std::{fmt::Display, fs::metadata, path::PathBuf};
+use std::{fmt::Display, path::PathBuf};
 
 use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
 
 use crate::{
     gui::{select_color_text, set_window_title, COL_SPACING, ROW_SPACING},
-    sequence::{seq_to_str, Metadata},
+    sequence::seq_to_str,
     util::name_from_path,
     State,
 };
