@@ -173,7 +173,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                 }
 
                 let i = i + 1; // Insert after this nucleotide; not before.
-                // Don't allow accidental nt insertion when the user is entering into the search bar.
+                               // Don't allow accidental nt insertion when the user is entering into the search bar.
 
                 // Add NTs.
                 if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {

@@ -60,15 +60,19 @@ impl AutocloneStatus {
                     Status::Fail
                 }
             }
-            None => Status::NotApplicable
+            None => Status::NotApplicable,
         };
 
-
         // todo: Handle wraps.
-        let downstream_of_promoter = if insert_loc > backbone.promoter.end {
-            Status::Pass
-        } else {
-            Status::Fail
+        let downstream_of_promoter = match backbone.promoter {
+            Some(p) => {
+                if insert_loc > p.end {
+                    Status::Pass
+                } else {
+                    Status::Fail
+                }
+            }
+            None => Status::NotApplicable,
         };
 
         let direction = Status::Pass; // todo

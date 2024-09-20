@@ -122,6 +122,11 @@ pub fn hydropathy_doolittle(seq: &[AminoAcid], window_size: usize) -> Vec<(usize
 
     let win_div_2 = window_size / 2; // Rounds down.
 
+    if win_div_2 - 1 >= seq.len() {
+        eprintln!("Error with window size for hydropathy");
+        return result;
+    }
+
     // We'll center each window on `i`.
     for i in win_div_2..seq.len() - win_div_2 - 1 {
         let aas = &seq[i - win_div_2..i + win_div_2 + 1];

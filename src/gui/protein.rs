@@ -9,9 +9,7 @@ use eframe::{
 
 use crate::{
     amino_acids::{AaIdent, AminoAcid},
-    external_websites::{
-        load_pdb_data, load_pdb_structure, open_pdb, open_pdb_3d_view, PdbData
-    },
+    external_websites::{load_pdb_data, load_pdb_structure, open_pdb, open_pdb_3d_view, PdbData},
     gui::{circle::TICK_COLOR, BACKGROUND_COLOR, COL_SPACING, ROW_SPACING},
     sequence::FeatureType,
     State,

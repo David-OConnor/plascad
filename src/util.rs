@@ -265,7 +265,7 @@ pub fn change_origin(state: &mut State) {
 }
 
 /// Find indexes where a subsequence matches a larger one, in both directions. Can be used to match primers,
-/// known sequences etc.
+/// known sequences etc. Range indicies are relative to the forward direction.
 /// todo: Partial matches as well.
 pub fn match_subseq(subseq: &[Nucleotide], seq: &[Nucleotide]) -> (Vec<RangeIncl>, Vec<RangeIncl>) {
     let mut result = (Vec::new(), Vec::new()); // Forward, reverse

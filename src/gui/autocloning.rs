@@ -62,6 +62,7 @@ fn checklist(status: &AutocloneStatus, rbs_dist: Option<isize>, ui: &mut Ui) {
         // ui.label("Reading frame:").on_hover_text("The coding region is in-frame with respect to (todo:  RBS? Promoter?)");
         // ui.label(RichText::new("Fail").color(FAIL_COLOR));
 
+        // todo: Handle this and missing HIS tag the same way; currently this is selectively hidden, and His is not.
         if let Some(rd) = rbs_dist {
             ui.label("Distance from RBS:").on_hover_text("Insert point is a suitabel distance (eg 5-10 nucleotides) downstream of the Ribosome Bind Site.");
             ui.label(text_from_status(status.rbs_dist));
@@ -182,7 +183,9 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
             state.ui.cloning_insert.seq_insert.len(),
         );
 
-        let rbs_dist = backbone.rbs.map(|r| state.cloning_insert_loc as isize - r.end as isize);
+        let rbs_dist = backbone
+            .rbs
+            .map(|r| state.cloning_insert_loc as isize - r.end as isize);
 
         // todo: End calcs to cache.
 
