@@ -7,6 +7,7 @@ use crate::{gui::find_features, util::merge_feature_sets};
 
 const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;
 const FAIL_COLOR: Color32 = Color32::LIGHT_RED;
+const NA_COLOR: Color32 = Color32::GOLD;
 
 use crate::{
     autocloning::{find_re_candidates, AutocloneStatus, Status, RE_INSERT_BUFFER},
@@ -50,21 +51,23 @@ fn text_from_status(status: Status) -> RichText {
     match status {
         Status::Pass => RichText::new("Pass").color(PASS_COLOR),
         Status::Fail => RichText::new("Fail").color(FAIL_COLOR),
+        Status::NotApplicable => RichText::new("N/A").color(NA_COLOR),
     }
 }
 
-fn checklist(status: &AutocloneStatus, rbs_dist: isize, ui: &mut Ui) {
+fn checklist(status: &AutocloneStatus, rbs_dist: Option<isize>, ui: &mut Ui) {
     ui.heading("Product checklist:");
 
     ui.horizontal(|ui| {
         // ui.label("Reading frame:").on_hover_text("The coding region is in-frame with respect to (todo:  RBS? Promoter?)");
         // ui.label(RichText::new("Fail").color(FAIL_COLOR));
 
-        ui.label("Distance from RBS:").on_hover_text("Insert point is a suitabel distance (eg 5-10 nucleotides) downstream of the Ribosome Bind Site.");
-        ui.label(text_from_status(status.rbs_dist));
-        ui.label(format!("({rbs_dist}nt)"));
-        ui.add_space(COL_SPACING);
-
+        if let Some(rd) = rbs_dist {
+            ui.label("Distance from RBS:").on_hover_text("Insert point is a suitabel distance (eg 5-10 nucleotides) downstream of the Ribosome Bind Site.");
+            ui.label(text_from_status(status.rbs_dist));
+            ui.label(format!("({rd}nt)"));
+            ui.add_space(COL_SPACING);
+        }
         ui.label("Downstream of promoter:").on_hover_text("Is downstream of the appropriate expression promoter.");
         ui.label(text_from_status(status.downstream_of_promoter));
         ui.add_space(COL_SPACING);
@@ -179,7 +182,7 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
             state.ui.cloning_insert.seq_insert.len(),
         );
 
-        let rbs_dist = state.cloning_insert_loc as isize - backbone.rbs.end as isize;
+        let rbs_dist = backbone.rbs.map(|r| state.cloning_insert_loc as isize - r.end as isize);
 
         // todo: End calcs to cache.
 

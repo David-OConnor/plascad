@@ -28,6 +28,7 @@ pub const RBS_BUFFER_MAX: isize = 11;
 pub enum Status {
     Pass,
     Fail,
+    NotApplicable,
 }
 
 impl Default for Status {
@@ -49,13 +50,19 @@ pub struct AutocloneStatus {
 
 impl AutocloneStatus {
     pub fn new(backbone: &Backbone, insert_loc: usize, insert_len: usize) -> Self {
-        let dist = insert_loc as isize - backbone.rbs.end as isize;
-        // todo:  Handle wraps.
-        let rbs_dist = if dist >= RBS_BUFFER_MIN && dist <= RBS_BUFFER_MAX {
-            Status::Pass
-        } else {
-            Status::Fail
+        let rbs_dist = match backbone.rbs {
+            Some(rbs) => {
+                let dist = insert_loc as isize - rbs.end as isize;
+                // todo:  Handle wraps.
+                if dist >= RBS_BUFFER_MIN && dist <= RBS_BUFFER_MAX {
+                    Status::Pass
+                } else {
+                    Status::Fail
+                }
+            }
+            None => Status::NotApplicable
         };
+
 
         // todo: Handle wraps.
         let downstream_of_promoter = if insert_loc > backbone.promoter.end {
@@ -75,7 +82,7 @@ impl AutocloneStatus {
                     Status::Fail
                 }
             }
-            None => Status::Pass,
+            None => Status::NotApplicable,
         };
 
         Self {
