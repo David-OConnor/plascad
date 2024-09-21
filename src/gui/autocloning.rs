@@ -73,6 +73,10 @@ fn checklist(status: &AutocloneStatus, rbs_dist: Option<isize>, ui: &mut Ui) {
         ui.label(text_from_status(status.downstream_of_promoter));
         ui.add_space(COL_SPACING);
 
+        ui.label("Upstream of terminator:").on_hover_text("Is upstream of the appropriate expression terminator.");
+        ui.label(text_from_status(status.upstream_of_terminator));
+        ui.add_space(COL_SPACING);
+
         ui.label("Direction:");
         ui.label(text_from_status(status.direction));
         ui.add_space(COL_SPACING);

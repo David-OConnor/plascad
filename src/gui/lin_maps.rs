@@ -19,6 +19,7 @@ use crate::{
     util::{map_linear, RangeIncl},
     Selection, State,
 };
+use crate::sequence::FeatureType;
 
 // How many nucleotides the zoomed-in display at the top of the page represents.
 // A smaller value corresponds to a more zoomed-in display.
@@ -53,6 +54,10 @@ fn draw_features(
     let mut result = Vec::new();
 
     for (i, feature) in features.iter().enumerate() {
+        if feature.feature_type == FeatureType::Source { // From some GB files indicating the entire sequence.
+            continue;
+        }
+
         // todo: DRY with teh main view. helper fn.
         let stroke_color = match selected_item {
             Selection::Feature(j) => {

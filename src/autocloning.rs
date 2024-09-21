@@ -41,6 +41,7 @@ impl Default for Status {
 pub struct AutocloneStatus {
     pub rbs_dist: Status,
     pub downstream_of_promoter: Status,
+    pub upstream_of_terminator: Status,
     // todo: Check for terminator?
     pub direction: Status,
     pub tag_frame: Status,
@@ -75,6 +76,17 @@ impl AutocloneStatus {
             None => Status::NotApplicable,
         };
 
+        let upstream_of_terminator = match backbone.terminator{
+            Some(p) => {
+                if insert_loc > p.end {
+                    Status::Pass
+                } else {
+                    Status::Fail
+                }
+            }
+            None => Status::NotApplicable,
+        };
+
         let direction = Status::Pass; // todo
 
         let tag_frame = match backbone.his_tag {
@@ -92,6 +104,7 @@ impl AutocloneStatus {
         Self {
             rbs_dist,
             downstream_of_promoter,
+            upstream_of_terminator,
             direction,
             tag_frame,
         }
