@@ -181,7 +181,7 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
                 if let Some(metrics) = &primer.volatile.metrics {
                     state.ui.pcr = PcrUi {
                         primer_tm: metrics.melting_temp,
-                        product_len: primer.sequence.len(),
+                        product_len: state.get_seq().len(),
                         primer_selected: state.ui.pcr.primer_selected,
                         ..Default::default()
                     };

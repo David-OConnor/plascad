@@ -42,8 +42,22 @@ impl PolymeraseType {
     pub fn extension_time(&self, product_len: usize) -> u16 {
         match self {
             Self::NormalFidelity => (60 * product_len / 1_000) as u16,
-            // 15 - 30. 15 recommended in FastCloning guide.
-            Self::HighFidelity => (15 * product_len / 1_000) as u16,
+            // 15 - 30. 15 recommended in FastCloning guide. PHusion manual: 15-30s/kb.
+            Self::HighFidelity => (15 * product_len / 1_000) as u16, //
+        }
+    }
+
+    pub fn denaturation(&self) -> TempTime {
+        match self {
+            Self::NormalFidelity => TempTime::new(94., 30),
+            Self::HighFidelity => TempTime::new(98., 10),  // pHusion manual: 5-10s.
+        }
+    }
+
+    pub fn denaturation_initial(&self) -> TempTime {
+        match self {
+            Self::NormalFidelity => TempTime::new(94., 120),
+            Self::HighFidelity => TempTime::new(98., 30),
         }
     }
 
@@ -69,16 +83,15 @@ pub struct PcrParams {
 impl PcrParams {
     pub fn new(data: &PcrUi) -> Self {
         Self {
-            // 94-98? 30-120s?
-            initial_denaturation: TempTime::new(94., 120),
-            // 94-98? 10-30s?
-            denaturation: TempTime::new(94., 30),
+            initial_denaturation: data.polymerase_type.denaturation_initial(),
+            denaturation: data.polymerase_type.denaturation(),
             // Alternative: Ta = 0.3 x  Tm(primer) + 0.7 Tm(product) – 14.9.
-            annealing: TempTime::new(data.primer_tm - 5., 30), // 15-60s. How do we choose.
+            // 15-60s. How do we choose?. Phusion manual: 10-30s.
+            annealing: TempTime::new(data.primer_tm - 5., 30),
             // 72 is good if Taq, and Phusion.
             extension: TempTime::new(72., data.polymerase_type.extension_time(data.product_len)),
-            // Alternatively: 5-10 mins? Perhaps 30s per 1kb?)
-            final_extension: TempTime::new(72., 60),
+            // Alternatively: 5-10 mins? Perhaps 30s per 1kb?) Phusion manual: 5-10m.
+            final_extension: TempTime::new(72., 60 * 6),
             num_cycles: data.num_cycles,
         }
     }
