@@ -11,7 +11,7 @@ use crate::{
     file_io::GenericData,
     gui::navigation::{Page, PageSeq},
     ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
-    primer::make_cloning_primers,
+    primer::{make_cloning_primers, PrimerDirection},
     restriction_enzyme::{find_re_matches, RestrictionEnzyme},
     sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq},
     util::RangeIncl,
@@ -27,6 +27,22 @@ pub const RBS_BUFFER: usize = 7;
 
 pub const RBS_BUFFER_MIN: isize = 4;
 pub const RBS_BUFFER_MAX: isize = 11;
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum BackboneSelected {
+    /// A backbone from our library; index.
+    Library(usize),
+    /// The current tab.
+    // Opened(usize),
+    Opened,
+    None,
+}
+
+impl Default for BackboneSelected {
+    fn default() -> Self {
+        Self::None
+    }
+}
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum Status {
@@ -224,7 +240,22 @@ impl AutocloneStatus {
 
         let tag_frame = match backbone.his_tag {
             Some(tag_range) => {
-                let dist_from_start_codon = (tag_range.start - insert_loc) + insert_len;
+                let dist_from_start_codon = match backbone.direction {
+                    PrimerDirection::Forward => {
+                        (tag_range.start - insert_loc % backbone.seq.len()) + insert_len
+                    }
+                    // todo: QC this.
+                    PrimerDirection::Reverse => {
+                        let tag_end = tag_range.end % backbone.seq.len();
+                        if insert_loc < tag_end {
+                            eprintln!("Error with insert loc and tag end. Insert loc: {insert_loc}, tag end: {tag_end}. Backbone: {}", backbone.name);
+                            1 // triggers a fail.
+                        } else {
+                            (insert_loc - tag_end) + insert_len
+                        }
+                    }
+                };
+
                 if dist_from_start_codon % 3 == 0 {
                     Status::Pass
                 } else {

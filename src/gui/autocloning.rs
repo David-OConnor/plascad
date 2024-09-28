@@ -3,23 +3,21 @@ use core::fmt;
 use eframe::egui::{Color32, ComboBox, Frame, Grid, RichText, Stroke, TextEdit, Ui, Vec2};
 use strum::IntoEnumIterator;
 
-use crate::{gui::find_features, util::merge_feature_sets};
-
 use crate::{
-    backbones::{BackboneFilters, CloningTechnique},
+    backbones::{Backbone, BackboneFilters, CloningTechnique},
     cloning::{
-        find_re_candidates, make_product_tab, setup_insert_seqs, AutocloneStatus,
+        find_re_candidates, make_product_tab, setup_insert_seqs, AutocloneStatus, BackboneSelected,
         CloningInsertData, Status, RE_INSERT_BUFFER,
     },
     file_io::save::load_import,
     gui::{
-        lin_maps::seq_lin_disp, navigation::get_tabs, select_color_text, COL_SPACING, ROW_SPACING,
+        find_features, lin_maps::seq_lin_disp, navigation::get_tabs, select_color_text,
+        COL_SPACING, ROW_SPACING,
     },
-    sequence::seq_from_str, sequence::seq_to_str,
-    util::RangeIncl,
+    sequence::{seq_from_str, seq_to_str},
+    util::{merge_feature_sets, RangeIncl},
     State,
 };
-
 
 const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;
 const FAIL_COLOR: Color32 = Color32::LIGHT_RED;
@@ -232,6 +230,54 @@ fn backbone_filters(filters: &mut BackboneFilters, ui: &mut Ui) {
     });
 }
 
+/// A UI element that allows the user to choose which backbone to clone into.
+fn backbone_selector(
+    backbone_selected: &mut BackboneSelected,
+    backbones: &[&Backbone],
+    plasmid_name: &str,
+    ui: &mut Ui,
+) {
+    let selected = *backbone_selected == BackboneSelected::Opened;
+    if ui
+        .button(select_color_text(
+            &format!("This plasmid ({})", plasmid_name),
+            selected,
+        ))
+        .clicked()
+    {
+        // todo: Unselect if selected
+        *backbone_selected = BackboneSelected::Opened;
+    }
+    ui.add_space(ROW_SPACING);
+
+    Grid::new("0").spacing(Vec2::new(60., 6.)).show(ui, |ui| {
+        for (i, backbone) in backbones.iter().enumerate() {
+            let selected = match backbone_selected {
+                BackboneSelected::Library(b) => *b == i,
+                _ => false,
+            };
+
+            // todo: Fn for this button selecting/green
+            if ui
+                .button(select_color_text(&backbone.name, selected))
+                .clicked()
+            {
+                // todo: Unselect if selected
+                *backbone_selected = BackboneSelected::Library(i);
+            }
+
+            if let Some(addgene_url) = backbone.addgene_url() {
+                if ui.button("View on AddGene").clicked() {
+                    if let Err(e) = webbrowser::open(&addgene_url) {
+                        eprintln!("Failed to open the web browser: {:?}", e);
+                    }
+                }
+            }
+            ui.end_row();
+        }
+    });
+}
+
 pub fn cloning_page(state: &mut State, ui: &mut Ui) {
     ui.heading("Cloning");
     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
@@ -254,35 +300,18 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
     backbone_filters(&mut state.ui.backbone_filters, ui);
     ui.add_space(ROW_SPACING);
 
-    let mut backbones_filtered = state.ui.backbone_filters.apply(&state.backbone_lib);
-    Grid::new("0").spacing(Vec2::new(60., 6.)).show(ui, |ui| {
-        for (i, backbone) in backbones_filtered.iter().enumerate() {
-            let selected = match state.backbone_selected {
-                Some(b) => b == i,
-                None => false,
-            };
+    let backbones_filtered = state.ui.backbone_filters.apply(&state.backbone_lib);
 
-            // todo: Fn for this button selecting/green
-            if ui
-                .button(select_color_text(&backbone.name, selected))
-                .clicked()
-            {
-                // todo: Unselect if selected
-                state.backbone_selected = Some(i);
-            }
+    let plasmid_name = &state.generic[state.active].metadata.plasmid_name;
+    backbone_selector(
+        &mut state.backbone_selected,
+        &backbones_filtered,
+        plasmid_name,
+        ui,
+    );
 
-            if let Some(addgene_url) = backbone.addgene_url() {
-                if ui.button("View on AddGene").clicked() {
-                    if let Err(e) = webbrowser::open(&addgene_url) {
-                        eprintln!("Failed to open the web browser: {:?}", e);
-                    }
-                }
-            }
-            ui.end_row();
-        }
-    });
-
-    if let Some(bb_i) = state.backbone_selected {
+    // todo: Opened.
+    if let BackboneSelected::Library(bb_i) = state.backbone_selected {
         if bb_i >= state.backbone_lib.len() {
             eprintln!("Invalid index in backbone lib");
             return;
@@ -352,7 +381,11 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                 merge_feature_sets(&mut state.generic[state.active].features, &features)
             }
         }
+    }
 
+    ui.add_space(ROW_SPACING);
+
+    ui.horizontal(|ui| {
         ui.label("Insert location: ");
         let mut entry = state.cloning_insert_loc.to_string();
         if ui
@@ -363,15 +396,15 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         }
 
         ui.add_space(COL_SPACING);
+    });
 
-        let resp_insert_editor = ui.add(
-            TextEdit::multiline(&mut state.ui.cloning_insert.seq_input)
-                .desired_width(ui.available_width()),
-        );
-        if resp_insert_editor.changed() {
-            // Forces only valid NTs to be included in the string.
-            state.ui.cloning_insert.seq_insert = seq_from_str(&state.ui.cloning_insert.seq_input);
-            state.ui.cloning_insert.seq_input = seq_to_str(&state.ui.cloning_insert.seq_insert);
-        }
+    let resp_insert_editor = ui.add(
+        TextEdit::multiline(&mut state.ui.cloning_insert.seq_input)
+            .desired_width(ui.available_width()),
+    );
+    if resp_insert_editor.changed() {
+        // Forces only valid NTs to be included in the string.
+        state.ui.cloning_insert.seq_insert = seq_from_str(&state.ui.cloning_insert.seq_input);
+        state.ui.cloning_insert.seq_input = seq_to_str(&state.ui.cloning_insert.seq_insert);
     }
 }

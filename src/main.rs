@@ -42,6 +42,7 @@ use sequence::Seq;
 use crate::{
     amino_acids::AaIdent,
     backbones::{load_backbone_library, Backbone, BackboneFilters},
+    cloning::BackboneSelected,
     file_io::{
         save::{
             save, StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
@@ -480,7 +481,7 @@ struct State {
     search_seq: Seq,
     /// For auto-cloning
     /// todo: Auto-cloning sub-section A/R for these
-    backbone_selected: Option<usize>,
+    backbone_selected: BackboneSelected,
     /// For autocloning
     // cloning_res_matched:Vec<usize>, // todo: A/R
     cloning_res_matched: Vec<RestrictionEnzyme>,

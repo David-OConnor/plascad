@@ -6,7 +6,7 @@ use std::{fmt, fmt::Formatter};
 
 use strum_macros::EnumIter;
 
-use crate::primer::PrimerDirection;
+use crate::primer::PrimerDirection::{self, *};
 // todo: Consider auto-inferring the T7 and other promoter site instead of hard-coding.
 use crate::{
     cloning::RBS_BUFFER,
@@ -158,13 +158,42 @@ impl Backbone {
                     Some(his) => {
                         match self.rbs {
                             Some(rbs) => {
-                                let mut loc = rbs.end + RBS_BUFFER - 1;
+                                match self.direction {
+                                    Forward => {
+                                        let mut loc = rbs.end + RBS_BUFFER - 1;
 
-                                while (his.start - loc + 1) % 3 != 0 {
-                                    loc += 1;
+                                        if his.start < loc {
+                                            eprintln!(
+                                                "Error: His tag start is below location for {}",
+                                                self.name
+                                            );
+                                            return None;
+                                        }
+
+                                        while (his.start - loc + 1) % 3 != 0 {
+                                            if loc == self.seq.len() - 1 {
+                                                loc = 1; // Wrap around origin.
+                                            } else {
+                                                loc += 1;
+                                            }
+                                        }
+
+                                        loc
+                                    }
+                                    Reverse => {
+                                        let mut loc = rbs.end - RBS_BUFFER + 1;
+
+                                        while (his.start + loc - 1) % 3 != 0 {
+                                            if loc == 1 {
+                                                loc = self.seq.len(); // Wrap around origin.
+                                            } else {
+                                                loc -= 1;
+                                            }
+                                        }
+
+                                        loc
+                                    }
                                 }
-
-                                loc
                             }
                             None => 0, // todo
                         }
@@ -301,7 +330,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::Low,
             his_tag: Some(RangeIncl::new(4171, 4188)),
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Forward,
+            direction: Forward,
         },
         Backbone {
             name: "pET LIC cloning vector (2A-T)".to_owned(),
@@ -317,7 +346,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::Low,
             his_tag: None,
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Forward,
+            direction: Forward,
         },
         // https://www.snapgene.com/plasmids/pet_and_duet_vectors_(novagen)/pET-21(%2B)
         Backbone {
@@ -334,7 +363,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::Low,
             his_tag: Some(RangeIncl::new(140, 157)),
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Reverse,
+            direction: Reverse,
         },
         // https://www.snapgene.com/plasmids/pet_and_duet_vectors_(novagen)/pET-28a(%2B)
         Backbone {
@@ -351,7 +380,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::Low,
             his_tag: Some(RangeIncl::new(270, 287)),
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Reverse,
+            direction: Reverse,
         },
         // https://www.addgene.org/54762/
         Backbone {
@@ -368,7 +397,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::High,
             his_tag: Some(RangeIncl::new(1905, 1992)),
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Forward,
+            direction: Forward,
         },
         // https://www.addgene.org/21877/
         Backbone {
@@ -385,7 +414,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::High,
             his_tag: None,
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Forward,
+            direction: Forward,
         },
         // https://www.addgene.org/26094/
         Backbone {
@@ -403,7 +432,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             // note: 2. And 2497, 2514, but the former lines up with the promoter and RBS.
             his_tag: Some(RangeIncl::new(408, 425)),
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Forward,
+            direction: Forward,
         },
         // https://www.snapgene.com/plasmids/image_consortium_plasmids/pUC19
         Backbone {
@@ -420,7 +449,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::High,
             his_tag: None,
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Reverse
+            direction: Reverse
         },
         // https://www.addgene.org/50005/
         Backbone {
@@ -437,7 +466,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::High,
             his_tag: None,
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Forward,
+            direction: Forward,
         },
         // https://www.snapgene.com/plasmids/basic_cloning_vectors/pGEM-T
         Backbone {
@@ -454,7 +483,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::High,
             his_tag: None,
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Reverse
+            direction: Reverse
         },
         // https://www.snapgene.com/plasmids/ta_and_gc_cloning_vectors/pTZ57R_T
         Backbone {
@@ -471,7 +500,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::High,
             his_tag: None,
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Reverse
+            direction: Reverse
         },
         // https://www.snapgene.com/plasmids/basic_cloning_vectors/pJET1.2
         Backbone {
@@ -488,7 +517,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::High,
             his_tag: None,
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Reverse
+            direction: Reverse
         },
         // https://www.snapgene.com/plasmids/image_consortium_plasmids/pBluescript_II_SK(%2B)
         Backbone {
@@ -505,7 +534,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::High,
             his_tag: None,
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Reverse
+            direction: Reverse
         },
         // https://www.snapgene.com/plasmids/basic_cloning_vectors/pBR322
         Backbone {
@@ -522,7 +551,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::Low,
             his_tag: None,
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Reverse
+            direction: Reverse
         },
         // https://www.addgene.org/41187/
         Backbone {
@@ -539,7 +568,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             copy_number: CopyNumber::Low,
             his_tag: Some(RangeIncl::new(105, 122)),
             seq_topology: SeqTopology::Circular,
-            direction: PrimerDirection::Reverse
+            direction: Reverse
         },
     ]
 }
