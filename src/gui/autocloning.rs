@@ -1,6 +1,7 @@
 use core::fmt;
+use std::borrow::Cow;
 
-use eframe::egui::{Color32, ComboBox, Frame, Grid, RichText, Stroke, TextEdit, Ui, Vec2};
+use eframe::egui::{Color32, ComboBox, Frame, Grid, RichText, ScrollArea, Stroke, TextEdit, Ui, Vec2};
 use strum::IntoEnumIterator;
 
 use crate::{
@@ -18,6 +19,8 @@ use crate::{
     util::{merge_feature_sets, RangeIncl},
     State,
 };
+use crate::file_io::GenericData;
+use crate::sequence::FeatureType;
 
 const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;
 const FAIL_COLOR: Color32 = Color32::LIGHT_RED;
@@ -54,6 +57,11 @@ fn filter_selector<T: fmt::Display + PartialEq + Copy + IntoEnumIterator>(
 /// for restriction-enzyme cloning, while no buffer is required for PCR-based cloning.
 fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) {
     for (i, feature) in data.features_loaded.iter().enumerate() {
+        // match feature.feature_type {
+        //     FeatureType::CodingRegion | FeatureType::Generic | FeatureType::Gene => (),
+        //     _ => continue,
+        // }
+
         let mut border_width = 0.;
         if let Some(j) = data.feature_selected {
             if i == j {
@@ -111,6 +119,7 @@ fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) {
     }
 }
 
+/// Choose from files to select an insert from.
 fn insert_file_section(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.label("Choose insert from:");
@@ -284,139 +293,156 @@ fn backbone_selector(
 }
 
 pub fn cloning_page(state: &mut State, ui: &mut Ui) {
-    ui.heading("Cloning");
-    ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
+    ScrollArea::vertical().id_source(100).show(ui, |ui| {
+        ui.heading("Cloning");
+        ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
     to clone the insert into the backbone.");
 
-    ui.add_space(ROW_SPACING);
+        ui.add_space(ROW_SPACING);
 
-    // todo: Replace this with something more appropriate; ie a sub-call of it etc that shows teh backbone
-    // todo or backbone with insert.
-    seq_lin_disp(state, ui, true, state.active, &state.ui.re.res_selected);
-    ui.add_space(ROW_SPACING);
-
-    insert_file_section(state, ui);
-    ui.add_space(ROW_SPACING);
-
-    insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
-    ui.add_space(ROW_SPACING);
-
-    ui.heading("Backbones (vectors)");
-    backbone_filters(&mut state.ui.backbone_filters, ui);
-    ui.add_space(ROW_SPACING);
-
-    let backbones_filtered = state.ui.backbone_filters.apply(&state.backbone_lib);
-
-    let plasmid_name = &state.generic[state.active].metadata.plasmid_name;
-    backbone_selector(
-        &mut state.backbone_selected,
-        &backbones_filtered,
-        plasmid_name,
-        ui,
-    );
-
-    let binding = Backbone::from_opened(&state.generic[state.active]);
-
-    let bb = match state.backbone_selected {
-        BackboneSelected::Library(i) => {
-            if i >= state.backbone_lib.len() {
-                eprintln!("Invalid index in backbone lib");
-                return;
+        let data: Option<Cow<'_, GenericData>> = match state.backbone_selected {
+            BackboneSelected::Library(i) => {
+                if i >= state.backbone_lib.len() {
+                    eprintln!("Invalid index in backbone lib");
+                    None
+                } else {
+                    Some(Cow::Owned(state.backbone_lib[i].make_generic_data()))
+                }
             }
-            Some(&state.backbone_lib[i])
-        }
-        BackboneSelected::Opened => Some(&binding),
-        BackboneSelected::None => None,
-    };
+            BackboneSelected::Opened => Some(Cow::Borrowed(&state.generic[state.active])),
+            BackboneSelected::None => None,
+        };
 
-    if let Some(backbone) = bb {
-        // todo: Cache all relevant calcs you are currently doing here! For example, only when you change vector,
-        // todo: or when the sequence changes. (Eg with state sync fns)
-        state.cloning_res_matched = find_re_candidates(
-            &backbone,
-            &state.ui.cloning_insert.seq_insert,
-            &state.restriction_enzyme_lib,
-            &state.volatile,
+        if let Some(data_) = data {
+            seq_lin_disp(&data_, ui, true, state.ui.selected_item, &state.ui.re.res_selected);
+            ui.add_space(ROW_SPACING);
+        }
+
+        insert_file_section(state, ui);
+        ui.add_space(ROW_SPACING);
+
+        insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
+        ui.add_space(ROW_SPACING);
+
+        ui.heading("Backbones (vectors)");
+        backbone_filters(&mut state.ui.backbone_filters, ui);
+        ui.add_space(ROW_SPACING);
+
+        // todo: Cache this
+        let backbones_filtered = state.ui.backbone_filters.apply(&state.backbone_lib);
+
+        let plasmid_name = &state.generic[state.active].metadata.plasmid_name;
+        backbone_selector(
+            &mut state.backbone_selected,
+            &backbones_filtered,
+            plasmid_name,
+            ui,
         );
 
-        if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
-            state.cloning_insert_loc = insert_loc;
-        }
+        let binding = Backbone::from_opened(&state.generic[state.active]);
 
-        state.autoclone_status = AutocloneStatus::new(
-            &backbone,
-            state.cloning_insert_loc,
-            state.ui.cloning_insert.seq_insert.len(),
-        );
+        let bb = match state.backbone_selected {
+            BackboneSelected::Library(i) => {
+                if i >= state.backbone_lib.len() {
+                    eprintln!("Invalid index in backbone lib");
+                    return;
+                }
+                Some(&state.backbone_lib[i])
+            }
+            BackboneSelected::Opened => Some(&binding),
+            BackboneSelected::None => None,
+        };
+        // todo: End cache for now.
 
-        let rbs_dist = backbone
-            .rbs
-            .map(|r| state.cloning_insert_loc as isize - r.end as isize);
+        if let Some(backbone) = bb {
+            // todo: Cache all relevant calcs you are currently doing here! For example, only when you change vector,
+            // todo: or when the sequence changes. (Eg with state sync fns)
+            state.cloning_res_matched = find_re_candidates(
+                &backbone,
+                &state.ui.cloning_insert.seq_insert,
+                &state.restriction_enzyme_lib,
+                &state.volatile,
+            );
 
-        // todo: End calcs to cache.
+            if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
+                state.cloning_insert_loc = insert_loc;
+            }
 
-        ui.add_space(ROW_SPACING);
-        ui.label("Restriction enzymes:");
-        if state.cloning_res_matched.is_empty() {
-            ui.label("(None)");
-        }
+            state.autoclone_status = AutocloneStatus::new(
+                &backbone,
+                state.cloning_insert_loc,
+                state.ui.cloning_insert.seq_insert.len(),
+            );
 
-        for candidate in &state.cloning_res_matched {
-            ui.label(&candidate.name);
-        }
+            let rbs_dist = backbone
+                .rbs
+                .map(|r| state.cloning_insert_loc as isize - r.end as isize);
 
-        ui.add_space(ROW_SPACING);
+            // todo: End calcs to cache.
 
-        if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
-            ui.horizontal(|ui| {
-                ui.label("Insert location (PCR):");
-                ui.label(RichText::new(format!("{insert_loc}")).color(Color32::LIGHT_BLUE));
-            });
-        }
-        ui.add_space(ROW_SPACING);
-
-        // todo: Only if there is a result
-        if true {
             ui.add_space(ROW_SPACING);
-            checklist(&state.autoclone_status, rbs_dist, ui);
+            ui.label("Restriction enzymes:");
+            if state.cloning_res_matched.is_empty() {
+                ui.label("(None)");
+            }
+
+            for candidate in &state.cloning_res_matched {
+                ui.label(&candidate.name);
+            }
 
             ui.add_space(ROW_SPACING);
 
+            if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
+                ui.horizontal(|ui| {
+                    ui.label("Insert location (PCR):");
+                    ui.label(RichText::new(format!("{insert_loc}")).color(Color32::LIGHT_BLUE));
+                });
+            }
+            ui.add_space(ROW_SPACING);
+
+            // todo: Only if there is a result
+            if true {
+                ui.add_space(ROW_SPACING);
+                checklist(&state.autoclone_status, rbs_dist, ui);
+
+                ui.add_space(ROW_SPACING);
+
+                if ui
+                    .button(RichText::new("Clone (PCR)").color(Color32::GOLD))
+                    .clicked()
+                {
+                    make_product_tab(state, Some(backbone.make_generic_data()));
+                    // Annotate the vector, for now at least.
+                    let features = find_features(&state.get_seq());
+                    // We assume the product has been made active.
+                    merge_feature_sets(&mut state.generic[state.active].features, &features)
+                }
+            }
+        }
+
+        ui.add_space(ROW_SPACING);
+
+        ui.horizontal(|ui| {
+            ui.label("Insert location: ");
+            let mut entry = state.cloning_insert_loc.to_string();
             if ui
-                .button(RichText::new("Clone (PCR)").color(Color32::GOLD))
-                .clicked()
+                .add(TextEdit::singleline(&mut entry).desired_width(40.))
+                .changed()
             {
-                make_product_tab(state, Some(backbone.make_generic_data()));
-                // Annotate the vector, for now at least.
-                let features = find_features(&state.get_seq());
-                // We assume the product has been made active.
-                merge_feature_sets(&mut state.generic[state.active].features, &features)
+                state.cloning_insert_loc = entry.parse().unwrap_or(0);
             }
+
+            ui.add_space(COL_SPACING);
+        });
+
+        let resp_insert_editor = ui.add(
+            TextEdit::multiline(&mut state.ui.cloning_insert.seq_input)
+                .desired_width(ui.available_width()),
+        );
+        if resp_insert_editor.changed() {
+            // Forces only valid NTs to be included in the string.
+            state.ui.cloning_insert.seq_insert = seq_from_str(&state.ui.cloning_insert.seq_input);
+            state.ui.cloning_insert.seq_input = seq_to_str(&state.ui.cloning_insert.seq_insert);
         }
-    }
-
-    ui.add_space(ROW_SPACING);
-
-    ui.horizontal(|ui| {
-        ui.label("Insert location: ");
-        let mut entry = state.cloning_insert_loc.to_string();
-        if ui
-            .add(TextEdit::singleline(&mut entry).desired_width(40.))
-            .changed()
-        {
-            state.cloning_insert_loc = entry.parse().unwrap_or(0);
-        }
-
-        ui.add_space(COL_SPACING);
     });
-
-    let resp_insert_editor = ui.add(
-        TextEdit::multiline(&mut state.ui.cloning_insert.seq_input)
-            .desired_width(ui.available_width()),
-    );
-    if resp_insert_editor.changed() {
-        // Forces only valid NTs to be included in the string.
-        state.ui.cloning_insert.seq_insert = seq_from_str(&state.ui.cloning_insert.seq_input);
-        state.ui.cloning_insert.seq_input = seq_to_str(&state.ui.cloning_insert.seq_insert);
-    }
 }

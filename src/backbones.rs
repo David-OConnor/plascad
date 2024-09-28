@@ -115,6 +115,12 @@ pub enum BackboneGene {
     SacB,
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum CloningTechnique {
+    RestrictionEnzyme,
+    Pcr,
+}
+
 pub struct Backbone {
     pub name: String,
     pub addgene_id: Option<u32>,
@@ -178,15 +184,7 @@ impl Backbone {
             direction,
         }
     }
-}
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum CloningTechnique {
-    RestrictionEnzyme,
-    Pcr,
-}
-
-impl Backbone {
     /// Find the vector insertion point.
     pub fn insert_loc(&self, technique: CloningTechnique) -> Option<usize> {
         match technique {

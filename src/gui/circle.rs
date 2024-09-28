@@ -1027,11 +1027,11 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
 
             if let Some(cursor_i) = state.ui.cursor_seq_i {
                 shapes.append(&mut lin_maps::lin_map_zoomed(
-                    state,
+                    &state.generic[state.active],
                     &data.to_screen,
                     cursor_i,
                     MINI_DISP_NT_LEN,
-                    state.active,
+                    state.ui.selected_item,
                     ui,
                 ));
             }

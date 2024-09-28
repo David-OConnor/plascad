@@ -84,7 +84,7 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
 
     ui.heading("PCR product generation");
 
-    lin_maps::seq_lin_disp(state, ui, false, state.active, &Vec::new());
+    lin_maps::seq_lin_disp(&state.generic[state.active], ui, false, state.ui.selected_item, &Vec::new());
     ui.add_space(ROW_SPACING / 2.);
 
     if num_primers >= 2 {

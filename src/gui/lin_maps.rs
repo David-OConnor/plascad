@@ -19,6 +19,7 @@ use crate::{
     util::{map_linear, RangeIncl},
     Selection, State,
 };
+use crate::file_io::GenericData;
 
 // How many nucleotides the zoomed-in display at the top of the page represents.
 // A smaller value corresponds to a more zoomed-in display.
@@ -308,18 +309,18 @@ fn draw_re_sites(
 /// A general purpose linear sequence view, used on several pages.
 /// This shows features, primers, and index ticks.
 pub fn draw_linear_map(
-    state: &State,
+    data: &GenericData,
     to_screen: &RectTransform,
     index_left: usize,
     index_right: usize,
     show_re_sites: bool,
-    active: usize,
     res_highlighted: &[RestrictionEnzyme],
+    selected_item: Selection,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    let seq_full_len = state.generic[active].seq.len();
+    let seq_full_len = data.seq.len();
 
     if seq_full_len < 10 {
         return result;
@@ -359,11 +360,11 @@ pub fn draw_linear_map(
     };
 
     result.append(&mut draw_features(
-        &state.generic[active].features,
+        &data.features,
         seq_full_len,
         to_screen,
         disp_range,
-        state.ui.selected_item,
+        selected_item,
         index_to_x,
         pixel_left,
         pixel_right,
@@ -371,29 +372,30 @@ pub fn draw_linear_map(
     ));
 
     result.append(&mut draw_primers(
-        &state.generic[active].primers,
+        &data.primers,
         seq_full_len,
         to_screen,
         disp_range,
-        state.ui.selected_item,
+        selected_item,
         index_to_x,
         pixel_left,
         pixel_right,
         ui,
     ));
 
-    if state.ui.seq_visibility.show_res && show_re_sites {
-        result.append(&mut draw_re_sites(
-            &state.volatile[active].restriction_enzyme_matches,
-            &state.restriction_enzyme_lib,
-            to_screen,
-            index_to_x,
-            state.ui.re.unique_cutters_only,
-            state.ui.re.sticky_ends_only,
-            res_highlighted,
-            ui,
-        ));
-    }
+    // todo: Put back. Temp removed during a fecator Sep 2024.
+    // if state.ui.seq_visibility.show_res && show_re_sites {
+    //     result.append(&mut draw_re_sites(
+    //         &state.volatile[active].restriction_enzyme_matches,
+    //         &state.restriction_enzyme_lib,
+    //         to_screen,
+    //         index_to_x,
+    //         state.ui.re.unique_cutters_only,
+    //         state.ui.re.sticky_ends_only,
+    //         res_highlighted,
+    //         ui,
+    //     ));
+    // }
 
     result
 }
@@ -402,16 +404,16 @@ pub fn draw_linear_map(
 /// to show the vector insert point.
 /// set `nt_len` to the sequence len if displaying the whole sequence. Set it to a smaller value for a zoomed in view.
 pub fn lin_map_zoomed(
-    state: &State,
+    data: &GenericData,
     to_screen: &RectTransform,
     nt_center: usize,
     nt_len: usize,
-    active: usize,
+    selection: Selection,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
 
-    let seq_len = state.generic[active].seq.len();
+    let seq_len = data.seq.len();
 
     if seq_len == 0 {
         return result; // Avoid Divide-by-0
@@ -425,13 +427,13 @@ pub fn lin_map_zoomed(
     let index_right = (nt_center + nt_len / 2) % seq_len;
 
     result.append(&mut draw_linear_map(
-        &state,
+        data,
         to_screen,
         index_left,
         index_right,
         true,
-        active,
         &Vec::new(), // todo: Highlighted REs?
+        selection,
         ui,
     ));
 
@@ -441,13 +443,13 @@ pub fn lin_map_zoomed(
 /// Draw a mini sequence display in its own canvas. This displays the entire sequence, and is used on several pages.
 /// We use this where we are not drawing on an existing canvas.
 pub fn seq_lin_disp(
-    state: &State,
+    data: &GenericData,
     ui: &mut Ui,
     show_re_sites: bool,
-    active: usize,
+    selection: Selection,
     res_highlighted: &[RestrictionEnzyme],
 ) {
-    let seq_len = state.generic[active].seq.len();
+    let seq_len = data.seq.len();
     if seq_len == 0 {
         return; // Prevents -1 error.
     }
@@ -466,13 +468,13 @@ pub fn seq_lin_disp(
             );
 
             let shapes = draw_linear_map(
-                &state,
+                data,
                 &to_screen,
                 0,
                 seq_len - 1,
                 show_re_sites,
-                active,
                 res_highlighted,
+                selection,
                 ui,
             );
             ui.painter().extend(shapes);
