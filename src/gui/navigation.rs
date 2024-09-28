@@ -46,7 +46,7 @@ pub enum Page {
     Map,
     Features,
     Primers,
-    Cloning,
+    // Cloning,
     Proteins,
     /// Determine optimal PCR parameters
     Pcr,
@@ -72,12 +72,13 @@ impl Display for Page {
             Self::Pcr => "PCR",
             Self::Features => "Features",
             Self::Primers => "Primers",
-            Self::Cloning => "PCR cloning",
+            // Self::Cloning => "PCR cloning",
             Self::Proteins => "Proteins",
             Self::Portions => "Mixing",
             Self::Metadata => "Data",
             Self::Ligation => "Digest",
-            Self::AutoCloning => "Assisted cloning",
+            // Self::AutoCloning => "Assisted cloning",
+            Self::AutoCloning => "Clone",
         }
         .to_owned();
         write!(f, "{}", str)
@@ -158,7 +159,7 @@ pub fn page_selector(state: &mut State, ui: &mut Ui) {
         page_button(&mut state.ui.page, Page::Features, ui, true);
         page_button(&mut state.ui.page, Page::Primers, ui, true);
         page_button(&mut state.ui.page, Page::Proteins, ui, true);
-        page_button(&mut state.ui.page, Page::Cloning, ui, true);
+        // page_button(&mut state.ui.page, Page::Cloning, ui, true);
         page_button(&mut state.ui.page, Page::Pcr, ui, true);
         page_button(&mut state.ui.page, Page::Ligation, ui, true);
         page_button(&mut state.ui.page, Page::Metadata, ui, true);

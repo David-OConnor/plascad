@@ -1,25 +1,29 @@
 use core::fmt;
 
-use eframe::egui::{Color32, ComboBox, Grid, RichText, Ui, Vec2};
+use eframe::egui::{Color32, ComboBox, Frame, Grid, RichText, Stroke, TextEdit, Ui, Vec2};
 use strum::IntoEnumIterator;
 
 use crate::{gui::find_features, util::merge_feature_sets};
 
+use crate::{
+    backbones::{BackboneFilters, CloningTechnique},
+    cloning::{
+        find_re_candidates, make_product_tab, setup_insert_seqs, AutocloneStatus,
+        CloningInsertData, Status, RE_INSERT_BUFFER,
+    },
+    file_io::save::load_import,
+    gui::{
+        lin_maps::seq_lin_disp, navigation::get_tabs, select_color_text, COL_SPACING, ROW_SPACING,
+    },
+    sequence::seq_from_str, sequence::seq_to_str,
+    util::RangeIncl,
+    State,
+};
+
+
 const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;
 const FAIL_COLOR: Color32 = Color32::LIGHT_RED;
 const NA_COLOR: Color32 = Color32::GOLD;
-
-use crate::{
-    autocloning::{find_re_candidates, AutocloneStatus, Status, RE_INSERT_BUFFER},
-    backbones::{BackboneFilters, CloningTechnique},
-    cloning::make_product_tab,
-    gui::{
-        cloning::{insert_file_section, insert_selector},
-        lin_maps::seq_lin_disp,
-        select_color_text, COL_SPACING, ROW_SPACING,
-    },
-    State,
-};
 
 fn filter_selector<T: fmt::Display + PartialEq + Copy + IntoEnumIterator>(
     name: &str,
@@ -45,6 +49,123 @@ fn filter_selector<T: fmt::Display + PartialEq + Copy + IntoEnumIterator>(
             }
         });
     ui.add_space(COL_SPACING);
+}
+
+/// Draw a selector for the insert, based on loading from a file.
+/// This buffer is in nucleotides, and is on either side of the insert. A buffer of 4-6 nts is ideal
+/// for restriction-enzyme cloning, while no buffer is required for PCR-based cloning.
+fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) {
+    for (i, feature) in data.features_loaded.iter().enumerate() {
+        let mut border_width = 0.;
+        if let Some(j) = data.feature_selected {
+            if i == j {
+                border_width = 1.;
+            }
+        }
+
+        Frame::none()
+            .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
+            .inner_margin(border_width)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    if ui.button("Select").clicked {
+                        data.feature_selected = Some(i);
+
+                        // todo: Handle wraps with this for circular plasmids instead of truncating.
+                        let start = if buffer + 1 < feature.range.start {
+                            feature.range.start - buffer
+                        } else {
+                            1
+                        };
+
+                        let end_ = feature.range.end + buffer;
+                        let end = if end_ + 1 < data.seq_loaded.len() {
+                            end_
+                        } else {
+                            data.seq_loaded.len()
+                        };
+
+                        let buffered_range = RangeIncl::new(start, end);
+                        if let Some(seq_this_ft) = buffered_range.index_seq(&data.seq_loaded) {
+                            seq_this_ft.clone_into(&mut data.seq_insert);
+                        }
+                    }
+
+                    if !feature.label.is_empty() {
+                        ui.label(&feature.label);
+                        ui.add_space(COL_SPACING);
+                    }
+
+                    let (r, g, b) = feature.feature_type.color();
+                    ui.label(
+                        RichText::new(feature.feature_type.to_string())
+                            .color(Color32::from_rgb(r, g, b)),
+                    );
+                    ui.add_space(COL_SPACING);
+
+                    ui.label(feature.location_descrip(data.seq_loaded.len()));
+                    ui.add_space(COL_SPACING);
+
+                    // +1 because it's inclusive.
+                    ui.label(feature.location_descrip(data.seq_loaded.len()));
+                });
+            });
+    }
+}
+
+fn insert_file_section(state: &mut State, ui: &mut Ui) {
+    ui.horizontal(|ui| {
+        ui.label("Choose insert from:");
+
+        let plasmid_names: &Vec<_> = &state
+            .generic
+            .iter()
+            .map(|v| v.metadata.plasmid_name.as_str())
+            .collect();
+
+        // Add buttons for each opened tab
+        for (name, i) in get_tabs(&state.path_loaded, plasmid_names, true) {
+            if ui
+                .button(name)
+                .on_hover_text("Select an insert from this sequence")
+                .clicked()
+            {
+                let gen = &state.generic[i];
+                // This setup, including the break and variables, prevents borrow errors.
+                let g = gen.features.clone();
+                let s = gen.seq.clone();
+                setup_insert_seqs(state, g, s);
+                break;
+            }
+        }
+
+        ui.add_space(COL_SPACING);
+        if ui
+            .button("Pick insert from file")
+            .on_hover_text(
+                "Choose a GenBank, PlasCAD, SnapGene, or FASTA file to \
+        select an insert from. FASTA files require manual index selection.",
+            )
+            .clicked()
+        {
+            state.ui.file_dialogs.cloning_load.select_file();
+        }
+
+        ui.add_space(COL_SPACING);
+
+        state.ui.file_dialogs.cloning_load.update(ui.ctx());
+
+        if let Some(path) = state.ui.file_dialogs.cloning_load.take_selected() {
+            if let Some(state_loaded) = load_import(&path) {
+                // todo: Is there a way to do this without cloning?
+                setup_insert_seqs(
+                    state,
+                    state_loaded.generic.features.clone(),
+                    state_loaded.generic.seq.clone(),
+                );
+            }
+        }
+    });
 }
 
 fn text_from_status(status: Status) -> RichText {
@@ -111,8 +232,8 @@ fn backbone_filters(filters: &mut BackboneFilters, ui: &mut Ui) {
     });
 }
 
-pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
-    ui.heading("Assisted cloning (Work in progress)");
+pub fn cloning_page(state: &mut State, ui: &mut Ui) {
+    ui.heading("Cloning");
     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
     to clone the insert into the backbone.");
 
@@ -230,6 +351,27 @@ pub fn autocloning_page(state: &mut State, ui: &mut Ui) {
                 // We assume the product has been made active.
                 merge_feature_sets(&mut state.generic[state.active].features, &features)
             }
+        }
+
+        ui.label("Insert location: ");
+        let mut entry = state.cloning_insert_loc.to_string();
+        if ui
+            .add(TextEdit::singleline(&mut entry).desired_width(40.))
+            .changed()
+        {
+            state.cloning_insert_loc = entry.parse().unwrap_or(0);
+        }
+
+        ui.add_space(COL_SPACING);
+
+        let resp_insert_editor = ui.add(
+            TextEdit::multiline(&mut state.ui.cloning_insert.seq_input)
+                .desired_width(ui.available_width()),
+        );
+        if resp_insert_editor.changed() {
+            // Forces only valid NTs to be included in the string.
+            state.ui.cloning_insert.seq_insert = seq_from_str(&state.ui.cloning_insert.seq_input);
+            state.ui.cloning_insert.seq_input = seq_to_str(&state.ui.cloning_insert.seq_insert);
         }
     }
 }

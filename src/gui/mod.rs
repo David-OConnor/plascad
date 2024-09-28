@@ -39,7 +39,7 @@ use crate::{
 
 mod autocloning;
 mod circle;
-mod cloning;
+// mod cloning;
 mod feature_table;
 mod input;
 mod ligation;
@@ -122,7 +122,10 @@ fn origin_change(state: &mut State, ui: &mut Ui) {
                 state.ui.new_origin = entry.parse().unwrap_or(0);
             }
 
-            if ui.button("Set").clicked() {
+            if ui
+                .button(RichText::new("Set").color(Color32::GOLD))
+                .clicked()
+            {
                 util::change_origin(state);
             }
 
@@ -362,9 +365,10 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Map => circle::circle_page(state, ui),
             Page::Features => feature_table::features_page(state, ui),
             Page::Primers => primer_details(state, ui),
-            Page::Cloning => {
-                cloning::seq_editor_slic(state, ui);
-            }
+            // Page::Cloning => {
+            //     cloning::seq_editor_slic(state, ui);
+            // }
+            Page::AutoCloning => autocloning::cloning_page(state, ui),
             Page::Ligation => ligation::ligation_page(state, ui),
             Page::Proteins => protein::protein_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
@@ -372,7 +376,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 metadata::metadata_page(&mut state.generic[state.active].metadata, ui)
             }
             Page::Portions => portions::portions_page(&mut state.portions[state.active], ui),
-            Page::AutoCloning => autocloning::autocloning_page(state, ui),
+            // Page::AutoCloning => autocloning::autocloning_page(state, ui),
             // });
         }
     });

@@ -26,6 +26,7 @@ impl Nucleotide {
 }
 
 /// A DNA nucleotide. The u8 repr is for use with a compact binary format.
+/// This is the same nucleotide mapping as [.2bit format](http://genome.ucsc.edu/FAQ/FAQformat.html#format7).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Encode, Decode, TryFromPrimitive)]
 #[repr(u8)]
 pub enum Nucleotide {
@@ -36,7 +37,7 @@ pub enum Nucleotide {
 }
 
 impl Nucleotide {
-    /// For parsing from FASTA and SnapGene compatibility.
+    /// For interop with FASTA, GenBank, and SnapGene formats.
     pub fn from_u8_letter(val_u8: u8) -> io::Result<Self> {
         match val_u8 {
             b'A' | b'a' => Ok(A),
@@ -50,7 +51,7 @@ impl Nucleotide {
         }
     }
 
-    /// For FASTA and SnapGene compatibility.
+    /// For interop with FASTA, GenBank, and SnapGene formats.
     pub fn to_u8_letter(&self) -> u8 {
         match self {
             A => b'A',
@@ -434,14 +435,12 @@ pub fn seq_weight(seq: &[Nucleotide]) -> f32 {
         result += nt.weight();
     }
 
-    // result -= WATER_WEIGHT * (seq.len() - 1) as f32;
-
     result -= 61.96;
 
     result
 }
 
-/// Calculate GC portion of a sequence, on a scale of 0 to 1.
+/// Calculate portion of a sequence that is either the G or C nucleotide, on a scale of 0 to 1.
 pub fn calc_gc(seq: &[Nucleotide]) -> f32 {
     let num_gc = seq.iter().filter(|&&nt| nt == C || nt == G).count();
     num_gc as f32 / seq.len() as f32

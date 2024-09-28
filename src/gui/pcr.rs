@@ -12,7 +12,7 @@ use crate::{
 
 fn temp_time_disp(tt: &TempTime, label: &str, ui: &mut Ui) {
     ui.label(&format!("{label}:"));
-    ui.label(RichText::new(format!("{}°C", tt.temp)).color(Color32::LIGHT_BLUE));
+    ui.label(RichText::new(format!("{:.0}°C", tt.temp)).color(Color32::LIGHT_BLUE));
     ui.label(RichText::new(format!("{}s", tt.time)).color(Color32::LIGHT_BLUE));
 
     ui.end_row();

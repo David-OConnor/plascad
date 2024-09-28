@@ -9,7 +9,7 @@ use strum_macros::EnumIter;
 use crate::primer::PrimerDirection;
 // todo: Consider auto-inferring the T7 and other promoter site instead of hard-coding.
 use crate::{
-    autocloning::RBS_BUFFER,
+    cloning::RBS_BUFFER,
     file_io::GenericData,
     sequence::{seq_from_str, Feature, FeatureType, SeqTopology},
     util::RangeIncl,

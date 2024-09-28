@@ -234,6 +234,15 @@ pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, ReqError> {
         .timeout_write(Duration::from_secs(HTTP_TIMEOUT))
         .build();
 
+    // todo: TS HTTP500
+    // let a = agent
+    //     .post(PDB_SEARCH_API_URL)
+    //     .set("Content-Type", "application/json")
+    //     .send_string(&payload_json);
+    //
+    // println!("A: {:?}", a);
+    // println!("PAYLOAD JSON: {:?}", payload_json);
+
     let resp: String = agent
         .post(PDB_SEARCH_API_URL)
         .set("Content-Type", "application/json")

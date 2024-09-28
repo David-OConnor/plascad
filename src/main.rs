@@ -28,7 +28,7 @@ use std::{
 };
 
 use bincode::{Decode, Encode};
-use cloning::CloningInsertData;
+use cloning::{AutocloneStatus, CloningInsertData};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{self, egui, egui::Context};
 use egui_file_dialog::{FileDialog, FileDialogConfig};
@@ -41,7 +41,6 @@ use sequence::Seq;
 
 use crate::{
     amino_acids::AaIdent,
-    autocloning::AutocloneStatus,
     backbones::{load_backbone_library, Backbone, BackboneFilters},
     file_io::{
         save::{
@@ -66,7 +65,6 @@ use crate::{
 };
 
 mod amino_acids;
-mod autocloning;
 mod backbones;
 mod cloning;
 mod external_websites;

@@ -50,7 +50,7 @@ impl PolymeraseType {
     pub fn denaturation(&self) -> TempTime {
         match self {
             Self::NormalFidelity => TempTime::new(94., 30),
-            Self::HighFidelity => TempTime::new(98., 10),  // pHusion manual: 5-10s.
+            Self::HighFidelity => TempTime::new(98., 10), // pHusion manual: 5-10s.
         }
     }
 
