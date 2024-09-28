@@ -37,8 +37,8 @@ use crate::{
     Selection, State,
 };
 
-mod autocloning;
 mod circle;
+mod cloning;
 // mod cloning;
 mod feature_table;
 mod input;
@@ -368,7 +368,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
             // Page::Cloning => {
             //     cloning::seq_editor_slic(state, ui);
             // }
-            Page::AutoCloning => autocloning::cloning_page(state, ui),
+            Page::AutoCloning => cloning::cloning_page(state, ui),
             Page::Ligation => ligation::ligation_page(state, ui),
             Page::Proteins => protein::protein_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),

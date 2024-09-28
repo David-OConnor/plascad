@@ -1,159 +1,474 @@
-// todo: unused; delete when ready.
+use core::fmt;
+use std::borrow::Cow;
 
-use eframe::{
-    egui::{pos2, vec2, Frame, Pos2, Rect, RichText, Sense, Shape, Stroke, TextEdit, Ui},
-    emath::RectTransform,
-    epaint::Color32,
+use eframe::egui::{
+    Color32, ComboBox, Frame, Grid, RichText, ScrollArea, Stroke, TextEdit, Ui, Vec2,
 };
+use strum::IntoEnumIterator;
 
 use crate::{
-    cloning::make_product_tab,
-    gui::{
-        autocloning,
-        lin_maps::{lin_map_zoomed, OFFSET},
-        BACKGROUND_COLOR, COL_SPACING, LINEAR_MAP_HEIGHT, ROW_SPACING,
+    backbones::{Backbone, BackboneFilters, CloningTechnique},
+    cloning::{
+        find_re_candidates, make_product_tab, setup_insert_seqs, AutocloneStatus, BackboneSelected,
+        CloningInsertData, Status, RE_INSERT_BUFFER,
     },
-    sequence::{seq_from_str, seq_to_str},
-    util::map_linear,
+    file_io::{save::load_import, GenericData},
+    gui::{
+        find_features, lin_maps::seq_lin_disp, navigation::get_tabs, select_color_text,
+        COL_SPACING, ROW_SPACING,
+    },
+    sequence::{seq_from_str, seq_to_str, FeatureType},
+    util::{merge_feature_sets, RangeIncl},
     State,
 };
 
-/// Draw a mini sequence display in its own canvas. Zoomed in on the cloning insert location, and with
-/// a line drawn on it.
-pub fn seq_lin_disp_cloning(state: &State, ui: &mut Ui) {
-    Frame::canvas(ui.style())
-        .fill(BACKGROUND_COLOR)
-        .show(ui, |ui| {
-            let (response, _painter) = {
-                let desired_size = vec2(ui.available_width(), LINEAR_MAP_HEIGHT);
-                ui.allocate_painter(desired_size, Sense::click())
-            };
+const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;
+const FAIL_COLOR: Color32 = Color32::LIGHT_RED;
+const NA_COLOR: Color32 = Color32::GOLD;
 
-            let to_screen = RectTransform::from_to(
-                Rect::from_min_size(Pos2::ZERO, response.rect.size()),
-                response.rect,
-            );
+fn filter_selector<T: fmt::Display + PartialEq + Copy + IntoEnumIterator>(
+    name: &str,
+    val: &mut Option<T>,
+    id: u32,
+    ui: &mut Ui,
+) {
+    ui.label(name);
 
-            const NT_WIDTH: usize = 400;
+    let text = match val {
+        Some(v) => v.to_string(),
+        None => "Any".to_string(),
+    };
 
-            let mut shapes = lin_map_zoomed(
-                &state,
-                &to_screen,
-                state.cloning_insert_loc,
-                NT_WIDTH,
-                state.active,
-                ui,
-            );
-
-            // todo: The DRY sections below are related to drawing the vertical line at the insert point.
-
-            let seq_len = state.get_seq().len();
-
-            if seq_len == 0 {
-                return; // Avoid divide-by-0
+    ComboBox::from_id_source(id)
+        .width(80.)
+        .selected_text(text)
+        .show_ui(ui, |ui| {
+            ui.selectable_value(val, None, "Any");
+            // todo: Impl Iter on the enums
+            for variant in T::iter() {
+                ui.selectable_value(val, Some(variant), variant.to_string());
             }
-
-            let index_left = (state.cloning_insert_loc as isize - (NT_WIDTH / 2) as isize)
-                .rem_euclid(seq_len as isize) as usize; // Rust awk % on negative values.
-            let index_right = (state.cloning_insert_loc + NT_WIDTH / 2) % seq_len;
-            let pixel_left = OFFSET.x;
-            let pixel_right = ui.available_width() - 2. * OFFSET.x;
-
-            // todo: This segment is DRY from draw_linear_map. Standalone fn etcx. {}    let index_to_x = |mut i: usize| {
-            let index_to_x = |mut i: usize| {
-                // This handles the case when the zoomed-in view is near the top; the left index
-                // will be near the end of the sequence, incorrectly calculating the portion-through in
-                // the linear map.
-                let right = if index_left > index_right {
-                    if i < index_right {
-                        // Ie, we are to the right of the origin.
-                        i += seq_len
-                    }
-
-                    index_right + seq_len
-                } else {
-                    index_right
-                };
-
-                map_linear(
-                    i as f32,
-                    (index_left as f32, right as f32),
-                    (pixel_left, pixel_right),
-                )
-            };
-
-            // Draw the insertion site.
-            let point_top = pos2(index_to_x(state.cloning_insert_loc), 4.);
-            let point_bottom = pos2(index_to_x(state.cloning_insert_loc), 44.);
-
-            shapes.push(Shape::line_segment(
-                [to_screen * point_bottom, to_screen * point_top],
-                Stroke::new(3., Color32::YELLOW),
-            ));
-
-            ui.painter().extend(shapes);
         });
+    ui.add_space(COL_SPACING);
 }
 
-pub fn seq_editor_slic(state: &mut State, ui: &mut Ui) {
-    ui.heading("SLIC and FastCloning");
+/// Draw a selector for the insert, based on loading from a file.
+/// This buffer is in nucleotides, and is on either side of the insert. A buffer of 4-6 nts is ideal
+/// for restriction-enzyme cloning, while no buffer is required for PCR-based cloning.
+fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) {
+    for (i, feature) in data.features_loaded.iter().enumerate() {
+        // match feature.feature_type {
+        //     FeatureType::CodingRegion | FeatureType::Generic | FeatureType::Gene => (),
+        //     _ => continue,
+        // }
 
-    // todo: Once you add this capability.
-    ui.label("Clone a sequence into this one. Below, either paste the insert sequence, or select a \
-    file (GenBank, SnapGene, FASTA, or PlasCAD) containing the insert sequence. Set the insert location: \
-    This is the position in the vector (The currently open sequence) the insert will be placed after. Then click \"Clone\". This will \
-    create and open a new sequence, and create optimized primers for both the insert and vector.");
+        let mut border_width = 0.;
+        if let Some(j) = data.feature_selected {
+            if i == j {
+                border_width = 1.;
+            }
+        }
 
-    ui.add_space(ROW_SPACING);
+        Frame::none()
+            .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
+            .inner_margin(border_width)
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    if ui.button("Select").clicked {
+                        data.feature_selected = Some(i);
 
-    // ui.label(
-    //     "A file dialog will open, prompting you to save a new file for the combined product. Your \
-    // current (vector) file will be saved, and the new cloning product file will be opened.",
-    // );
+                        // todo: Handle wraps with this for circular plasmids instead of truncating.
+                        let start = if buffer + 1 < feature.range.start {
+                            feature.range.start - buffer
+                        } else {
+                            1
+                        };
 
-    // todo: Zoomed in on insert loc, and draw insert loc.
-    seq_lin_disp_cloning(state, ui);
-    ui.add_space(ROW_SPACING / 2.);
+                        let end_ = feature.range.end + buffer;
+                        let end = if end_ + 1 < data.seq_loaded.len() {
+                            end_
+                        } else {
+                            data.seq_loaded.len()
+                        };
 
+                        let buffered_range = RangeIncl::new(start, end);
+                        if let Some(seq_this_ft) = buffered_range.index_seq(&data.seq_loaded) {
+                            seq_this_ft.clone_into(&mut data.seq_insert);
+                        }
+                    }
+
+                    if !feature.label.is_empty() {
+                        ui.label(&feature.label);
+                        ui.add_space(COL_SPACING);
+                    }
+
+                    let (r, g, b) = feature.feature_type.color();
+                    ui.label(
+                        RichText::new(feature.feature_type.to_string())
+                            .color(Color32::from_rgb(r, g, b)),
+                    );
+                    ui.add_space(COL_SPACING);
+
+                    ui.label(feature.location_descrip(data.seq_loaded.len()));
+                    ui.add_space(COL_SPACING);
+
+                    // +1 because it's inclusive.
+                    ui.label(feature.location_descrip(data.seq_loaded.len()));
+                });
+            });
+    }
+}
+
+/// Choose from files to select an insert from.
+fn insert_file_section(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
-        ui.label("Insert location: ");
-        let mut entry = state.cloning_insert_loc.to_string();
+        ui.label("Choose insert from:");
+
+        let plasmid_names: &Vec<_> = &state
+            .generic
+            .iter()
+            .map(|v| v.metadata.plasmid_name.as_str())
+            .collect();
+
+        // Add buttons for each opened tab
+        for (name, i) in get_tabs(&state.path_loaded, plasmid_names, true) {
+            if ui
+                .button(name)
+                .on_hover_text("Select an insert from this sequence")
+                .clicked()
+            {
+                let gen = &state.generic[i];
+                // This setup, including the break and variables, prevents borrow errors.
+                let g = gen.features.clone();
+                let s = gen.seq.clone();
+                setup_insert_seqs(state, g, s);
+                break;
+            }
+        }
+
+        ui.add_space(COL_SPACING);
         if ui
-            .add(TextEdit::singleline(&mut entry).desired_width(40.))
-            .changed()
+            .button("Pick insert from file")
+            .on_hover_text(
+                "Choose a GenBank, PlasCAD, SnapGene, or FASTA file to \
+        select an insert from. FASTA files require manual index selection.",
+            )
+            .clicked()
         {
-            state.cloning_insert_loc = entry.parse().unwrap_or(0);
+            state.ui.file_dialogs.cloning_load.select_file();
         }
 
         ui.add_space(COL_SPACING);
 
-        if state.ui.cloning_insert.seq_insert.len() > 6 {
-            if ui
-                .button(RichText::new("Clone").color(Color32::GOLD))
-                .clicked()
-            {
-                // Save this vector; this file or quicksave instance will be turned into the cloning
-                // product.
-                make_product_tab(state, None);
+        state.ui.file_dialogs.cloning_load.update(ui.ctx());
+
+        if let Some(path) = state.ui.file_dialogs.cloning_load.take_selected() {
+            if let Some(state_loaded) = load_import(&path) {
+                // todo: Is there a way to do this without cloning?
+                setup_insert_seqs(
+                    state,
+                    state_loaded.generic.features.clone(),
+                    state_loaded.generic.seq.clone(),
+                );
             }
         }
     });
+}
 
-    ui.add_space(ROW_SPACING);
-    autocloning::insert_file_section(state, ui);
+fn text_from_status(status: Status) -> RichText {
+    match status {
+        Status::Pass => RichText::new("Pass").color(PASS_COLOR),
+        Status::Fail => RichText::new("Fail").color(FAIL_COLOR),
+        Status::NotApplicable => RichText::new("N/A").color(NA_COLOR),
+    }
+}
 
-    ui.add_space(ROW_SPACING);
-    // Note: Unlike RE cloning, we don't want a buffer region, hence passing 0 here.
-    autocloning::insert_selector(&mut state.ui.cloning_insert, 0, ui);
+fn checklist(status: &AutocloneStatus, rbs_dist: Option<isize>, ui: &mut Ui) {
+    ui.heading("Product checklist:");
 
-    ui.add_space(ROW_SPACING);
     ui.horizontal(|ui| {
-        ui.heading("Insert:");
-        ui.label(&format!(
-            "len: {}",
-            state.ui.cloning_insert.seq_insert.len()
-        ));
-    });
+        // ui.label("Reading frame:").on_hover_text("The coding region is in-frame with respect to (todo:  RBS? Promoter?)");
+        // ui.label(RichText::new("Fail").color(FAIL_COLOR));
 
+        // todo: Handle this and missing HIS tag the same way; currently this is selectively hidden, and His is not.
+        if let Some(rd) = rbs_dist {
+            ui.label("Distance from RBS:").on_hover_text("Insert point is a suitabel distance (eg 5-10 nucleotides) downstream of the Ribosome Bind Site.");
+            ui.label(text_from_status(status.rbs_dist));
+            ui.label(format!("({rd}nt)"));
+            ui.add_space(COL_SPACING);
+        }
+        ui.label("Downstream of promoter:").on_hover_text("Is downstream of the appropriate expression promoter.");
+        ui.label(text_from_status(status.downstream_of_promoter));
+        ui.add_space(COL_SPACING);
+
+        ui.label("Upstream of terminator:").on_hover_text("Is upstream of the appropriate expression terminator.");
+        ui.label(text_from_status(status.upstream_of_terminator));
+        ui.add_space(COL_SPACING);
+
+        ui.label("Direction:");
+        ui.label(text_from_status(status.direction));
+        ui.add_space(COL_SPACING);
+
+        ui.label("In frame with His tag:");
+        ui.label(text_from_status(status.tag_frame));
+        ui.add_space(COL_SPACING);
+
+        // ui.label("Primer quality:");
+        // ui.label(RichText::new("Fail").color(FAIL_COLOR));
+        // ui.add_space(COL_SPACING);
+        //
+        // ui.label("RE distance:");
+        // ui.label(RichText::new("Fail").color(FAIL_COLOR));
+        // ui.add_space(COL_SPACING);
+    });
+}
+
+fn backbone_filters(filters: &mut BackboneFilters, ui: &mut Ui) {
+    // todo: Allow selecting multiple options.
+
+    // todo: HElper fn for these
+    ui.horizontal(|ui| {
+        filter_selector("Host", &mut filters.host, 0, ui);
+        filter_selector("Ab resistance", &mut filters.antibiotic_resistance, 1, ui);
+        filter_selector("Expression", &mut filters.expression_system, 2, ui);
+        filter_selector("Copy", &mut filters.copy_number, 3, ui);
+
+        ui.label("His tagged:");
+        ui.checkbox(&mut filters.his_tagged, "");
+        ui.add_space(COL_SPACING);
+    });
+}
+
+/// A UI element that allows the user to choose which backbone to clone into.
+fn backbone_selector(
+    backbone_selected: &mut BackboneSelected,
+    backbones: &[&Backbone],
+    plasmid_name: &str,
+    ui: &mut Ui,
+) {
+    let selected = *backbone_selected == BackboneSelected::Opened;
+    if ui
+        .button(select_color_text(
+            &format!("This plasmid ({})", plasmid_name),
+            selected,
+        ))
+        .clicked()
+    {
+        // This allows toggles.
+        *backbone_selected = match backbone_selected {
+            BackboneSelected::Opened => BackboneSelected::None,
+            _ => BackboneSelected::Opened,
+        }
+    }
     ui.add_space(ROW_SPACING);
+
+    Grid::new("0").spacing(Vec2::new(60., 6.)).show(ui, |ui| {
+        for (i, backbone) in backbones.iter().enumerate() {
+            let selected = match backbone_selected {
+                BackboneSelected::Library(b) => *b == i,
+                _ => false,
+            };
+
+            if ui
+                .button(select_color_text(&backbone.name, selected))
+                .clicked()
+            {
+                // This allows toggles.
+                *backbone_selected = match backbone_selected {
+                    BackboneSelected::Library(j) => {
+                        if *j == i {
+                            BackboneSelected::None
+                        } else {
+                            BackboneSelected::Library(i)
+                        }
+                    }
+                    _ => BackboneSelected::Library(i),
+                };
+            }
+
+            if let Some(addgene_url) = backbone.addgene_url() {
+                if ui.button("View on AddGene").clicked() {
+                    if let Err(e) = webbrowser::open(&addgene_url) {
+                        eprintln!("Failed to open the web browser: {:?}", e);
+                    }
+                }
+            }
+            ui.end_row();
+        }
+    });
+}
+
+pub fn cloning_page(state: &mut State, ui: &mut Ui) {
+    ScrollArea::vertical().id_source(100).show(ui, |ui| {
+        ui.heading("Cloning");
+        ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
+    to clone the insert into the backbone.");
+
+        ui.add_space(ROW_SPACING);
+
+        // todo: DRY with below getting the backbone, but we have a borrow error when moving that up.
+        let data = match state.cloning.backbone_selected {
+            BackboneSelected::Library(i) => {
+                if i >= state.backbone_lib.len() {
+                    eprintln!("Invalid index in backbone lib");
+                    None
+                } else {
+                    Some(&state.backbone_lib[i].data)
+                }
+            }
+            BackboneSelected::Opened => Some(&state.generic[state.active]),
+            BackboneSelected::None => None,
+        };
+
+        // let data: Option<Cow<'_, GenericData>> = match state.cloning.backbone_selected {
+        //     BackboneSelected::Library(i) => {
+        //         if i >= state.backbone_lib.len() {
+        //             eprintln!("Invalid index in backbone lib");
+        //             None
+        //         } else {
+        //             // todo: You must cache this! It's doing an annotation continuously.
+        //             Some(Cow::Owned(state.backbone_lib[i].make_generic_data()))
+        //         }
+        //     }
+        //     BackboneSelected::Opened => Some(Cow::Borrowed(&state.generic[state.active])),
+        //     BackboneSelected::None => None,
+        // };
+
+        // Draw the linear map regardless of if there's a vector (Empty map otherwise). This prevents
+        // a layout shift when selecting.
+        if let Some(data_) = data {
+            seq_lin_disp(&data_, ui, true, state.ui.selected_item, &state.ui.re.res_selected);
+        } else {
+            // todo: Not working; canvas needs something to draw.
+            seq_lin_disp(&Default::default(), ui, true, state.ui.selected_item, &state.ui.re.res_selected);
+        }
+        ui.add_space(ROW_SPACING);
+
+        insert_file_section(state, ui);
+        ui.add_space(ROW_SPACING);
+
+        insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
+        ui.add_space(ROW_SPACING);
+
+        ui.heading("Backbones (vectors)");
+        backbone_filters(&mut state.ui.backbone_filters, ui);
+        ui.add_space(ROW_SPACING);
+
+        // todo: Cache this
+        let backbones_filtered = state.ui.backbone_filters.apply(&state.backbone_lib);
+
+        let plasmid_name = &state.generic[state.active].metadata.plasmid_name;
+        backbone_selector(
+            &mut state.cloning.backbone_selected,
+            &backbones_filtered,
+            plasmid_name,
+            ui,
+        );
+
+        let binding = Backbone::from_opened(&state.generic[state.active]);
+
+        let bb = match state.cloning.backbone_selected {
+            BackboneSelected::Library(i) => {
+                if i >= state.backbone_lib.len() {
+                    eprintln!("Invalid index in backbone lib");
+                    return;
+                }
+                Some(&state.backbone_lib[i])
+            }
+            BackboneSelected::Opened => Some(&binding),
+            BackboneSelected::None => None,
+        };
+        // todo: End cache for now.
+
+        if let Some(backbone) = bb {
+            // todo: Cache all relevant calcs you are currently doing here! For example, only when you change vector,
+            // todo: or when the sequence changes. (Eg with state sync fns)
+            state.cloning.res_matched = find_re_candidates(
+                &backbone,
+                &state.ui.cloning_insert.seq_insert,
+                &state.restriction_enzyme_lib,
+                &state.volatile,
+            );
+
+            state.cloning.status = AutocloneStatus::new(
+                &backbone,
+                state.cloning.insert_loc,
+                state.ui.cloning_insert.seq_insert.len(),
+            );
+
+            let rbs_dist = backbone
+                .rbs
+                .map(|r| state.cloning.insert_loc as isize - r.end as isize);
+
+            // todo: End calcs to cache.
+
+            ui.add_space(ROW_SPACING);
+            ui.label("Restriction enzymes:");
+            if state.cloning.res_matched.is_empty() {
+                ui.label("(None)");
+            }
+
+            for candidate in &state.cloning.res_matched {
+                ui.label(&candidate.name);
+            }
+
+            ui.add_space(ROW_SPACING);
+
+            if ui.button(RichText::new("Auto set insert location").color(Color32::GOLD)).clicked() {
+                if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
+                    state.cloning.insert_loc = insert_loc;
+                }
+            }
+
+            ui.horizontal(|ui| {
+                ui.label("Insert location:");
+                ui.label(RichText::new(format!("{}", state.cloning.insert_loc)).color(Color32::LIGHT_BLUE));
+            });
+            ui.add_space(ROW_SPACING);
+
+            // todo: Only if there is a result
+            if true {
+                ui.add_space(ROW_SPACING);
+                checklist(&state.cloning.status, rbs_dist, ui);
+
+                ui.add_space(ROW_SPACING);
+
+                if ui
+                    .button(RichText::new("Clone (PCR)").color(Color32::GOLD))
+                    .clicked()
+                {
+                    make_product_tab(state, Some(backbone.data.clone()));
+                    // Annotate the vector, for now at least.
+                    let features = find_features(&state.get_seq());
+                    // We assume the product has been made active.
+                    merge_feature_sets(&mut state.generic[state.active].features, &features)
+                }
+            }
+        }
+
+        ui.add_space(ROW_SPACING);
+
+        ui.horizontal(|ui| {
+            ui.label("Insert location: ");
+            let mut entry = state.cloning.insert_loc.to_string();
+            if ui
+                .add(TextEdit::singleline(&mut entry).desired_width(40.))
+                .changed()
+            {
+                state.cloning.insert_loc = entry.parse().unwrap_or(0);
+            }
+
+            ui.add_space(COL_SPACING);
+        });
+
+        let resp_insert_editor = ui.add(
+            TextEdit::multiline(&mut state.ui.cloning_insert.seq_input)
+                .desired_width(ui.available_width()),
+        );
+        if resp_insert_editor.changed() {
+            // Forces only valid NTs to be included in the string.
+            state.ui.cloning_insert.seq_insert = seq_from_str(&state.ui.cloning_insert.seq_input);
+            state.ui.cloning_insert.seq_input = seq_to_str(&state.ui.cloning_insert.seq_insert);
+        }
+    });
 }

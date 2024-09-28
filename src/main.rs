@@ -453,6 +453,28 @@ struct StateVolatile {
     proteins: Vec<Protein>,
 }
 
+struct CloningState {
+    backbone_selected: BackboneSelected,
+    // res_matched:Vec<usize>, // todo: A/R
+    res_matched: Vec<RestrictionEnzyme>,
+    status: AutocloneStatus, // todo: Should this be an option?
+    insert_loc: usize,
+    // /// We use this, for example, for displaying a linear map based on a library backbone.
+    // backbone_data: Option<GenericData>,
+}
+
+impl Default for CloningState {
+    fn default() -> Self {
+        Self {
+            insert_loc: 1,
+            backbone_selected: Default::default(),
+            res_matched: Default::default(),
+            status: Default::default(),
+            // backbone_data: Default::default(),
+        }
+    }
+}
+
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
 // #[derive(Default)]
 struct State {
@@ -473,19 +495,12 @@ struct State {
     volatile: Vec<StateVolatile>,
     /// Used for PCR. Index corresponds to `active`.
     ion_concentrations: Vec<IonConcentrations>,
-    cloning_insert_loc: usize,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
     backbone_lib: Vec<Backbone>,
     reading_frame: ReadingFrame,
     search_seq: Seq,
-    /// For auto-cloning
-    /// todo: Auto-cloning sub-section A/R for these
-    backbone_selected: BackboneSelected,
-    /// For autocloning
-    // cloning_res_matched:Vec<usize>, // todo: A/R
-    cloning_res_matched: Vec<RestrictionEnzyme>,
-    autoclone_status: AutocloneStatus, // todo: Should this be an option?
+    cloning: CloningState,
 }
 
 impl Default for State {
@@ -497,16 +512,13 @@ impl Default for State {
             path_loaded: vec![Default::default()],
             portions: vec![Default::default()],
             ion_concentrations: vec![Default::default()],
-            cloning_insert_loc: 1,
             pcr: Default::default(),
             restriction_enzyme_lib: Default::default(),
             backbone_lib: Default::default(),
             reading_frame: Default::default(),
             volatile: vec![Default::default()],
             search_seq: Default::default(),
-            backbone_selected: Default::default(),
-            cloning_res_matched: Default::default(),
-            autoclone_status: Default::default(),
+            cloning: Default::default(),
         };
 
         // Load the RE lib before prefs, because prefs may include loading of previously-opened files,

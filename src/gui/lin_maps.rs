@@ -9,6 +9,7 @@ use eframe::{
 };
 
 use crate::{
+    file_io::GenericData,
     gui::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH, RE_WIDTH},
         BACKGROUND_COLOR, COLOR_RE, COLOR_RE_HIGHLIGHTED, LINEAR_MAP_HEIGHT,
@@ -19,7 +20,6 @@ use crate::{
     util::{map_linear, RangeIncl},
     Selection, State,
 };
-use crate::file_io::GenericData;
 
 // How many nucleotides the zoomed-in display at the top of the page represents.
 // A smaller value corresponds to a more zoomed-in display.

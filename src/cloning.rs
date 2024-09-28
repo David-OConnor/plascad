@@ -126,7 +126,7 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
 
     // todo: Unecessary clone? Due to borrow rules.
     let insert = &state.ui.cloning_insert.seq_insert.clone();
-    state.insert_nucleotides(insert, state.cloning_insert_loc);
+    state.insert_nucleotides(insert, state.cloning.insert_loc);
 
     let label = match state.ui.cloning_insert.feature_selected {
         Some(i) => state.ui.cloning_insert.features_loaded[i].label.clone(),
@@ -137,8 +137,8 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
     // todo: Use the already existing data instead.
     state.generic[state.active].features.push(Feature {
         range: RangeIncl::new(
-            state.cloning_insert_loc,
-            state.cloning_insert_loc + state.ui.cloning_insert.seq_insert.len() - 1,
+            state.cloning.insert_loc,
+            state.cloning.insert_loc + state.ui.cloning_insert.seq_insert.len() - 1,
         ),
         label,
         feature_type: FeatureType::CodingRegion,
