@@ -141,6 +141,45 @@ pub struct Backbone {
     // pub kozak_sequence: i8, // todo: Important for mamallian expression
 }
 
+impl Backbone {
+    pub fn from_opened(data: &GenericData) -> Self {
+        let direction = Forward; // todo temp
+
+        let mut promoter = None;
+        let mut terminator = None;
+        let mut rbs = None;
+        let mut his_tag = None;
+
+        // todo: This chooses the first feature of the correct type; this may not be correct.
+        for feature in &data.features {
+            match feature.feature_type {
+                FeatureType::Promoter => promoter = Some(feature.range),
+                FeatureType::Terminator => terminator = Some(feature.range),
+                FeatureType::RibosomeBindSite => rbs = Some(feature.range),
+                _ => (),
+            }
+            // todo: Handle His tags.
+        }
+
+        Backbone {
+            name: data.metadata.plasmid_name.clone(),
+            addgene_id: None,
+            seq: data.seq.clone(),
+            features: data.features.clone(),
+            promoter,
+            terminator,
+            rbs,
+            antibiotic_resistance: AntibioticResistance::Ampicillin, // Unused in this application.
+            expression_system: ExpressionSystem::None, // Unused in this application.
+            genes_included: Vec::new(),
+            copy_number: CopyNumber::Unknown,
+            his_tag,
+            seq_topology: data.topology,
+            direction,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum CloningTechnique {
     RestrictionEnzyme,

@@ -245,8 +245,11 @@ fn backbone_selector(
         ))
         .clicked()
     {
-        // todo: Unselect if selected
-        *backbone_selected = BackboneSelected::Opened;
+        // This allows toggles.
+        *backbone_selected = match backbone_selected {
+            BackboneSelected::Opened => BackboneSelected::None,
+            _ => BackboneSelected::Opened,
+        }
     }
     ui.add_space(ROW_SPACING);
 
@@ -257,13 +260,15 @@ fn backbone_selector(
                 _ => false,
             };
 
-            // todo: Fn for this button selecting/green
             if ui
                 .button(select_color_text(&backbone.name, selected))
                 .clicked()
             {
-                // todo: Unselect if selected
-                *backbone_selected = BackboneSelected::Library(i);
+                // This allows toggles.
+                *backbone_selected = match backbone_selected {
+                    BackboneSelected::Library(i) => BackboneSelected::None,
+                    _ => BackboneSelected::Library(i),
+                };
             }
 
             if let Some(addgene_url) = backbone.addgene_url() {
@@ -310,14 +315,21 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         ui,
     );
 
-    // todo: Opened.
-    if let BackboneSelected::Library(bb_i) = state.backbone_selected {
-        if bb_i >= state.backbone_lib.len() {
-            eprintln!("Invalid index in backbone lib");
-            return;
-        }
-        let backbone = &state.backbone_lib[bb_i];
+    let binding = Backbone::from_opened(&state.generic[state.active]);
 
+    let bb = match state.backbone_selected {
+        BackboneSelected::Library(i) => {
+            if i >= state.backbone_lib.len() {
+                eprintln!("Invalid index in backbone lib");
+                return;
+            }
+            Some(&state.backbone_lib[i])
+        }
+        BackboneSelected::Opened => Some(&binding),
+        BackboneSelected::None => None,
+    };
+
+    if let Some(backbone) = bb {
         // todo: Cache all relevant calcs you are currently doing here! For example, only when you change vector,
         // todo: or when the sequence changes. (Eg with state sync fns)
         state.cloning_res_matched = find_re_candidates(
