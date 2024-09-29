@@ -66,6 +66,7 @@ pub struct CloningInsertData {
     pub feature_selected: Option<usize>,
     pub seq_insert: Seq,
     pub seq_input: String,
+    pub show_insert_picker: bool,
 }
 
 /// Given a set of features and the sequence their ranges map to, set up our

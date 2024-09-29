@@ -17,7 +17,7 @@ use crate::{
         find_features, lin_maps::seq_lin_disp, navigation::get_tabs, select_color_text,
         COL_SPACING, ROW_SPACING,
     },
-    sequence::{seq_from_str, seq_to_str, FeatureType},
+    sequence::{seq_from_str, seq_to_str, Feature, FeatureType, Nucleotide},
     util::{merge_feature_sets, RangeIncl},
     State,
 };
@@ -50,6 +50,24 @@ fn filter_selector<T: fmt::Display + PartialEq + Copy + IntoEnumIterator>(
             }
         });
     ui.add_space(COL_SPACING);
+}
+
+/// Descriptive text about a feature; ie for insert selection. Used to display the one selected, and in the selector.
+fn draw_insert_descrip(feature: &Feature, seq_loaded: &[Nucleotide], ui: &mut Ui) {
+    if !feature.label.is_empty() {
+        ui.label(&feature.label);
+        ui.add_space(COL_SPACING);
+    }
+
+    let (r, g, b) = feature.feature_type.color();
+    ui.label(RichText::new(feature.feature_type.to_string()).color(Color32::from_rgb(r, g, b)));
+    ui.add_space(COL_SPACING);
+
+    ui.label(feature.location_descrip(seq_loaded.len()));
+    ui.add_space(COL_SPACING);
+
+    // +1 because it's inclusive.
+    ui.label(feature.location_descrip(seq_loaded.len()));
 }
 
 /// Draw a selector for the insert, based on loading from a file.
@@ -97,30 +115,14 @@ fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) {
                         }
                     }
 
-                    if !feature.label.is_empty() {
-                        ui.label(&feature.label);
-                        ui.add_space(COL_SPACING);
-                    }
-
-                    let (r, g, b) = feature.feature_type.color();
-                    ui.label(
-                        RichText::new(feature.feature_type.to_string())
-                            .color(Color32::from_rgb(r, g, b)),
-                    );
-                    ui.add_space(COL_SPACING);
-
-                    ui.label(feature.location_descrip(data.seq_loaded.len()));
-                    ui.add_space(COL_SPACING);
-
-                    // +1 because it's inclusive.
-                    ui.label(feature.location_descrip(data.seq_loaded.len()));
+                    draw_insert_descrip(feature, &data.seq_loaded, ui);
                 });
             });
     }
 }
 
-/// Choose from files to select an insert from.
-fn insert_file_section(state: &mut State, ui: &mut Ui) {
+/// Choose from tabs to select an insert from.
+fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
         ui.label("Choose insert from:");
 
@@ -142,6 +144,9 @@ fn insert_file_section(state: &mut State, ui: &mut Ui) {
                 let g = gen.features.clone();
                 let s = gen.seq.clone();
                 setup_insert_seqs(state, g, s);
+
+                state.ui.cloning_insert.show_insert_picker = true;
+
                 break;
             }
         }
@@ -170,6 +175,29 @@ fn insert_file_section(state: &mut State, ui: &mut Ui) {
                     state_loaded.generic.features.clone(),
                     state_loaded.generic.seq.clone(),
                 );
+            }
+        }
+
+        if !state.ui.cloning_insert.features_loaded.is_empty() {
+            let hide_text = if state.ui.cloning_insert.show_insert_picker {
+                "Hide inserts"
+            } else {
+                "Show inserts"
+            };
+            if ui.button(hide_text).clicked() {
+                state.ui.cloning_insert.show_insert_picker =
+                    !state.ui.cloning_insert.show_insert_picker
+            }
+        }
+
+        // A short summary of the selected feature; useful if the picker is hidden.
+        for (i, feature) in state.ui.cloning_insert.features_loaded.iter().enumerate() {
+            let mut border_width = 0.;
+            if let Some(j) = state.ui.cloning_insert.feature_selected {
+                if i == j {
+                    ui.label(RichText::new("Insert selected:").color(Color32::LIGHT_BLUE));
+                    draw_insert_descrip(feature, &state.ui.cloning_insert.seq_loaded, ui);
+                }
             }
         }
     });
@@ -339,11 +367,13 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         }
         ui.add_space(ROW_SPACING);
 
-        insert_file_section(state, ui);
+        insert_tab_selection(state, ui);
         ui.add_space(ROW_SPACING);
 
-        insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
-        ui.add_space(ROW_SPACING);
+        if state.ui.cloning_insert.show_insert_picker {
+            insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
+            ui.add_space(ROW_SPACING);
+        }
 
         ui.heading("Backbones (vectors)");
         backbone_filters(&mut state.ui.backbone_filters, ui);
