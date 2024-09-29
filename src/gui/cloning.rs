@@ -190,13 +190,13 @@ fn checklist(status: &AutocloneStatus, rbs_dist: Option<isize>, ui: &mut Ui) {
         // ui.label("Reading frame:").on_hover_text("The coding region is in-frame with respect to (todo:  RBS? Promoter?)");
         // ui.label(RichText::new("Fail").color(FAIL_COLOR));
 
-        // todo: Handle this and missing HIS tag the same way; currently this is selectively hidden, and His is not.
+        ui.label("Distance from RBS:").on_hover_text("Insert point is a suitabel distance (eg 5-10 nucleotides) downstream of the Ribosome Bind Site.");
+        ui.label(text_from_status(status.rbs_dist));
         if let Some(rd) = rbs_dist {
-            ui.label("Distance from RBS:").on_hover_text("Insert point is a suitabel distance (eg 5-10 nucleotides) downstream of the Ribosome Bind Site.");
-            ui.label(text_from_status(status.rbs_dist));
             ui.label(format!("({rd}nt)"));
-            ui.add_space(COL_SPACING);
         }
+        ui.add_space(COL_SPACING);
+
         ui.label("Downstream of promoter:").on_hover_text("Is downstream of the appropriate expression promoter.");
         ui.label(text_from_status(status.downstream_of_promoter));
         ui.add_space(COL_SPACING);
@@ -263,7 +263,7 @@ fn backbone_selector(
                 // Cache this, since we don't have it in the library to reference.
                 *bb_cache = Some(Backbone::from_opened(data));
                 BackboneSelected::Opened
-            },
+            }
         }
     }
     ui.add_space(ROW_SPACING);
@@ -329,9 +329,13 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         // Draw the linear map regardless of if there's a vector (Empty map otherwise). This prevents
         // a layout shift when selecting.
         if let Some(data_) = data {
-            seq_lin_disp(&data_, ui, true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc));
+            seq_lin_disp(&data_, true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc),
+                         &state.ui,             &state.volatile[state.active].restriction_enzyme_matches,
+                         &state.restriction_enzyme_lib,ui);
         } else {
-            seq_lin_disp(&Default::default(), ui, true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc));
+            seq_lin_disp(&Default::default(),true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc), &state.ui,
+                         &state.volatile[state.active].restriction_enzyme_matches,
+                         &state.restriction_enzyme_lib, ui);
         }
         ui.add_space(ROW_SPACING);
 

@@ -1032,6 +1032,9 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
                     cursor_i,
                     MINI_DISP_NT_LEN,
                     state.ui.selected_item,
+                    &state.ui,
+                    &state.volatile[state.active].restriction_enzyme_matches,
+                    &state.restriction_enzyme_lib,
                     ui,
                 ));
             }

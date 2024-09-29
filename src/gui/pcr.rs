@@ -86,11 +86,14 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
 
     lin_maps::seq_lin_disp(
         &state.generic[state.active],
-        ui,
         false,
         state.ui.selected_item,
         &Vec::new(),
         None,
+        &state.ui,
+        &state.volatile[state.active].restriction_enzyme_matches,
+        &state.restriction_enzyme_lib,
+        ui,
     );
     ui.add_space(ROW_SPACING / 2.);
 

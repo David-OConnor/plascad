@@ -18,7 +18,7 @@ use crate::{
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
     sequence::{Feature, FeatureType},
     util::{map_linear, RangeIncl},
-    Selection, State,
+    Selection, State, StateUi,
 };
 
 // How many nucleotides the zoomed-in display at the top of the page represents.
@@ -315,8 +315,11 @@ pub fn draw_linear_map(
     index_right: usize,
     show_re_sites: bool,
     res_highlighted: &[RestrictionEnzyme],
+    re_matches: &[ReMatch],
+    re_lib: &[RestrictionEnzyme],
     selected_item: Selection,
     cursor: Option<usize>,
+    state_ui: &StateUi,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
@@ -384,20 +387,18 @@ pub fn draw_linear_map(
         ui,
     ));
 
-    // todo: Put back. Temp removed during a fecator Sep 2024.
-    // if state.ui.seq_visibility.show_res && show_re_sites {
-    //     result.append(&mut draw_re_sites(
-    //         &state.volatile[active].restriction_enzyme_matches,
-    //         &state.restriction_enzyme_lib,
-    //         to_screen,
-    //         index_to_x,
-    //         state.ui.re.unique_cutters_only,
-    //         state.ui.re.sticky_ends_only,
-    //         res_highlighted,
-    //         ui,
-    //     ));
-    // }
-
+    if state_ui.seq_visibility.show_res && show_re_sites {
+        result.append(&mut draw_re_sites(
+            re_matches,
+            re_lib,
+            to_screen,
+            index_to_x,
+            state_ui.re.unique_cutters_only,
+            state_ui.re.sticky_ends_only,
+            res_highlighted,
+            ui,
+        ));
+    }
 
     if let Some(loc) = cursor {
         let point_top = pos2(index_to_x(loc), 4.);
@@ -421,6 +422,9 @@ pub fn lin_map_zoomed(
     nt_center: usize,
     nt_len: usize,
     selection: Selection,
+    state_ui: &StateUi,
+    re_matches: &[ReMatch],
+    re_lib: &[RestrictionEnzyme],
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
@@ -445,8 +449,11 @@ pub fn lin_map_zoomed(
         index_right,
         true,
         &Vec::new(), // todo: Highlighted REs?
+        re_matches,
+        re_lib,
         selection,
         None,
+        &state_ui,
         ui,
     ));
 
@@ -457,11 +464,14 @@ pub fn lin_map_zoomed(
 /// We use this where we are not drawing on an existing canvas.
 pub fn seq_lin_disp(
     data: &GenericData,
-    ui: &mut Ui,
     show_re_sites: bool,
     selection: Selection,
     res_highlighted: &[RestrictionEnzyme],
     cursor: Option<usize>, // Or cloning insert, etc
+    state_ui: &StateUi,
+    re_matches: &[ReMatch],
+    re_lib: &[RestrictionEnzyme],
+    ui: &mut Ui,
 ) {
     let seq_len = data.seq.len();
 
@@ -489,8 +499,11 @@ pub fn seq_lin_disp(
                 seq_len - 1,
                 show_re_sites,
                 res_highlighted,
+                re_matches,
+                re_lib,
                 selection,
                 cursor,
+                &state_ui,
                 ui,
             );
 

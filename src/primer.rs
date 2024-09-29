@@ -280,6 +280,10 @@ pub fn design_slic_fc_primers(
     seq_insert: &Seq,
     mut insert_loc: usize,
 ) -> Option<SlicPrimers> {
+    if insert_loc == 0 {
+        eprintln!("Error when making SLIC primers: Insert loc is 0");
+        return None;
+    }
     let seq_len_vector = seq_vector.len();
     let seq_len_insert = seq_insert.len();
 

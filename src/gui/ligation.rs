@@ -364,7 +364,8 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
         // }
 
         for active in &state.ui.re.tabs_selected {
-            seq_lin_disp(&state.generic[state.active], ui, true, state.ui.selected_item, &state.ui.re.res_selected, None);
+            seq_lin_disp(&state.generic[*active], true, state.ui.selected_item, &state.ui.re.res_selected, None, &state.ui,&state.volatile[state.active].restriction_enzyme_matches,
+                         &state.restriction_enzyme_lib, ui);
             ui.add_space(ROW_SPACING/2.);
         }
 
