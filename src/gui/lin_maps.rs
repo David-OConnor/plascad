@@ -316,6 +316,7 @@ pub fn draw_linear_map(
     show_re_sites: bool,
     res_highlighted: &[RestrictionEnzyme],
     selected_item: Selection,
+    cursor: Option<usize>,
     ui: &mut Ui,
 ) -> Vec<Shape> {
     let mut result = Vec::new();
@@ -397,6 +398,17 @@ pub fn draw_linear_map(
     //     ));
     // }
 
+
+    if let Some(loc) = cursor {
+        let point_top = pos2(index_to_x(loc), 4.);
+        let point_bottom = pos2(index_to_x(loc), 44.);
+
+        result.push(Shape::line_segment(
+            [to_screen * point_bottom, to_screen * point_top],
+            Stroke::new(3., Color32::YELLOW),
+        ));
+    }
+
     result
 }
 
@@ -434,6 +446,7 @@ pub fn lin_map_zoomed(
         true,
         &Vec::new(), // todo: Highlighted REs?
         selection,
+        None,
         ui,
     ));
 
@@ -448,11 +461,9 @@ pub fn seq_lin_disp(
     show_re_sites: bool,
     selection: Selection,
     res_highlighted: &[RestrictionEnzyme],
+    cursor: Option<usize>, // Or cloning insert, etc
 ) {
     let seq_len = data.seq.len();
-    if seq_len == 0 {
-        return; // Prevents -1 error.
-    }
 
     Frame::canvas(ui.style())
         .fill(BACKGROUND_COLOR)
@@ -467,6 +478,10 @@ pub fn seq_lin_disp(
                 response.rect,
             );
 
+            if seq_len == 0 {
+                return; // Prevents -1 error on index right calc.
+            }
+
             let shapes = draw_linear_map(
                 data,
                 &to_screen,
@@ -475,8 +490,10 @@ pub fn seq_lin_disp(
                 show_re_sites,
                 res_highlighted,
                 selection,
+                cursor,
                 ui,
             );
+
             ui.painter().extend(shapes);
         });
 }

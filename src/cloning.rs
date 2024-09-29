@@ -242,7 +242,13 @@ impl AutocloneStatus {
             Some(tag_range) => {
                 let dist_from_start_codon = match backbone.direction {
                     PrimerDirection::Forward => {
-                        (tag_range.start - insert_loc % backbone.seq.len()) + insert_len
+                        let insert_loc = insert_loc % backbone.seq.len();
+                        if insert_loc > tag_range.start {
+                            eprintln!("Error with insert loc and tag start. Insert loc: {insert_loc}, tag start: {}. Backbone: {}", tag_range.start, backbone.name);
+                            1
+                        } else {
+                            (tag_range.start - insert_loc % backbone.seq.len()) + insert_len
+                        }
                     }
                     // todo: QC this.
                     PrimerDirection::Reverse => {

@@ -244,6 +244,8 @@ fn backbone_selector(
     backbone_selected: &mut BackboneSelected,
     backbones: &[&Backbone],
     plasmid_name: &str,
+    data: &GenericData,
+    bb_cache: &mut Option<Backbone>,
     ui: &mut Ui,
 ) {
     let selected = *backbone_selected == BackboneSelected::Opened;
@@ -257,7 +259,11 @@ fn backbone_selector(
         // This allows toggles.
         *backbone_selected = match backbone_selected {
             BackboneSelected::Opened => BackboneSelected::None,
-            _ => BackboneSelected::Opened,
+            _ => {
+                // Cache this, since we don't have it in the library to reference.
+                *bb_cache = Some(Backbone::from_opened(data));
+                BackboneSelected::Opened
+            },
         }
     }
     ui.add_space(ROW_SPACING);
@@ -320,27 +326,12 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             BackboneSelected::None => None,
         };
 
-        // let data: Option<Cow<'_, GenericData>> = match state.cloning.backbone_selected {
-        //     BackboneSelected::Library(i) => {
-        //         if i >= state.backbone_lib.len() {
-        //             eprintln!("Invalid index in backbone lib");
-        //             None
-        //         } else {
-        //             // todo: You must cache this! It's doing an annotation continuously.
-        //             Some(Cow::Owned(state.backbone_lib[i].make_generic_data()))
-        //         }
-        //     }
-        //     BackboneSelected::Opened => Some(Cow::Borrowed(&state.generic[state.active])),
-        //     BackboneSelected::None => None,
-        // };
-
         // Draw the linear map regardless of if there's a vector (Empty map otherwise). This prevents
         // a layout shift when selecting.
         if let Some(data_) = data {
-            seq_lin_disp(&data_, ui, true, state.ui.selected_item, &state.ui.re.res_selected);
+            seq_lin_disp(&data_, ui, true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc));
         } else {
-            // todo: Not working; canvas needs something to draw.
-            seq_lin_disp(&Default::default(), ui, true, state.ui.selected_item, &state.ui.re.res_selected);
+            seq_lin_disp(&Default::default(), ui, true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc));
         }
         ui.add_space(ROW_SPACING);
 
@@ -354,7 +345,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         backbone_filters(&mut state.ui.backbone_filters, ui);
         ui.add_space(ROW_SPACING);
 
-        // todo: Cache this
+        // todo: Cache this?
         let backbones_filtered = state.ui.backbone_filters.apply(&state.backbone_lib);
 
         let plasmid_name = &state.generic[state.active].metadata.plasmid_name;
@@ -362,10 +353,10 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             &mut state.cloning.backbone_selected,
             &backbones_filtered,
             plasmid_name,
+            &state.generic[state.active],
+            &mut state.cloning.backbone,
             ui,
         );
-
-        let binding = Backbone::from_opened(&state.generic[state.active]);
 
         let bb = match state.cloning.backbone_selected {
             BackboneSelected::Library(i) => {
@@ -375,10 +366,9 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                 }
                 Some(&state.backbone_lib[i])
             }
-            BackboneSelected::Opened => Some(&binding),
+            BackboneSelected::Opened => Some(state.cloning.backbone.as_ref().unwrap()),
             BackboneSelected::None => None,
         };
-        // todo: End cache for now.
 
         if let Some(backbone) = bb {
             // todo: Cache all relevant calcs you are currently doing here! For example, only when you change vector,
@@ -414,7 +404,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
 
             ui.add_space(ROW_SPACING);
 
-            if ui.button(RichText::new("Auto set insert location").color(Color32::GOLD)).clicked() {
+            if ui.button(RichText::new("Auto set insert location (PCR)").color(Color32::GOLD)).clicked() {
                 if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
                     state.cloning.insert_loc = insert_loc;
                 }

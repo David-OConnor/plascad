@@ -455,6 +455,9 @@ struct StateVolatile {
 
 struct CloningState {
     backbone_selected: BackboneSelected,
+    /// Note: This is only used currently if using the opened file as the BB; otherwise
+    /// we use a ref to the library.
+    backbone: Option<Backbone>, // todo: Other options: Store a ref; use in bb_selected instead of an index.
     // res_matched:Vec<usize>, // todo: A/R
     res_matched: Vec<RestrictionEnzyme>,
     status: AutocloneStatus, // todo: Should this be an option?
@@ -468,6 +471,7 @@ impl Default for CloningState {
         Self {
             insert_loc: 1,
             backbone_selected: Default::default(),
+            backbone: Default::default(),
             res_matched: Default::default(),
             status: Default::default(),
             // backbone_data: Default::default(),

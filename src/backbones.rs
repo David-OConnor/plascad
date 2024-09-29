@@ -395,7 +395,7 @@ pub fn load_backbone_library() -> Vec<Backbone> {
             // features: Vec::new(),
             promoter: Some(RangeIncl::new(4010, 4029)),
             terminator: Some(RangeIncl::new(4_281, 4_328)),
-            rbs: Some(RangeIncl::new(417, 4139)),
+            rbs: Some(RangeIncl::new(4117, 4139)),
             antibiotic_resistance: AntibioticResistance::Ampicillin,
             expression_system: ExpressionSystem::T7,
             genes_included: Vec::new(),
