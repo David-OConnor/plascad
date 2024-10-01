@@ -17,6 +17,7 @@ use crate::{
     util::RangeIncl,
     Selection, State, StateVolatile,
 };
+use crate::restriction_enzyme::ReMatch;
 
 /// Include this many nucleotides to the left, and right of each insert, when searching for RE sites.
 /// note: 4-6 nucleotides may be an ideal buffer. Note that this should be conservatively long.
@@ -158,6 +159,8 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
 /// Make sure that the insert sequence is properly buffered to allow for RE matching outside
 /// of the coding region (etc)'s range, upstream of this.
 /// todo: Fow now, we limit our options to unique-match, single-cutters.
+///
+/// Returns REs, matches vector, matches insert.
 pub fn find_re_candidates<'a>(
     backbone: &Backbone,
     seq_insert: &[Nucleotide],
@@ -167,7 +170,7 @@ pub fn find_re_candidates<'a>(
     lib: &'a [RestrictionEnzyme],
     volatile: &[StateVolatile],
     // ) -> Vec<&'a RestrictionEnzyme> {
-) -> Vec<RestrictionEnzyme> {
+) -> (Vec<RestrictionEnzyme>, Vec<ReMatch>, Vec<ReMatch>) {
     // Note: The first part of this function is similar to how we filter REs for digest on the digest/ligation page.
 
     let matches_insert = find_re_matches(seq_insert, lib);
@@ -184,7 +187,21 @@ pub fn find_re_candidates<'a>(
 
     // Filter for REs that are at an appropriate place on the insert.
 
-    result.into_iter().map(|r| r.clone()).collect()
+    let res = result.into_iter().map(|r| r.clone()).collect();
+
+    let mut matches_vector_common = Vec::new();
+    let mut matches_insert_common = Vec::new();
+
+    for match_insert in &matches_insert {
+        for match_bb in &matches_backbone {
+            if match_insert.lib_index == match_bb.lib_index {
+                matches_vector_common.push(match_bb.clone());
+                matches_insert_common.push(match_insert.clone());
+            }
+        }
+    }
+
+    (res, matches_vector_common, matches_insert_common)
 }
 
 #[derive(Default)]

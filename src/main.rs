@@ -459,7 +459,9 @@ struct CloningState {
     /// we use a ref to the library.
     backbone: Option<Backbone>, // todo: Other options: Store a ref; use in bb_selected instead of an index.
     // res_matched:Vec<usize>, // todo: A/R
-    res_matched: Vec<RestrictionEnzyme>,
+    res_common: Vec<RestrictionEnzyme>,
+    re_matches_vec_common: Vec<ReMatch>,
+    re_matches_insert_common: Vec<ReMatch>,
     status: AutocloneStatus, // todo: Should this be an option?
     insert_loc: usize,
     // /// We use this, for example, for displaying a linear map based on a library backbone.
@@ -472,7 +474,9 @@ impl Default for CloningState {
             insert_loc: 1,
             backbone_selected: Default::default(),
             backbone: Default::default(),
-            res_matched: Default::default(),
+            res_common: Default::default(),
+            re_matches_vec_common: Default::default(),
+            re_matches_insert_common: Default::default(),
             status: Default::default(),
             // backbone_data: Default::default(),
         }

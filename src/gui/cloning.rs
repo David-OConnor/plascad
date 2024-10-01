@@ -161,6 +161,7 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
             .clicked()
         {
             state.ui.file_dialogs.cloning_load.select_file();
+            state.ui.cloning_insert.show_insert_picker = true;
         }
 
         ui.add_space(COL_SPACING);
@@ -184,12 +185,19 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
             } else {
                 "Show inserts"
             };
+            ui.add_space(COL_SPACING);
+
             if ui.button(hide_text).clicked() {
                 state.ui.cloning_insert.show_insert_picker =
                     !state.ui.cloning_insert.show_insert_picker
             }
         }
 
+    });
+
+    // ui.add_space(ROW_SPACING);
+
+    ui.horizontal(|ui| {
         // A short summary of the selected feature; useful if the picker is hidden.
         for (i, feature) in state.ui.cloning_insert.features_loaded.iter().enumerate() {
             let mut border_width = 0.;
@@ -201,6 +209,7 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
             }
         }
     });
+
 }
 
 fn text_from_status(status: Status) -> RichText {
@@ -335,8 +344,8 @@ fn backbone_selector(
 pub fn cloning_page(state: &mut State, ui: &mut Ui) {
     ScrollArea::vertical().id_source(100).show(ui, |ui| {
         ui.heading("Cloning");
-        ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
-    to clone the insert into the backbone.");
+    //     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
+    // to clone the insert into the backbone.");
 
         ui.add_space(ROW_SPACING);
 
@@ -356,17 +365,18 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
 
         // Draw the linear map regardless of if there's a vector (Empty map otherwise). This prevents
         // a layout shift when selecting.
-        if let Some(data_) = data {
-            seq_lin_disp(&data_, true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc),
-                         &state.ui,             &state.volatile[state.active].restriction_enzyme_matches,
-                         &state.restriction_enzyme_lib,ui);
+        let data_ = if let Some(data_) = data {
+            data_
         } else {
-            seq_lin_disp(&Default::default(),true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc), &state.ui,
-                         &state.volatile[state.active].restriction_enzyme_matches,
-                         &state.restriction_enzyme_lib, ui);
-        }
-        ui.add_space(ROW_SPACING);
+            &Default::default()
+        };
+m ""
+        // We draw the REs that match both insert and vector.
+        seq_lin_disp(data_,true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc), &state.ui,
+                     &state.cloning.re_matches_vec_common,
+                     &state.restriction_enzyme_lib, ui);
 
+        ui.add_space(ROW_SPACING);
         insert_tab_selection(state, ui);
         ui.add_space(ROW_SPACING);
 
@@ -407,7 +417,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         if let Some(backbone) = bb {
             // todo: Cache all relevant calcs you are currently doing here! For example, only when you change vector,
             // todo: or when the sequence changes. (Eg with state sync fns)
-            state.cloning.res_matched = find_re_candidates(
+            (state.cloning.res_common, state.cloning.re_matches_vec_common, state.cloning.re_matches_insert_common) = find_re_candidates(
                 &backbone,
                 &state.ui.cloning_insert.seq_insert,
                 &state.restriction_enzyme_lib,
@@ -428,11 +438,11 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
 
             ui.add_space(ROW_SPACING);
             ui.label("Restriction enzymes:");
-            if state.cloning.res_matched.is_empty() {
+            if state.cloning.res_common.is_empty() {
                 ui.label("(None)");
             }
 
-            for candidate in &state.cloning.res_matched {
+            for candidate in &state.cloning.res_common {
                 ui.label(&candidate.name);
             }
 
