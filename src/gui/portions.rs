@@ -6,7 +6,10 @@ use eframe::{
 };
 
 use crate::{
-    gui::{COL_SPACING, ROW_SPACING},
+    gui::{
+        theme::{COLOR_ACTION, COLOR_INFO},
+        COL_SPACING, ROW_SPACING,
+    },
     portions::{
         media_prep, MediaPrepInput, PlateSize, PortionsState, Reagent, ReagentPrep, ReagentType,
         Solution,
@@ -39,7 +42,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
             }
 
             if ui
-                .button(RichText::new("➕ Add reagent").color(Color32::GOLD))
+                .button(RichText::new("➕ Add reagent").color(COLOR_ACTION))
                 .clicked()
             {
                 solution.reagents.push(Reagent::default());
@@ -173,7 +176,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
                 ui.add_sized(
                     [80.0, 20.0],
                     egui::Label::new(
-                        RichText::new(reagent.amount_calc.to_string()).color(Color32::LIGHT_BLUE),
+                        RichText::new(reagent.amount_calc.to_string()).color(COLOR_INFO),
                     ),
                 );
 
@@ -311,7 +314,7 @@ pub fn portions_page(portions: &mut PortionsState, ui: &mut Ui) {
         ui.add_space(COL_SPACING);
 
         if ui
-            .button(RichText::new("➕ Add solution").color(Color32::GOLD))
+            .button(RichText::new("➕ Add solution").color(COLOR_ACTION))
             .clicked()
         {
             portions.solutions.push(Solution {

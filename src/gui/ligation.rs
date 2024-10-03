@@ -15,7 +15,9 @@ use crate::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH},
         lin_maps::seq_lin_disp,
         navigation::get_tabs,
-        select_color_text, BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
+        select_color_text,
+        theme::COLOR_ACTION,
+        BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
     ligation,
     ligation::{digest, LigationFragment},
@@ -416,7 +418,7 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
         ui.horizontal(|ui| {
             if !state.ui.re.res_selected.is_empty() {
                 if ui
-                    .button(RichText::new("Digest").color(Color32::GOLD))
+                    .button(RichText::new("Digest").color(COLOR_ACTION))
                     .clicked()
                 {
                     let mut products = Vec::new();
@@ -448,7 +450,7 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
                 // todo: Put back when ready
                 // ui.add_space(COL_SPACING);
                 // if ui
-                //     .button(RichText::new("Ligate").color(Color32::GOLD))
+                //     .button(RichText::new("Ligate").color(COLOR_ACTION))
                 //     .clicked()
                 // {
                 //     // state.volatile[state.active].re_ligation_products = ligate(

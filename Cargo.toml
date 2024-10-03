@@ -26,9 +26,9 @@ path = "src/main.rs"
 #path = "src/feature_db_builder.rs"
 
 [dependencies]
-eframe = "^0.28.1"
-egui_extras = "^0.28.1"  # For tables.
-egui-file-dialog = "^0.6.0" #  For file dialogs.
+eframe = "^0.29.1"
+egui_extras = "^0.29.1"  # For tables.
+egui-file-dialog = "^0.7.0" #  For file dialogs.
 # todo: Evaluate size etc of this plotting lib.
 #egui_plot = "^0.28.1"
 

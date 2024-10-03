@@ -21,7 +21,7 @@ use std::path::PathBuf;
 
 use eframe::{
     egui,
-    egui::{pos2, Color32, Context, RichText, TextEdit, Ui, ViewportCommand},
+    egui::{pos2, Color32, Context, RichText, TextEdit, ThemePreference, Ui, ViewportCommand},
     emath::RectTransform,
 };
 use navigation::Page;
@@ -29,7 +29,7 @@ use navigation::Page;
 use crate::{
     external_websites,
     feature_db_load::find_features,
-    gui::{input::handle_input, primer_table::primer_details},
+    gui::{input::handle_input, primer_table::primer_details, theme::COLOR_ACTION},
     primer::Primer,
     sequence::{Feature, FeatureType},
     util,
@@ -37,9 +37,9 @@ use crate::{
     Selection, State,
 };
 
+mod alignment;
 mod circle;
 mod cloning;
-// mod cloning;
 mod feature_table;
 mod input;
 mod ligation;
@@ -52,6 +52,7 @@ pub mod primer_table;
 mod protein;
 pub mod save;
 pub mod sequence;
+mod theme;
 
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 1_000.;
@@ -123,7 +124,7 @@ fn origin_change(state: &mut State, ui: &mut Ui) {
             }
 
             if ui
-                .button(RichText::new("Set").color(Color32::GOLD))
+                .button(RichText::new("Set").color(COLOR_ACTION))
                 .clicked()
             {
                 util::change_origin(state);
@@ -270,6 +271,8 @@ pub fn set_window_title(path_loaded: &Option<PathBuf>, ui: &mut Ui) {
 }
 
 pub fn draw(state: &mut State, ctx: &Context) {
+    ctx.options_mut(|o| o.theme_preference = ThemePreference::Dark);
+
     egui::CentralPanel::default().show(ctx, |ui| {
         handle_input(state, ui);
 
@@ -324,10 +327,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                     }
                 };
 
-                if ui
-                    .button(RichText::new(text).color(Color32::GOLD))
-                    .clicked()
-                {
+                if ui.button(RichText::new(text).color(COLOR_ACTION)).clicked() {
                     external_websites::blast(state);
                 }
             }
@@ -365,13 +365,11 @@ pub fn draw(state: &mut State, ctx: &Context) {
             Page::Map => circle::circle_page(state, ui),
             Page::Features => feature_table::features_page(state, ui),
             Page::Primers => primer_details(state, ui),
-            // Page::Cloning => {
-            //     cloning::seq_editor_slic(state, ui);
-            // }
-            Page::AutoCloning => cloning::cloning_page(state, ui),
-            Page::Ligation => ligation::ligation_page(state, ui),
-            Page::Proteins => protein::protein_page(state, ui),
             Page::Pcr => pcr::pcr_page(state, ui),
+            Page::Alignment => alignment::alignment_page(state, ui),
+            Page::Cloning => cloning::cloning_page(state, ui),
+            Page::Proteins => protein::protein_page(state, ui),
+            Page::Ligation => ligation::ligation_page(state, ui),
             Page::Metadata => {
                 metadata::metadata_page(&mut state.generic[state.active].metadata, ui)
             }

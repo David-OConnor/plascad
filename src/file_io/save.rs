@@ -31,9 +31,10 @@ use crate::{
     },
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
-    sequence::{Feature, Metadata, Nucleotide, Seq, SeqTopology},
+    sequence::{seq_to_letter_bytes, Feature, Metadata, Nucleotide, Seq, SeqTopology},
     PcrUi, Selection, SeqVisibility, State, StateUi,
 };
+
 pub const QUICKSAVE_FILE: &str = "quicksave.pcad";
 pub const DEFAULT_PREFS_FILE: &str = "pcad_prefs.pp";
 
@@ -343,10 +344,13 @@ pub fn load<T: Decode>(path: &Path) -> io::Result<T> {
 pub fn export_fasta(seq: &[Nucleotide], name: &str, path: &Path) -> io::Result<()> {
     let file = File::create(path)?;
 
-    let seq_u8: Vec<u8> = seq.iter().map(|nt| nt.to_u8_letter()).collect();
     let mut writer = fasta::Writer::new(file);
 
-    writer.write(name, Some("A DNA export from PlasCAD"), seq_u8.as_slice())?;
+    writer.write(
+        name,
+        Some("A DNA export from PlasCAD"),
+        seq_to_letter_bytes(seq).as_slice(),
+    )?;
 
     Ok(())
 }

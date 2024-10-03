@@ -10,7 +10,11 @@ use eframe::{
 use crate::{
     amino_acids::{AaIdent, AminoAcid},
     external_websites::{load_pdb_data, load_pdb_structure, open_pdb, open_pdb_3d_view, PdbData},
-    gui::{circle::TICK_COLOR, BACKGROUND_COLOR, COL_SPACING, ROW_SPACING},
+    gui::{
+        circle::TICK_COLOR,
+        theme::{COLOR_ACTION, COLOR_INFO},
+        BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
+    },
     sequence::FeatureType,
     State,
 };
@@ -142,21 +146,18 @@ fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
 fn pdb_links(data: &PdbData, ui: &mut Ui) {
     ui.horizontal(|ui| {
         if ui
-            .button(RichText::new("PDB").color(Color32::GOLD))
+            .button(RichText::new("PDB").color(COLOR_ACTION))
             .clicked()
         {
             open_pdb(&data.rcsb_id);
         }
 
-        if ui
-            .button(RichText::new("3D").color(Color32::GOLD))
-            .clicked()
-        {
+        if ui.button(RichText::new("3D").color(COLOR_ACTION)).clicked() {
             open_pdb_3d_view(&data.rcsb_id);
         }
 
         if ui
-            .button(RichText::new("Structure").color(Color32::GOLD))
+            .button(RichText::new("Structure").color(COLOR_ACTION))
             .clicked()
         {
             load_pdb_structure(&data.rcsb_id);
@@ -174,12 +175,12 @@ fn pdb_links(data: &PdbData, ui: &mut Ui) {
 fn draw_proteins(state: &mut State, ui: &mut Ui) {
     for protein in &mut state.volatile[state.active].proteins {
         ui.horizontal(|ui| {
-            ui.heading(RichText::new(&protein.feature.label).color(Color32::LIGHT_BLUE));
+            ui.heading(RichText::new(&protein.feature.label).color(COLOR_INFO));
 
             ui.add_space(COL_SPACING);
 
             if ui
-                .button(RichText::new("PDB search").color(Color32::GOLD))
+                .button(RichText::new("PDB search").color(COLOR_ACTION))
                 .clicked()
             {
                 match load_pdb_data(protein) {

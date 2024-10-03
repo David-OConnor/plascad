@@ -12,12 +12,11 @@ use crate::{
     gui::navigation::{Page, PageSeq},
     ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
     primer::{make_cloning_primers, PrimerDirection},
-    restriction_enzyme::{find_re_matches, RestrictionEnzyme},
+    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
     sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq},
     util::RangeIncl,
     Selection, State, StateVolatile,
 };
-use crate::restriction_enzyme::ReMatch;
 
 /// Include this many nucleotides to the left, and right of each insert, when searching for RE sites.
 /// note: 4-6 nucleotides may be an ideal buffer. Note that this should be conservatively long.

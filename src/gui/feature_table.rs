@@ -5,7 +5,7 @@ use eframe::egui::{
 };
 
 use crate::{
-    gui::{int_field, COL_SPACING, ROW_SPACING},
+    gui::{int_field, theme::COLOR_ACTION, COL_SPACING, ROW_SPACING},
     sequence::{
         Feature,
         FeatureDirection::{self, Forward, Reverse},
@@ -97,7 +97,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
             .inner_margin(border_width)
             .show(ui, |ui| {
                 if ui
-                    .heading(RichText::new(&feature.label).color(Color32::GOLD))
+                    .heading(RichText::new(&feature.label).color(COLOR_ACTION))
                     .on_hover_cursor(CursorIcon::PointingHand)
                     .clicked()
                 {

@@ -21,8 +21,8 @@ use crate::{
     file_io::{get_filename, GenericData},
     primer::{Primer, PrimerData, PrimerDirection, PrimerMatch},
     sequence::{
-        seq_complement, Feature, FeatureDirection, FeatureType, Metadata, Nucleotide, Reference,
-        SeqTopology,
+        seq_complement, seq_to_letter_bytes, Feature, FeatureDirection, FeatureType, Metadata,
+        Nucleotide, Reference, SeqTopology,
     },
     util::RangeIncl,
 };
@@ -280,7 +280,7 @@ pub fn export_genbank(
 
     let mut gb_data = gb_io::seq::Seq::empty();
 
-    gb_data.seq = data.seq.iter().map(|nt| nt.to_u8_letter()).collect();
+    gb_data.seq = seq_to_letter_bytes(&data.seq);
 
     gb_data.topology = match data.topology {
         SeqTopology::Circular => gb_io::seq::Topology::Circular,

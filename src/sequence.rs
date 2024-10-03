@@ -14,17 +14,6 @@ pub const MIN_SEARCH_LEN: usize = 3;
 // Index 0: 5' end.
 pub type Seq = Vec<Nucleotide>;
 
-impl Nucleotide {
-    pub fn as_str(&self) -> &str {
-        match self {
-            A => "a",
-            T => "t",
-            C => "c",
-            G => "g",
-        }
-    }
-}
-
 /// A DNA nucleotide. The u8 repr is for use with a compact binary format.
 /// This is the same nucleotide mapping as [.2bit format](http://genome.ucsc.edu/FAQ/FAQformat.html#format7).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Encode, Decode, TryFromPrimitive)]
@@ -58,6 +47,15 @@ impl Nucleotide {
             T => b'T',
             G => b'G',
             C => b'C',
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            A => "a",
+            T => "t",
+            C => "c",
+            G => "g",
         }
     }
 
@@ -376,6 +374,11 @@ pub fn seq_to_str(seq: &[Nucleotide]) -> String {
     }
 
     result
+}
+
+/// Convert a string to bytes associated with ASCII letters. For compatibility with external libraries.
+pub fn seq_to_letter_bytes(seq: &[Nucleotide]) -> Vec<u8> {
+    seq.iter().map(|nt| nt.to_u8_letter()).collect()
 }
 
 /// Contains sequence-level metadata.

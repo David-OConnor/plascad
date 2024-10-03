@@ -46,16 +46,15 @@ pub enum Page {
     Map,
     Features,
     Primers,
-    // Cloning,
     Proteins,
     /// Determine optimal PCR parameters
     Pcr,
+    Alignment,
     Portions,
     Metadata,
     Ligation,
     /// A simplified cloning process, for both PCR and RE-based cloning.
-    AutoCloning,
-    // Enzymes,
+    Cloning,
 }
 
 impl Default for Page {
@@ -69,16 +68,15 @@ impl Display for Page {
         let str = match self {
             Self::Sequence => "Sequence",
             Self::Map => "Map",
-            Self::Pcr => "PCR",
             Self::Features => "Features",
             Self::Primers => "Primers",
-            // Self::Cloning => "PCR cloning",
             Self::Proteins => "Proteins",
+            Self::Pcr => "PCR",
+            Self::Alignment => "Align",
             Self::Portions => "Mixing",
             Self::Metadata => "Data",
             Self::Ligation => "Digest",
-            // Self::AutoCloning => "Assisted cloning",
-            Self::AutoCloning => "Clone",
+            Self::Cloning => "Clone",
         }
         .to_owned();
         write!(f, "{}", str)
@@ -159,9 +157,9 @@ pub fn page_selector(state: &mut State, ui: &mut Ui) {
         page_button(&mut state.ui.page, Page::Features, ui, true);
         page_button(&mut state.ui.page, Page::Primers, ui, true);
         page_button(&mut state.ui.page, Page::Proteins, ui, true);
-        // page_button(&mut state.ui.page, Page::Cloning, ui, true);
-        page_button(&mut state.ui.page, Page::AutoCloning, ui, true);
+        page_button(&mut state.ui.page, Page::Cloning, ui, true);
         page_button(&mut state.ui.page, Page::Pcr, ui, true);
+        page_button(&mut state.ui.page, Page::Alignment, ui, true);
         page_button(&mut state.ui.page, Page::Ligation, ui, true);
         page_button(&mut state.ui.page, Page::Metadata, ui, true);
         page_button(&mut state.ui.page, Page::Portions, ui, true);

@@ -28,9 +28,13 @@ use std::{
 };
 
 use bincode::{Decode, Encode};
+use bio::alignment::Alignment;
 use cloning::{AutocloneStatus, CloningInsertData};
 use copypasta::{ClipboardContext, ClipboardProvider};
-use eframe::{self, egui, egui::Context};
+use eframe::{
+    self,
+    egui::{self, Context, Theme},
+};
 use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load, load_import, StateToSave, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
@@ -65,6 +69,7 @@ use crate::{
     util::{get_window_title, RangeIncl},
 };
 
+mod alignment;
 mod amino_acids;
 mod backbones;
 mod cloning;
@@ -483,8 +488,18 @@ impl Default for CloningState {
     }
 }
 
+#[derive(Default)]
+struct AlignmentState {
+    seq_a: Seq,
+    seq_b: Seq,
+    // todo: Perhaps these inputs are better fit for State_ui.
+    seq_a_input: String,
+    seq_b_input: String,
+    alignment_result: Option<Alignment>,
+    dist_result: Option<u64>,
+}
+
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.
-// #[derive(Default)]
 struct State {
     ui: StateUi,
     /// Ie tab, file etc.
@@ -509,6 +524,7 @@ struct State {
     reading_frame: ReadingFrame,
     search_seq: Seq,
     cloning: CloningState,
+    alignment: AlignmentState,
 }
 
 impl Default for State {
@@ -527,6 +543,7 @@ impl Default for State {
             volatile: vec![Default::default()],
             search_seq: Default::default(),
             cloning: Default::default(),
+            alignment: Default::default(),
         };
 
         // Load the RE lib before prefs, because prefs may include loading of previously-opened files,
@@ -922,7 +939,6 @@ fn main() {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([WINDOW_WIDTH, WINDOW_HEIGHT])
             .with_icon(icon_data.unwrap()),
-        follow_system_theme: false,
         ..Default::default()
     };
 

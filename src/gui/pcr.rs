@@ -3,7 +3,11 @@ use std::str::FromStr;
 use eframe::egui::{Color32, ComboBox, Grid, RichText, TextEdit, Ui, Vec2};
 
 use crate::{
-    gui::{lin_maps, COL_SPACING, ROW_SPACING},
+    gui::{
+        lin_maps,
+        theme::{COLOR_ACTION, COLOR_INFO},
+        COL_SPACING, ROW_SPACING,
+    },
     pcr::{make_amplicon_tab, PolymeraseType, TempTime},
     primer::{Primer, PrimerDirection, TM_TARGET},
     util::RangeIncl,
@@ -12,8 +16,8 @@ use crate::{
 
 fn temp_time_disp(tt: &TempTime, label: &str, ui: &mut Ui) {
     ui.label(&format!("{label}:"));
-    ui.label(RichText::new(format!("{:.0}°C", tt.temp)).color(Color32::LIGHT_BLUE));
-    ui.label(RichText::new(format!("{}s", tt.time)).color(Color32::LIGHT_BLUE));
+    ui.label(RichText::new(format!("{:.0}°C", tt.temp)).color(COLOR_INFO));
+    ui.label(RichText::new(format!("{}s", tt.time)).color(COLOR_INFO));
 
     ui.end_row();
 }
@@ -139,7 +143,7 @@ fn pcr_sim(state: &mut State, ui: &mut Ui) {
                     == 1
             {
                 if ui
-                    .button(RichText::new("Simulate PCR").color(Color32::GOLD))
+                    .button(RichText::new("Simulate PCR").color(COLOR_ACTION))
                     .clicked()
                 {
                     let fwd_primer =

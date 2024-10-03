@@ -13,6 +13,7 @@ use crate::{
         navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
         primer_table::primer_details,
         sequence::seq_view::sequence_vis,
+        theme::COLOR_ACTION,
         PRIMER_FWD_COLOR, SPLIT_SCREEN_MAX_HEIGHT,
     },
     primer::{Primer, PrimerData},
@@ -83,7 +84,7 @@ fn primer_text(i: usize, primers: &[Primer], seq_len: usize, ui: &mut Ui) {
 fn feature_from_sel(state: &mut State, ui: &mut Ui) {
     if let Some(text_sel) = state.ui.text_selection {
         if ui
-            .button(RichText::new("➕ Add feature from sel").color(Color32::GOLD))
+            .button(RichText::new("➕ Add feature from sel").color(COLOR_ACTION))
             .clicked()
         {
             state.generic[state.active].features.push(Feature {
@@ -98,7 +99,7 @@ fn feature_from_sel(state: &mut State, ui: &mut Ui) {
         }
 
         if ui
-            .button(RichText::new("➕ Add primer from sel").color(Color32::GOLD))
+            .button(RichText::new("➕ Add primer from sel").color(COLOR_ACTION))
             .clicked()
         {
             // todo: DRY with genbank parsing; common fn A/R.

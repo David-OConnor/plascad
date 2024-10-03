@@ -4,7 +4,10 @@ use eframe::egui::{Align, Color32, Layout, RichText, ScrollArea, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
 
 use crate::{
-    gui::{COL_SPACING, ROW_SPACING},
+    gui::{
+        theme::{COLOR_ACTION, COLOR_INFO},
+        COL_SPACING, ROW_SPACING,
+    },
     primer::{make_amplification_primers, IonConcentrations, Primer, TuneSetting},
     sequence::{seq_from_str, seq_to_str},
     Selection, State,
@@ -186,7 +189,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                     });
 
                     row.col(|ui| {
-                        ui.add(TextEdit::singleline(&mut primer.name).text_color(Color32::LIGHT_BLUE));
+                        ui.add(TextEdit::singleline(&mut primer.name).text_color(COLOR_INFO));
                     });
 
                     row.col(|ui| {
@@ -379,7 +382,7 @@ To learn about a table column, mouse over it.");
                 }
 
                 if ui
-                    .button(RichText::new("Deselect").color(Color32::GOLD))
+                    .button(RichText::new("Deselect").color(COLOR_ACTION))
                     .clicked()
                 {
                     state.ui.selected_item = Selection::None;
@@ -481,7 +484,7 @@ fn primer_tune_display(
             //     || primer.volatile.tunable_3p != TuneSetting::Disabled
             // {
             if primer.volatile.tune_setting.tunable() {
-                ui.label(RichText::new(seq_to_str(&primer.sequence)).color(Color32::LIGHT_BLUE));
+                ui.label(RichText::new(seq_to_str(&primer.sequence)).color(COLOR_INFO));
             }
 
             ui.add_space(COL_SPACING / 2.);

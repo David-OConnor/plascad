@@ -14,7 +14,11 @@ use crate::{
     },
     file_io::{save::load_import, GenericData},
     gui::{
-        find_features, lin_maps::seq_lin_disp, navigation::get_tabs, select_color_text,
+        find_features,
+        lin_maps::seq_lin_disp,
+        navigation::get_tabs,
+        select_color_text,
+        theme::{COLOR_ACTION, COLOR_INFO},
         COL_SPACING, ROW_SPACING,
     },
     sequence::{seq_from_str, seq_to_str, Feature, FeatureType, Nucleotide},
@@ -192,7 +196,6 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
                     !state.ui.cloning_insert.show_insert_picker
             }
         }
-
     });
 
     // ui.add_space(ROW_SPACING);
@@ -203,13 +206,12 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
             let mut border_width = 0.;
             if let Some(j) = state.ui.cloning_insert.feature_selected {
                 if i == j {
-                    ui.label(RichText::new("Insert selected:").color(Color32::LIGHT_BLUE));
+                    ui.label(RichText::new("Insert selected:").color(COLOR_INFO));
                     draw_insert_descrip(feature, &state.ui.cloning_insert.seq_loaded, ui);
                 }
             }
         }
     });
-
 }
 
 fn text_from_status(status: Status) -> RichText {
@@ -344,13 +346,13 @@ fn backbone_selector(
 pub fn cloning_page(state: &mut State, ui: &mut Ui) {
     ScrollArea::vertical().id_source(100).show(ui, |ui| {
         ui.heading("Cloning");
-    //     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
-    // to clone the insert into the backbone.");
+        //     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
+        // to clone the insert into the backbone.");
 
         ui.add_space(ROW_SPACING);
 
         // todo: DRY with below getting the backbone, but we have a borrow error when moving that up.
-        let data = match state.cloning.backbone_selected {
+        let data_vec = match state.cloning.backbone_selected {
             BackboneSelected::Library(i) => {
                 if i >= state.backbone_lib.len() {
                     eprintln!("Invalid index in backbone lib");
@@ -365,18 +367,42 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
 
         // Draw the linear map regardless of if there's a vector (Empty map otherwise). This prevents
         // a layout shift when selecting.
-        let data_ = if let Some(data_) = data {
+        let data_vec_ = if let Some(data_) = data_vec {
             data_
         } else {
             &Default::default()
         };
-m ""
-        // We draw the REs that match both insert and vector.
-        seq_lin_disp(data_,true, state.ui.selected_item, &state.ui.re.res_selected, Some(state.cloning.insert_loc), &state.ui,
-                     &state.cloning.re_matches_vec_common,
-                     &state.restriction_enzyme_lib, ui);
+
+        // A minimap for the vector.
+        seq_lin_disp(
+            data_vec_,
+            true,
+            state.ui.selected_item,
+            &state.ui.re.res_selected,
+            Some(state.cloning.insert_loc),
+            &state.ui,
+            &state.cloning.re_matches_vec_common,
+            &state.restriction_enzyme_lib,
+            ui,
+        );
 
         ui.add_space(ROW_SPACING);
+
+        // A minimap for the insert
+        seq_lin_disp(
+            data_vec_,
+            true,
+            state.ui.selected_item,
+            &state.ui.re.res_selected,
+            None,
+            &state.ui,
+            &state.cloning.re_matches_insert_common,
+            &state.restriction_enzyme_lib,
+            ui,
+        );
+
+        ui.add_space(ROW_SPACING);
+
         insert_tab_selection(state, ui);
         ui.add_space(ROW_SPACING);
 
@@ -417,7 +443,11 @@ m ""
         if let Some(backbone) = bb {
             // todo: Cache all relevant calcs you are currently doing here! For example, only when you change vector,
             // todo: or when the sequence changes. (Eg with state sync fns)
-            (state.cloning.res_common, state.cloning.re_matches_vec_common, state.cloning.re_matches_insert_common) = find_re_candidates(
+            (
+                state.cloning.res_common,
+                state.cloning.re_matches_vec_common,
+                state.cloning.re_matches_insert_common,
+            ) = find_re_candidates(
                 &backbone,
                 &state.ui.cloning_insert.seq_insert,
                 &state.restriction_enzyme_lib,
@@ -448,7 +478,10 @@ m ""
 
             ui.add_space(ROW_SPACING);
 
-            if ui.button(RichText::new("Auto set insert location (PCR)").color(Color32::GOLD)).clicked() {
+            if ui
+                .button(RichText::new("Auto set insert location (PCR)").color(COLOR_ACTION))
+                .clicked()
+            {
                 if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
                     state.cloning.insert_loc = insert_loc;
                 }
@@ -456,7 +489,7 @@ m ""
 
             ui.horizontal(|ui| {
                 ui.label("Insert location:");
-                ui.label(RichText::new(format!("{}", state.cloning.insert_loc)).color(Color32::LIGHT_BLUE));
+                ui.label(RichText::new(format!("{}", state.cloning.insert_loc)).color(COLOR_INFO));
             });
             ui.add_space(ROW_SPACING);
 
@@ -468,7 +501,7 @@ m ""
                 ui.add_space(ROW_SPACING);
 
                 if ui
-                    .button(RichText::new("Clone (PCR)").color(Color32::GOLD))
+                    .button(RichText::new("Clone (PCR)").color(COLOR_ACTION))
                     .clicked()
                 {
                     make_product_tab(state, Some(backbone.data.clone()));
