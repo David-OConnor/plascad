@@ -497,6 +497,7 @@ struct AlignmentState {
     seq_b_input: String,
     alignment_result: Option<Alignment>,
     dist_result: Option<u64>,
+    text_display: String, // Ie `AlignmentResult::pretty`.
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.

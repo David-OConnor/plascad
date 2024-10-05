@@ -130,6 +130,9 @@ If you wish to associate a file type (eg the native .pcad format) with PlasCAD, 
 (Select where you saved the program) → Always.*
 
 
+### Basic sequence alignment
+PlasCAD currently includes rudimentary sequence alignment tools. We plan to expand these in the future to make visualizing sequence differences more intuitive. Supports Hamming and Levenshtein distances, and Smith Waterman pairwise alignment.
+
 ### Automatic annotation
 Annotate the common features from sequences; this includes promoters, origins of replication, affinity binding tags,  and antibiotic resistance
 genes.

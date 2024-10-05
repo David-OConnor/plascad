@@ -1,9 +1,12 @@
-use eframe::egui::{Color32, RichText, TextEdit, Ui};
+use eframe::egui::{FontFamily, FontId, RichText, TextEdit, Ui};
 
 use crate::{
-    alignment::{align_pairwise, distance, DistanceType},
-    gui::{theme::COLOR_ACTION, ROW_SPACING},
-    sequence::{seq_from_str, seq_to_str, Nucleotide},
+    alignment::{align_pairwise, distance},
+    gui::{
+        theme::{COLOR_ACTION, COLOR_INFO},
+        ROW_SPACING,
+    },
+    sequence::{seq_from_str, seq_to_str},
     State,
 };
 
@@ -30,25 +33,40 @@ pub fn alignment_page(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     if ui
-        .button(RichText::new("Align").color(COLOR_ACTION))
+        .button(RichText::new("Align (Work in progress)").color(COLOR_ACTION))
         .clicked()
     {
-        state.alignment.alignment_result = Some(align_pairwise(
-            &state.alignment.seq_a,
-            &state.alignment.seq_b,
-        ));
-        state.alignment.dist_result = Some(distance(
-            &state.alignment.seq_a,
-            &state.alignment.seq_b,
-            DistanceType::Hamming,
-        ));
+        let alignment = align_pairwise(&state.alignment.seq_a, &state.alignment.seq_b);
+        state.alignment.alignment_result = Some(alignment.0);
+        state.alignment.text_display = alignment.1;
+
+        state.alignment.dist_result =
+            Some(distance(&state.alignment.seq_a, &state.alignment.seq_b));
     }
 
     ui.add_space(ROW_SPACING);
     if let Some(alignment) = &state.alignment.alignment_result {
         ui.heading(&format!("Alignment score: {:?}", alignment.score));
+
+        ui.add_space(ROW_SPACING);
+
+        ui.label(
+            RichText::new(&state.alignment.text_display)
+                .color(COLOR_INFO)
+                .font(FontId::new(16., FontFamily::Monospace)),
+        );
     }
+    // ui.add_space(ROW_SPACING);
+
     if let Some(dist) = &state.alignment.dist_result {
-        ui.heading(&format!("Distance. Score: {:?}", dist));
+        ui.horizontal(|ui| {
+            ui.heading(&format!("Distance score: {:?}", dist));
+            let dist_type_text = if state.alignment.seq_a.len() == state.alignment.seq_b.len() {
+                "(Hamming)"
+            } else {
+                "(Levenshtein)"
+            };
+            ui.label(dist_type_text);
+        });
     }
 }
