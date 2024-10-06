@@ -11,7 +11,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::sequence::{
+use seq::{
     seq_to_str,
     Nucleotide::{self, A, C, G, T},
     Seq,

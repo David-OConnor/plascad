@@ -2766,6 +2766,7 @@ dependencies = [
  "gb-io",
  "num_enum",
  "quick-xml 0.36.1",
+ "seq",
  "serde",
  "serde_json",
  "strum",
@@ -3189,6 +3190,14 @@ name = "semver"
 version = "0.1.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4f410fedcf71af0345d7607d246e7ad15faaadd49d240ee3b24e5dc21a820ac"
+
+[[package]]
+name = "seq"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "num_enum",
+]
 
 [[package]]
 name = "serde"

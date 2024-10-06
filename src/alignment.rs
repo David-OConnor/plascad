@@ -1,15 +1,12 @@
 use bio::{
     alignment::{
-        distance::{
-            simd::{levenshtein, bounded_levenshtein, hamming},
-        },
+        distance::simd::{bounded_levenshtein, hamming, levenshtein},
         pairwise::Aligner,
         Alignment,
     },
     scores::blosum62,
 };
-
-use crate::sequence::{seq_to_letter_bytes, Nucleotide};
+use seq::{seq_to_letter_bytes, Nucleotide};
 
 #[derive(Clone, Copy)]
 /// Use Hamming Distance if:

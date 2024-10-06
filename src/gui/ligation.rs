@@ -9,6 +9,7 @@ use eframe::{
     },
     emath::RectTransform,
 };
+use seq::seq_to_str;
 
 use crate::{
     gui::{
@@ -21,7 +22,6 @@ use crate::{
     },
     ligation,
     ligation::{digest, LigationFragment},
-    sequence::seq_to_str,
     util::{map_linear, name_from_path},
     State,
 };

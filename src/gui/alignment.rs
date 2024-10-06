@@ -1,4 +1,5 @@
 use eframe::egui::{FontFamily, FontId, RichText, TextEdit, Ui};
+use seq::{seq_from_str, seq_to_str};
 
 use crate::{
     alignment::{align_pairwise, distance},
@@ -6,11 +7,13 @@ use crate::{
         theme::{COLOR_ACTION, COLOR_INFO},
         ROW_SPACING,
     },
-    sequence::{seq_from_str, seq_to_str},
     State,
 };
 
 pub fn alignment_page(state: &mut State, ui: &mut Ui) {
+    ui.heading("Alignment (Work in Progress");
+    ui.add_space(ROW_SPACING);
+
     ui.label("Seq A:");
     let response =
         ui.add(TextEdit::multiline(&mut state.alignment.seq_a_input).desired_width(800.));
@@ -33,7 +36,7 @@ pub fn alignment_page(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING);
 
     if ui
-        .button(RichText::new("Align (Work in progress)").color(COLOR_ACTION))
+        .button(RichText::new("Align").color(COLOR_ACTION))
         .clicked()
     {
         let alignment = align_pairwise(&state.alignment.seq_a, &state.alignment.seq_b);

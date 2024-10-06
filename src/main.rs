@@ -41,7 +41,7 @@ use gui::navigation::{Page, PageSeq};
 use primer::IonConcentrations;
 use protein::Protein;
 use reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch};
-use sequence::Seq;
+use seq::{seq_to_str, Nucleotide, Seq};
 
 use crate::{
     amino_acids::AaIdent,
@@ -61,10 +61,7 @@ use crate::{
     primer::TM_TARGET,
     protein::{proteins_from_seq, sync_cr_orf_matches},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
-    sequence::{
-        find_search_matches, seq_to_str, FeatureDirection, FeatureType, Nucleotide, SearchMatch,
-        MIN_SEARCH_LEN,
-    },
+    sequence::{find_search_matches, FeatureDirection, FeatureType, SearchMatch, MIN_SEARCH_LEN},
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };

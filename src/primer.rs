@@ -2,11 +2,11 @@
 
 use bincode::{Decode, Encode};
 use eframe::egui::Color32;
+use seq::{seq_complement, seq_from_str, seq_to_str, seq_weight, Nucleotide, Seq};
 
 use crate::{
     gui::{primer_table::DEFAULT_TRIM_AMT, PRIMER_FWD_COLOR, PRIMER_REV_COLOR},
     primer_metrics::PrimerMetrics,
-    sequence::{seq_complement, seq_from_str, seq_to_str, seq_weight, Nucleotide, Seq},
     util::{match_subseq, RangeIncl},
     State,
 };

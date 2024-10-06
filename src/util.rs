@@ -8,6 +8,7 @@ use std::{
 
 use bincode::{Decode, Encode};
 use eframe::egui::{pos2, Pos2};
+use seq::{seq_complement, Nucleotide};
 
 use crate::{
     file_io::save::QUICKSAVE_FILE,
@@ -16,7 +17,7 @@ use crate::{
         sequence::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
         WINDOW_TITLE,
     },
-    sequence::{seq_complement, Feature, Nucleotide},
+    sequence::Feature,
     Color, State,
 };
 

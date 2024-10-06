@@ -4,10 +4,10 @@ use std::{fmt::Display, path::PathBuf};
 
 use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
+use seq::seq_to_str;
 
 use crate::{
     gui::{select_color_text, set_window_title, COL_SPACING, ROW_SPACING},
-    sequence::seq_to_str,
     util::name_from_path,
     State,
 };

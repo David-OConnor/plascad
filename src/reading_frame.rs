@@ -1,16 +1,13 @@
 use std::fmt::Display;
 
 use bincode::{Decode, Encode};
-
-use crate::{
-    sequence,
-    sequence::{
-        Nucleotide,
-        Nucleotide::{A, G, T},
-        Seq,
-    },
-    util::RangeIncl,
+use seq::{
+    seq_complement, Nucleotide,
+    Nucleotide::{A, G, T},
+    Seq,
 };
+
+use crate::util::RangeIncl;
 
 /// Of the 6 possible reading frames.
 #[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
@@ -45,7 +42,7 @@ impl ReadingFrame {
         let offset = self.offset();
 
         if self.is_reverse() {
-            sequence::seq_complement(seq)[offset..].to_vec()
+            seq_complement(seq)[offset..].to_vec()
         } else {
             seq[offset..].to_vec()
         }

@@ -1,14 +1,14 @@
 //! This module handles assessing various primer metrics, such as GC concentration, and repeats.
 
 use bincode::{Decode, Encode};
+use seq::{
+    calc_gc, Nucleotide,
+    Nucleotide::{C, G},
+};
 
 use crate::{
     melting_temp_calcs,
     primer::{IonConcentrations, Primer, TuneSetting, MIN_PRIMER_LEN},
-    sequence::{
-        calc_gc, Nucleotide,
-        Nucleotide::{C, G},
-    },
     util::{map_linear, remove_duplicates},
     TM_TARGET,
 };

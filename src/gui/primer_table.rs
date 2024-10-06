@@ -2,6 +2,7 @@
 
 use eframe::egui::{Align, Color32, Layout, RichText, ScrollArea, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
+use seq::{seq_from_str, seq_to_str};
 
 use crate::{
     gui::{
@@ -9,7 +10,6 @@ use crate::{
         COL_SPACING, ROW_SPACING,
     },
     primer::{make_amplification_primers, IonConcentrations, Primer, TuneSetting},
-    sequence::{seq_from_str, seq_to_str},
     Selection, State,
 };
 

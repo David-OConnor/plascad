@@ -35,7 +35,7 @@ egui-file-dialog = "^0.7.0" #  For file dialogs.
 chrono = "^0.4.38"
 
 serde = { version = "^1.0.206", features = ["derive"] }
-num_enum = "0.7.3"  # reversing a u8-repr.
+num_enum = "^0.7.3"  # reversing a u8-repr.
 
 # For FASTA read and write. Note: We can ditch this for a custom parser; FASTA is easy.
 # Note, 2024-08-09: Removing this appears to have minimal impact on binary size.
@@ -63,9 +63,12 @@ copypasta = "^0.10.1"
 # ureq = { version = "^3.0.0", features = ["tls"], default-features = false }  # todo: This is getting a major release update to 3.0 soon.
 ureq = { version = "^2.10.1", features = ["tls"], default-features = false }  # todo: This is getting a major release update to 3.0 soon.
 
+# We use strum to iterate over enums.
 # todo: Check sup-deps/binary impact etc
 strum = "^0.26.3"
 strum_macros = "^0.26.4"
+
+seq = { path = "../seq" }
 
 [build-dependencies]
 # These are for embedding an application icon, on Windows.

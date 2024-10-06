@@ -1,11 +1,11 @@
 //! This module assists in identifying PCR parameters
 
 use bincode::{Decode, Encode};
+use seq::Seq;
 
 use crate::{
     gui::navigation::{Page, PageSeq},
     primer::Primer,
-    sequence::Seq,
     util::RangeIncl,
     PcrUi, State,
 };

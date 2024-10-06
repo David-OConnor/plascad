@@ -6,6 +6,8 @@
 
 //! todo: Allow users to enter custom backbones.
 
+use seq::{seq_to_str, Nucleotide, Seq};
+
 use crate::{
     backbones::Backbone,
     file_io::GenericData,
@@ -13,7 +15,7 @@ use crate::{
     ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
     primer::{make_cloning_primers, PrimerDirection},
     restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
-    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType, Nucleotide, Seq},
+    sequence::{Feature, FeatureDirection, FeatureType},
     util::RangeIncl,
     Selection, State, StateVolatile,
 };

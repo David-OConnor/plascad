@@ -1,10 +1,12 @@
 //! This module contains code related to ligation. For example, using restriction enzymes to
 //! combine or otherwise edit DNA segments.
 
+use seq::{Nucleotide, Seq};
+
 use crate::{
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
-    sequence::{Nucleotide, SeqTopology},
-    ReUi, Seq, StateVolatile,
+    sequence::SeqTopology,
+    ReUi, StateVolatile,
 };
 
 pub struct LigationFragment {

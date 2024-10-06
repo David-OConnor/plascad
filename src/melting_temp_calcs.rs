@@ -9,13 +9,12 @@
 //! [This calculator from NorthWestern](http://biotools.nubic.northwestern.edu/OligoCalc.html) may be used
 //! for QC TM, weight, and other properties. It includes detailed sources and methods.
 
-use crate::{
-    primer::{IonConcentrations, MIN_PRIMER_LEN},
-    sequence::{
-        calc_gc,
-        Nucleotide::{self, A, C, G, T},
-    },
+use seq::{
+    calc_gc,
+    Nucleotide::{self, A, C, G, T},
 };
+
+use crate::primer::{IonConcentrations, MIN_PRIMER_LEN};
 
 const R: f32 = 1.987; // Universal gas constant (Cal/C * Mol)
 

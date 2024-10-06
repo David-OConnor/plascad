@@ -17,6 +17,7 @@ use bincode::{
 };
 use bio::io::fasta;
 use eframe::egui::Ui;
+use seq::{seq_to_letter_bytes, Nucleotide, Seq};
 
 use crate::{
     feature_db_load::find_features,
@@ -31,7 +32,7 @@ use crate::{
     },
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
-    sequence::{seq_to_letter_bytes, Feature, Metadata, Nucleotide, Seq, SeqTopology},
+    sequence::{Feature, Metadata, SeqTopology},
     PcrUi, Selection, SeqVisibility, State, StateUi,
 };
 

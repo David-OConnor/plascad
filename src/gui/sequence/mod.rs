@@ -1,11 +1,10 @@
 //! This module contains GUI code related to the sequence view.
 
 use eframe::egui::{text::CursorRange, Color32, Frame, RichText, ScrollArea, TextEdit, Ui};
+use seq::{seq_complement, seq_from_str, seq_to_str};
 
 // todo: monospace font for all seqs.
-use crate::sequence::{
-    seq_complement, seq_from_str, seq_to_str, Feature, FeatureDirection, MIN_SEARCH_LEN,
-};
+use crate::sequence::{Feature, FeatureDirection, MIN_SEARCH_LEN};
 use crate::{
     gui::{
         circle::feature_range_sliders,

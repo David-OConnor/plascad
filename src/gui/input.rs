@@ -3,11 +3,11 @@
 use std::{mem, path::PathBuf};
 
 use eframe::egui::{Event, InputState, Key, PointerButton, Ui};
+use seq::{seq_from_str, Nucleotide};
 
 use crate::{
     file_io::save::{load_import, StateToSave, QUICKSAVE_FILE},
     gui::{navigation::Page, set_window_title},
-    sequence::{seq_from_str, Nucleotide},
     util::RangeIncl,
     State, StateUi,
 };

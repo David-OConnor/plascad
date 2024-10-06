@@ -6,6 +6,7 @@
 use std::{io, time::Duration};
 
 use bincode::{Decode, Encode};
+use seq::{seq_to_str, Nucleotide};
 use serde::{Deserialize, Serialize};
 use serde_json::{self};
 use ureq::{self, Agent};
@@ -13,7 +14,6 @@ use url::Url;
 
 use crate::{
     protein::{aa_seq_to_str, Protein},
-    sequence::{seq_to_str, Nucleotide},
     Selection, State,
 };
 

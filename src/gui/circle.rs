@@ -10,6 +10,7 @@ use eframe::{
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
 };
+use seq::seq_to_str;
 
 use crate::{
     gui::{
@@ -19,7 +20,7 @@ use crate::{
     },
     primer::Primer,
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
-    sequence::{seq_to_str, Feature, FeatureDirection, FeatureType},
+    sequence::{Feature, FeatureDirection, FeatureType},
     Selection, State,
 };
 

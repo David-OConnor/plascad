@@ -1,6 +1,6 @@
 //! Contains code related to identifying toxic proteins.
 
-use crate::sequence::Seq;
+use seq::Seq;
 
 #[derive(Clone, Copy)]
 enum Host {
