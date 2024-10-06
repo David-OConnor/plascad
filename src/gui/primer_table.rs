@@ -2,7 +2,7 @@
 
 use eframe::egui::{Align, Color32, Layout, RichText, ScrollArea, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
-use seq::{seq_from_str, seq_to_str};
+use na_seq::{seq_from_str, seq_to_str};
 
 use crate::{
     gui::{

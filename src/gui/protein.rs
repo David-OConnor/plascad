@@ -15,7 +15,7 @@ use crate::{
         theme::{COLOR_ACTION, COLOR_INFO},
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
-    sequence::FeatureType,
+    misc_types::FeatureType,
     State,
 };
 

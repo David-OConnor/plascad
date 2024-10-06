@@ -16,12 +16,12 @@ use gb_io::{
     seq::{After, Before, Location},
     writer::SeqWriter,
 };
-use seq::{seq_complement, seq_to_letter_bytes, Nucleotide};
+use na_seq::{seq_complement, seq_to_letter_bytes, Nucleotide};
 
 use crate::{
     file_io::{get_filename, GenericData},
     primer::{Primer, PrimerData, PrimerDirection, PrimerMatch},
-    sequence::{Feature, FeatureDirection, FeatureType, Metadata, Reference, SeqTopology},
+    misc_types::{Feature, FeatureDirection, FeatureType, Metadata, Reference, SeqTopology},
     util::RangeIncl,
 };
 

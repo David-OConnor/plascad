@@ -9,7 +9,7 @@
 //! [This calculator from NorthWestern](http://biotools.nubic.northwestern.edu/OligoCalc.html) may be used
 //! for QC TM, weight, and other properties. It includes detailed sources and methods.
 
-use seq::{
+use na_seq::{
     calc_gc,
     Nucleotide::{self, A, C, G, T},
 };

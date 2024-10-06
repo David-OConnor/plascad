@@ -4,12 +4,12 @@
 //!
 //! Some common genes: https://en.vectorbuilder.com/search/gene.html
 
-use seq::{seq_complement, seq_from_str, Nucleotide, Seq};
+use na_seq::{seq_complement, seq_from_str, Nucleotide, Seq};
 
 use crate::{
     amino_acids::AminoAcid,
     reading_frame::ReadingFrame,
-    sequence::{
+    misc_types::{
         Feature, FeatureDirection,
         FeatureType::{
             self, AntibioticResistance, CodingRegion, Generic, Ori, Promoter, ProteinBind,

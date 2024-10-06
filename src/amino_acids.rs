@@ -1,7 +1,7 @@
 use std::fmt;
 
 use bincode::{Decode, Encode};
-use seq::{Nucleotide, Nucleotide::*};
+use na_seq::{Nucleotide, Nucleotide::*};
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum AaIdent {

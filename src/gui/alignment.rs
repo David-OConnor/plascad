@@ -1,5 +1,5 @@
 use eframe::egui::{FontFamily, FontId, RichText, TextEdit, Ui};
-use seq::{seq_from_str, seq_to_str};
+use na_seq::{seq_from_str, seq_to_str};
 
 use crate::{
     alignment::{align_pairwise, distance},

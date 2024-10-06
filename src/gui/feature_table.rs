@@ -6,7 +6,7 @@ use eframe::egui::{
 
 use crate::{
     gui::{int_field, theme::COLOR_ACTION, COL_SPACING, ROW_SPACING},
-    sequence::{
+    misc_types::{
         Feature,
         FeatureDirection::{self, Forward, Reverse},
         FeatureType,

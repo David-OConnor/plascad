@@ -9,9 +9,10 @@
 use std::{io, io::ErrorKind};
 
 use bincode::config;
+use na_seq::{deser_seq_bin, serialize_seq_bin};
 use num_enum::TryFromPrimitive;
 
-use crate::file_io::save::{deser_seq_bin, serialize_seq_bin, StateToSave};
+use crate::file_io::save::StateToSave;
 
 const START_BYTES: [u8; 2] = [0xca, 0xfe]; // Arbitrary, used as a sanity check.
 const PACKET_START: u8 = 0x11;

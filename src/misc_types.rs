@@ -1,7 +1,7 @@
-use std::io;
+//! This module contains fundamental data structures, eg related to features, metadata, etc.
 
 use bincode::{Decode, Encode};
-use num_enum::TryFromPrimitive;
+use na_seq::Nucleotide;
 
 use crate::{
     primer::PrimerDirection,
@@ -9,7 +9,6 @@ use crate::{
     Color,
 };
 pub const MIN_SEARCH_LEN: usize = 3;
-use seq::Nucleotide::{self, A, C, G, T};
 
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum FeatureType {

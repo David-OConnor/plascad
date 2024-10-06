@@ -14,7 +14,7 @@ use crate::{
         primer_overlay::{HEIGHT, LABEL_OFFSET, SLANT_DIV2, STROKE_WIDTH},
         seq_view::{SeqViewData, COLOR_CURSOR, NT_WIDTH_PX, SEQ_ROW_SPACING_PX},
     },
-    sequence::{
+    misc_types::{
         Feature, FeatureDirection,
         FeatureDirection::{Forward, Reverse},
         FeatureType,

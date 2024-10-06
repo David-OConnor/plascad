@@ -31,7 +31,7 @@ use crate::{
     feature_db_load::find_features,
     gui::{input::handle_input, primer_table::primer_details, theme::COLOR_ACTION},
     primer::Primer,
-    sequence::{Feature, FeatureType},
+    misc_types::{Feature, FeatureType},
     util,
     util::{get_window_title, merge_feature_sets},
     Selection, State,

@@ -38,10 +38,10 @@ use eframe::{
 use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load, load_import, StateToSave, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
+use na_seq::{seq_to_str, Nucleotide, Seq};
 use primer::IonConcentrations;
 use protein::Protein;
 use reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch};
-use seq::{seq_to_str, Nucleotide, Seq};
 
 use crate::{
     amino_acids::AaIdent,
@@ -61,7 +61,7 @@ use crate::{
     primer::TM_TARGET,
     protein::{proteins_from_seq, sync_cr_orf_matches},
     restriction_enzyme::{find_re_matches, load_re_library, ReMatch, RestrictionEnzyme},
-    sequence::{find_search_matches, FeatureDirection, FeatureType, SearchMatch, MIN_SEARCH_LEN},
+    misc_types::{find_search_matches, FeatureDirection, FeatureType, SearchMatch, MIN_SEARCH_LEN},
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
@@ -84,7 +84,7 @@ mod protein;
 mod reading_frame;
 mod restriction_enzyme;
 mod save_compat;
-mod sequence;
+mod misc_types;
 mod solution_helper;
 mod tags;
 mod toxic_proteins;

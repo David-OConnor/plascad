@@ -5,7 +5,7 @@ use eframe::egui::{Color32, RichText, ScrollArea, TextEdit, Ui};
 
 use crate::{
     gui::{COL_SPACING, ROW_SPACING},
-    sequence::Metadata,
+    misc_types::Metadata,
 };
 
 const WIDTH_RATIO: f32 = 0.6;

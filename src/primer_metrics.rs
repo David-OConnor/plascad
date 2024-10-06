@@ -1,7 +1,7 @@
 //! This module handles assessing various primer metrics, such as GC concentration, and repeats.
 
 use bincode::{Decode, Encode};
-use seq::{
+use na_seq::{
     calc_gc, Nucleotide,
     Nucleotide::{C, G},
 };

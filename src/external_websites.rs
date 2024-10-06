@@ -6,7 +6,7 @@
 use std::{io, time::Duration};
 
 use bincode::{Decode, Encode};
-use seq::{seq_to_str, Nucleotide};
+use na_seq::{seq_to_str, Nucleotide};
 use serde::{Deserialize, Serialize};
 use serde_json::{self};
 use ureq::{self, Agent};

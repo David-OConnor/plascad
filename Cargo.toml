@@ -68,7 +68,7 @@ ureq = { version = "^2.10.1", features = ["tls"], default-features = false }  # 
 strum = "^0.26.3"
 strum_macros = "^0.26.4"
 
-seq = { path = "../seq" }
+na_seq = { path = "../na_seq" }
 
 [build-dependencies]
 # These are for embedding an application icon, on Windows.

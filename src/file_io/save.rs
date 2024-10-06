@@ -17,7 +17,7 @@ use bincode::{
 };
 use bio::io::fasta;
 use eframe::egui::Ui;
-use seq::{seq_to_letter_bytes, Nucleotide, Seq};
+use na_seq::{deser_seq_bin, seq_to_letter_bytes, serialize_seq_bin, Nucleotide, Seq};
 
 use crate::{
     feature_db_load::find_features,
@@ -32,7 +32,7 @@ use crate::{
     },
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
-    sequence::{Feature, Metadata, SeqTopology},
+    misc_types::{Feature, Metadata, SeqTopology},
     PcrUi, Selection, SeqVisibility, State, StateUi,
 };
 
@@ -124,111 +124,6 @@ impl Decode for GenericData {
     }
 }
 
-// impl Encode for Metadata {
-//     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
-//         self.plasmid_name.encode(encoder)?;
-//         self.comments.encode(encoder)?;
-//         self.references.encode(encoder)?;
-//         self.locus.encode(encoder)?;
-//
-//         // Handle optional date
-//         if let Some(date) = &self.date {
-//             // Encode the flag indicating the presence of the date
-//             true.encode(encoder)?;
-//
-//             let mut date_bytes = [0; 6];
-//             date_bytes[0..4].clone_from_slice(&date.year().to_le_bytes());
-//             date_bytes[4] = date.month() as u8;
-//             date_bytes[5] = date.day() as u8;
-//
-//             date_bytes.encode(encoder)?;
-//         } else {
-//             // Encode the flag indicating the absence of the date
-//             false.encode(encoder)?;
-//         }
-//
-//         self.definition.encode(encoder)?;
-//         self.accession.encode(encoder)?;
-//         self.version.encode(encoder)?;
-//         self.keywords.encode(encoder)?;
-//         self.source.encode(encoder)?;
-//         self.organism.encode(encoder)?;
-//
-//         Ok(())
-//     }
-// }
-//
-// impl Decode for Metadata {
-//     fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
-//         let plasmid_name = String::decode(decoder)?;
-//         let comments = String::decode(decoder)?;
-//         let references = Vec<Reference>::decode(decoder)?;
-//         let locus = String::decode(decoder)?;
-//
-//         // Decode optional fields with a flag
-//         let date = if bool::decode(decoder)? {
-//             let date_bytes = Vec::decode(decoder)?;
-//             Some(NaiveDate::from_ymd(
-//                 i32::from_le_bytes(date_bytes[0..4].try_into().unwrap()),
-//                 u32::from_le_bytes([date_bytes[4]].try_into().unwrap()),
-//                 u32::from_le_bytes([date_bytes[5]].try_into().unwrap()),
-//             ))
-//         } else {
-//             None
-//         };
-//
-//         let definition = if bool::decode(decoder)? {
-//             Some(String::decode(decoder)?)
-//         } else {
-//             None
-//         };
-//
-//         let accession = if bool::decode(decoder)? {
-//             Some(String::decode(decoder)?)
-//         } else {
-//             None
-//         };
-//
-//         let version = if bool::decode(decoder)? {
-//             Some(String::decode(decoder)?)
-//         } else {
-//             None
-//         };
-//
-//         let keywords = if bool::decode(decoder)? {
-//             Some(String::decode(decoder)?)
-//         } else {
-//             None
-//         };
-//
-//         let source = if bool::decode(decoder)? {
-//             Some(String::decode(decoder)?)
-//         } else {
-//             None
-//         };
-//
-//         let organism = if bool::decode(decoder)? {
-//             Some(String::decode(decoder)?)
-//         } else {
-//             None
-//         };
-//
-//         Ok(Self {
-//             plasmid_name,
-//             comments,
-//             references,
-//             locus,
-//             date,
-//             definition,
-//             accession,
-//             version,
-//             keywords,
-//             source,
-//             organism,
-//         })
-//     }
-// }
-
 impl StateToSave {
     pub fn from_state(state: &State, active: usize) -> Self {
         Self {
@@ -236,7 +131,6 @@ impl StateToSave {
             // insert_loc: state.cloning_insert_loc, // todo: Not fully handled.
             ion_concentrations: state.ion_concentrations[active].clone(),
             path_loaded: state.path_loaded[active].clone(),
-            // reading_frame: state.reading_frame,
             portions: state.portions[state.active].clone(),
         }
     }
@@ -380,63 +274,6 @@ pub fn import_fasta(path: &Path) -> io::Result<(Seq, String, String)> {
     }
 
     Ok((result, id, description))
-}
-
-/// A compact binary serialization of our sequence. Useful for file storage.
-/// The first byte is sequence length; we need this, since one of our nucleotides necessarily serializes
-/// to 0b00.
-/// todo: Is this MSB or LSB?
-pub fn serialize_seq_bin(seq: &[Nucleotide]) -> Vec<u8> {
-    let mut result = Vec::new();
-    result.extend(&(seq.len() as u32).to_be_bytes());
-
-    for i in 0..seq.len() / 4 + 1 {
-        let mut val = 0;
-        for j in 0..4 {
-            let ind = i * 4 + j;
-            if ind + 1 > seq.len() {
-                break;
-            }
-            let nt = seq[ind];
-            val |= (nt as u8) << (j * 2);
-        }
-        result.push(val);
-    }
-    result
-}
-
-/// A compact binary deserialization of our sequence.
-/// todo: Is this MSB or LSB?
-pub fn deser_seq_bin(data: &[u8]) -> io::Result<Seq> {
-    let mut result = Vec::new();
-
-    if data.len() < 4 {
-        return Err(io::Error::new(
-            ErrorKind::InvalidData,
-            "Bin nucleotide sequence is too short.",
-        ));
-    }
-
-    let seq_len = u32::from_be_bytes(data[0..4].try_into().unwrap()) as usize;
-
-    for byte in &data[4..] {
-        for i in 0..4 {
-            // This trimming removes extra 00-serialized nucleotides.
-            if result.len() >= seq_len {
-                break;
-            }
-
-            let bits = (byte >> (2 * i)) & 0b11;
-            result.push(Nucleotide::try_from(bits).map_err(|_| {
-                io::Error::new(
-                    ErrorKind::InvalidData,
-                    format!("Invalid NT serialization: {}, {}", byte, bits),
-                )
-            })?);
-        }
-    }
-
-    Ok(result)
 }
 
 /// Save a new file, eg a cloning or PCR product.

@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use eframe::egui::{
     Color32, ComboBox, Frame, Grid, RichText, ScrollArea, Stroke, TextEdit, Ui, Vec2,
 };
-use seq::{seq_from_str, seq_to_str, Nucleotide};
+use na_seq::{seq_from_str, seq_to_str, Nucleotide};
 use strum::IntoEnumIterator;
 
 use crate::{
@@ -22,7 +22,7 @@ use crate::{
         theme::{COLOR_ACTION, COLOR_INFO},
         COL_SPACING, ROW_SPACING,
     },
-    sequence::{Feature, FeatureType},
+    misc_types::{Feature, FeatureType},
     util::{merge_feature_sets, RangeIncl},
     State,
 };

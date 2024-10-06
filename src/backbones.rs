@@ -4,14 +4,14 @@
 
 use std::{fmt, fmt::Formatter};
 
-use seq::seq_from_str;
+use na_seq::seq_from_str;
 use strum_macros::EnumIter;
 
 // todo: Consider auto-inferring the T7 and other promoter site instead of hard-coding.
 use crate::{
     cloning::RBS_BUFFER,
     file_io::GenericData,
-    sequence::{Feature, FeatureType, SeqTopology},
+    misc_types::{Feature, FeatureType, SeqTopology},
     util::RangeIncl,
     Seq,
 };

@@ -16,7 +16,7 @@ use crate::{
     },
     primer::{Primer, PrimerDirection},
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
-    sequence::{Feature, FeatureType},
+    misc_types::{Feature, FeatureType},
     util::{map_linear, RangeIncl},
     Selection, State, StateUi,
 };

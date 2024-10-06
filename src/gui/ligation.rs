@@ -9,7 +9,7 @@ use eframe::{
     },
     emath::RectTransform,
 };
-use seq::seq_to_str;
+use na_seq::seq_to_str;
 
 use crate::{
     gui::{

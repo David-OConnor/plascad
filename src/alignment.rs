@@ -6,7 +6,7 @@ use bio::{
     },
     scores::blosum62,
 };
-use seq::{seq_to_letter_bytes, Nucleotide};
+use na_seq::{seq_to_letter_bytes, Nucleotide};
 
 #[derive(Clone, Copy)]
 /// Use Hamming Distance if:

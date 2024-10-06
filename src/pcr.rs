@@ -1,7 +1,7 @@
 //! This module assists in identifying PCR parameters
 
 use bincode::{Decode, Encode};
-use seq::Seq;
+use na_seq::Seq;
 
 use crate::{
     gui::navigation::{Page, PageSeq},
