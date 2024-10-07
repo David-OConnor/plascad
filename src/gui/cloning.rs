@@ -78,7 +78,9 @@ fn draw_insert_descrip(feature: &Feature, seq_loaded: &[Nucleotide], ui: &mut Ui
 /// Draw a selector for the insert, based on loading from a file.
 /// This buffer is in nucleotides, and is on either side of the insert. A buffer of 4-6 nts is ideal
 /// for restriction-enzyme cloning, while no buffer is required for PCR-based cloning.
-fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) {
+fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) -> bool {
+    let mut clicked = false;
+
     for (i, feature) in data.features_loaded.iter().enumerate() {
         // match feature.feature_type {
         //     FeatureType::CodingRegion | FeatureType::Generic | FeatureType::Gene => (),
@@ -121,9 +123,11 @@ fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) {
                     }
 
                     draw_insert_descrip(feature, &data.seq_loaded, ui);
+                    clicked = true;
                 });
             });
     }
+    clicked
 }
 
 /// Choose from tabs to select an insert from.
@@ -408,7 +412,11 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         ui.add_space(ROW_SPACING);
 
         if state.ui.cloning_insert.show_insert_picker {
-            insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
+            let insert_just_picked = insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
+            if insert_just_picked {
+                println!("PICKED");
+                state.cloning.sync(&state.ui.cloning_insert.seq_insert, &state.backbone_lib, &state.restriction_enzyme_lib);
+            }
             ui.add_space(ROW_SPACING);
         }
 
@@ -429,38 +437,24 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             ui,
         );
 
-        let bb = match state.cloning.backbone_selected {
+        // todo: This is DRY with get_backbone due to borrow error.
+        // let backbone = state.cloning.get_backbone(&state.backbone_lib);
+        let backbone =   match state.cloning.backbone_selected {
             BackboneSelected::Library(i) => {
                 if i >= state.backbone_lib.len() {
                     eprintln!("Invalid index in backbone lib");
-                    return;
+                    None
+                } else {
+                    Some(&state.backbone_lib[i])
                 }
-                Some(&state.backbone_lib[i])
             }
             BackboneSelected::Opened => Some(state.cloning.backbone.as_ref().unwrap()),
             BackboneSelected::None => None,
         };
 
-        if let Some(backbone) = bb {
-            // todo: Cache all relevant calcs you are currently doing here! For example, only when you change vector,
-            // todo: or when the sequence changes. (Eg with state sync fns)
-            (
-                state.cloning.res_common,
-                state.cloning.re_matches_vec_common,
-                state.cloning.re_matches_insert_common,
-            ) = find_re_candidates(
-                &backbone,
-                &state.ui.cloning_insert.seq_insert,
-                &state.restriction_enzyme_lib,
-                &state.volatile,
-            );
+        let mut insert_loc_set = false; // This variable prevents a borrow error.
 
-            state.cloning.status = AutocloneStatus::new(
-                &backbone,
-                state.cloning.insert_loc,
-                state.ui.cloning_insert.seq_insert.len(),
-            );
-
+        if let Some(backbone) = backbone {
             let rbs_dist = backbone
                 .rbs
                 .map(|r| state.cloning.insert_loc as isize - r.end as isize);
@@ -486,6 +480,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                 if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
                     state.cloning.insert_loc = insert_loc;
                 }
+                insert_loc_set = true;
             }
 
             ui.horizontal(|ui| {
@@ -512,6 +507,10 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                     merge_feature_sets(&mut state.generic[state.active].features, &features)
                 }
             }
+        }
+
+        if insert_loc_set {
+            state.cloning.sync(&state.ui.cloning_insert.seq_insert, &state.backbone_lib, &state.restriction_enzyme_lib);
         }
 
         ui.add_space(ROW_SPACING);

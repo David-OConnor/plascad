@@ -12,15 +12,7 @@ use na_seq::{
     seq_to_str, Nucleotide, Seq,
 };
 
-use crate::{
-    backbones::Backbone,
-    file_io::GenericData,
-    gui::navigation::{Page, PageSeq},
-    misc_types::{Feature, FeatureDirection, FeatureType},
-    primer::{make_cloning_primers, PrimerDirection},
-    util::RangeIncl,
-    Selection, State, StateVolatile,
-};
+use crate::{backbones::Backbone, file_io::GenericData, gui::navigation::{Page, PageSeq}, misc_types::{Feature, FeatureDirection, FeatureType}, primer::{make_cloning_primers, PrimerDirection}, util::RangeIncl, Selection, State, StateVolatile, CloningState, StateUi};
 
 /// Include this many nucleotides to the left, and right of each insert, when searching for RE sites.
 /// note: 4-6 nucleotides may be an ideal buffer. Note that this should be conservatively long.
@@ -31,6 +23,61 @@ pub const RBS_BUFFER: usize = 7;
 
 pub const RBS_BUFFER_MIN: isize = 4;
 pub const RBS_BUFFER_MAX: isize = 11;
+
+impl CloningState {
+    /// Run this whenever something relevant in the cloning state changes. (e.g. selected a new backbone,
+    /// a new insert location etc.)
+    pub fn sync(&mut self, seq_insert: &[Nucleotide], backbone_lib: &[Backbone], re_lib: &[RestrictionEnzyme]) {
+        // let backbone = self.get_backbone(backbone_lib);
+
+        // todo: DRy with `get_backbone`, due to borrow errors. :(
+        let backbone =   match self.backbone_selected {
+            BackboneSelected::Library(i) => {
+                if i >= backbone_lib.len() {
+                    eprintln!("Invalid index in backbone lib");
+                    None
+                } else {
+                    Some(&backbone_lib[i])
+                }
+            }
+            BackboneSelected::Opened => Some(self.backbone.as_ref().unwrap()),
+            BackboneSelected::None => None,
+        };
+
+        if let Some(backbone) = backbone {
+            (
+                self.res_common,
+                self.re_matches_vec_common,
+                self.re_matches_insert_common,
+            ) = find_re_candidates(
+                &backbone,
+                seq_insert,
+                &re_lib,
+            );
+
+            self.status = AutocloneStatus::new(
+                &backbone,
+                self.insert_loc,
+                seq_insert.len(),
+            );
+        }
+    }
+
+    pub fn get_backbone<'a>(&'a self, lib: &'a[Backbone]) -> Option<&'a Backbone> {
+        match self.backbone_selected {
+            BackboneSelected::Library(i) => {
+                if i >= lib.len() {
+                    eprintln!("Invalid index in backbone lib");
+                    None
+                } else {
+                    Some(&lib[i])
+                }
+            }
+            BackboneSelected::Opened => Some(self.backbone.as_ref().unwrap()),
+            BackboneSelected::None => None,
+        }
+    }
+}
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum BackboneSelected {
@@ -171,7 +218,6 @@ pub fn find_re_candidates<'a>(
     // insert_tab: usize,
     // insert_range: RangeIncl,
     lib: &'a [RestrictionEnzyme],
-    volatile: &[StateVolatile],
     // ) -> Vec<&'a RestrictionEnzyme> {
 ) -> (Vec<RestrictionEnzyme>, Vec<ReMatch>, Vec<ReMatch>) {
     // Note: The first part of this function is similar to how we filter REs for digest on the digest/ligation page.
