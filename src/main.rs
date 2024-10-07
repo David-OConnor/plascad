@@ -467,6 +467,8 @@ struct CloningState {
     re_matches_insert_common: Vec<ReMatch>,
     status: AutocloneStatus, // todo: Should this be an option?
     insert_loc: usize,
+    /// Data for the insert. For example, used to draw its linear sequence.
+    data_insert: Option<GenericData>,
     // /// We use this, for example, for displaying a linear map based on a library backbone.
     // backbone_data: Option<GenericData>,
 }
@@ -481,6 +483,7 @@ impl Default for CloningState {
             re_matches_vec_common: Default::default(),
             re_matches_insert_common: Default::default(),
             status: Default::default(),
+            data_insert: Default::default(),
             // backbone_data: Default::default(),
         }
     }

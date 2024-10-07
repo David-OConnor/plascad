@@ -394,17 +394,19 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         ui.add_space(ROW_SPACING);
 
         // A minimap for the insert
-        seq_lin_disp(
-            data_vec_,
-            true,
-            state.ui.selected_item,
-            &state.ui.re.res_selected,
-            None,
-            &state.ui,
-            &state.cloning.re_matches_insert_common,
-            &state.restriction_enzyme_lib,
-            ui,
-        );
+        if let Some(data) = &state.cloning.data_insert {
+            seq_lin_disp(
+                data,
+                true,
+                state.ui.selected_item,
+                &state.ui.re.res_selected,
+                None,
+                &state.ui,
+                &state.cloning.re_matches_insert_common,
+                &state.restriction_enzyme_lib,
+                ui,
+            );
+        }
 
         ui.add_space(ROW_SPACING);
 
