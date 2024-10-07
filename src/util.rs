@@ -8,7 +8,11 @@ use std::{
 
 use bincode::{Decode, Encode};
 use eframe::egui::{pos2, Pos2};
-use na_seq::{seq_complement, Nucleotide};
+use na_seq::{
+    ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
+    restriction_enzyme::RestrictionEnzyme,
+    seq_complement, Nucleotide,
+};
 
 use crate::{
     file_io::save::QUICKSAVE_FILE,
@@ -18,7 +22,7 @@ use crate::{
         WINDOW_TITLE,
     },
     misc_types::Feature,
-    Color, State,
+    Color, ReUi, State, StateVolatile,
 };
 
 const FEATURE_ANNOTATION_MATCH_THRESH: f32 = 0.95;
@@ -409,4 +413,32 @@ pub fn name_from_path(path: &Option<PathBuf>, plasmid_name: &str, abbrev_name: b
     }
 
     name
+}
+
+/// We filter for restriction enzymes based on preferences set. We do this in several stages.
+/// Note that this function includes filter characteristics that inolve matches across
+/// multiple opened tabs (sequences).
+pub fn filter_res<'a>(
+    data: &ReUi,
+    volatile: &[StateVolatile],
+    lib: &'a [RestrictionEnzyme],
+) -> Vec<&'a RestrictionEnzyme> {
+    let mut re_match_set = Vec::new(); // By tab
+    for active in &data.tabs_selected {
+        re_match_set.push(&volatile[*active].restriction_enzyme_matches);
+    }
+
+    let mut result = find_common_res(&re_match_set, lib, data.sticky_ends_only);
+
+    if data.multiple_seqs {
+        filter_multiple_seqs(&mut result, &re_match_set, lib);
+    }
+
+    // If `unique_cutters_only` is selected, each RE must be unique in each sequence. If it's two or more times in any given sequence, don't
+    // add it.
+    if data.unique_cutters_only {
+        filter_unique_cutters(&mut result, &re_match_set, lib);
+    }
+
+    result
 }

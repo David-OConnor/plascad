@@ -4,8 +4,8 @@ use eframe::egui::{Pos2, Shape, Ui};
 
 use crate::{
     gui::sequence::{feature_overlay, seq_view::SeqViewData},
-    primer::{Primer, PrimerDirection},
     misc_types::FeatureType,
+    primer::{Primer, PrimerDirection},
     util,
     util::RangeIncl,
     Selection,

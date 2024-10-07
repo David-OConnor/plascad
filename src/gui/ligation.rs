@@ -9,7 +9,11 @@ use eframe::{
     },
     emath::RectTransform,
 };
-use na_seq::seq_to_str;
+use na_seq::{
+    ligation,
+    ligation::{digest, LigationFragment},
+    seq_to_str,
+};
 
 use crate::{
     gui::{
@@ -20,9 +24,7 @@ use crate::{
         theme::COLOR_ACTION,
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
-    ligation,
-    ligation::{digest, LigationFragment},
-    util::{map_linear, name_from_path},
+    util::{filter_res, map_linear, name_from_path},
     State,
 };
 
@@ -306,7 +308,7 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
         }
 
         // todo: Don't run this every frame! Store in state, and update it only when something notable changes.
-        let res_matched = ligation::filter_res(&state.ui.re, &state.volatile, &state.restriction_enzyme_lib);
+        let res_matched = filter_res(&state.ui.re, &state.volatile, &state.restriction_enzyme_lib);
 
         ui.horizontal(|ui| {
             ui.heading("Digestion and ligation");
@@ -337,7 +339,8 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
 
             ui.add_space(COL_SPACING);
 
-            // If we've changed filters, update REs selected IRT these filtersx.
+            // If we've c fmt
+            // hanged filters, update REs selected IRT these filtersx.
             if changed_filters {
                 // filter_res_selected(&mut state.ui.re, &state.restriction_enzyme_lib);
             }

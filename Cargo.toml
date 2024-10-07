@@ -69,6 +69,7 @@ strum = "^0.26.3"
 strum_macros = "^0.26.4"
 
 na_seq = { path = "../na_seq" }
+#na_seq = "^0.2.0"
 
 [build-dependencies]
 # These are for embedding an application icon, on Windows.

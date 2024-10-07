@@ -8,7 +8,6 @@ use na_seq::{seq_complement, seq_from_str, Nucleotide, Seq};
 
 use crate::{
     amino_acids::AminoAcid,
-    reading_frame::ReadingFrame,
     misc_types::{
         Feature, FeatureDirection,
         FeatureType::{
@@ -16,6 +15,7 @@ use crate::{
             RibosomeBindSite, Terminator,
         },
     },
+    reading_frame::ReadingFrame,
     util::{match_subseq, RangeIncl},
 };
 

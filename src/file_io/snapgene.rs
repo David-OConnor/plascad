@@ -22,7 +22,7 @@ const HTML_TAGS: [&str; 8] = [
     "<html>", "</html>", "<body>", "</body>", "<i>", "</i>", "<b>", "</b>",
 ];
 
-use na_seq::{seq_from_str, seq_to_str, Nucleotide, Seq};
+use na_seq::{seq_from_str, seq_to_str, Nucleotide, Seq, SeqTopology};
 
 use crate::{
     file_io::{
@@ -33,8 +33,8 @@ use crate::{
         },
         GenericData,
     },
+    misc_types::{Feature, FeatureDirection, FeatureType},
     primer::{Primer, PrimerData},
-    misc_types::{Feature, FeatureDirection, FeatureType, SeqTopology},
     util::{color_from_hex, color_to_hex, RangeIncl},
 };
 

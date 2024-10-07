@@ -10,7 +10,10 @@ use eframe::{
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
 };
-use na_seq::seq_to_str;
+use na_seq::{
+    restriction_enzyme::{ReMatch, RestrictionEnzyme},
+    seq_to_str,
+};
 
 use crate::{
     gui::{
@@ -18,9 +21,8 @@ use crate::{
         lin_maps::MINI_DISP_NT_LEN, navigation::NAV_BUTTON_COLOR, select_feature, COLOR_RE,
         COLOR_SEQ, COL_SPACING, PRIMER_FWD_COLOR, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
     },
-    primer::Primer,
-    restriction_enzyme::{ReMatch, RestrictionEnzyme},
     misc_types::{Feature, FeatureDirection, FeatureType},
+    primer::Primer,
     Selection, State,
 };
 

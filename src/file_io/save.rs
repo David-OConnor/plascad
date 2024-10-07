@@ -17,7 +17,7 @@ use bincode::{
 };
 use bio::io::fasta;
 use eframe::egui::Ui;
-use na_seq::{deser_seq_bin, seq_to_letter_bytes, serialize_seq_bin, Nucleotide, Seq};
+use na_seq::{deser_seq_bin, seq_to_letter_bytes, serialize_seq_bin, Nucleotide, Seq, SeqTopology};
 
 use crate::{
     feature_db_load::find_features,
@@ -30,9 +30,9 @@ use crate::{
         navigation::{Page, PageSeq, PageSeqTop},
         set_window_title,
     },
+    misc_types::{Feature, Metadata},
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
-    misc_types::{Feature, Metadata, SeqTopology},
     PcrUi, Selection, SeqVisibility, State, StateUi,
 };
 

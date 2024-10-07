@@ -7,6 +7,7 @@ use eframe::{
     },
     emath::RectTransform,
 };
+use na_seq::restriction_enzyme::{ReMatch, RestrictionEnzyme};
 
 use crate::{
     file_io::GenericData,
@@ -14,9 +15,8 @@ use crate::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH, RE_WIDTH},
         BACKGROUND_COLOR, COLOR_RE, COLOR_RE_HIGHLIGHTED, LINEAR_MAP_HEIGHT,
     },
-    primer::{Primer, PrimerDirection},
-    restriction_enzyme::{ReMatch, RestrictionEnzyme},
     misc_types::{Feature, FeatureType},
+    primer::{Primer, PrimerDirection},
     util::{map_linear, RangeIncl},
     Selection, State, StateUi,
 };

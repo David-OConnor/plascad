@@ -7,8 +7,8 @@ use na_seq::Nucleotide;
 use crate::{
     amino_acids::AminoAcid,
     external_websites::PdbData,
-    reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch},
     misc_types::{Feature, FeatureType},
+    reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch},
     State,
 };
 

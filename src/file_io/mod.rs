@@ -2,11 +2,11 @@
 
 use std::path::Path;
 
-use na_seq::Seq;
+use na_seq::{Seq, SeqTopology};
 
 use crate::{
+    misc_types::{Feature, Metadata},
     primer::Primer,
-    misc_types::{Feature, Metadata, SeqTopology},
 };
 pub mod genbank;
 mod pcad;

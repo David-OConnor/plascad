@@ -6,16 +6,18 @@
 
 //! todo: Allow users to enter custom backbones.
 
-use na_seq::{seq_to_str, Nucleotide, Seq};
+use na_seq::{
+    ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
+    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
+    seq_to_str, Nucleotide, Seq,
+};
 
 use crate::{
     backbones::Backbone,
     file_io::GenericData,
     gui::navigation::{Page, PageSeq},
-    ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
-    primer::{make_cloning_primers, PrimerDirection},
-    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
     misc_types::{Feature, FeatureDirection, FeatureType},
+    primer::{make_cloning_primers, PrimerDirection},
     util::RangeIncl,
     Selection, State, StateVolatile,
 };

@@ -231,18 +231,6 @@ impl Feature {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Encode, Decode)]
-pub enum SeqTopology {
-    Linear,
-    Circular,
-}
-
-impl Default for SeqTopology {
-    fn default() -> Self {
-        Self::Circular
-    }
-}
-
 /// Contains sequence-level metadata.
 #[derive(Clone, Default, Encode, Decode)]
 pub struct Metadata {
