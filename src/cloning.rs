@@ -13,6 +13,7 @@ use na_seq::{
 };
 
 use crate::{backbones::Backbone, file_io::GenericData, gui::navigation::{Page, PageSeq}, misc_types::{Feature, FeatureDirection, FeatureType}, primer::{make_cloning_primers, PrimerDirection}, util::RangeIncl, Selection, State, StateVolatile, CloningState, StateUi};
+use crate::reading_frame::STOP_CODONS;
 
 /// Include this many nucleotides to the left, and right of each insert, when searching for RE sites.
 /// note: 4-6 nucleotides may be an ideal buffer. Note that this should be conservatively long.
@@ -55,7 +56,7 @@ impl CloningState {
                 &re_lib,
             );
 
-            self.status = AutocloneStatus::new(
+            self.status = CloneStatus::new(
                 &backbone,
                 self.insert_loc,
                 seq_insert.len(),
@@ -205,6 +206,57 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
     state.ui.selected_item = Selection::Feature(state.generic[state.active].features.len() - 1);
 }
 
+/// Check if the (eg His) tag is in frame with the start of the coding region, and that there is
+/// no stop codon between the end of the coding region, and start of the sequence.
+///
+/// We assume, for now, that the insert location is the start of a coding region.
+/// todo: This assumption may not be always valid!
+fn tag_in_frame(backbone: &Backbone, coding_region_start: usize, insert_len: usize) -> Status {
+    match backbone.his_tag {
+        Some(tag_range) => {
+            let (tag_start, cr_start) = match backbone.direction {
+                PrimerDirection::Forward => {
+                    let cr_start = coding_region_start % backbone.seq.len();
+                    (tag_range.start + insert_len, cr_start)
+                }
+                // todo: QC this.
+                PrimerDirection::Reverse => {
+                    let tag_end = tag_range.end % backbone.seq.len();
+                    (coding_region_start,  tag_end + insert_len)
+                }
+            };
+
+            if cr_start > tag_start {
+                eprintln!("Error with insert loc and tag end. Coding region start: {cr_start}, tag start: {tag_start}. Backbone: {}", backbone.name);
+                return Status::Fail;
+            }
+
+            // todo: Helper fn for this sort of check in general?
+            // If there is a stop codon between the end of the sequence and the
+            for i in cr_start..tag_start {
+                if i + 2 >= backbone.seq.len() {
+                    eprintln!("Error: Invalid backbone seq in his check");
+                    return Status::Fail;
+                }
+                // todo: Confirm this is the full seq with insert adn vec.
+                if STOP_CODONS.contains(&[backbone.seq[i], backbone.seq[i+1], backbone.seq[i+2]]) {
+                    println!("Stop codon between seq start and his tag found."); // todo temp
+                    return Status::Fail;
+                }
+            }
+
+            let dist_from_start_codon = tag_start - cr_start;
+
+            if dist_from_start_codon % 3 == 0 {
+                Status::Pass
+            } else {
+                Status::Fail
+            }
+        }
+        None => Status::NotApplicable,
+    }
+}
+
 /// For a given insert and vector, find suitable  restriction enzymes for cloning.
 /// Make sure that the insert sequence is properly buffered to allow for RE matching outside
 /// of the coding region (etc)'s range, upstream of this.
@@ -253,8 +305,9 @@ pub fn find_re_candidates<'a>(
     (res, matches_vector_common, matches_insert_common)
 }
 
+/// Validation checks for cloning.
 #[derive(Default)]
-pub struct AutocloneStatus {
+pub struct CloneStatus {
     pub rbs_dist: Status,
     pub downstream_of_promoter: Status,
     pub upstream_of_terminator: Status,
@@ -265,7 +318,7 @@ pub struct AutocloneStatus {
     // pub re_dist: Status,
 }
 
-impl AutocloneStatus {
+impl CloneStatus {
     pub fn new(backbone: &Backbone, insert_loc: usize, insert_len: usize) -> Self {
         let rbs_dist = match backbone.rbs {
             Some(rbs) => {
@@ -305,38 +358,7 @@ impl AutocloneStatus {
 
         let direction = Status::Pass; // todo
 
-        let tag_frame = match backbone.his_tag {
-            Some(tag_range) => {
-                let dist_from_start_codon = match backbone.direction {
-                    PrimerDirection::Forward => {
-                        let insert_loc = insert_loc % backbone.seq.len();
-                        if insert_loc > tag_range.start {
-                            eprintln!("Error with insert loc and tag start. Insert loc: {insert_loc}, tag start: {}. Backbone: {}", tag_range.start, backbone.name);
-                            1
-                        } else {
-                            (tag_range.start - insert_loc % backbone.seq.len()) + insert_len
-                        }
-                    }
-                    // todo: QC this.
-                    PrimerDirection::Reverse => {
-                        let tag_end = tag_range.end % backbone.seq.len();
-                        if insert_loc < tag_end {
-                            eprintln!("Error with insert loc and tag end. Insert loc: {insert_loc}, tag end: {tag_end}. Backbone: {}", backbone.name);
-                            1 // triggers a fail.
-                        } else {
-                            (insert_loc - tag_end) + insert_len
-                        }
-                    }
-                };
-
-                if dist_from_start_codon % 3 == 0 {
-                    Status::Pass
-                } else {
-                    Status::Fail
-                }
-            }
-            None => Status::NotApplicable,
-        };
+        let tag_frame = tag_in_frame(&backbone, insert_loc, insert_len);
 
         Self {
             rbs_dist,

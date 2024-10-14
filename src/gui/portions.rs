@@ -63,7 +63,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
         for (j, reagent) in solution.reagents.iter_mut().enumerate() {
             ui.horizontal(|ui| {
                 let type_prev = reagent.type_;
-                ComboBox::from_id_source(100 + i * 100 + j)
+                ComboBox::from_id_salt(100 + i * 100 + j)
                     .width(140.)
                     .selected_text(reagent.type_.to_string())
                     .show_ui(ui, |ui| {
@@ -119,7 +119,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
                 }
 
                 let prep_prev = reagent.prep;
-                ComboBox::from_id_source(2000 + i * 100 + j)
+                ComboBox::from_id_salt(2000 + i * 100 + j)
                     .width(80.)
                     .selected_text(reagent.prep.to_string())
                     .show_ui(ui, |ui| {
@@ -204,7 +204,7 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
     let mut run_calc = false;
 
     ui.horizontal(|ui| {
-        ComboBox::from_id_source(3_000)
+        ComboBox::from_id_salt(3_000)
             .width(110.)
             .selected_text(portions.media_input.to_string())
             .show_ui(ui, |ui| {
@@ -231,7 +231,7 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
                 ui.label("Plate diameter:");
 
                 let dia_prev = *plate_size;
-                ComboBox::from_id_source(3_001)
+                ComboBox::from_id_salt(3_001)
                     .width(70.)
                     .selected_text(plate_size.to_string())
                     .show_ui(ui, |ui| {

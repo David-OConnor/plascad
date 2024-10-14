@@ -29,7 +29,7 @@ use std::{
 
 use bincode::{Decode, Encode};
 use bio::alignment::Alignment;
-use cloning::{AutocloneStatus, CloningInsertData};
+use cloning::{CloneStatus, CloningInsertData};
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{
     self,
@@ -465,7 +465,7 @@ struct CloningState {
     res_common: Vec<RestrictionEnzyme>,
     re_matches_vec_common: Vec<ReMatch>,
     re_matches_insert_common: Vec<ReMatch>,
-    status: AutocloneStatus, // todo: Should this be an option?
+    status: CloneStatus, // todo: Should this be an option?
     insert_loc: usize,
     /// Data for the insert. For example, used to draw its linear sequence.
     data_insert: Option<GenericData>,

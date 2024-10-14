@@ -35,7 +35,7 @@ fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
         ui.label(&format!("len: {}", state.ui.seq_input.len()));
     });
 
-    ScrollArea::vertical().id_source(200).show(ui, |ui| {
+    ScrollArea::vertical().id_salt(200).show(ui, |ui| {
         let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
         if response.changed() {
             state.generic[state.active].seq = seq_from_str(&state.ui.seq_input);
@@ -167,7 +167,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             Frame::none().show(ui, |ui| {
                 ScrollArea::vertical()
                     .max_height(half_screen_height)
-                    .id_source(69)
+                    .id_salt(69)
                     .show(ui, |ui| primer_details(state, ui));
             });
         }
@@ -175,7 +175,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             Frame::none().show(ui, |ui| {
                 ScrollArea::vertical()
                     .max_height(half_screen_height)
-                    .id_source(70)
+                    .id_salt(70)
                     .show(ui, |ui| {
                         feature_table(state, ui);
                     });
@@ -271,7 +271,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
     ui.add_space(ROW_SPACING / 2.);
 
     ScrollArea::vertical()
-        .id_source(100)
+        .id_salt(100)
         .show(ui, |ui| match state.ui.page_seq {
             PageSeq::EditRaw => {
                 state.ui.text_cursor_i = None; // prevents double-edits

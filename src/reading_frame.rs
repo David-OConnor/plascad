@@ -9,6 +9,9 @@ use na_seq::{
 
 use crate::util::RangeIncl;
 
+const START_CODON: [Nucleotide; 3] = [A, T, G];
+pub const STOP_CODONS: [[Nucleotide; 3]; 3] = [[T, A, A], [T, A, G], [T, G, A]];
+
 /// Of the 6 possible reading frames.
 #[derive(Clone, Copy, PartialEq, Debug, Encode, Decode)]
 pub enum ReadingFrame {
@@ -80,9 +83,6 @@ pub struct ReadingFrameMatch {
 
 /// Find coding regions in a sequence, given a reading frame.
 pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFrameMatch> {
-    const START_CODON: [Nucleotide; 3] = [A, T, G];
-    let stop_codons = [[T, A, A], [T, A, G], [T, G, A]];
-
     let mut result = Vec::new();
 
     let offset = orf.offset();
@@ -106,7 +106,7 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
             frame_open = Some(i);
         // } else if frame_open.is_some() && stop_codons.contains(nts.try_into().unwrap()) {
         } else if frame_open.is_some()
-            && (stop_codons.contains(nts.try_into().unwrap()) || seq_len_full - i <= 3)
+            && (STOP_CODONSit commit .contains(nts.try_into().unwrap()) || seq_len_full - i <= 3)
         {
             // If we reach the end of the sequence, consider it closed.
             // todo: Handle circular around the origin. Ie, don't auto-close in that case.

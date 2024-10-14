@@ -56,7 +56,7 @@ fn primer_dropdown(
 
     let primer = &primers[*val];
 
-    ComboBox::from_id_source(id)
+    ComboBox::from_id_salt(id)
         .width(80.)
         .selected_text(&primer.name)
         .show_ui(ui, |ui| {
@@ -242,7 +242,7 @@ pub fn pcr_page(state: &mut State, ui: &mut Ui) {
 
         ui.label("Polymerase:");
         let prev_poly = state.ui.pcr.polymerase_type;
-        ComboBox::from_id_source(10)
+        ComboBox::from_id_salt(10)
             .width(80.)
             .selected_text(state.ui.pcr.polymerase_type.to_str())
             .show_ui(ui, |ui| {

@@ -10,7 +10,7 @@ use strum::IntoEnumIterator;
 use crate::{
     backbones::{Backbone, BackboneFilters, CloningTechnique},
     cloning::{
-        find_re_candidates, make_product_tab, setup_insert_seqs, AutocloneStatus, BackboneSelected,
+        find_re_candidates, make_product_tab, setup_insert_seqs, CloneStatus, BackboneSelected,
         CloningInsertData, Status, RE_INSERT_BUFFER,
     },
     file_io::{save::load_import, GenericData},
@@ -44,7 +44,7 @@ fn filter_selector<T: fmt::Display + PartialEq + Copy + IntoEnumIterator>(
         None => "Any".to_string(),
     };
 
-    ComboBox::from_id_source(id)
+    ComboBox::from_id_salt(id)
         .width(80.)
         .selected_text(text)
         .show_ui(ui, |ui| {
@@ -227,7 +227,7 @@ fn text_from_status(status: Status) -> RichText {
     }
 }
 
-fn checklist(status: &AutocloneStatus, rbs_dist: Option<isize>, ui: &mut Ui) {
+fn checklist(status: &CloneStatus, rbs_dist: Option<isize>, ui: &mut Ui) {
     ui.heading("Product checklist:");
 
     ui.horizontal(|ui| {
@@ -349,7 +349,7 @@ fn backbone_selector(
 }
 
 pub fn cloning_page(state: &mut State, ui: &mut Ui) {
-    ScrollArea::vertical().id_source(100).show(ui, |ui| {
+    ScrollArea::vertical().id_salt(100).show(ui, |ui| {
         ui.heading("Cloning");
         //     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
         // to clone the insert into the backbone.");

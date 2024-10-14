@@ -15,7 +15,6 @@ pub enum FeatureType {
     Generic,
     Gene,
     Ori,
-    // RnaPolyBindSite,
     RibosomeBindSite,
     Promoter,
     AntibioticResistance,

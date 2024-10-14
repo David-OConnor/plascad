@@ -312,7 +312,7 @@ pub fn protein_page(state: &mut State, ui: &mut Ui) {
         .iter()
         .any(|f| f.feature_type == FeatureType::CodingRegion)
     {
-        ScrollArea::vertical().id_source(200).show(ui, |ui| {
+        ScrollArea::vertical().id_salt(200).show(ui, |ui| {
             draw_proteins(state, ui);
         });
     } else {

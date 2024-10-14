@@ -297,7 +297,7 @@ fn tab_selection(
 
 pub fn ligation_page(state: &mut State, ui: &mut Ui) {
     // todo: Scrolling is not working
-    ScrollArea::vertical().id_source(100).show(ui, |ui| {
+    ScrollArea::vertical().id_salt(100).show(ui, |ui| {
         // todo: Cache calcs in this fn A/R
         // Adjust the nucleotide width of digest bars based on the longest sequence selected.
         let mut longest_seq = 0;
