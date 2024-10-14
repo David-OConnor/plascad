@@ -10,7 +10,7 @@ use strum::IntoEnumIterator;
 use crate::{
     backbones::{Backbone, BackboneFilters, CloningTechnique},
     cloning::{
-        find_re_candidates, make_product_tab, setup_insert_seqs, BackboneSelected, CloneStatus,
+        make_product_tab, setup_insert_seqs, BackboneSelected, CloneStatus,
         CloningInsertData, Status, RE_INSERT_BUFFER,
     },
     file_io::{save::load_import, GenericData},
@@ -87,19 +87,25 @@ fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) -> 
         //     _ => continue,
         // }
 
-        let mut border_width = 0.;
+        let mut selected = false;
         if let Some(j) = data.feature_selected {
             if i == j {
-                border_width = 1.;
+                selected = true;
             }
         }
+
+        let (border_width, btn_color) = if selected {
+            (1., Color32::GREEN)
+        } else {
+            (0., Color32::WHITE)
+        };
 
         Frame::none()
             .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
             .inner_margin(border_width)
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    if ui.button("Select").clicked {
+                    if ui.button(RichText::new("Select").color(btn_color)).clicked {
                         data.feature_selected = Some(i);
 
                         // todo: Handle wraps with this for circular plasmids instead of truncating.
@@ -120,10 +126,11 @@ fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) -> 
                         if let Some(seq_this_ft) = buffered_range.index_seq(&data.seq_loaded) {
                             seq_this_ft.clone_into(&mut data.seq_insert);
                         }
+                        clicked = true;
                     }
 
                     draw_insert_descrip(feature, &data.seq_loaded, ui);
-                    clicked = true;
+
                 });
             });
     }
@@ -356,6 +363,15 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(ROW_SPACING);
 
+        ui.horizontal(|ui| {
+            ui.label("Remove stop coding prior to tags. (Useful if there is a tag on the backbone)")
+                .on_hover_text("If there is a stop coding at the end of the insert, and a His or similar tag, \
+                remove the codon, so the tag is coded for");
+            ui.checkbox(&mut state.cloning.remove_stop_codons, "");
+        });
+        ui.add_space(ROW_SPACING);
+
+
         // todo: DRY with below getting the backbone, but we have a borrow error when moving that up.
         let data_vec = match state.cloning.backbone_selected {
             BackboneSelected::Library(i) => {
@@ -417,7 +433,6 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             let insert_just_picked =
                 insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
             if insert_just_picked {
-                println!("PICKED");
                 state.cloning.sync(
                     &state.ui.cloning_insert.seq_insert,
                     &state.backbone_lib,
@@ -459,7 +474,10 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             BackboneSelected::None => None,
         };
 
-        let mut insert_loc_set = false; // This variable prevents a borrow error.
+        // These variables prevent borrow errors on backbone.
+        let mut insert_loc_set = false;
+        let mut sync = false;
+        let mut clone_initiated = false;
 
         if let Some(backbone) = backbone {
             let rbs_dist = backbone
@@ -481,7 +499,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             ui.add_space(ROW_SPACING);
 
             if ui
-                .button(RichText::new("Auto set insert location (PCR)").color(COLOR_ACTION))
+                .button(RichText::new("Auto set insert location (PCR; expression)").color(COLOR_ACTION))
                 .clicked()
             {
                 if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
@@ -507,37 +525,46 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                     .button(RichText::new("Clone (PCR)").color(COLOR_ACTION))
                     .clicked()
                 {
-                    make_product_tab(state, Some(backbone.data.clone()));
-                    // Annotate the vector, for now at least.
-                    let features = find_features(&state.get_seq());
-                    // We assume the product has been made active.
-                    merge_feature_sets(&mut state.generic[state.active].features, &features)
+                    clone_initiated = true;
                 }
+            }
+
+            if insert_loc_set {
+                sync = true;
+            }
+
+            ui.add_space(ROW_SPACING);
+
+            ui.horizontal(|ui| {
+                ui.label("Insert location: ");
+                let mut entry = state.cloning.insert_loc.to_string();
+                if ui
+                    .add(TextEdit::singleline(&mut entry).desired_width(40.))
+                    .changed()
+                {
+                    state.cloning.insert_loc = entry.parse().unwrap_or(0);
+                    state.cloning.status = CloneStatus::new(backbone, state.cloning.insert_loc, state.ui.cloning_insert.seq_insert.len());
+                }
+
+                ui.add_space(COL_SPACING);
+            });
+
+            if clone_initiated {
+                make_product_tab(state, Some(backbone.data.clone()));
+                // Annotate the vector, for now at least.
+                let features = find_features(&state.get_seq());
+                // We assume the product has been made active.
+                merge_feature_sets(&mut state.generic[state.active].features, &features)
             }
         }
 
-        if insert_loc_set {
+        if sync {
             state.cloning.sync(
                 &state.ui.cloning_insert.seq_insert,
                 &state.backbone_lib,
                 &state.restriction_enzyme_lib,
             );
         }
-
-        ui.add_space(ROW_SPACING);
-
-        ui.horizontal(|ui| {
-            ui.label("Insert location: ");
-            let mut entry = state.cloning.insert_loc.to_string();
-            if ui
-                .add(TextEdit::singleline(&mut entry).desired_width(40.))
-                .changed()
-            {
-                state.cloning.insert_loc = entry.parse().unwrap_or(0);
-            }
-
-            ui.add_space(COL_SPACING);
-        });
 
         let resp_insert_editor = ui.add(
             TextEdit::multiline(&mut state.ui.cloning_insert.seq_input)

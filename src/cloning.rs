@@ -42,6 +42,7 @@ impl CloningState {
         backbone_lib: &[Backbone],
         re_lib: &[RestrictionEnzyme],
     ) {
+        println!("Syncing cloning state...");
         // let backbone = self.get_backbone(backbone_lib);
 
         // todo: DRy with `get_backbone`, due to borrow errors. :(
@@ -59,11 +60,12 @@ impl CloningState {
         };
 
         if let Some(backbone) = backbone {
-            (
-                self.res_common,
-                self.re_matches_vec_common,
-                self.re_matches_insert_common,
-            ) = find_re_candidates(&backbone, seq_insert, &re_lib);
+            // todo: Put back. Getting a hang when this is there, eg from clicking auto pick insert loc.
+            // (
+            //     self.res_common,
+            //     self.re_matches_vec_common,
+            //     self.re_matches_insert_common,
+            // ) = find_re_candidates(&backbone, seq_insert, &re_lib);
 
             self.status = CloneStatus::new(&backbone, self.insert_loc, seq_insert.len());
         }
@@ -250,7 +252,7 @@ fn tag_in_frame(backbone: &Backbone, coding_region_start: usize, insert_len: usi
                     backbone.seq[i + 2],
                 ]) {
                     // todo: Confirm this is the full seq with insert adn vec.
-                    println!("Stop codon between seq start and his tag found."); // todo temp
+                    println!("Stop codon between seq start and his tag found at index {i}"); // todo temp
                     return Status::Fail;
                 }
             }

@@ -471,6 +471,8 @@ struct CloningState {
     data_insert: Option<GenericData>,
     // /// We use this, for example, for displaying a linear map based on a library backbone.
     // backbone_data: Option<GenericData>,
+    // note: This one may make more sense as a UI var.
+    remove_stop_codons: bool
 }
 
 impl Default for CloningState {
@@ -485,6 +487,7 @@ impl Default for CloningState {
             status: Default::default(),
             data_insert: Default::default(),
             // backbone_data: Default::default(),
+            remove_stop_codons: Default::default(),
         }
     }
 }
