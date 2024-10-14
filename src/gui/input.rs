@@ -13,9 +13,7 @@ use crate::{
 };
 
 /// Handle hotkeys and clicks that affect all pages.
-fn handle_global(state: &mut State, ip: &InputState) -> bool {
-    let mut reset = false; // avoids a borrow error.
-
+fn handle_global(state: &mut State, ip: &InputState){
     if ip.key_pressed(Key::A) && ip.modifiers.ctrl && !state.ui.text_edit_active {
         if !state.get_seq().is_empty() {
             state.ui.text_selection = Some(RangeIncl::new(1, state.get_seq().len()))
@@ -31,8 +29,7 @@ fn handle_global(state: &mut State, ip: &InputState) -> bool {
     }
 
     if ip.key_pressed(Key::N) && ip.modifiers.ctrl {
-        state.reset();
-        reset = true;
+        state.add_tab();
     }
 
     if ip.key_pressed(Key::F) && ip.modifiers.ctrl {
@@ -63,8 +60,6 @@ fn handle_global(state: &mut State, ip: &InputState) -> bool {
     if ip.pointer.button_double_clicked(PointerButton::Primary) {
         state.ui.dblclick_pending_handle = true;
     }
-
-    reset
 }
 
 /// Handle sequence selection on the sequence page, as when dragging the mouse.
@@ -119,9 +114,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
             }
         }
 
-        if handle_global(state, ip) {
-            reset_window_title = true;
-        }
+        handle_global(state, ip);
 
         if state.ui.text_edit_active && !reset_window_title {
             return;
@@ -168,65 +161,69 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
 
             // Insert nucleotides A/R.
             if let Some(mut i) = state.ui.text_cursor_i {
-                if i > state.get_seq().len() {
-                    i = 0; // todo?? Having an overflow when backspacing near origin.
-                }
+                if !state.ui.seq_edit_lock {
+                    if i > state.get_seq().len() {
+                        i = 0; // todo?? Having an overflow when backspacing near origin.
+                    }
 
-                let i = i + 1; // Insert after this nucleotide; not before.
-                               // Don't allow accidental nt insertion when the user is entering into the search bar.
+                    let i = i + 1; // Insert after this nucleotide; not before.
+                    // Don't allow accidental nt insertion when the user is entering into the search bar.
 
-                // Add NTs.
-                if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
-                    state.insert_nucleotides(&[Nucleotide::A], i);
-                }
-                if ip.key_pressed(Key::T) {
-                    state.insert_nucleotides(&[Nucleotide::T], i);
-                }
-                if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
-                    state.insert_nucleotides(&[Nucleotide::C], i);
-                }
-                if ip.key_pressed(Key::G) {
-                    state.insert_nucleotides(&[Nucleotide::G], i);
-                }
-                if ip.key_pressed(Key::Backspace) && i > 1 {
-                    state.remove_nucleotides(RangeIncl::new(i - 2, i - 2));
-                }
-                if ip.key_pressed(Key::Delete) {
-                    state.remove_nucleotides(RangeIncl::new(i - 1, i - 1));
-                }
+                    // Add NTs.
+                    if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
+                        state.insert_nucleotides(&[Nucleotide::A], i);
+                    }
+                    if ip.key_pressed(Key::T) {
+                        state.insert_nucleotides(&[Nucleotide::T], i);
+                    }
+                    if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
+                        state.insert_nucleotides(&[Nucleotide::C], i);
+                    }
+                    if ip.key_pressed(Key::G) {
+                        state.insert_nucleotides(&[Nucleotide::G], i);
+                    }
+                    if ip.key_pressed(Key::Backspace) && i > 1 {
+                        state.remove_nucleotides(RangeIncl::new(i - 2, i - 2));
+                    }
+                    if ip.key_pressed(Key::Delete) {
+                        state.remove_nucleotides(RangeIncl::new(i - 1, i - 1));
+                    }
 
-                // Paste nucleotides
-                for event in &ip.events {
-                    match event {
-                        Event::Cut => {
-                            // state.remove_nucleotides();
-                            // move_cursor = Some(pasted_text.len() as i32);
+                    // Paste nucleotides
+                    for event in &ip.events {
+                        match event {
+                            Event::Cut => {
+                                // state.remove_nucleotides();
+                                // move_cursor = Some(pasted_text.len() as i32);
+                            }
+                            Event::Copy => {}
+                            Event::Paste(pasted_text) => {
+                                state.insert_nucleotides(&seq_from_str(pasted_text), i);
+                                move_cursor = Some(pasted_text.len() as i32);
+                            }
+                            _ => (),
                         }
-                        Event::Copy => {}
-                        Event::Paste(pasted_text) => {
-                            state.insert_nucleotides(&seq_from_str(pasted_text), i);
-                            move_cursor = Some(pasted_text.len() as i32);
-                        }
-                        _ => (),
                     }
                 }
             }
 
-            if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
-                move_cursor = Some(1);
-            }
-            if ip.key_pressed(Key::T) {
-                move_cursor = Some(1);
-            }
-            if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
-                move_cursor = Some(1);
-            }
-            if ip.key_pressed(Key::G) {
-                move_cursor = Some(1);
-            }
+            if !state.ui.seq_edit_lock {
+                if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
+                    move_cursor = Some(1);
+                }
+                if ip.key_pressed(Key::T) {
+                    move_cursor = Some(1);
+                }
+                if ip.key_pressed(Key::C) && !ip.modifiers.ctrl {
+                    move_cursor = Some(1);
+                }
+                if ip.key_pressed(Key::G) {
+                    move_cursor = Some(1);
+                }
 
-            if ip.key_pressed(Key::Backspace) {
-                move_cursor = Some(-1);
+                if ip.key_pressed(Key::Backspace) {
+                    move_cursor = Some(-1);
+                }
             }
 
             if let Some(i) = &mut state.ui.text_cursor_i {

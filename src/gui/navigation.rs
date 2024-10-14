@@ -96,8 +96,6 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
             .clicked()
         {
             state.add_tab();
-            // state.reset();
-            // set_window_title(&state.path_loaded[state.active], ui);
         }
         ui.add_space(COL_SPACING);
         let plasmid_names: &Vec<_> = &state

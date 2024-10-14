@@ -389,6 +389,7 @@ struct StateUi {
     pdb_error_received: bool,
     re: ReUi,
     backbone_filters: BackboneFilters,
+    seq_edit_lock: bool,
 }
 
 impl Default for StateUi {
@@ -425,6 +426,7 @@ impl Default for StateUi {
             pdb_error_received: false,
             re: Default::default(),
             backbone_filters: Default::default(),
+            seq_edit_lock: true,
         }
     }
 }
@@ -794,11 +796,16 @@ impl State {
     /// Run this when the sequence changes.
     pub fn sync_seq_related(&mut self, primer_i: Option<usize>) {
         self.sync_primer_matches(primer_i);
-        self.sync_re_sites();
+
+        // todo: Fix sync_re_sites, and put it back. Very slow!
+        // self.sync_re_sites();
+
         self.sync_reading_frame();
         self.sync_search();
 
         sync_cr_orf_matches(self);
+
+
         self.volatile[self.active].proteins = proteins_from_seq(
             self.get_seq(),
             &self.generic[self.active].features,
