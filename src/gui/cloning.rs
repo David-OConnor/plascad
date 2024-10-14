@@ -298,7 +298,9 @@ fn backbone_selector(
     data: &GenericData,
     bb_cache: &mut Option<Backbone>,
     ui: &mut Ui,
-) {
+) -> bool {
+    let mut clicked = false;
+
     let selected = *backbone_selected == BackboneSelected::Opened;
     if ui
         .button(select_color_text(
@@ -315,7 +317,8 @@ fn backbone_selector(
                 *bb_cache = Some(Backbone::from_opened(data));
                 BackboneSelected::Opened
             }
-        }
+        };
+        clicked = true;
     }
     ui.add_space(ROW_SPACING);
 
@@ -341,6 +344,8 @@ fn backbone_selector(
                     }
                     _ => BackboneSelected::Library(i),
                 };
+
+                clicked = true;
             }
 
             if let Some(addgene_url) = backbone.addgene_url() {
@@ -353,6 +358,8 @@ fn backbone_selector(
             ui.end_row();
         }
     });
+
+    clicked
 }
 
 pub fn cloning_page(state: &mut State, ui: &mut Ui) {
@@ -409,6 +416,8 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(ROW_SPACING);
 
+        let mut sync = false;
+
         // A minimap for the insert
         if let Some(data) = &state.cloning.data_insert {
             seq_lin_disp(
@@ -432,12 +441,9 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         if state.ui.cloning_insert.show_insert_picker {
             let insert_just_picked =
                 insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
+
             if insert_just_picked {
-                state.cloning.sync(
-                    &state.ui.cloning_insert.seq_insert,
-                    &state.backbone_lib,
-                    &state.restriction_enzyme_lib,
-                );
+                sync = true;
             }
             ui.add_space(ROW_SPACING);
         }
@@ -450,7 +456,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         let backbones_filtered = state.ui.backbone_filters.apply(&state.backbone_lib);
 
         let plasmid_name = &state.generic[state.active].metadata.plasmid_name;
-        backbone_selector(
+        let backbone_just_picked = backbone_selector(
             &mut state.cloning.backbone_selected,
             &backbones_filtered,
             plasmid_name,
@@ -458,6 +464,10 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             &mut state.cloning.backbone,
             ui,
         );
+
+        if backbone_just_picked {
+            sync = true;
+        }
 
         // todo: This is DRY with get_backbone due to borrow error.
         // let backbone = state.cloning.get_backbone(&state.backbone_lib);
@@ -475,8 +485,6 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         };
 
         // These variables prevent borrow errors on backbone.
-        let mut insert_loc_set = false;
-        let mut sync = false;
         let mut clone_initiated = false;
 
         if let Some(backbone) = backbone {
@@ -503,7 +511,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                 if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
                     state.cloning.insert_loc = insert_loc;
                 }
-                insert_loc_set = true;
+                sync = true;
             }
 
             ui.horizontal(|ui| {
@@ -525,10 +533,6 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                 {
                     clone_initiated = true;
                 }
-            }
-
-            if insert_loc_set {
-                sync = true;
             }
 
             ui.add_space(ROW_SPACING);
