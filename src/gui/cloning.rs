@@ -4,14 +4,14 @@ use std::borrow::Cow;
 use eframe::egui::{
     Color32, ComboBox, Frame, Grid, RichText, ScrollArea, Stroke, TextEdit, Ui, Vec2,
 };
-use na_seq::{seq_from_str, seq_to_str, Nucleotide, insert_into_seq};
+use na_seq::{insert_into_seq, seq_from_str, seq_to_str, Nucleotide};
 use strum::IntoEnumIterator;
 
 use crate::{
     backbones::{Backbone, BackboneFilters, CloningTechnique},
     cloning::{
-        make_product_tab, setup_insert_seqs, BackboneSelected, CloneStatus,
-        CloningInsertData, Status, RE_INSERT_BUFFER,
+        make_product_tab, setup_insert_seqs, BackboneSelected, CloneStatus, CloningInsertData,
+        Status, RE_INSERT_BUFFER,
     },
     file_io::{save::load_import, GenericData},
     gui::{
@@ -130,7 +130,6 @@ fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) -> 
                     }
 
                     draw_insert_descrip(feature, &data.seq_loaded, ui);
-
                 });
             });
     }
@@ -364,6 +363,8 @@ fn backbone_selector(
 
 pub fn cloning_page(state: &mut State, ui: &mut Ui) {
     ScrollArea::vertical().id_salt(100).show(ui, |ui| {
+        let mut sync = false;
+
         ui.heading("Cloning");
         //     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
         // to clone the insert into the backbone.");
@@ -371,13 +372,21 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         ui.add_space(ROW_SPACING);
 
         ui.horizontal(|ui| {
-            ui.label("Remove stop coding prior to tags. (Useful if there is a tag on the backbone)")
-                .on_hover_text("If there is a stop coding at the end of the insert, and a His or similar tag, \
-                remove the codon, so the tag is coded for");
-            ui.checkbox(&mut state.cloning.remove_stop_codons, "");
+            ui.label(
+                "Remove stop coding prior to tags. (Useful if there is a tag on the backbone)",
+            )
+            .on_hover_text(
+                "If there is a stop coding at the end of the insert, and a His or similar tag, \
+                remove the codon, so the tag is coded for",
+            );
+            if ui
+                .checkbox(&mut state.cloning.remove_stop_codons, "")
+                .changed()
+            {
+                sync = true;
+            }
         });
         ui.add_space(ROW_SPACING);
-
 
         // todo: DRY with below getting the backbone, but we have a borrow error when moving that up.
         let data_vec = match state.cloning.backbone_selected {
@@ -415,8 +424,6 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         );
 
         ui.add_space(ROW_SPACING);
-
-        let mut sync = false;
 
         // A minimap for the insert
         if let Some(data) = &state.cloning.data_insert {
@@ -505,7 +512,9 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             ui.add_space(ROW_SPACING);
 
             if ui
-                .button(RichText::new("Auto set insert location (PCR; expression)").color(COLOR_ACTION))
+                .button(
+                    RichText::new("Auto set insert location (PCR; expression)").color(COLOR_ACTION),
+                )
                 .clicked()
             {
                 if let Some(insert_loc) = backbone.insert_loc(CloningTechnique::Pcr) {
@@ -560,14 +569,6 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             }
         }
 
-        if sync {
-            state.cloning.sync(
-                &state.ui.cloning_insert.seq_insert,
-                &state.backbone_lib,
-                &state.restriction_enzyme_lib,
-            );
-        }
-
         let resp_insert_editor = ui.add(
             TextEdit::multiline(&mut state.ui.cloning_insert.seq_input)
                 .desired_width(ui.available_width()),
@@ -576,6 +577,16 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
             // Forces only valid NTs to be included in the string.
             state.ui.cloning_insert.seq_insert = seq_from_str(&state.ui.cloning_insert.seq_input);
             state.ui.cloning_insert.seq_input = seq_to_str(&state.ui.cloning_insert.seq_insert);
+
+            sync = true;
+        }
+
+        if sync {
+            state.cloning.sync(
+                &mut state.ui.cloning_insert.seq_insert,
+                &state.backbone_lib,
+                &state.restriction_enzyme_lib,
+            );
         }
     });
 }

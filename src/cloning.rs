@@ -6,7 +6,12 @@
 
 //! todo: Allow users to enter custom backbones.
 
-use na_seq::{ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res}, restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme}, seq_to_str, Nucleotide, Seq, insert_into_seq};
+use na_seq::{
+    insert_into_seq,
+    ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
+    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
+    seq_to_str, Nucleotide, Seq,
+};
 
 use crate::{
     amino_acids::{AminoAcid, CodingResult},
@@ -31,10 +36,11 @@ pub const RBS_BUFFER_MAX: isize = 11;
 
 impl CloningState {
     /// Run this whenever something relevant in the cloning state changes. (e.g. selected a new backbone,
-    /// a new insert location etc.)
+    /// a new insert location etc.) It synchronizes cloning product, validation, and RE matches.
     pub fn sync(
         &mut self,
-        seq_insert: &[Nucleotide],
+        // mut seq_insert: &[Nucleotide],
+        seq_insert: &mut Seq,
         backbone_lib: &[Backbone],
         re_lib: &[RestrictionEnzyme],
     ) {
@@ -63,9 +69,28 @@ impl CloningState {
             //     self.re_matches_insert_common,
             // ) = find_re_candidates(&backbone, seq_insert, &re_lib);
 
-            self.status = CloneStatus::new(&backbone, self.insert_loc, seq_insert.len());
+            self.product_seq = backbone.seq.clone();
+
+            if seq_insert.len() < 3 {
+                return;
+            }
+
+            // Trim off the stop codon at the end of the insert, A/R. This is quite specific.
+            let insert_len = seq_insert.len();
+            if self.remove_stop_codons
+                && AminoAcid::from_codons(seq_insert[insert_len - 3..].try_into().unwrap())
+                    == CodingResult::StopCodon
+            {
+                *seq_insert = seq_insert[..insert_len - 3].try_into().unwrap();
+            }
 
             insert_into_seq(&mut self.product_seq, seq_insert, self.insert_loc).ok();
+            self.status = CloneStatus::new(
+                &backbone,
+                self.insert_loc,
+                seq_insert.len(),
+                &self.product_seq,
+            );
         }
     }
 
@@ -183,8 +208,18 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
     make_cloning_primers(state);
 
     // todo: Unecessary clone? Due to borrow rules.
-    let insert = &state.ui.cloning_insert.seq_insert.clone();
-    state.insert_nucleotides(insert, state.cloning.insert_loc);
+    let mut insert = state.ui.cloning_insert.seq_insert.clone();
+    //
+    // // todo: DRY with making the product seq. Consider just using that directly for simplicity.
+    // let insert_len = insert.len();
+    // if state.cloning.remove_stop_codons
+    //     && AminoAcid::from_codons(insert[insert_len - 3..].try_into().unwrap())
+    //         == CodingResult::StopCodon
+    // {
+    //     insert = insert[..insert_len - 3].try_into().unwrap();
+    // }
+
+    state.insert_nucleotides(&insert, state.cloning.insert_loc);
 
     let label = match state.ui.cloning_insert.feature_selected {
         Some(i) => state.ui.cloning_insert.features_loaded[i].label.clone(),
@@ -196,7 +231,7 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
     state.generic[state.active].features.push(Feature {
         range: RangeIncl::new(
             state.cloning.insert_loc,
-            state.cloning.insert_loc + state.ui.cloning_insert.seq_insert.len() - 1,
+            state.cloning.insert_loc + insert.len() - 1,
         ),
         label,
         feature_type: FeatureType::CodingRegion,
@@ -215,39 +250,56 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
 /// no stop codon between the end of the coding region, and start of the sequence.
 ///
 /// We assume, for now, that the insert location is the start of a coding region.
+/// Note: `his_tag` here must have already been shifted based on the insert.
 /// todo: This assumption may not be always valid!
-fn tag_in_frame(backbone: &Backbone, coding_region_start: usize, insert_len: usize) -> Status {
-    match backbone.his_tag {
+// fn tag_in_frame(backbone: &Backbone, coding_region_start: usize, insert_len: usize) -> Status {
+fn tag_in_frame(
+    seq_product: &[Nucleotide],
+    his_tag: &Option<RangeIncl>,
+    coding_region_start: usize,
+) -> Status {
+    if seq_product.is_empty() {
+        eprintln!("Error checking tag frame: Product sequence is empty");
+        return Status::NotApplicable;
+    }
+    match his_tag {
         Some(tag_range) => {
-            let (tag_start, cr_start) = match backbone.direction {
-                PrimerDirection::Forward => {
-                    let cr_start = coding_region_start % backbone.seq.len();
-                    (tag_range.start + insert_len, cr_start)
-                }
-                // todo: QC this.
-                PrimerDirection::Reverse => {
-                    let tag_end = tag_range.end % backbone.seq.len();
-                    (coding_region_start, tag_end + insert_len)
-                }
-            };
+            let tag_start = tag_range.start;
+            let cr_start = coding_region_start % seq_product.len();
+
+            //
+            // let (tag_start, cr_start) = match backbone.direction {
+            //     PrimerDirection::Forward => {
+            //
+            //         (tag_range.start + insert_len, cr_start)
+            //     }
+            //     // todo: QC this.
+            //     PrimerDirection::Reverse => {
+            //         let tag_end = tag_range.end % backbone.seq.len();
+            //         (coding_region_start, tag_end + insert_len)
+            //     }
+            // };
 
             if cr_start > tag_start {
-                eprintln!("Error with insert loc and tag end. Coding region start: {cr_start}, tag start: {tag_start}. Backbone: {}", backbone.name);
+                eprintln!("Error with insert loc and tag end. Coding region start: {cr_start}, tag start: {tag_start}");
                 return Status::Fail;
             }
 
+            println!("Tag: {tag_start}, CR: {coding_region_start}");
+
             // todo: Helper fn for this sort of check in general?
             // If there is a stop codon between the end of the sequence and the
-            for i in cr_start..tag_start {
-                if i + 2 >= backbone.seq.len() {
+            for i in (cr_start..tag_start).step_by(3) {
+                if i + 2 >= seq_product.len() {
                     eprintln!("Error: Invalid backbone seq in his check");
                     return Status::Fail;
                 }
 
                 if let CodingResult::StopCodon = AminoAcid::from_codons([
-                    backbone.seq[i],
-                    backbone.seq[i + 1],
-                    backbone.seq[i + 2],
+                    // Offset for 1-based indexing.
+                    seq_product[i - 1],
+                    seq_product[i + 0],
+                    seq_product[i + 1],
                 ]) {
                     // todo: Confirm this is the full seq with insert adn vec.
                     println!("Stop codon between seq start and his tag found at index {i}"); // todo temp
@@ -329,7 +381,12 @@ pub struct CloneStatus {
 }
 
 impl CloneStatus {
-    pub fn new(backbone: &Backbone, insert_loc: usize, insert_len: usize) -> Self {
+    pub fn new(
+        backbone: &Backbone,
+        insert_loc: usize,
+        insert_len: usize,
+        seq_product: &[Nucleotide],
+    ) -> Self {
         let rbs_dist = match backbone.rbs {
             Some(rbs) => {
                 let dist = insert_loc as isize - rbs.end as isize;
@@ -368,7 +425,15 @@ impl CloneStatus {
 
         let direction = Status::Pass; // todo
 
-        let tag_frame = tag_in_frame(&backbone, insert_loc, insert_len);
+        // let tag_frame = tag_in_frame(&backbone, insert_loc, insert_len);
+        // Note: We are assuming for now, that the coding region start/frame, is the insert location.
+
+        let his_tag_shifted = match backbone.his_tag {
+            Some(tag) => Some(RangeIncl::new(tag.start + insert_len, tag.end + insert_len)),
+            None => None,
+        };
+
+        let tag_frame = tag_in_frame(seq_product, &his_tag_shifted, insert_loc);
 
         Self {
             rbs_dist,
