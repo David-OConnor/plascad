@@ -12,8 +12,16 @@ use na_seq::{
     seq_to_str, Nucleotide, Seq,
 };
 
-use crate::{backbones::Backbone, file_io::GenericData, gui::navigation::{Page, PageSeq}, misc_types::{Feature, FeatureDirection, FeatureType}, primer::{make_cloning_primers, PrimerDirection}, util::RangeIncl, Selection, State, StateVolatile, CloningState, StateUi};
-use crate::reading_frame::STOP_CODONS;
+use crate::{
+    amino_acids::{AminoAcid, CodingResult},
+    backbones::Backbone,
+    file_io::GenericData,
+    gui::navigation::{Page, PageSeq},
+    misc_types::{Feature, FeatureDirection, FeatureType},
+    primer::{make_cloning_primers, PrimerDirection},
+    util::RangeIncl,
+    CloningState, Selection, State, StateUi, StateVolatile,
+};
 
 /// Include this many nucleotides to the left, and right of each insert, when searching for RE sites.
 /// note: 4-6 nucleotides may be an ideal buffer. Note that this should be conservatively long.
@@ -28,11 +36,16 @@ pub const RBS_BUFFER_MAX: isize = 11;
 impl CloningState {
     /// Run this whenever something relevant in the cloning state changes. (e.g. selected a new backbone,
     /// a new insert location etc.)
-    pub fn sync(&mut self, seq_insert: &[Nucleotide], backbone_lib: &[Backbone], re_lib: &[RestrictionEnzyme]) {
+    pub fn sync(
+        &mut self,
+        seq_insert: &[Nucleotide],
+        backbone_lib: &[Backbone],
+        re_lib: &[RestrictionEnzyme],
+    ) {
         // let backbone = self.get_backbone(backbone_lib);
 
         // todo: DRy with `get_backbone`, due to borrow errors. :(
-        let backbone =   match self.backbone_selected {
+        let backbone = match self.backbone_selected {
             BackboneSelected::Library(i) => {
                 if i >= backbone_lib.len() {
                     eprintln!("Invalid index in backbone lib");
@@ -50,21 +63,13 @@ impl CloningState {
                 self.res_common,
                 self.re_matches_vec_common,
                 self.re_matches_insert_common,
-            ) = find_re_candidates(
-                &backbone,
-                seq_insert,
-                &re_lib,
-            );
+            ) = find_re_candidates(&backbone, seq_insert, &re_lib);
 
-            self.status = CloneStatus::new(
-                &backbone,
-                self.insert_loc,
-                seq_insert.len(),
-            );
+            self.status = CloneStatus::new(&backbone, self.insert_loc, seq_insert.len());
         }
     }
 
-    pub fn get_backbone<'a>(&'a self, lib: &'a[Backbone]) -> Option<&'a Backbone> {
+    pub fn get_backbone<'a>(&'a self, lib: &'a [Backbone]) -> Option<&'a Backbone> {
         match self.backbone_selected {
             BackboneSelected::Library(i) => {
                 if i >= lib.len() {
@@ -222,7 +227,7 @@ fn tag_in_frame(backbone: &Backbone, coding_region_start: usize, insert_len: usi
                 // todo: QC this.
                 PrimerDirection::Reverse => {
                     let tag_end = tag_range.end % backbone.seq.len();
-                    (coding_region_start,  tag_end + insert_len)
+                    (coding_region_start, tag_end + insert_len)
                 }
             };
 
@@ -238,8 +243,13 @@ fn tag_in_frame(backbone: &Backbone, coding_region_start: usize, insert_len: usi
                     eprintln!("Error: Invalid backbone seq in his check");
                     return Status::Fail;
                 }
-                // todo: Confirm this is the full seq with insert adn vec.
-                if STOP_CODONS.contains(&[backbone.seq[i], backbone.seq[i+1], backbone.seq[i+2]]) {
+
+                if let CodingResult::StopCodon = AminoAcid::from_codons([
+                    backbone.seq[i],
+                    backbone.seq[i + 1],
+                    backbone.seq[i + 2],
+                ]) {
+                    // todo: Confirm this is the full seq with insert adn vec.
                     println!("Stop codon between seq start and his tag found."); // todo temp
                     return Status::Fail;
                 }

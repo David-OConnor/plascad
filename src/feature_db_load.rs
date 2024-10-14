@@ -7,7 +7,7 @@
 use na_seq::{seq_complement, seq_from_str, Nucleotide, Seq};
 
 use crate::{
-    amino_acids::AminoAcid,
+    amino_acids::{AminoAcid, CodingResult},
     misc_types::{
         Feature, FeatureDirection,
         FeatureType::{
@@ -65,7 +65,7 @@ pub fn find_his_tags(seq: &[Nucleotide]) -> Vec<Feature> {
             let nts = &seq_[i..i + 3];
 
             let mut matched = false;
-            if let Some(aa) = AminoAcid::from_codons(nts.try_into().unwrap()) {
+            if let CodingResult::AminoAcid(aa) = AminoAcid::from_codons(nts.try_into().unwrap()) {
                 if aa == AminoAcid::His {
                     matched = true;
                 }

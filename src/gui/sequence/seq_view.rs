@@ -10,7 +10,7 @@ use eframe::{
 };
 
 use crate::{
-    amino_acids::AminoAcid,
+    amino_acids::{AminoAcid, CodingResult},
     gui::{
         feature_from_index, get_cursor_text,
         navigation::page_button,
@@ -29,6 +29,7 @@ use crate::{
 // Pub for use in `util` functions.
 pub const FONT_SIZE_SEQ: f32 = 14.;
 pub const COLOR_CODING_REGION: Color32 = Color32::from_rgb(255, 0, 170);
+pub const COLOR_STOP_CODON: Color32 = Color32::from_rgb(255, 170, 100);
 
 pub const COLOR_CURSOR: Color32 = Color32::from_rgb(255, 255, 0);
 pub const COLOR_SEARCH_RESULTS: Color32 = Color32::from_rgb(255, 255, 130);
@@ -263,18 +264,32 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                             ];
                         }
 
-                        if let Some(aa) = AminoAcid::from_codons(codons) {
-                            result.push(ui.ctx().fonts(|fonts| {
-                                Shape::text(
-                                    fonts,
-                                    pos,
-                                    Align2::LEFT_TOP,
-                                    aa.ident_3_letter(),
-                                    // Note: Monospace is important for sequences.
-                                    FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
-                                    COLOR_CODING_REGION,
-                                )
-                            }));
+                        match AminoAcid::from_codons(codons) {
+                            CodingResult::AminoAcid(aa) => {
+                                result.push(ui.ctx().fonts(|fonts| {
+                                    Shape::text(
+                                        fonts,
+                                        pos,
+                                        Align2::LEFT_TOP,
+                                        aa.ident_3_letter(),
+                                        // Note: Monospace is important for sequences.
+                                        FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
+                                        COLOR_CODING_REGION,
+                                    )
+                                }));
+                            }
+                            CodingResult::StopCodon => {
+                                result.push(ui.ctx().fonts(|fonts| {
+                                    Shape::text(
+                                        fonts,
+                                        pos,
+                                        Align2::LEFT_TOP,
+                                        "STP",
+                                        FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
+                                        COLOR_STOP_CODON,
+                                    )
+                                }));
+                            }
                         }
                     }
                     in_rf = true;

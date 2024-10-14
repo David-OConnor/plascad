@@ -40,8 +40,8 @@ use file_io::save::{load, load_import, StateToSave, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use na_seq::{
     ligation::LigationFragment,
-    restriction_enzyme::{find_re_matches,  ReMatch, RestrictionEnzyme},
     re_lib::load_re_library,
+    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
     seq_to_str, Nucleotide, Seq,
 };
 use primer::IonConcentrations;

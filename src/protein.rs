@@ -5,7 +5,7 @@ use bincode::{Decode, Encode};
 use na_seq::Nucleotide;
 
 use crate::{
-    amino_acids::AminoAcid,
+    amino_acids::{AminoAcid, CodingResult},
     external_websites::PdbData,
     misc_types::{Feature, FeatureType},
     reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch},
@@ -65,7 +65,9 @@ pub fn proteins_from_seq(
                         let nts = &seq_orf_match_dna[i..i + 3];
 
                         // let mut matched = false;
-                        if let Some(aa) = AminoAcid::from_codons(nts.try_into().unwrap()) {
+                        if let CodingResult::AminoAcid(aa) =
+                            AminoAcid::from_codons(nts.try_into().unwrap())
+                        {
                             // todo: Handle unknown AAs; don't just silently ommit as we are currently doing.
 
                             if i_actual < feature.range.start {

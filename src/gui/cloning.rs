@@ -10,7 +10,7 @@ use strum::IntoEnumIterator;
 use crate::{
     backbones::{Backbone, BackboneFilters, CloningTechnique},
     cloning::{
-        find_re_candidates, make_product_tab, setup_insert_seqs, CloneStatus, BackboneSelected,
+        find_re_candidates, make_product_tab, setup_insert_seqs, BackboneSelected, CloneStatus,
         CloningInsertData, Status, RE_INSERT_BUFFER,
     },
     file_io::{save::load_import, GenericData},
@@ -414,10 +414,15 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         ui.add_space(ROW_SPACING);
 
         if state.ui.cloning_insert.show_insert_picker {
-            let insert_just_picked = insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
+            let insert_just_picked =
+                insert_selector(&mut state.ui.cloning_insert, RE_INSERT_BUFFER, ui);
             if insert_just_picked {
                 println!("PICKED");
-                state.cloning.sync(&state.ui.cloning_insert.seq_insert, &state.backbone_lib, &state.restriction_enzyme_lib);
+                state.cloning.sync(
+                    &state.ui.cloning_insert.seq_insert,
+                    &state.backbone_lib,
+                    &state.restriction_enzyme_lib,
+                );
             }
             ui.add_space(ROW_SPACING);
         }
@@ -441,7 +446,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
 
         // todo: This is DRY with get_backbone due to borrow error.
         // let backbone = state.cloning.get_backbone(&state.backbone_lib);
-        let backbone =   match state.cloning.backbone_selected {
+        let backbone = match state.cloning.backbone_selected {
             BackboneSelected::Library(i) => {
                 if i >= state.backbone_lib.len() {
                     eprintln!("Invalid index in backbone lib");
@@ -512,7 +517,11 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         }
 
         if insert_loc_set {
-            state.cloning.sync(&state.ui.cloning_insert.seq_insert, &state.backbone_lib, &state.restriction_enzyme_lib);
+            state.cloning.sync(
+                &state.ui.cloning_insert.seq_insert,
+                &state.backbone_lib,
+                &state.restriction_enzyme_lib,
+            );
         }
 
         ui.add_space(ROW_SPACING);

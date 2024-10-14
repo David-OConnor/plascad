@@ -106,7 +106,7 @@ pub fn find_orf_matches(seq: &[Nucleotide], orf: ReadingFrame) -> Vec<ReadingFra
             frame_open = Some(i);
         // } else if frame_open.is_some() && stop_codons.contains(nts.try_into().unwrap()) {
         } else if frame_open.is_some()
-            && (STOP_CODONSit commit .contains(nts.try_into().unwrap()) || seq_len_full - i <= 3)
+            && (STOP_CODONS.contains(nts.try_into().unwrap()) || seq_len_full - i <= 3)
         {
             // If we reach the end of the sequence, consider it closed.
             // todo: Handle circular around the origin. Ie, don't auto-close in that case.

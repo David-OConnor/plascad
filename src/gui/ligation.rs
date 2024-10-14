@@ -117,7 +117,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
 
                 let (re_text_left_top, re_text_left_bottom, re_name_left) = match &frag.re_left {
                     Some(re) => (
-                        seq_to_str(&re.overhang_top_left(&[])), // todo: Update this
+                        seq_to_str(&re.overhang_top_left(&[])),    // todo: Update this
                         seq_to_str(&re.overhang_bottom_left(&[])), // todo: Update this
                         re.name.clone(),
                     ),
