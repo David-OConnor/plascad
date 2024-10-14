@@ -38,12 +38,7 @@ use eframe::{
 use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load, load_import, StateToSave, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
-use na_seq::{
-    ligation::LigationFragment,
-    re_lib::load_re_library,
-    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
-    seq_to_str, Nucleotide, Seq,
-};
+use na_seq::{ligation::LigationFragment, re_lib::load_re_library, restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme}, seq_to_str, Nucleotide, Seq, insert_into_seq};
 use primer::IonConcentrations;
 use protein::Protein;
 use reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch};
@@ -472,7 +467,9 @@ struct CloningState {
     // /// We use this, for example, for displaying a linear map based on a library backbone.
     // backbone_data: Option<GenericData>,
     // note: This one may make more sense as a UI var.
-    remove_stop_codons: bool
+    remove_stop_codons: bool,
+    /// Work-in-progress cloning product sequence.
+    product_seq: Seq,
 }
 
 impl Default for CloningState {
@@ -488,6 +485,7 @@ impl Default for CloningState {
             data_insert: Default::default(),
             // backbone_data: Default::default(),
             remove_stop_codons: Default::default(),
+            product_seq: Default::default(),
         }
     }
 }
@@ -743,27 +741,11 @@ impl State {
         }
     }
 
-    /// Upddate this sequence by inserting a sequence of interest. `insert_loc` uses 0-based indexing.
+    /// Upddate this sequence by inserting a sequence of interest. Shifts features based on the insert.
     pub fn insert_nucleotides(&mut self, insert: &[Nucleotide], insert_loc: usize) {
-        if insert_loc == 0 {
-            eprintln!("Error: Insert loc = 0");
-            return;
-        }
-
-        let seq_vector = &mut self.generic[self.active].seq;
+        insert_into_seq(&mut self.generic[self.active].seq, insert, insert_loc).ok();
 
         let insert_i = insert_loc - 1; // 1-based indexing.
-
-        if insert_i > seq_vector.len() {
-            eprintln!(
-                "Error inserting nucleotides: insert loc {} is greater than vector len {}",
-                insert_loc,
-                seq_vector.len()
-            );
-            return;
-        }
-
-        seq_vector.splice(insert_i..insert_i, insert.iter().cloned());
 
         // Now, you have to update features affected by this insertion, shifting them right A/R.
         for feature in &mut self.generic[self.active].features {

@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use eframe::egui::{
     Color32, ComboBox, Frame, Grid, RichText, ScrollArea, Stroke, TextEdit, Ui, Vec2,
 };
-use na_seq::{seq_from_str, seq_to_str, Nucleotide};
+use na_seq::{seq_from_str, seq_to_str, Nucleotide, insert_into_seq};
 use strum::IntoEnumIterator;
 
 use crate::{
@@ -484,8 +484,6 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                 .rbs
                 .map(|r| state.cloning.insert_loc as isize - r.end as isize);
 
-            // todo: End calcs to cache.
-
             ui.add_space(ROW_SPACING);
             ui.label("Restriction enzymes:");
             if state.cloning.res_common.is_empty() {
@@ -543,7 +541,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                     .changed()
                 {
                     state.cloning.insert_loc = entry.parse().unwrap_or(0);
-                    state.cloning.status = CloneStatus::new(backbone, state.cloning.insert_loc, state.ui.cloning_insert.seq_insert.len());
+                    sync = true;
                 }
 
                 ui.add_space(COL_SPACING);

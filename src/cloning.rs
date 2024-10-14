@@ -6,11 +6,7 @@
 
 //! todo: Allow users to enter custom backbones.
 
-use na_seq::{
-    ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
-    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
-    seq_to_str, Nucleotide, Seq,
-};
+use na_seq::{ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res}, restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme}, seq_to_str, Nucleotide, Seq, insert_into_seq};
 
 use crate::{
     amino_acids::{AminoAcid, CodingResult},
@@ -68,6 +64,8 @@ impl CloningState {
             // ) = find_re_candidates(&backbone, seq_insert, &re_lib);
 
             self.status = CloneStatus::new(&backbone, self.insert_loc, seq_insert.len());
+
+            insert_into_seq(&mut self.product_seq, seq_insert, self.insert_loc).ok();
         }
     }
 
