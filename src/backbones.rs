@@ -20,6 +20,8 @@ use crate::{
     primer::PrimerDirection::{self, *},
     util::merge_feature_sets,
 };
+use crate::cloning::RBS_BUFFER_MAX;
+use crate::primer::make_cloning_primers;
 
 #[derive(Clone, Copy, PartialEq, EnumIter)]
 pub enum AntibioticResistance {
@@ -205,7 +207,7 @@ impl Backbone {
             CloningTechnique::RestrictionEnzyme => None,
             CloningTechnique::Pcr => {
                 // If a His tag is present, choose a location that's in-frame.
-                let result = match self.his_tag {
+                match self.his_tag {
                     Some(his) => {
                         match self.rbs {
                             Some(rbs) => {
@@ -221,6 +223,19 @@ impl Backbone {
                                     return None;
                                 }
 
+                                let mut best_primer_composite = 0.;
+                                let mut best_primer_i = loc;
+
+                                // Try different locations in frame with the His tag. Choose the one
+                                // that results in the best primers
+                                // todo: Apply this logic when no tag is present too.
+                                for i in loc..loc + RBS_BUFFER_MAX as usize {
+                                    if (his.start - i) % 3 != 0 {
+                                        continue
+                                    }
+                                    // let primers = make_cloning_primers()
+                                }
+
                                 while (his.start - loc) % 3 != 0 {
                                     if loc == self.seq.len() - 1 {
                                         loc = 1; // Wrap around origin.
@@ -229,7 +244,7 @@ impl Backbone {
                                     }
                                 }
 
-                                loc
+                                Some(loc)
                                 // }
                                 // Reverse => {
                                 //     let mut loc = rbs.end - RBS_BUFFER + 1;
@@ -246,18 +261,16 @@ impl Backbone {
                                 // }
                                 // }
                             }
-                            None => 0, // todo
+                            None => None, // todo
                         }
                     }
                     None => {
                         match self.rbs {
-                            Some(rbs) => rbs.end + RBS_BUFFER,
-                            None => 0, // todo
+                            Some(rbs) => Some(rbs.end + RBS_BUFFER),
+                            None => None, // todo
                         }
                     }
-                };
-
-                Some(result)
+                }
             }
         }
     }

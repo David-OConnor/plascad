@@ -414,7 +414,7 @@ impl CloneStatus {
 
         let upstream_of_terminator = match backbone.terminator {
             Some(p) => {
-                if insert_loc > p.end {
+                if insert_loc < p.end {
                     Status::Pass
                 } else {
                     Status::Fail

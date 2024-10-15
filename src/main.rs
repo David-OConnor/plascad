@@ -69,6 +69,7 @@ use crate::{
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
+use crate::primer::Primer;
 
 mod alignment;
 mod amino_acids;
@@ -478,6 +479,7 @@ struct CloningState {
     remove_stop_codons: bool,
     /// Work-in-progress cloning product sequence.
     product_seq: Seq,
+    product_primers: Vec<Primer>,
 }
 
 impl Default for CloningState {
@@ -494,6 +496,7 @@ impl Default for CloningState {
             // backbone_data: Default::default(),
             remove_stop_codons: Default::default(),
             product_seq: Default::default(),
+            product_primers: Vec::new(),
         }
     }
 }
