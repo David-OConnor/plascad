@@ -198,7 +198,8 @@ impl Backbone {
         result
     }
 
-    /// Find the vector insertion point.
+    /// Find the vector insertion point, using data on tags, the RBS, and other information in the backbone.
+    /// Currently designed for expression.
     pub fn insert_loc(&self, technique: CloningTechnique) -> Option<usize> {
         match technique {
             CloningTechnique::RestrictionEnzyme => None,
@@ -208,42 +209,42 @@ impl Backbone {
                     Some(his) => {
                         match self.rbs {
                             Some(rbs) => {
-                                match self.direction {
-                                    Forward => {
-                                        let mut loc = rbs.end + RBS_BUFFER - 1;
+                                // match self.direction {
+                                // Forward => {
+                                let mut loc = rbs.end + RBS_BUFFER - 1;
 
-                                        if his.start < loc {
-                                            eprintln!(
-                                                "Error: His tag start is below location for {}",
-                                                self.name
-                                            );
-                                            return None;
-                                        }
+                                if his.start < loc {
+                                    eprintln!(
+                                        "Error: His tag start is before location for {}",
+                                        self.name
+                                    );
+                                    return None;
+                                }
 
-                                        while (his.start - loc + 1) % 3 != 0 {
-                                            if loc == self.seq.len() - 1 {
-                                                loc = 1; // Wrap around origin.
-                                            } else {
-                                                loc += 1;
-                                            }
-                                        }
-
-                                        loc
-                                    }
-                                    Reverse => {
-                                        let mut loc = rbs.end - RBS_BUFFER + 1;
-
-                                        while (his.start + loc - 1) % 3 != 0 {
-                                            if loc == 1 {
-                                                loc = self.seq.len(); // Wrap around origin.
-                                            } else {
-                                                loc -= 1;
-                                            }
-                                        }
-
-                                        loc
+                                while (his.start - loc) % 3 != 0 {
+                                    if loc == self.seq.len() - 1 {
+                                        loc = 1; // Wrap around origin.
+                                    } else {
+                                        loc += 1;
                                     }
                                 }
+
+                                loc
+                                // }
+                                // Reverse => {
+                                //     let mut loc = rbs.end - RBS_BUFFER + 1;
+                                //
+                                //     while (his.start + loc - 1) % 3 != 0 {
+                                //         if loc == 1 {
+                                //             loc = self.seq.len(); // Wrap around origin.
+                                //         } else {
+                                //             loc -= 1;
+                                //         }
+                                //     }
+                                //
+                                //     loc
+                                // }
+                                // }
                             }
                             None => 0, // todo
                         }

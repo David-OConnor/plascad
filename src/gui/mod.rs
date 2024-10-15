@@ -315,6 +315,11 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 merge_feature_sets(&mut state.generic[state.active].features, &features)
             }
 
+            // todo: Kludge.
+            if ui.button("Sync RE sites").clicked() {
+                state.sync_re_sites();
+            }
+
             ui.add_space(COL_SPACING);
             ui.label("Edit lock:");
             let (lock_text, lock_color) = if state.ui.seq_edit_lock {

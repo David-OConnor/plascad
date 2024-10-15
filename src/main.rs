@@ -797,7 +797,8 @@ impl State {
     pub fn sync_seq_related(&mut self, primer_i: Option<usize>) {
         self.sync_primer_matches(primer_i);
 
-        // todo: Fix sync_re_sites, and put it back. Very slow!
+        // todo: We have removed this here for now, because it is slow.
+        // todo: Make sure, elsewhere, this is synced.
         // self.sync_re_sites();
 
         self.sync_reading_frame();
