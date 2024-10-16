@@ -328,7 +328,11 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 ("🔓", Color32::from_rgb(255, 210, 140))
             };
             // todo: IDeally bigger font size, but without making the whole line take up more vertical space.
-            if ui.button(RichText::new(lock_text).color(lock_color)).on_hover_text("Prevent edits to the sequence").clicked() {
+            if ui
+                .button(RichText::new(lock_text).color(lock_color))
+                .on_hover_text("Prevent edits to the sequence")
+                .clicked()
+            {
                 state.ui.seq_edit_lock = !state.ui.seq_edit_lock;
             }
 

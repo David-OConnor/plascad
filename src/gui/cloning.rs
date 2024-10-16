@@ -365,7 +365,7 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
     ScrollArea::vertical().id_salt(100).show(ui, |ui| {
         let mut sync = false;
 
-        ui.heading("Cloning");
+        ui.heading("Cloning (Currently supports PCR-based cloning only");
         //     ui.label("For a given insert, automatically select a backbone, and either restriction enzymes, or PCR primers to use\
         // to clone the insert into the backbone.");
 

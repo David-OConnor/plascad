@@ -27,6 +27,8 @@ const CHART_HEIGHT: f32 = 200.;
 const CHART_LINE_WIDTH: f32 = 2.;
 const CHART_LINE_COLOR: Color32 = Color32::from_rgb(255, 100, 100);
 
+const NUM_X_TICKS: usize = 12;
+
 // todo: Color-code AAs, start/stop codons etc.
 
 // todo: Eval how cacheing and state is handled.
@@ -84,7 +86,11 @@ fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
             let line = Shape::Path(PathShape::line(points, stroke));
 
             let mut x_axis = Vec::new();
-            const NUM_X_TICKS: usize = 12;
+
+            if data.len() == 0 {
+                return;
+            }
+
             let data_range = data[data.len() - 1].0 - data[0].0;
             let dr_nt = data_range / NUM_X_TICKS;
 

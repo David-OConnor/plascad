@@ -64,12 +64,11 @@ use crate::{
     misc_types::{find_search_matches, FeatureDirection, FeatureType, SearchMatch, MIN_SEARCH_LEN},
     pcr::{PcrParams, PolymeraseType},
     portions::PortionsState,
-    primer::TM_TARGET,
+    primer::{Primer, TM_TARGET},
     protein::{proteins_from_seq, sync_cr_orf_matches},
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
-use crate::primer::Primer;
 
 mod alignment;
 mod amino_acids;
@@ -800,15 +799,13 @@ impl State {
     pub fn sync_seq_related(&mut self, primer_i: Option<usize>) {
         self.sync_primer_matches(primer_i);
 
-        // todo: We have removed this here for now, because it is slow.
-        // todo: Make sure, elsewhere, this is synced.
+        // We have removed RE sync here for now, because it is slow. Call  when able.
         // self.sync_re_sites();
 
         self.sync_reading_frame();
         self.sync_search();
 
         sync_cr_orf_matches(self);
-
 
         self.volatile[self.active].proteins = proteins_from_seq(
             self.get_seq(),
@@ -849,6 +846,8 @@ impl State {
         self.sync_pcr();
         self.sync_primer_metrics();
         self.sync_seq_related(None);
+        self.sync_re_sites();
+
         self.ui.seq_input = seq_to_str(self.get_seq());
 
         self.sync_portions();

@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// Handle hotkeys and clicks that affect all pages.
-fn handle_global(state: &mut State, ip: &InputState){
+fn handle_global(state: &mut State, ip: &InputState) {
     if ip.key_pressed(Key::A) && ip.modifiers.ctrl && !state.ui.text_edit_active {
         if !state.get_seq().is_empty() {
             state.ui.text_selection = Some(RangeIncl::new(1, state.get_seq().len()))
@@ -167,7 +167,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                     }
 
                     let i = i + 1; // Insert after this nucleotide; not before.
-                    // Don't allow accidental nt insertion when the user is entering into the search bar.
+                                   // Don't allow accidental nt insertion when the user is entering into the search bar.
 
                     // Add NTs.
                     if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {
