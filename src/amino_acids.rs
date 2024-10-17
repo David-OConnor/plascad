@@ -69,6 +69,11 @@ impl AminoAcid {
         .to_owned()
     }
 
+    /// Used to make displaying a centered letter in a sequence easier; 3 characters.
+    pub fn ident_single_letter_offset(&self) -> String {
+        format!(" {} ", self.ident_single_letter())
+    }
+
     pub fn ident_3_letter(&self) -> String {
         match self {
             Self::Arg => "Arg",
