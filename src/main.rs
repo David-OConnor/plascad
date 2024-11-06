@@ -69,6 +69,7 @@ use crate::{
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
+use crate::portions::media_prep;
 
 mod alignment;
 mod amino_acids;
@@ -422,7 +423,7 @@ impl Default for StateUi {
             text_selection: Default::default(),
             quick_feature_add_name: Default::default(),
             quick_feature_add_dir: Default::default(),
-            aa_ident_disp: AaIdent::ThreeLetters,
+            aa_ident_disp: AaIdent::OneLetter,
             pdb_error_received: false,
             re: Default::default(),
             backbone_filters: Default::default(),
@@ -563,6 +564,7 @@ impl Default for State {
         // which then trigger RE match syncs.
         result.restriction_enzyme_lib = load_re_library();
         result.backbone_lib = load_backbone_library();
+
         result
     }
 }

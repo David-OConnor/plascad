@@ -1,6 +1,9 @@
 //! This module  contains data structures and related for vector backbones, used for cloning. It also pulls data from Addgene.
 //! [Popular AddGene Bacterial expression backbones](https://www.addgene.org/search/catalog/plasmids/?sticky=no&q=empty+backbone&page_size=20&expression=Bacterial+Expression&requests=100%2B+requests)
+//!
+//! [AddGene Backbone page](https://www.addgene.org/collections/empty-backbones/)
 // todo: Add more of those.
+
 
 use std::{fmt, fmt::Formatter};
 

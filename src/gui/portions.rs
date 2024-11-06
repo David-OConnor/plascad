@@ -299,8 +299,6 @@ fn media_disp(portions: &mut PortionsState, ui: &mut Ui) {
         ui.label(format!("{:.1} μL", result.antibiotic * 1_000.));
     });
 
-    // todo: Run calc immediately.
-
     if run_calc {
         portions.media_result = media_prep(&portions.media_input);
     }

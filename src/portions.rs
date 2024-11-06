@@ -6,11 +6,26 @@ use std::fmt::Display;
 
 use bincode::{Decode, Encode};
 
-#[derive(Default, Clone, Encode, Decode)]
+#[derive(Clone, Encode, Decode)]
 pub struct PortionsState {
     pub solutions: Vec<Solution>,
     pub media_input: MediaPrepInput,
     pub media_result: MediaPrep,
+}
+
+impl Default for PortionsState {
+    fn default() -> Self {
+        let media_input = MediaPrepInput::default();
+        let media_result = media_prep(&media_input);
+
+        let mut result = Self {
+            solutions: Vec::new(),
+            media_input,
+            media_result,
+        };
+
+        result
+    }
 }
 
 #[derive(Default, Clone, Encode, Decode)]
@@ -293,7 +308,7 @@ impl Default for MediaPrepInput {
     }
 }
 
-#[derive(Clone, Default, Encode, Decode)]
+#[derive(Clone, Default, Encode, Decode, Debug)]
 pub struct MediaPrep {
     pub water: f32,      // L
     pub food: f32,       // g
