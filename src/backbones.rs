@@ -4,7 +4,6 @@
 //! [AddGene Backbone page](https://www.addgene.org/collections/empty-backbones/)
 // todo: Add more of those.
 
-
 use std::{fmt, fmt::Formatter};
 
 use na_seq::{seq_complement, seq_from_str, SeqTopology};

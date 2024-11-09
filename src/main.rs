@@ -63,13 +63,12 @@ use crate::{
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_WIDTH},
     misc_types::{find_search_matches, FeatureDirection, FeatureType, SearchMatch, MIN_SEARCH_LEN},
     pcr::{PcrParams, PolymeraseType},
-    portions::PortionsState,
+    portions::{media_prep, PortionsState},
     primer::{Primer, TM_TARGET},
     protein::{proteins_from_seq, sync_cr_orf_matches},
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
-use crate::portions::media_prep;
 
 mod alignment;
 mod amino_acids;

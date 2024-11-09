@@ -1,13 +1,24 @@
 //! Contains code related to identifying toxic proteins.
 
-use na_seq::Seq;
+use na_seq::Nucleotide;
 
-#[derive(Clone, Copy)]
-enum Host {
-    Ecoli,
-    Aav,
+use crate::protein::proteins_from_seq;
+
+#[derive(Clone, Copy, PartialEq)]
+enum ToxicStatus {
+    Pass,
+    Fail,
 }
 
-fn get_toxic_seqs() -> Vec<Seq> {
-    vec![]
+// #[derive(Clone, Copy)]
+// enum Host {
+//     Ecoli,
+//     Aav,
+// }
+
+fn check_glu_tracts(seq: &[Nucleotide]) -> ToxicStatus {
+    // todo: Confirm how you handle reading frames here.
+    // let proteins = proteins_from_seq(seq);
+
+    ToxicStatus::Fail
 }
