@@ -579,6 +579,12 @@ impl State {
 
         self.active = self.generic.len() - 1;
 
+        // todo: DRY with reset
+        self.ui.cursor_pos = None;
+        self.ui.cursor_seq_i = None;
+        self.ui.text_cursor_i = Some(0);
+        self.ui.seq_input = String::new();
+
         // Sync items that aren't stored as part of tabs.
         self.sync_re_sites();
         self.sync_reading_frame();
