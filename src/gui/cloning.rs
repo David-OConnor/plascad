@@ -49,7 +49,6 @@ fn filter_selector<T: fmt::Display + PartialEq + Copy + IntoEnumIterator>(
         .selected_text(text)
         .show_ui(ui, |ui| {
             ui.selectable_value(val, None, "Any");
-            // todo: Impl Iter on the enums
             for variant in T::iter() {
                 ui.selectable_value(val, Some(variant), variant.to_string());
             }
@@ -298,67 +297,84 @@ fn backbone_selector(
     bb_cache: &mut Option<Backbone>,
     ui: &mut Ui,
 ) -> bool {
-    let mut clicked = false;
+    let mut changed = false;
 
     let selected = *backbone_selected == BackboneSelected::Opened;
-    if ui
-        .button(select_color_text(
-            &format!("This plasmid ({})", plasmid_name),
-            selected,
-        ))
-        .clicked()
-    {
-        // This allows toggles.
-        *backbone_selected = match backbone_selected {
-            BackboneSelected::Opened => BackboneSelected::None,
-            _ => {
-                // Cache this, since we don't have it in the library to reference.
-                *bb_cache = Some(Backbone::from_opened(data));
-                BackboneSelected::Opened
-            }
+
+    ui.horizontal(|ui| {
+        if ui
+            .button(select_color_text(
+                &format!("This plasmid ({})", plasmid_name),
+                selected,
+            ))
+            .clicked()
+        {
+            // // This allows toggles.
+            // *backbone_selected = match backbone_selected {
+            //     BackboneSelected::Opened => BackboneSelected::Opened,
+            //     BackboneSelected::Library(lib_i) => {
+            //         // Cache this, since we don't have it in the library to reference.
+            //         *bb_cache = Some(Backbone::from_opened(data));
+            //         BackboneSelected::Opened
+            //     }
+            // };
+
+            // Cache this, since we don't have it in the library to reference.
+            *bb_cache = Some(Backbone::from_opened(data));
+            *backbone_selected = BackboneSelected::Opened;
+            changed = true;
+        }
+        ui.add_space(COL_SPACING);
+
+        if backbones.is_empty() {
+            eprintln!("Error: Empty backbone library");
+            return;
+        }
+
+        let bb_selected = match backbone_selected {
+            BackboneSelected::Opened => backbones[0],
+            BackboneSelected::Library(i) => backbones[*i],
         };
-        clicked = true;
-    }
-    ui.add_space(ROW_SPACING);
 
-    Grid::new("0").spacing(Vec2::new(60., 6.)).show(ui, |ui| {
-        for (i, backbone) in backbones.iter().enumerate() {
-            let selected = match backbone_selected {
-                BackboneSelected::Library(b) => *b == i,
-                _ => false,
-            };
+        if ui
+            .button(select_color_text("Library: ", selected))
+            .clicked()
+        {
+            changed = true
+        }
+        ui.add_space(COL_SPACING);
 
-            if ui
-                .button(select_color_text(&backbone.name, selected))
-                .clicked()
-            {
-                // This allows toggles.
-                *backbone_selected = match backbone_selected {
-                    BackboneSelected::Library(j) => {
-                        if *j == i {
-                            BackboneSelected::None
-                        } else {
-                            BackboneSelected::Library(i)
-                        }
-                    }
-                    _ => BackboneSelected::Library(i),
-                };
+        let bb_prev = &backbone_selected.clone(); // todo: Don't like this clone.
+        ComboBox::from_id_salt(1)
+            .width(80.)
+            .selected_text(&bb_selected.name)
+            .show_ui(ui, |ui| {
+                for (i, backbone) in backbones.iter().enumerate() {
+                    ui.selectable_value(
+                        backbone_selected,
+                        BackboneSelected::Library(i),
+                        &backbone.name,
+                    );
+                }
+            });
 
-                clicked = true;
-            }
+        if *backbone_selected != *bb_prev {
+            println!("Changed"); // todo temp
+            changed = true;
+        }
 
-            if let Some(addgene_url) = backbone.addgene_url() {
-                if ui.button("View on AddGene").clicked() {
-                    if let Err(e) = webbrowser::open(&addgene_url) {
-                        eprintln!("Failed to open the web browser: {:?}", e);
-                    }
+        ui.add_space(COL_SPACING);
+
+        if let Some(addgene_url) = bb_selected.addgene_url() {
+            if ui.button("View on AddGene").clicked() {
+                if let Err(e) = webbrowser::open(&addgene_url) {
+                    eprintln!("Failed to open the web browser: {:?}", e);
                 }
             }
-            ui.end_row();
         }
     });
 
-    clicked
+    changed
 }
 
 pub fn cloning_page(state: &mut State, ui: &mut Ui) {
@@ -399,7 +415,6 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                 }
             }
             BackboneSelected::Opened => Some(&state.generic[state.active]),
-            BackboneSelected::None => None,
         };
 
         // Draw the linear map regardless of if there's a vector (Empty map otherwise). This prevents
@@ -487,8 +502,10 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
                     Some(&state.backbone_lib[i])
                 }
             }
-            BackboneSelected::Opened => Some(state.cloning.backbone.as_ref().unwrap()),
-            BackboneSelected::None => None,
+            BackboneSelected::Opened => match state.cloning.backbone.as_ref() {
+                Some(bb) => Some(bb),
+                None => None,
+            },
         };
 
         // These variables prevent borrow errors on backbone.

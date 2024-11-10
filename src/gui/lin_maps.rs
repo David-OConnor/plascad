@@ -128,7 +128,6 @@ fn draw_features(
 
         // Handle wraps around the origin
         if feature_range.end > seq_len || feature_range.end < feature_range.start {
-
             // Draw a second feature rectangle, from 0 to the end.
             feature_helper(
                 &mut result,

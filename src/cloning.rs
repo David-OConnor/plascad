@@ -58,7 +58,6 @@ impl CloningState {
                 }
             }
             BackboneSelected::Opened => Some(self.backbone.as_ref().unwrap()),
-            BackboneSelected::None => None,
         };
 
         if let Some(backbone) = backbone {
@@ -105,7 +104,6 @@ impl CloningState {
                 }
             }
             BackboneSelected::Opened => Some(self.backbone.as_ref().unwrap()),
-            BackboneSelected::None => None,
         }
     }
 }
@@ -115,14 +113,14 @@ pub enum BackboneSelected {
     /// A backbone from our library; index.
     Library(usize),
     /// The current tab.
-    // Opened(usize),
     Opened,
-    None,
+    // None, // todo: Rem this?
 }
 
 impl Default for BackboneSelected {
     fn default() -> Self {
-        Self::None
+        // Self::None
+        Self::Opened
     }
 }
 

@@ -83,4 +83,5 @@ strip = true  # Strip symbols from binary. Very little improvement in size.
 # opt-level = 'z'  # Optimize for binary size; gives about 60% of the original size.
 # opt-level = 's'  # Optimize for binary size; gives about 60% of the original size.
 #codegen-units = 1  # Small decrease in binary size; longer compile time.
-lto = true  # Can produce better optimized code, at the cost of longer linking time. Very little size improvement.
+lto = true  # Can produce better optimized code, at the cost of [significantly]longer linking time.
+# Very little size improvement.
