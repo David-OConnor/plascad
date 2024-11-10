@@ -299,13 +299,11 @@ fn backbone_selector(
 ) -> bool {
     let mut changed = false;
 
-    let selected = *backbone_selected == BackboneSelected::Opened;
-
     ui.horizontal(|ui| {
         if ui
             .button(select_color_text(
                 &format!("This plasmid ({})", plasmid_name),
-                selected,
+                *backbone_selected == BackboneSelected::Opened
             ))
             .clicked()
         {
@@ -337,7 +335,7 @@ fn backbone_selector(
         };
 
         if ui
-            .button(select_color_text("Library: ", selected))
+            .button(select_color_text("Library:", *backbone_selected != BackboneSelected::Opened))
             .clicked()
         {
             changed = true
@@ -345,7 +343,7 @@ fn backbone_selector(
         ui.add_space(COL_SPACING);
 
         let bb_prev = &backbone_selected.clone(); // todo: Don't like this clone.
-        ComboBox::from_id_salt(1)
+        ComboBox::from_id_salt(1000)
             .width(80.)
             .selected_text(&bb_selected.name)
             .show_ui(ui, |ui| {
@@ -373,6 +371,8 @@ fn backbone_selector(
             }
         }
     });
+
+    ui.add_space(ROW_SPACING);
 
     changed
 }
