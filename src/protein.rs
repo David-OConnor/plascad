@@ -47,8 +47,6 @@ pub fn proteins_from_seq(
         }
         for (j, om) in cr_orf_matches {
             if *j == i {
-                // todo: Consider switching to a canvas-based approach A/R. Text as an MVP.
-                // todo: Breakout into fns, probably in src/protein.
                 if let Some(seq_orf_match_dna) = om.range.index_seq(seq) {
                     // todo: DRy with feature_db_load.
                     let len = seq_orf_match_dna.len();
@@ -64,12 +62,10 @@ pub fn proteins_from_seq(
 
                         let nts = &seq_orf_match_dna[i..i + 3];
 
-                        // let mut matched = false;
+                        // Note: We are ignoring stop codons here.
                         if let CodingResult::AminoAcid(aa) =
                             AminoAcid::from_codons(nts.try_into().unwrap())
                         {
-                            // todo: Handle unknown AAs; don't just silently ommit as we are currently doing.
-
                             if i_actual < feature.range.start {
                                 aa_seq_precoding.push(aa);
                             } else if i_actual > feature.range.end {

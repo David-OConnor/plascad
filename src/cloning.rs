@@ -57,7 +57,10 @@ impl CloningState {
                     Some(&backbone_lib[i])
                 }
             }
-            BackboneSelected::Opened => Some(self.backbone.as_ref().unwrap()),
+            BackboneSelected::Opened => match self.backbone.as_ref() {
+                Some(i) => Some(i),
+                None => None,
+            },
         };
 
         if let Some(backbone) = backbone {

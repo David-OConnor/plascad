@@ -303,20 +303,10 @@ fn backbone_selector(
         if ui
             .button(select_color_text(
                 &format!("This plasmid ({})", plasmid_name),
-                *backbone_selected == BackboneSelected::Opened
+                *backbone_selected == BackboneSelected::Opened,
             ))
             .clicked()
         {
-            // // This allows toggles.
-            // *backbone_selected = match backbone_selected {
-            //     BackboneSelected::Opened => BackboneSelected::Opened,
-            //     BackboneSelected::Library(lib_i) => {
-            //         // Cache this, since we don't have it in the library to reference.
-            //         *bb_cache = Some(Backbone::from_opened(data));
-            //         BackboneSelected::Opened
-            //     }
-            // };
-
             // Cache this, since we don't have it in the library to reference.
             *bb_cache = Some(Backbone::from_opened(data));
             *backbone_selected = BackboneSelected::Opened;
@@ -329,18 +319,22 @@ fn backbone_selector(
             return;
         }
 
+        if ui
+            .button(select_color_text(
+                "Library:",
+                *backbone_selected != BackboneSelected::Opened,
+            ))
+            .clicked()
+        {
+            *backbone_selected = BackboneSelected::Library(0);
+            changed = true
+        }
+        ui.add_space(COL_SPACING);
+
         let bb_selected = match backbone_selected {
             BackboneSelected::Opened => backbones[0],
             BackboneSelected::Library(i) => backbones[*i],
         };
-
-        if ui
-            .button(select_color_text("Library:", *backbone_selected != BackboneSelected::Opened))
-            .clicked()
-        {
-            changed = true
-        }
-        ui.add_space(COL_SPACING);
 
         let bb_prev = &backbone_selected.clone(); // todo: Don't like this clone.
         ComboBox::from_id_salt(1000)
@@ -357,7 +351,6 @@ fn backbone_selector(
             });
 
         if *backbone_selected != *bb_prev {
-            println!("Changed"); // todo temp
             changed = true;
         }
 

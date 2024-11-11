@@ -156,6 +156,10 @@ Can select appropriate restriction enzymes for one or more DNA sequences, and cr
 Given a designed solution with molarity concentrations, calculates the mass and volumes required to make the solution. Includes the molecular weights of common reagents. Can set up solutions mixed from custom precursor solutions.
 
 
+### Checks for potentially toxic proteins
+Currently checks for polyglutamine tracts. More features related to this are planned.
+
+
 ## Why another plasmid editor
 The more tools available for scientists, the better. In particular, my goal is to make
 a fast, lightweight program that's as easy to use as possible, without sacrificing functionality. I also added functionality I didn't see elsewhere, like automatic primer tuning, and primer generation for SLIC and FastCloning.
