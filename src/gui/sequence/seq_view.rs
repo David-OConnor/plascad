@@ -208,15 +208,20 @@ fn orf_selector(state: &mut State, ui: &mut Ui) {
 
 /// Find the sequence index under the cursor, if it is over the sequence.
 fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &SeqViewData) -> Option<usize> {
-    // println!("ROW RANGES: {:?}", data.row_ranges);
     match cursor_pos {
         Some(p) => {
             // We've had issues where cursor above the seq would be treated as first row.
             let p_rel = pos2(p.0, p.1);
             let p_abs = data.from_screen * p_rel;
 
+            // println!("P rel: {:?}", p_rel);
+            // println!("P abs: {:?}", p_abs);
+
+            // todo: How can we accurately get this?
+            let view_start_y = 200.;
+
             // See note on the pad below; this is for clicking before seq start.
-            if p_abs.x > (VIEW_AREA_PAD_LEFT - 2. * NT_WIDTH_PX) && p_abs.y > 0. {
+            if p_abs.x > (VIEW_AREA_PAD_LEFT - 2. * NT_WIDTH_PX) && p_rel.y > view_start_y {
                 let result = pixel_to_seq_i(p_abs, &data.row_ranges);
                 if let Some(i) = result {
                     if i > data.seq_len + 2 {
@@ -497,9 +502,7 @@ pub fn sequence_vis(state: &mut State, ui: &mut Ui) {
                     // This is set up so that a click outside the text area won't reset the cursor.
                     if state.ui.cursor_seq_i.is_some() {
                         state.ui.text_cursor_i = state.ui.cursor_seq_i;
-                        // println!("Text cursor: {:?}", state.ui.text_cursor_i);
                         state.ui.text_edit_active = false;
-                        state.ui.text_selection = None;
                     }
                     state.ui.click_pending_handle = false;
                 }
