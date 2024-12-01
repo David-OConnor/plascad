@@ -70,6 +70,7 @@ use crate::{
     util::{get_window_title, RangeIncl},
 };
 
+mod ab1;
 mod alignment;
 mod amino_acids;
 mod backbones;
