@@ -8,7 +8,7 @@ use crate::{
     misc_types::{Feature, Metadata},
     primer::Primer,
 };
-mod ab1;
+pub mod ab1;
 mod ab1_tags;
 pub mod genbank;
 mod pcad;

@@ -954,6 +954,10 @@ fn main() {
         ..Default::default()
     };
 
+    // todo temp;
+    let path = PathBuf::from_str("C:/users/the_a/Desktop/DGZLCX_1_pHlv3_tag_snip_C.ab1").unwrap();
+    file_io::ab1::import_ab1(&path).unwrap();
+
     eframe::run_native(
         &window_title_initial,
         options,
