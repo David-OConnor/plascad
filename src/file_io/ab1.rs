@@ -12,70 +12,74 @@ use std::{
     io::{self, ErrorKind, Read, Seek, SeekFrom},
     path::Path,
 };
-use bio::seq::Seq;
+// use bio::seq::Seq;
 use chrono::{NaiveDate, NaiveTime};
 use byteorder::{BigEndian, ReadBytesExt};
 use std::io::Cursor;
 use bio::io::fastq;
 use std::cmp;
 
-use na_seq::Seq;
+use na_seq::{Nucleotide, Seq, seq_from_str};
 
-const HEADER_SIZE: usize = 26; // bytes(?)
-const DIR_SIZE: usize = 28; // bytes(?)
+const HEADER_SIZE: usize = 26;
+const DIR_SIZE: usize = 28;
 
 #[derive(Debug)]
 struct Header {
-    a: u16,
-    b: [u8; 4], // string of 4 bytes
-    c: u32,
-    d: [u16; 2],
-    e: [u32; 3],
+    pub file_version: u16,
+    pub tag_name: Seq, // 4 bytes always.
+    pub tag_number: u32,
+    pub element_type_code: u16,
+    pub element_size: u16,
+    pub num_elements: usize,
+    pub data_size: u32,
+    pub data_offset: u32,
 }
 
 impl Header {
-    pub fn from_bytes(bytes: [u8; HEADER_SIZE]) -> Self {
-        Self {
-            a: u16::from_be_bytes(bytes[0..2].try_into().unwrap()),
-            b: [bytes[2], bytes[3], bytes[4], bytes[5]],
-            c: u32::from_be_bytes(bytes[6..10].try_into().unwrap()),
-            d: [
-                u16::from_be_bytes(bytes[10..12].try_into().unwrap()),
-                u16::from_be_bytes(bytes[12..14].try_into().unwrap()),
-            ],
-            e: [
-                u32::from_be_bytes(bytes[14..18].try_into().unwrap()),
-                u32::from_be_bytes(bytes[18..22].try_into().unwrap()),
-                u32::from_be_bytes(bytes[22..26].try_into().unwrap()),
-            ]
-        }
+    pub fn from_bytes(bytes: [u8; HEADER_SIZE]) -> io::Result<Self> {
+        let seq_str = std::str::from_utf8(&bytes[2..6]).unwrap().to_owned(); // todo: Handle
+        Ok(Self {
+            file_version: u16::from_be_bytes(bytes[0..2].try_into().unwrap()),
+            tag_name: seq_from_str(&seq_str),
+            tag_number: u32::from_be_bytes(bytes[6..10].try_into().unwrap()),
+            element_type_code: u16::from_be_bytes(bytes[10..12].try_into().unwrap()),
+            element_size: u16::from_be_bytes(bytes[12..14].try_into().unwrap()),
+            num_elements: u32::from_be_bytes(bytes[14..18].try_into().unwrap()) as usize,
+            data_size: u32::from_be_bytes(bytes[18..22].try_into().unwrap()),
+            data_offset: u32::from_be_bytes(bytes[22..26].try_into().unwrap()),
+        })
     }
 }
 
 #[derive(Debug)]
 struct Dir {
-    a: [u8; 4], // string of 4 bytes
-    b: u32,
-    c: [u16; 2],
-    d: [u32; 4],
+    // todo: This breakdown into fields is wrong, but I'm not sure how.
+    pub tag_name: String, // 4 bytes
+    pub tag_number: u32,
+    pub elem_code: u16,
+    pub a: u16, // placeholder
+    pub num_elements: usize,
+    pub data_size: usize,
+    pub data_offset: usize,
+    pub b: u32,// placeholder
+    pub tag_offset: usize,
+    // todo: Tag offset??
 }
 
 impl Dir {
-    pub fn from_bytes(bytes: [u8; DIR_SIZE]) -> Self {
-        Self {
-            a: [bytes[0], bytes[1], bytes[2], bytes[3]],
-            b: u32::from_be_bytes(bytes[4..8].try_into().unwrap()),
-            c: [
-                u16::from_be_bytes(bytes[8..10].try_into().unwrap()),
-                u16::from_be_bytes(bytes[10..12].try_into().unwrap()),
-            ],
-            d: [
-                u32::from_be_bytes(bytes[12..16].try_into().unwrap()),
-                u32::from_be_bytes(bytes[16..20].try_into().unwrap()),
-                u32::from_be_bytes(bytes[20..24].try_into().unwrap()),
-                u32::from_be_bytes(bytes[24..28].try_into().unwrap()),
-            ],
-        }
+    pub fn from_bytes(bytes: [u8; DIR_SIZE], tag_offset: usize) -> io::Result<Self> {
+        Ok(Self {
+            tag_name: std::str::from_utf8(&bytes[..4]).unwrap().to_owned(),// todo: Handle
+            tag_number: u32::from_be_bytes(bytes[4..8].try_into().unwrap()),
+            elem_code: u16::from_be_bytes(bytes[8..10].try_into().unwrap()),
+            a: u16::from_be_bytes(bytes[10..12].try_into().unwrap()),
+            num_elements: u32::from_be_bytes(bytes[12..16].try_into().unwrap()) as usize,
+            data_size: u32::from_be_bytes(bytes[16..20].try_into().unwrap()) as usize,
+            data_offset: u32::from_be_bytes(bytes[20..24].try_into().unwrap()) as usize,
+            b: u32::from_be_bytes(bytes[24..28].try_into().unwrap()),
+            tag_offset,
+        })
     }
 }
 
@@ -111,16 +115,74 @@ impl<R: Read + Seek> AbiIterator<R> {
         let mut header_data = [0; HEADER_SIZE];
 
         if self.stream.read(&mut header_data)? == 0 {
-            println!("EOF");
             return Ok(None); // End of file
         }
 
-        let header = Header::from_bytes(header_data);
+        let header = Header::from_bytes(header_data)?;
+        println!("Header: {:?}", header);
+
+        for i in 0..header.num_elements as usize {
+            // todo: QC data_offset; coming out much too high.
+            // Note: Element size should always be DIR_SIZE.
+            let start = header.data_offset as usize + i * header.element_size as usize;
+
+            self.stream.seek(SeekFrom::Start(start as u64))?;
+            let mut dir_buf = [0; DIR_SIZE];
+            if self.stream.read(&mut dir_buf)? == 0 {
+                return Ok(None);
+            };
+
+            let mut dir = Dir::from_bytes(dir_buf, start)?;
+
+            let key = format!("{}{}", dir.tag_name, dir.tag_number);
+            println!("DIR: {:?}, KEY: {:?}", dir, key);
+
+            if dir.data_size <= 4 {
+                dir.data_offset = dir.tag_offset + 20;
+            }
+
+            self.stream.seek(SeekFrom::Start(dir.data_offset as u64))?;
+            let mut tag_buf = vec![0; dir.data_size];
+            if self.stream.read(&mut tag_buf)? == 0 {
+                return Ok(None)
+            };
+            // println!("Tag buf: {:?}", tag_buf);
+
+            let tag_data = parse_tag_data(dir.elem_code, dir.num_elements, &tag_buf);
+
+            println!("Tag data: {:?}", tag_data);
+        }
+
+        // let raw = HashMap::new(); // Placeholder for raw data
+
+        // for _ in 0..2 {
+        //     let key = tag_name + str(tag_number);
+        //
+        //     // raw[key] = tag_data;
+        //
+        //     // PBAS2 is base-called sequence, only available in 3530
+        //     if key == "PBAS2" {
+        //         // seq = tag_data.decode()
+        //         // PCON2 is quality values of base-called sequence
+        //     } else if key == "PCON2" {
+        //         // qual = [ord(val) for val in tag_data.decode()]
+        //         // SMPL1 is sample id entered before sequencing run, it must be
+        //         //  a string.
+        //     } else if key == "SMPL1" {
+        //         // sample_id = _get_string_tag(tag_data);
+        //     // } else if times.includes(key) {
+        //     } else if true {
+        //         // times[key] = tag_data;
+        //     } else {
+        //         if key in _EXTRACT {
+        //             annot[_EXTRACT[key]] = tag_data
+        //         }
+        //     }
+        // }
 
         println!("Header: {:?}", header);
 
         // Parse header and directories (simplified for brevity)
-        // let raw = HashMap::new(); // Placeholder for raw data
         let sequence = None; // Placeholder for sequence data
         let phred_quality = None; // Placeholder for quality values
         let annotations = HashMap::new(); // Placeholder for annotations
@@ -199,107 +261,47 @@ fn abi_trim(seq_record: &fastq::Record) -> fastq::Record {
     fastq::Record::with_attrs(seq_record.id(), None, trimmed_seq, trimmed_qual)
 }
 
-fn parse_tag_data(elem_code: u8, elem_num: usize, raw_data: &[u8]) -> Option<String> {
-    let byte_fmt: HashMap<u8, &str> = vec![
-        (2, "u8"),
-        (10, "date"),
-        (11, "time"),
-        (13, "bool"),
-        (18, "slice_after"),
-        (19, "slice_before"),
-    ]
-        .into_iter()
-        .collect();
-
-    if let Some(&fmt) = byte_fmt.get(&elem_code) {
-        let mut cursor = Cursor::new(raw_data);
-        match fmt {
-            "u8" => {
-                if elem_num == 1 {
-                    Some(cursor.read_u8().ok()?.to_string())
-                } else {
-                    Some(
-                        (0..elem_num)
-                            .filter_map(|_| cursor.read_u8().ok())
-                            .map(|v| v.to_string())
-                            .collect::<Vec<_>>()
-                            .join(", "),
-                    )
-                }
-            }
-            "date" => {
-                let year = cursor.read_u16::<BigEndian>().ok()?;
-                let month = cursor.read_u8().ok()?;
-                let day = cursor.read_u8().ok()?;
-                Some(NaiveDate::from_ymd_opt(year as i32, month as u32, day as u32)?.to_string())
-            }
-            "time" => {
-                let hour = cursor.read_u8().ok()?;
-                let minute = cursor.read_u8().ok()?;
-                let second = cursor.read_u8().ok()?;
-                Some(NaiveTime::from_hms_opt(hour as u32, minute as u32, second as u32)?.to_string())
-            }
-            "bool" => Some((cursor.read_u8().ok()? != 0).to_string()),
-            "slice_after" => Some(
-                raw_data[1..]
-                    .iter()
-                    .map(|&v| v.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            ),
-            "slice_before" => Some(
-                raw_data[..raw_data.len() - 1]
-                    .iter()
-                    .map(|&v| v.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            ),
-            _ => None,
-        }
-    } else {
-        None
-    }
+#[derive(Debug)]
+enum TagData {
+    U8(Vec<u8>),
+    U16(Vec<u16>),
 }
 
-fn abi_parse_header(header: &[u32], stream: &mut File) -> io::Result<Vec<(String, u32, Option<String>)>> {
-    let head_elem_size = header[4] as usize;
-    let head_elem_num = header[5] as usize;
-    let head_offset = header[7] as u64;
+fn parse_tag_data(elem_code: u16, elem_num: usize, data: &[u8]) -> Option<TagData> {
+        //     1: "b",  # byte
+        //     2: "s",  # char
+        //     3: "H",  # word
+        //     4: "h",  # short
+        //     5: "i",  # long
+        //     6: "2i",  # rational, legacy unsupported
+        //     7: "f",  # float
+        //     8: "d",  # double
+        //     10: "h2B",  # date
+        //     11: "4B",  # time
+        //     12: "2i2b",  # thumb
+        //     13: "B",  # bool
+        //     14: "2h",  # point, legacy unsupported
+        //     15: "4h",  # rect, legacy unsupported
+        //     16: "2i",  # vPoint, legacy unsupported
+        //     17: "4i",  # vRect, legacy unsupported
+        //     18: "s",  # pString
+        //     19: "s",  # cString
+        //     20: "2i",  # tag, legacy unsupported
 
-    let mut results = Vec::new();
-
-    for index in 0..head_elem_num {
-        let start = head_offset + (index * head_elem_size) as u64;
-        stream.seek(SeekFrom::Start(start))?;
-
-        let mut buffer = vec![0u8; 28]; // Assuming _DIRFMT is 28 bytes long
-        stream.read_exact(&mut buffer)?;
-
-        let mut cursor = Cursor::new(buffer);
-        let tag_name = read_string(&mut cursor, 4)?;
-        let tag_number = cursor.read_u32::<BigEndian>()?;
-        let elem_code = cursor.read_u16::<BigEndian>()? as u8;
-        let _elem_size = cursor.read_u16::<BigEndian>()?;
-        let elem_num = cursor.read_u32::<BigEndian>()?;
-        let data_size = cursor.read_u32::<BigEndian>()?;
-        let data_offset = cursor.read_u32::<BigEndian>()?;
-        let tag_offset = cursor.read_u32::<BigEndian>()?;
-
-        let data_offset = if data_size <= 4 {
-            tag_offset + 20
-        } else {
-            data_offset
-        } as u64;
-
-        stream.seek(SeekFrom::Start(data_offset))?;
-        let mut data = vec![0u8; data_size as usize];
-        stream.read_exact(&mut data)?;
-
-        let parsed_data = parse_tag_data(elem_code, elem_num as usize, &data);
-        results.push((tag_name, tag_number, parsed_data));
+    match elem_code {
+        2 => Some(TagData::U8(data.to_vec())),
+        4 => {
+            let as_u16 = data.chunks_exact(2)
+                .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]])) // Change to `from_be_bytes` for big-endian
+                .collect();
+            Some(TagData::U16(as_u16))
+        },
+        _ => {
+            // todo: Handle appropriately.
+            panic!("Invalid element code in AB1 file: {:?}", elem_code);
+        }
     }
 
-    Ok(results)
 }
 
 fn read_string<R: Read>(reader: &mut R, length: usize) -> io::Result<String> {

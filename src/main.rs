@@ -825,7 +825,6 @@ impl State {
     }
 
     pub fn reset_selections(&mut self) {
-        println!("C");
         self.ui.text_selection = None;
         self.ui.selected_item = Selection::None;
     }
