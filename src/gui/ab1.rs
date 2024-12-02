@@ -1,0 +1,1 @@
+//! Contains code for viewing AB1 sequencing data, e.g. from Sanger sequencing.

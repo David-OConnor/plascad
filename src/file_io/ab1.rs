@@ -7,25 +7,19 @@
 
 use std::{
     collections::HashMap,
-    error::Error,
     fs::File,
     io::{self, ErrorKind, Read, Seek, SeekFrom},
     path::Path,
 };
-// use bio::seq::Seq;
-use chrono::{NaiveDate, NaiveTime};
-use byteorder::{BigEndian, ReadBytesExt};
-use std::io::Cursor;
 use bio::io::fastq;
-use std::cmp;
 
-use na_seq::{Nucleotide, Seq, seq_from_str};
+use na_seq::{Seq, seq_from_str};
 
 const HEADER_SIZE: usize = 26;
 const DIR_SIZE: usize = 28;
 
 #[derive(Debug, Default)]
-struct SeqRecord {
+pub struct SeqRecordAb1 {
     id: String,
     name: String,
     description: String,
@@ -111,8 +105,8 @@ impl<R: Read + Seek> AbiIterator<R> {
         Ok(Self { stream, trim })
     }
 
-    pub fn next(&mut self) -> io::Result<Option<SeqRecord>> {
-        let mut result = SeqRecord::default();
+    pub fn next(&mut self) -> io::Result<Option<SeqRecordAb1>> {
+        let mut result = SeqRecordAb1::default();
         let mut header_data = [0; HEADER_SIZE];
 
         if self.stream.read(&mut header_data)? == 0 {
@@ -166,7 +160,8 @@ impl<R: Read + Seek> AbiIterator<R> {
                     match tag_data {
                         // todo: DRY
                         TagData::Str(s) => {
-                            // Note: We have reversed the above conversion from bytes.
+                            // Note: We have reversed the above conversion from bytes; we get
+                            // the "char" type for both.
                             result.phred_quality = Some(s.as_bytes().to_vec());
                             println!("PCON2: {:?}", result.phred_quality);
                         },
@@ -343,12 +338,15 @@ fn read_string<R: Read>(reader: &mut R, length: usize) -> io::Result<String> {
 
 /// Read a file in the GenBank format.
 /// [Rust docs ref of fields](https://docs.rs/gb-io/latest/gb_io/seq/struct.Seq.html)
-pub fn import_ab1(path: &Path) -> io::Result<()> {
+pub fn import_ab1(path: &Path) -> io::Result<Vec<SeqRecordAb1>> {
     let file = File::open(path)?;
     let mut iterator = AbiIterator::new(file, false)?;
 
+    let mut results = Vec::new();
+
     while let Some(record) = iterator.next()? {
-        println!("{:?}", record);
+        // println!("{:?}", record);
+        results.push(record);
     }
-    Ok(())
+    Ok(results)
 }

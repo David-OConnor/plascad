@@ -53,6 +53,7 @@ mod protein;
 pub mod save;
 pub mod sequence;
 mod theme;
+mod ab1;
 
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 1_000.;
