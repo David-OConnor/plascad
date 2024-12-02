@@ -24,6 +24,16 @@ use na_seq::{Nucleotide, Seq, seq_from_str};
 const HEADER_SIZE: usize = 26;
 const DIR_SIZE: usize = 28;
 
+#[derive(Debug, Default)]
+struct SeqRecord {
+    id: String,
+    name: String,
+    description: String,
+    sequence: Option<Seq>,
+    annotations: HashMap<String, String>,
+    phred_quality: Option<Vec<u8>>,
+}
+
 #[derive(Debug)]
 struct Header {
     pub file_version: u16,
@@ -85,37 +95,28 @@ impl Dir {
 
 
 #[derive(Debug)]
-struct SeqRecord {
-    id: String,
-    name: String,
-    description: String,
-    sequence: Option<Seq>,
-    annotations: HashMap<String, String>,
-    phred_quality: Option<Vec<u8>>,
-}
-
-#[derive(Debug)]
 struct AbiIterator<R: Read + Seek> {
     stream: R,
     trim: bool,
 }
 
 impl<R: Read + Seek> AbiIterator<R> {
-    pub fn new(mut stream: R, trim: bool) -> Result<Self, Box<dyn Error>> {
+    pub fn new(mut stream: R, trim: bool) -> io::Result<Self> {
         let mut marker = [0u8; 4];
         stream.read_exact(&mut marker)?;
         println!("Marker: {:?}", marker);
         if &marker != b"ABIF" {
-            return Err(format!("File should start with ABIF, not {:?}", marker).into());
+            return Err(io::Error::new(ErrorKind::InvalidData, "Invalid AB1 file start marker"))
         }
         Ok(Self { stream, trim })
     }
 
-    pub fn next(&mut self) -> Result<Option<SeqRecord>, Box<dyn Error>> {
+    pub fn next(&mut self) -> io::Result<Option<SeqRecord>> {
+        let mut result = SeqRecord::default();
         let mut header_data = [0; HEADER_SIZE];
 
         if self.stream.read(&mut header_data)? == 0 {
-            return Ok(None); // End of file
+            return Ok(None) // EOF
         }
 
         let header = Header::from_bytes(header_data)?;
@@ -129,7 +130,7 @@ impl<R: Read + Seek> AbiIterator<R> {
             self.stream.seek(SeekFrom::Start(start as u64))?;
             let mut dir_buf = [0; DIR_SIZE];
             if self.stream.read(&mut dir_buf)? == 0 {
-                return Ok(None);
+                return Ok(None) // EOF
             };
 
             let mut dir = Dir::from_bytes(dir_buf, start)?;
@@ -144,13 +145,46 @@ impl<R: Read + Seek> AbiIterator<R> {
             self.stream.seek(SeekFrom::Start(dir.data_offset as u64))?;
             let mut tag_buf = vec![0; dir.data_size];
             if self.stream.read(&mut tag_buf)? == 0 {
-                return Ok(None)
+                return Ok(None) // EOF
             };
             // println!("Tag buf: {:?}", tag_buf);
 
-            let tag_data = parse_tag_data(dir.elem_code, dir.num_elements, &tag_buf);
+            let tag_data = parse_tag_data(dir.elem_code, dir.num_elements, &tag_buf)?;
 
-            println!("Tag data: {:?}", tag_data);
+            match key.as_str() {
+                "PBAS2" => {
+                    println!("PBAS2: {:?}", tag_data);
+                    match tag_data {
+                        TagData::Str(s) => {
+                            result.sequence = Some(seq_from_str(&s));
+                        },
+                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid PBAS sequence")),
+                    }
+                }
+                // Quality values
+                "PCON2" => {
+                    match tag_data {
+                        // todo: DRY
+                        TagData::Str(s) => {
+                            // Note: We have reversed the above conversion from bytes.
+                            result.phred_quality = Some(s.as_bytes().to_vec());
+                            println!("PCON2: {:?}", result.phred_quality);
+                        },
+                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid PCON2 quality data")),
+                    }
+                }
+                // Sample ID
+                "SMPL1" => {
+                    match tag_data {
+                        TagData::Str(s) => result.id = s,
+                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid SMPL1 sample ID")),
+                    }
+                }
+                _ => {
+                    eprintln!("Invalid key in AB1 file: {:?}", key);
+                }
+            }
+
         }
 
         // let raw = HashMap::new(); // Placeholder for raw data
@@ -180,30 +214,16 @@ impl<R: Read + Seek> AbiIterator<R> {
         //     }
         // }
 
-        println!("Header: {:?}", header);
-
-        // Parse header and directories (simplified for brevity)
-        let sequence = None; // Placeholder for sequence data
-        let phred_quality = None; // Placeholder for quality values
-        let annotations = HashMap::new(); // Placeholder for annotations
-
-        let record = SeqRecord {
-            id: "<unknown id>".to_string(),
-            name: "example".to_string(),
-            description: "example description".to_string(),
-            sequence,
-            annotations,
-            phred_quality,
-        };
-        Ok(Some(record))
+        Ok(Some(result))
     }
 }
 
 // Helper function to parse ABI tags
 // fn parse_abi_tag(data: &[u8]) -> Result<(String, String), Box<dyn Error>> {
-fn parse_abi_tag(data: &[u8]) -> Result<(String, String), Box<dyn Error>> {
+fn parse_abi_tag(data: &[u8]) -> io::Result<(String, String)> {
     let tag_name = String::from_utf8_lossy(&data[0..4]).to_string();
-    let tag_number = u32::from_be_bytes(data[4..8].try_into()?);
+    let tag_number = u32::from_be_bytes(data[4..8].try_into()
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?);
     Ok((tag_name, tag_number.to_string()))
 }
 
@@ -265,9 +285,11 @@ fn abi_trim(seq_record: &fastq::Record) -> fastq::Record {
 enum TagData {
     U8(Vec<u8>),
     U16(Vec<u16>),
+    U32(Vec<u32>),
+    Str(String),
 }
 
-fn parse_tag_data(elem_code: u16, elem_num: usize, data: &[u8]) -> Option<TagData> {
+fn parse_tag_data(elem_code: u16, elem_num: usize, data: &[u8]) -> io::Result<TagData> {
         //     1: "b",  # byte
         //     2: "s",  # char
         //     3: "H",  # word
@@ -289,16 +311,24 @@ fn parse_tag_data(elem_code: u16, elem_num: usize, data: &[u8]) -> Option<TagDat
         //     20: "2i",  # tag, legacy unsupported
 
     match elem_code {
-        2 => Some(TagData::U8(data.to_vec())),
+        // 2 => Some(TagData::U8(data.to_vec())),
+        2 => Ok(TagData::Str(std::str::from_utf8(data).unwrap_or("").to_string())),
         4 => {
             let as_u16 = data.chunks_exact(2)
-                .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]])) // Change to `from_be_bytes` for big-endian
+                .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]))
                 .collect();
-            Some(TagData::U16(as_u16))
+            Ok(TagData::U16(as_u16))
         },
+        5 => {
+            let as_u32 = data.chunks_exact(4)
+                .map(|chunk| u32::from_be_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]))
+                .collect();
+            Ok(TagData::U32(as_u32))
+        },
+
         _ => {
             // todo: Handle appropriately.
-            panic!("Invalid element code in AB1 file: {:?}", elem_code);
+            Err(io::Error::new(ErrorKind::InvalidData, format!("Invalid data type in AB1 file: {elem_code}")))
         }
     }
 
@@ -313,10 +343,10 @@ fn read_string<R: Read>(reader: &mut R, length: usize) -> io::Result<String> {
 
 /// Read a file in the GenBank format.
 /// [Rust docs ref of fields](https://docs.rs/gb-io/latest/gb_io/seq/struct.Seq.html)
-// pub fn import_ab1(path: &Path) -> io::Result<()> {
-pub fn import_ab1(path: &Path) -> Result<(), Box<dyn Error>> {
+pub fn import_ab1(path: &Path) -> io::Result<()> {
     let file = File::open(path)?;
     let mut iterator = AbiIterator::new(file, false)?;
+
     while let Some(record) = iterator.next()? {
         println!("{:?}", record);
     }
