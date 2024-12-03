@@ -20,6 +20,7 @@ use crate::gui::ROW_SPACING;
 const NT_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
 const NT_WIDTH: f32 = 8.; // pixels
 const STROKE_WIDTH_PEAK: f32 = 1.;
+const PEAK_WIDTH_DIV2: f32 = 2.;
 
 // Peak  heights are normallized, so that the maximum value is this.
 const PEAK_MAX_HEIGHT: f32 = 120.;
@@ -141,20 +142,21 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, ui: &mut Ui) -> Vec<Shap
             let base_pos = pos2(x_pos, plot_y);
 
             // todo: These may get too thin.
-            let top_left = base_pos + vec2(-NT_WIDTH / 8., ch as f32 * -data_scaler);
-            let top_right = base_pos + vec2(NT_WIDTH / 8., ch as f32 * -data_scaler);
-            let bottom_left = base_pos + vec2(-NT_WIDTH / 8., 0.);
-            let bottom_right = base_pos + vec2(NT_WIDTH / 8., 0.);
+            let top_left = base_pos + vec2(-PEAK_WIDTH_DIV2, ch as f32 * -data_scaler);
+            let top_right = base_pos + vec2(PEAK_WIDTH_DIV2, ch as f32 * -data_scaler);
+            let bottom_left = base_pos + vec2(-PEAK_WIDTH_DIV2, 0.);
+            let bottom_right = base_pos + vec2(PEAK_WIDTH_DIV2, 0.);
 
             result.push(ui.ctx().fonts(|fonts| {
-                Shape::Path(PathShape::convex_polygon(
+                // Shape::Path(PathShape::convex_polygon(
+                Shape::Path(PathShape::closed_line(
                     vec![
                         to_screen * top_left,
                         to_screen * bottom_left,
                         to_screen * bottom_right,
                         to_screen * top_right,
                     ],
-                    color,
+                    // color,
                     stroke,
                 ))
             }));
