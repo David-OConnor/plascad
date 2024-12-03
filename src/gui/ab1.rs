@@ -1,16 +1,21 @@
 //! Contains code for viewing AB1 sequencing data, e.g. from Sanger sequencing.
 
+use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, Sense, Shape, Stroke,
-        Ui,
+        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
+        Stroke, Ui,
     },
     emath::RectTransform,
     epaint::PathShape,
 };
-use na_seq::Nucleotide;
+use na_seq::{seq_to_str, Nucleotide};
 
-use crate::{ab1::SeqRecordAb1, gui::BACKGROUND_COLOR};
+use crate::{
+    ab1::SeqRecordAb1,
+    gui::{BACKGROUND_COLOR, COL_SPACING},
+};
+use crate::gui::ROW_SPACING;
 
 const NT_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
 const NT_WIDTH: f32 = 8.; // pixels
@@ -160,7 +165,20 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, ui: &mut Ui) -> Vec<Shap
 }
 
 pub fn ab1_page(data: &SeqRecordAb1, ui: &mut Ui) {
-    ui.heading("AB1 sequencing view");
+    ui.horizontal(|ui| {
+        ui.heading("AB1 sequencing view");
+
+        ui.add_space(COL_SPACING * 2.);
+
+        if ui
+            .button(RichText::new("🗐 Copy sequence"))
+            .clicked()
+        {
+            let mut ctx = ClipboardContext::new().unwrap();
+            ctx.set_contents(seq_to_str(&data.sequence)).unwrap();
+        }
+    });
+    ui.add_space(ROW_SPACING / 2.);
 
     let mut shapes = Vec::new();
 
