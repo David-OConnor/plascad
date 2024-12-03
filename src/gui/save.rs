@@ -12,7 +12,7 @@ use crate::{
         save::{export_fasta, load_import, StateToSave},
         snapgene::export_snapgene,
     },
-    gui::set_window_title,
+    gui::{navigation::Tab, set_window_title},
     State,
 };
 
@@ -121,12 +121,15 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     if let Some(path) = state.ui.file_dialogs.load.take_selected() {
         sync = true;
         if let Some(loaded) = load_import(&path) {
-            state.load(&loaded, state.active);
+            state.load(&loaded);
         }
     } else if let Some(path) = state.ui.file_dialogs.save.take_selected() {
         match StateToSave::from_state(state, state.active).save_to_file(&path) {
             Ok(_) => {
-                state.path_loaded[state.active] = Some(path.to_owned());
+                state.path_loaded[state.active] = Some(Tab {
+                    path: path.to_owned(),
+                    ab1: false,
+                });
                 set_window_title(&state.path_loaded[state.active], ui);
             }
             Err(e) => eprintln!("Error saving in PlasCAD format: {:?}", e),
@@ -138,7 +141,10 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
             &path,
         ) {
             Ok(_) => {
-                state.path_loaded[state.active] = Some(path.to_owned());
+                state.path_loaded[state.active] = Some(Tab {
+                    path: path.to_owned(),
+                    ab1: false,
+                });
                 set_window_title(&state.path_loaded[state.active], ui);
             }
             Err(e) => eprintln!("Error exporting to FASTA: {:?}", e),
@@ -153,7 +159,10 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
         match export_genbank(&state.generic[state.active], &primer_matches, &path) {
             Ok(_) => {
-                state.path_loaded[state.active] = Some(path.to_owned());
+                state.path_loaded[state.active] = Some(Tab {
+                    path: path.to_owned(),
+                    ab1: false,
+                });
                 set_window_title(&state.path_loaded[state.active], ui);
             }
             Err(e) => eprintln!("Error exporting to GenBank: {:?}", e),
@@ -161,7 +170,10 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
     } else if let Some(path) = state.ui.file_dialogs.export_dna.take_selected() {
         match export_snapgene(&state.generic[state.active], &path) {
             Ok(_) => {
-                state.path_loaded[state.active] = Some(path.to_owned());
+                state.path_loaded[state.active] = Some(Tab {
+                    path: path.to_owned(),
+                    ab1: false,
+                });
                 set_window_title(&state.path_loaded[state.active], ui);
             }
             Err(e) => eprintln!("Error exporting to SnapGene: {:?}", e),

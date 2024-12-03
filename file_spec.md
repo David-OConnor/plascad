@@ -19,7 +19,7 @@ The remaining bytes are divided into adjacent packets. Packets can be found in a
 ## Packet structure
 - **Byte 0**: Always `0x11`
 - **Bytes 1-4**: A 32-bit unsigned integer of payload size, in bytes.
-- **Byte 5**: An 8-bit unsigned integer corresponding to the packet's type.
+- **Byte 5**: An 8-bit unsigned integer that indicates the packet's type. (See the `Packets` sections below for this mapping.)
 - **Bytes 6-end**: The payload; how this is encoded depends on packet type.
 
 ## Packet types
@@ -50,6 +50,9 @@ Three additional bytes to encode the sequence; each byte can fit 4 nucleotides:
 
 On the final byte, note the 0-fill on the right; we know not to encode it as `T` due to the
 sequence length.
+
+
+## Packets, with their associcated integer type 
 
 ### Features: 1
 A bincode serialization of a `Vec<Feature>`

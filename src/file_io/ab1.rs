@@ -218,7 +218,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         ))
                     }
                 },
-                "DATA9" =>  match tag_data {
+                "DATA9" => match tag_data {
                     TagData::U16(d) => {
                         result.data_ch1 = d;
                     }
@@ -228,8 +228,8 @@ impl<R: Read + Seek> AbiIterator<R> {
                             "Invalid height data",
                         ))
                     }
-                }
-                "DATA10" =>  match tag_data {
+                },
+                "DATA10" => match tag_data {
                     TagData::U16(d) => {
                         result.data_ch2 = d;
                     }
@@ -239,8 +239,8 @@ impl<R: Read + Seek> AbiIterator<R> {
                             "Invalid height data",
                         ))
                     }
-                }
-                "DATA11" =>  match tag_data {
+                },
+                "DATA11" => match tag_data {
                     TagData::U16(d) => {
                         result.data_ch3 = d;
                     }
@@ -250,8 +250,8 @@ impl<R: Read + Seek> AbiIterator<R> {
                             "Invalid height data",
                         ))
                     }
-                }
-                "DATA12" =>  match tag_data {
+                },
+                "DATA12" => match tag_data {
                     TagData::U16(d) => {
                         result.data_ch4 = d;
                     }
@@ -261,7 +261,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                             "Invalid height data",
                         ))
                     }
-                }
+                },
                 _ => {
                     // todo: Implement others A/R.
                     eprintln!("Invalid key in AB1 file: {:?}", key);

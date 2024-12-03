@@ -29,7 +29,7 @@ use crate::{
         GenericData,
     },
     gui::{
-        navigation::{Page, PageSeq, PageSeqTop},
+        navigation::{Page, PageSeq, PageSeqTop, Tab},
         set_window_title,
     },
     misc_types::{Feature, Metadata},
@@ -49,7 +49,7 @@ pub const DEFAULT_DNA_FILE: &str = "export.dna";
 #[derive(Default)]
 pub struct StateToSave {
     pub generic: GenericData,
-    pub path_loaded: Option<PathBuf>,
+    pub path_loaded: Option<Tab>,
     pub ion_concentrations: IonConcentrations,
     pub portions: PortionsState,
     pub ab1_data: Vec<SeqRecordAb1>,
@@ -72,7 +72,7 @@ impl Decode for StateToSave {
         // todo: We currently use default encoding for all this, but may change later.
         let generic = GenericData::decode(decoder)?;
         // let insert_loc = usize::decode(decoder)?;
-        let path_loaded = Option::<PathBuf>::decode(decoder)?;
+        let path_loaded = Option::<Tab>::decode(decoder)?;
         let ion_concentrations = IonConcentrations::decode(decoder)?;
         // let reading_frame = ReadingFrame::decode(decoder)?;
         let portions = PortionsState::decode(decoder)?;
@@ -169,11 +169,11 @@ pub struct StateUiToSave {
     selected_item: Selection,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
-    last_files_opened: Vec<PathBuf>,
+    last_files_opened: Vec<Tab>,
 }
 
 impl StateUiToSave {
-    pub fn from_state(state: &StateUi, paths_loaded: &[Option<PathBuf>]) -> Self {
+    pub fn from_state(state: &StateUi, paths_loaded: &[Option<Tab>]) -> Self {
         // Remove the empty paths.
         let mut last_files_opened = Vec::new();
         for p in paths_loaded {
@@ -195,7 +195,7 @@ impl StateUiToSave {
     }
 
     /// Used to load to state. The result is data from this struct, augmented with default values.
-    pub fn to_state(&self) -> (StateUi, Vec<PathBuf>) {
+    pub fn to_state(&self) -> (StateUi, Vec<Tab>) {
         (
             StateUi {
                 page: self.page,
@@ -307,7 +307,10 @@ pub fn save_new_product(name: &str, state: &mut State, ui: &mut Ui) {
     if let Some(path) = state.ui.file_dialogs.save.take_selected() {
         match StateToSave::from_state(state, state.active).save_to_file(&path) {
             Ok(_) => {
-                state.path_loaded[state.active] = Some(path.to_owned());
+                state.path_loaded[state.active] = Some(Tab {
+                    path: path.to_owned(),
+                    ab1: false,
+                });
                 set_window_title(&state.path_loaded[state.active], ui);
             }
             Err(e) => eprintln!(
@@ -325,14 +328,16 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
     if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
         match extension.to_lowercase().as_ref() {
             "pcad" => {
-                // let state_loaded: io::Result<StateToSave> = load(path);
                 let state_loaded = StateToSave::load_from_file(path);
                 match state_loaded {
                     Ok(s) => {
                         // s.to_state()
                         result.generic = s.generic;
                         result.ion_concentrations = s.ion_concentrations;
-                        result.path_loaded = Some(path.to_owned());
+                        result.path_loaded = Some(Tab {
+                            path: path.to_owned(),
+                            ab1: false,
+                        });
                         result.portions = s.portions;
 
                         return Some(result);
@@ -349,8 +354,6 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
                     result.generic.metadata.plasmid_name = id;
                     result.generic.metadata.comments = vec![description];
                     // FASTA is seq-only data, so don't attempt to save over it.
-                    result.path_loaded = None;
-                    // result.save_prefs();
 
                     // Automatically annotate FASTA files.
                     result.generic.features = find_features(&result.generic.seq);
@@ -363,7 +366,6 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
                     result.generic = data;
                     // We do not mark the path as opened if using SnapGene, since we currently can not
                     // fully understand the format, nor make a native file SnapGene can open.
-                    result.path_loaded = None;
 
                     return Some(result);
                 }
@@ -371,13 +373,22 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
             "gb" | "gbk" => {
                 if let Ok(data) = import_genbank(path) {
                     result.generic = data;
-                    result.path_loaded = Some(path.to_owned());
+                    result.path_loaded = Some(Tab {
+                        path: path.to_owned(),
+                        ab1: false,
+                    });
                     return Some(result);
                 }
             }
             "ab1" => {
                 if let Ok(data) = import_ab1(path) {
                     result.ab1_data = data;
+                    // todo: This, or none, since we don't edit the file?
+                    result.path_loaded = Some(Tab {
+                        path: path.to_owned(),
+                        ab1: true,
+                    });
+                    return Some(result);
                 }
             }
 
@@ -394,13 +405,13 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
 /// Save the current file ("save" vice "save as") if there is one; if not, quicksave to an anonymous file.
 pub fn save_current_file(state: &State) {
     match &state.path_loaded[state.active] {
-        Some(path) => {
-            if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
+        Some(tab) => {
+            if let Some(extension) = tab.path.extension().and_then(|ext| ext.to_str()) {
                 match extension.to_lowercase().as_ref() {
                     "pcad" => {
                         // if let Err(e) = save(path, &StateToSave::from_state(state, state.active)) {
                         if let Err(e) =
-                            StateToSave::from_state(state, state.active).save_to_file(path)
+                            StateToSave::from_state(state, state.active).save_to_file(&tab.path)
                         {
                             eprintln!("Error saving in PlasCAD format: {}", e);
                         };
@@ -410,13 +421,13 @@ pub fn save_current_file(state: &State) {
                         if let Err(e) = export_fasta(
                             state.get_seq(),
                             &state.generic[state.active].metadata.plasmid_name,
-                            path,
+                            &tab.path,
                         ) {
                             eprintln!("Error exporting to FASTA: {:?}", e);
                         };
                     }
                     "dna" => {
-                        if let Err(e) = export_snapgene(&state.generic[state.active], path) {
+                        if let Err(e) = export_snapgene(&state.generic[state.active], &tab.path) {
                             eprintln!("Error exporting to SnapGene: {:?}", e);
                         };
                     }
@@ -429,7 +440,7 @@ pub fn save_current_file(state: &State) {
                         }
 
                         if let Err(e) =
-                            export_genbank(&state.generic[state.active], &primer_matches, path)
+                            export_genbank(&state.generic[state.active], &primer_matches, &tab.path)
                         {
                             eprintln!("Error exporting to GenBank: {:?}", e);
                         };

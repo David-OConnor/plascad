@@ -61,7 +61,10 @@ use crate::{
         },
         GenericData,
     },
-    gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_WIDTH},
+    gui::{
+        navigation::{PageSeqTop, Tab},
+        WINDOW_HEIGHT, WINDOW_WIDTH,
+    },
     misc_types::{find_search_matches, FeatureDirection, FeatureType, SearchMatch, MIN_SEARCH_LEN},
     pcr::{PcrParams, PolymeraseType},
     portions::{media_prep, PortionsState},
@@ -527,7 +530,7 @@ struct State {
     ab1_data: Vec<SeqRecordAb1>,
     /// Used to determine how the save function works, among other things.
     /// Index corresponds to `active`.
-    path_loaded: Vec<Option<PathBuf>>,
+    path_loaded: Vec<Option<Tab>>,
     /// Index corresponds to `active`.
     portions: Vec<PortionsState>,
     /// Index corresponds to `active`.
@@ -666,8 +669,8 @@ impl State {
             self.ui = ui;
 
             for path in &paths_loaded {
-                if let Some(loaded) = load_import(path) {
-                    self.load(&loaded, self.active);
+                if let Some(loaded) = load_import(&path.path) {
+                    self.load(&loaded);
                 }
             }
         }
@@ -833,7 +836,7 @@ impl State {
     }
 
     /// Load state from a (our format) file.
-    pub fn load(&mut self, loaded: &StateToSave, active: usize) {
+    pub fn load(&mut self, loaded: &StateToSave) {
         let gen = &self.generic[self.active];
         // Quick+Dirty check if we're on a new file. If so, replace it, vice adding a new tab.
         if !gen.seq.is_empty()
@@ -853,6 +856,8 @@ impl State {
         self.portions[self.active].clone_from(&loaded.portions);
 
         self.volatile[self.active] = Default::default();
+
+        self.ab1_data.extend(loaded.ab1_data.clone());
 
         self.sync_pcr();
         self.sync_primer_metrics();
@@ -937,8 +942,7 @@ fn main() {
     // Load from the argument or quicksave A/R.
     if loaded_from_arg || !prev_paths_loaded {
         if let Some(loaded) = load_import(&path) {
-            println!("LOADING QS");
-            state.load(&loaded, state.active);
+            state.load(&loaded);
         }
     }
 

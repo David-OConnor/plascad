@@ -29,7 +29,9 @@ use navigation::Page;
 use crate::{
     external_websites,
     feature_db_load::find_features,
-    gui::{input::handle_input, primer_table::primer_details, theme::COLOR_ACTION},
+    gui::{
+        input::handle_input, navigation::Tab, primer_table::primer_details, theme::COLOR_ACTION,
+    },
     misc_types::{Feature, FeatureType},
     primer::Primer,
     util,
@@ -262,9 +264,9 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
 }
 
 /// Update the tilebar to reflect the current path loaded or saved.
-pub fn set_window_title(path_loaded: &Option<PathBuf>, ui: &mut Ui) {
+pub fn set_window_title(path_loaded: &Option<Tab>, ui: &mut Ui) {
     let title = match path_loaded {
-        Some(path) => get_window_title(path),
+        Some(tab) => get_window_title(&tab.path),
         None => WINDOW_TITLE.to_owned(),
     };
 
@@ -287,19 +289,28 @@ pub fn draw(state: &mut State, ctx: &Context) {
         navigation::tab_selector(state, ui);
         ui.add_space(ROW_SPACING / 2.);
 
-        ui.horizontal(|ui| {
-            navigation::page_selector(state, ui);
+        let ab1_mode = match &state.path_loaded[state.active] {
+            Some(tab) => tab.ab1,
+            None => false,
+        };
 
-            ui.add_space(COL_SPACING / 2.);
+        if ab1_mode {
+            state.ui.page = Page::Ab1;
+        } else {
+            ui.horizontal(|ui| {
+                navigation::page_selector(state, ui);
 
-            ui.label("Name:");
-            ui.add(
-                TextEdit::singleline(&mut state.generic[state.active].metadata.plasmid_name)
-                    .desired_width(260.),
-            );
+                ui.add_space(COL_SPACING / 2.);
 
-            ui.label(format!("{} bp", state.get_seq().len()));
-        });
+                ui.label("Name:");
+                ui.add(
+                    TextEdit::singleline(&mut state.generic[state.active].metadata.plasmid_name)
+                        .desired_width(260.),
+                );
+
+                ui.label(format!("{} bp", state.get_seq().len()));
+            });
+        }
 
         ui.add_space(ROW_SPACING / 2.);
 

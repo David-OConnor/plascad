@@ -17,7 +17,7 @@ use na_seq::{
 use crate::{
     file_io::save::QUICKSAVE_FILE,
     gui::{
-        navigation::DEFAULT_TAB_NAME,
+        navigation::{Tab, DEFAULT_TAB_NAME},
         sequence::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
         WINDOW_TITLE,
     },
@@ -392,9 +392,10 @@ pub fn get_window_title(path: &Path) -> String {
 }
 
 /// A short, descriptive name for a given opened tab.
-pub fn name_from_path(path: &Option<PathBuf>, plasmid_name: &str, abbrev_name: bool) -> String {
+pub fn name_from_path(path: &Option<Tab>, plasmid_name: &str, abbrev_name: bool) -> String {
     let mut name = match path {
         Some(path) => path
+            .path
             .file_name()
             .and_then(|name| name.to_str())
             .map(|name_str| name_str.to_string())
