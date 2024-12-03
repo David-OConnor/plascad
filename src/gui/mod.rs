@@ -37,6 +37,7 @@ use crate::{
     Selection, State,
 };
 
+mod ab1;
 mod alignment;
 mod circle;
 mod cloning;
@@ -53,7 +54,6 @@ mod protein;
 pub mod save;
 pub mod sequence;
 mod theme;
-mod ab1;
 
 pub const WINDOW_WIDTH: f32 = 1300.;
 pub const WINDOW_HEIGHT: f32 = 1_000.;
@@ -396,9 +396,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 metadata::metadata_page(&mut state.generic[state.active].metadata, ui)
             }
             Page::Portions => portions::portions_page(&mut state.portions[state.active], ui),
-            Page::Ab1 => ab1::ab1_page(state, ui),
-            // Page::AutoCloning => autocloning::autocloning_page(state, ui),
-            // });
+            Page::Ab1 => ab1::ab1_page(&state.ab1_data[0], ui), // todo: Fix
         }
     });
 }

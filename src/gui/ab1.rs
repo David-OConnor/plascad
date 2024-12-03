@@ -1,8 +1,9 @@
 //! Contains code for viewing AB1 sequencing data, e.g. from Sanger sequencing.
 
 use eframe::egui::Ui;
-use crate::State;
 
-pub fn ab1_page(state: &mut State, ui: &mut Ui) {
+use crate::{ab1::SeqRecordAb1, State};
+
+pub fn ab1_page(data: &SeqRecordAb1, ui: &mut Ui) {
     ui.heading("AB1 sequencing view");
 }

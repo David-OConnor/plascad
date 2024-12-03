@@ -20,8 +20,10 @@ use eframe::egui::Ui;
 use na_seq::{deser_seq_bin, seq_to_letter_bytes, serialize_seq_bin, Nucleotide, Seq, SeqTopology};
 
 use crate::{
+    ab1::SeqRecordAb1,
     feature_db_load::find_features,
     file_io::{
+        ab1::import_ab1,
         genbank::{export_genbank, import_genbank},
         snapgene::{export_snapgene, import_snapgene},
         GenericData,
@@ -50,6 +52,7 @@ pub struct StateToSave {
     pub path_loaded: Option<PathBuf>,
     pub ion_concentrations: IonConcentrations,
     pub portions: PortionsState,
+    pub ab1_data: Vec<SeqRecordAb1>,
 }
 
 impl Encode for StateToSave {
@@ -73,6 +76,7 @@ impl Decode for StateToSave {
         let ion_concentrations = IonConcentrations::decode(decoder)?;
         // let reading_frame = ReadingFrame::decode(decoder)?;
         let portions = PortionsState::decode(decoder)?;
+        let ab1_data = Vec::<SeqRecordAb1>::decode(decoder)?;
 
         Ok(Self {
             generic,
@@ -81,6 +85,7 @@ impl Decode for StateToSave {
             ion_concentrations,
             // reading_frame,
             portions,
+            ab1_data,
         })
     }
 }
@@ -132,6 +137,7 @@ impl StateToSave {
             ion_concentrations: state.ion_concentrations[active].clone(),
             path_loaded: state.path_loaded[active].clone(),
             portions: state.portions[state.active].clone(),
+            ab1_data: state.ab1_data.clone(),
         }
     }
 
@@ -369,9 +375,15 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
                     return Some(result);
                 }
             }
+            "ab1" => {
+                if let Ok(data) = import_ab1(path) {
+                    result.ab1_data = data;
+                }
+            }
+
             _ => {
                 eprintln!(
-                    "The file to import must be in PlasCAD, FASTA, GenBank, or SnapGene format."
+                    "The file to import must be in PlasCAD, FASTA, GenBank, SnapGene, or AB1 format."
                 )
             }
         }

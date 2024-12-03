@@ -27,6 +27,7 @@ use std::{
     time::Instant,
 };
 
+use ab1::SeqRecordAb1;
 use bincode::{Decode, Encode};
 use bio::alignment::Alignment;
 use cloning::{CloneStatus, CloningInsertData};
@@ -523,6 +524,7 @@ struct State {
     /// Data that is the most fundamental to persistent state, and shared between save formats.
     /// The index corresponds to `active`.`
     generic: Vec<GenericData>,
+    ab1_data: Vec<SeqRecordAb1>,
     /// Used to determine how the save function works, among other things.
     /// Index corresponds to `active`.
     path_loaded: Vec<Option<PathBuf>>,
@@ -547,6 +549,7 @@ impl Default for State {
             ui: Default::default(),
             active: Default::default(),
             generic: vec![Default::default()],
+            ab1_data: Vec::new(),
             path_loaded: vec![Default::default()],
             portions: vec![Default::default()],
             ion_concentrations: vec![Default::default()],
@@ -952,10 +955,6 @@ fn main() {
             .with_icon(icon_data.unwrap()),
         ..Default::default()
     };
-
-    // todo temp;
-    let path = PathBuf::from_str("C:/users/the_a/Desktop/DGZLCX_1_pHlv3_tag_snip_C.ab1").unwrap();
-    file_io::ab1::import_ab1(&path).unwrap();
 
     eframe::run_native(
         &window_title_initial,
