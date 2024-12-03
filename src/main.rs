@@ -246,10 +246,15 @@ impl Default for FileDialogs {
         )
         .add_file_filter(
             // Note: We experience glitches if this name is too long. (Window extends horizontally)
-            "PCAD/FASTA/GB/SG",
+            "PCAD/FASTA/GB/SG/AB1",
             Arc::new(|p| {
                 let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                ext == "pcad" || ext == "fasta" || ext == "gb" || ext == "gbk" || ext == "dna"
+                ext == "pcad"
+                    || ext == "fasta"
+                    || ext == "gb"
+                    || ext == "gbk"
+                    || ext == "dna"
+                    || ext == "ab1"
             }),
         );
 

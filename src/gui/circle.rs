@@ -183,7 +183,16 @@ fn draw_ticks(data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
                 Align2::LEFT_CENTER,
             )
         };
-
+        result.push(ui.ctx().fonts(|fonts| {
+            Shape::text(
+                fonts,
+                data.to_screen * label_pt,
+                label_align,
+                i.to_string(),
+                FontId::new(16., FontFamily::Proportional),
+                TICK_COLOR,
+            )
+        }));
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
                 fonts,

@@ -18,9 +18,13 @@ pub struct SeqRecordAb1 {
     pub quality_user: Option<Vec<u8>>,
     pub peak_heights: Vec<u16>,
     /// Analyzed data, for each channel.
+    /// G
     pub data_ch1: Vec<u16>,
+    /// A
     pub data_ch2: Vec<u16>,
+    /// T
     pub data_ch3: Vec<u16>,
+    /// C
     pub data_ch4: Vec<u16>,
     /// Peak locations.
     pub peak_locations: Vec<u16>,

@@ -104,6 +104,10 @@ melting temperature, polymerase type, and other parameters.
 PlasCAD can read and write FASTA, GenBank, and SnapGene .dna files. FASTA files store sequence data only, while GenBank, SnapGene, and PlasCAD's own format store sequence data, features, primers, and metadata. We use the [gb_io](https://docs.rs/gb-io/latest/gb_io/) library
 to handle GenBank parsing and writing.
 
+### Supports reading AB1 files
+This is generally Sanger sequencing data, or similar. Displays plots and sequences from this format, but is read-only.
+
+
 ### Notes
 - To open files, you can either use the *Load/Import* button at the top, or drag a file into the window.
 - When clicking *Save* (Ctrl+S), the file saved to is named in the tilebar (Very top of the window). This program will save over PCAD and GB files, but not SnapGene/DNA or FASTA files. (See details below re why). To save in those formats, use the appropriate *Export* button.

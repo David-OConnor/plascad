@@ -295,8 +295,14 @@ pub fn draw(state: &mut State, ctx: &Context) {
         };
 
         if ab1_mode {
+            // Ensure that if an AB1 file is selected, we show the AB1 page and no tabs.
+            // Otherwise, ensure we do not show the AB1 page.
             state.ui.page = Page::Ab1;
         } else {
+            if state.ui.page == Page::Ab1 {
+                state.ui.page = Page::Map;
+            }
+
             ui.horizontal(|ui| {
                 navigation::page_selector(state, ui);
 
@@ -407,7 +413,12 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 metadata::metadata_page(&mut state.generic[state.active].metadata, ui)
             }
             Page::Portions => portions::portions_page(&mut state.portions[state.active], ui),
-            Page::Ab1 => ab1::ab1_page(&state.ab1_data[0], ui), // todo: Fix
+            Page::Ab1 => {
+                if state.ab1_data.len() > 0 {
+                    // todo: Fix index, and this hack in general.
+                    ab1::ab1_page(&state.ab1_data[0], ui)
+                }
+            }
         }
     });
 }

@@ -107,6 +107,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
             state.add_tab();
         }
         ui.add_space(COL_SPACING);
+
         let plasmid_names: &Vec<_> = &state
             .generic
             .iter()

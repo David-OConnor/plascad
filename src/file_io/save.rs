@@ -383,7 +383,6 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
             "ab1" => {
                 if let Ok(data) = import_ab1(path) {
                     result.ab1_data = data;
-                    // todo: This, or none, since we don't edit the file?
                     result.path_loaded = Some(Tab {
                         path: path.to_owned(),
                         ab1: true,
