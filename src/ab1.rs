@@ -11,15 +11,19 @@ pub struct SeqRecordAb1 {
     pub id: String,
     pub name: String,
     pub description: String,
+    pub sequence: Seq,
     pub sequence_user: Option<Seq>,
-    pub sequence_base: Option<Seq>,
     pub annotations: HashMap<String, String>,
+    pub quality: Option<Vec<u8>>,
     pub quality_user: Option<Vec<u8>>,
-    pub quality_base: Option<Vec<u8>>,
     pub peak_heights: Vec<u16>,
-    pub height_data: Vec<Vec<u16>>,
+    /// Analyzed data, for each channel.
+    pub data_ch1: Vec<u16>,
+    pub data_ch2: Vec<u16>,
+    pub data_ch3: Vec<u16>,
+    pub data_ch4: Vec<u16>,
+    /// Peak locations.
+    pub peak_locations: Vec<u16>,
     /// Peak locations edited by user.
     pub peak_locations_user: Option<Vec<u16>>,
-    /// Peak locations as called by Basecaller
-    pub peak_locations_base: Option<Vec<u16>>,
 }

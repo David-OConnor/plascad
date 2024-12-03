@@ -136,6 +136,7 @@ impl<R: Read + Seek> AbiIterator<R> {
 
             let tag_data = parse_tag_data(dir.elem_code, dir.num_elements, &tag_buf)?;
 
+            // todo: This section is repetative.
             match key.as_str() {
                 "PBAS1" => match tag_data {
                     TagData::Str(s) => {
@@ -150,7 +151,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                 },
                 "PBAS2" => match tag_data {
                     TagData::Str(s) => {
-                        result.sequence_base = Some(seq_from_str(&s));
+                        result.sequence = seq_from_str(&s);
                     }
                     _ => {
                         return Err(io::Error::new(
@@ -180,7 +181,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         TagData::Str(s) => {
                             // Note: We have reversed the above conversion from bytes; we get
                             // the "char" type for both.
-                            result.quality_base = Some(s.as_bytes().to_vec());
+                            result.quality = Some(s.as_bytes().to_vec());
                         }
                         _ => {
                             return Err(io::Error::new(
@@ -208,7 +209,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                 },
                 "PLOC2" => match tag_data {
                     TagData::U16(d) => {
-                        result.peak_locations_base = Some(d);
+                        result.peak_locations = d;
                     }
                     _ => {
                         return Err(io::Error::new(
@@ -217,23 +218,54 @@ impl<R: Read + Seek> AbiIterator<R> {
                         ))
                     }
                 },
-                _ => {
-                    if key.contains("DATA") {
-                        match tag_data {
-                            TagData::U16(d) => {
-                                result.height_data.push(d);
-                            }
-                            _ => {
-                                return Err(io::Error::new(
-                                    ErrorKind::InvalidData,
-                                    "Invalid height data",
-                                ))
-                            }
-                        }
-                    } else {
-                        eprintln!("Invalid key in AB1 file: {:?}", key);
-                        eprintln!("Tag data for this key: {:?}", tag_data);
+                "DATA9" =>  match tag_data {
+                    TagData::U16(d) => {
+                        result.data_ch1 = d;
                     }
+                    _ => {
+                        return Err(io::Error::new(
+                            ErrorKind::InvalidData,
+                            "Invalid height data",
+                        ))
+                    }
+                }
+                "DATA10" =>  match tag_data {
+                    TagData::U16(d) => {
+                        result.data_ch2 = d;
+                    }
+                    _ => {
+                        return Err(io::Error::new(
+                            ErrorKind::InvalidData,
+                            "Invalid height data",
+                        ))
+                    }
+                }
+                "DATA11" =>  match tag_data {
+                    TagData::U16(d) => {
+                        result.data_ch3 = d;
+                    }
+                    _ => {
+                        return Err(io::Error::new(
+                            ErrorKind::InvalidData,
+                            "Invalid height data",
+                        ))
+                    }
+                }
+                "DATA12" =>  match tag_data {
+                    TagData::U16(d) => {
+                        result.data_ch4 = d;
+                    }
+                    _ => {
+                        return Err(io::Error::new(
+                            ErrorKind::InvalidData,
+                            "Invalid height data",
+                        ))
+                    }
+                }
+                _ => {
+                    // todo: Implement others A/R.
+                    eprintln!("Invalid key in AB1 file: {:?}", key);
+                    eprintln!("Tag data for this key: {:?}", tag_data);
                 }
             }
         }
