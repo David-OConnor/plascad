@@ -396,6 +396,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 metadata::metadata_page(&mut state.generic[state.active].metadata, ui)
             }
             Page::Portions => portions::portions_page(&mut state.portions[state.active], ui),
+            Page::Ab1 => ab1::ab1_page(state, ui),
             // Page::AutoCloning => autocloning::autocloning_page(state, ui),
             // });
         }

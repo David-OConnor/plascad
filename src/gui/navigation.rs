@@ -40,7 +40,6 @@ pub fn get_tabs(
 #[derive(Clone, Copy, PartialEq, Encode, Decode)]
 pub enum Page {
     /// Primer design and QC, including for cloning
-    /// (Replacement name: Sequence?
     Sequence,
     /// A circular "graphical map" of the plasmid
     Map,
@@ -55,6 +54,9 @@ pub enum Page {
     Ligation,
     /// A simplified cloning process, for both PCR and RE-based cloning.
     Cloning,
+    /// i.e. Sanger sequencing data. This page is fundamentally different from the others;
+    /// it is only for .ab1 files, and is selected automatically, vice from the menu.
+    Ab1,
 }
 
 impl Default for Page {
@@ -77,6 +79,7 @@ impl Display for Page {
             Self::Metadata => "Data",
             Self::Ligation => "Digest",
             Self::Cloning => "Clone",
+            Self::Ab1 => "AB1",
         }
         .to_owned();
         write!(f, "{}", str)

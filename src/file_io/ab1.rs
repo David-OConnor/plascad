@@ -23,9 +23,18 @@ pub struct SeqRecordAb1 {
     id: String,
     name: String,
     description: String,
-    sequence: Option<Seq>,
+    sequence_user: Option<Seq>,
+    sequence_base: Option<Seq>,
     annotations: HashMap<String, String>,
-    phred_quality: Option<Vec<u8>>,
+    quality_user: Option<Vec<u8>>,
+    quality_base: Option<Vec<u8>>,
+    // todo: A/R.
+    peak_heights: Vec<u16>,
+    height_data: Vec<Vec<u16>>,
+    /// Peak locations edited by user.
+    peak_locations_user: Option<Vec<u16>>,
+    /// Peak locations as called by Basecaller
+    peak_locations_base: Option<Vec<u16>>,
 }
 
 #[derive(Debug)]
@@ -98,7 +107,6 @@ impl<R: Read + Seek> AbiIterator<R> {
     pub fn new(mut stream: R, trim: bool) -> io::Result<Self> {
         let mut marker = [0u8; 4];
         stream.read_exact(&mut marker)?;
-        println!("Marker: {:?}", marker);
         if &marker != b"ABIF" {
             return Err(io::Error::new(ErrorKind::InvalidData, "Invalid AB1 file start marker"))
         }
@@ -130,7 +138,7 @@ impl<R: Read + Seek> AbiIterator<R> {
             let mut dir = Dir::from_bytes(dir_buf, start)?;
 
             let key = format!("{}{}", dir.tag_name, dir.tag_number);
-            println!("DIR: {:?}, KEY: {:?}", dir, key);
+            // println!("DIR: {:?}, KEY: {:?}", dir, key);
 
             if dir.data_size <= 4 {
                 dir.data_offset = dir.tag_offset + 20;
@@ -141,73 +149,86 @@ impl<R: Read + Seek> AbiIterator<R> {
             if self.stream.read(&mut tag_buf)? == 0 {
                 return Ok(None) // EOF
             };
-            // println!("Tag buf: {:?}", tag_buf);
 
             let tag_data = parse_tag_data(dir.elem_code, dir.num_elements, &tag_buf)?;
 
             match key.as_str() {
-                "PBAS2" => {
-                    println!("PBAS2: {:?}", tag_data);
+                "PBAS1" => {
                     match tag_data {
                         TagData::Str(s) => {
-                            result.sequence = Some(seq_from_str(&s));
+                            result.sequence_user = Some(seq_from_str(&s));
                         },
                         _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid PBAS sequence")),
+                    }
+                }
+                "PBAS2" => {
+                    match tag_data {
+                        TagData::Str(s) => {
+                            result.sequence_base = Some(seq_from_str(&s));
+                        },
+                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid PBAS sequence")),
+                    }
+                }
+                "PCON1" => {
+                    match tag_data {
+                        TagData::Str(s) => {
+                            // Note: We have reversed the above conversion from bytes; we get
+                            // the "char" type for both.
+                            result.quality_user = Some(s.as_bytes().to_vec());
+                        },
+                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid quality data")),
                     }
                 }
                 // Quality values
                 "PCON2" => {
                     match tag_data {
-                        // todo: DRY
                         TagData::Str(s) => {
                             // Note: We have reversed the above conversion from bytes; we get
                             // the "char" type for both.
-                            result.phred_quality = Some(s.as_bytes().to_vec());
-                            println!("PCON2: {:?}", result.phred_quality);
+                            result.quality_base = Some(s.as_bytes().to_vec());
                         },
-                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid PCON2 quality data")),
+                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid quality data")),
                     }
                 }
                 // Sample ID
                 "SMPL1" => {
                     match tag_data {
                         TagData::Str(s) => result.id = s,
-                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid SMPL1 sample ID")),
+                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid sample ID")),
+                    }
+                }
+                "PLOC1" => {
+                    match tag_data {
+                        TagData::U16(d) => {
+                            result.peak_locations_user = Some(d);
+                        },
+                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid peak location data")),
+                    }
+                }
+                "PLOC2" => {
+                    match tag_data {
+                        TagData::U16(d) => {
+                            result.peak_locations_base = Some(d);
+                        },
+                        _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid peak location data")),
                     }
                 }
                 _ => {
-                    eprintln!("Invalid key in AB1 file: {:?}", key);
+                    if key.contains("DATA") {
+                        match tag_data {
+                            TagData::U16(d) => {
+                                result.height_data.push(d);
+                            },
+                            _ => return Err(io::Error::new(ErrorKind::InvalidData, "Invalid height data")),
+                        }
+                    } else {
+                        eprintln!("Invalid key in AB1 file: {:?}", key);
+                        eprintln!("Tag data for this key: {:?}", tag_data);
+                    }
                 }
             }
 
         }
-
-        // let raw = HashMap::new(); // Placeholder for raw data
-
-        // for _ in 0..2 {
-        //     let key = tag_name + str(tag_number);
-        //
-        //     // raw[key] = tag_data;
-        //
-        //     // PBAS2 is base-called sequence, only available in 3530
-        //     if key == "PBAS2" {
-        //         // seq = tag_data.decode()
-        //         // PCON2 is quality values of base-called sequence
-        //     } else if key == "PCON2" {
-        //         // qual = [ord(val) for val in tag_data.decode()]
-        //         // SMPL1 is sample id entered before sequencing run, it must be
-        //         //  a string.
-        //     } else if key == "SMPL1" {
-        //         // sample_id = _get_string_tag(tag_data);
-        //     // } else if times.includes(key) {
-        //     } else if true {
-        //         // times[key] = tag_data;
-        //     } else {
-        //         if key in _EXTRACT {
-        //             annot[_EXTRACT[key]] = tag_data
-        //         }
-        //     }
-        // }
 
         Ok(Some(result))
     }
