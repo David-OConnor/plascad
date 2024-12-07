@@ -510,6 +510,18 @@ impl Default for CloningState {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum AlignmentMode {
+    Dna,
+    AminoAcid,
+}
+
+impl Default for AlignmentMode {
+    fn default() -> Self {
+        Self::Dna
+    }
+}
+
 #[derive(Default)]
 struct AlignmentState {
     seq_a: Seq,
@@ -520,6 +532,7 @@ struct AlignmentState {
     alignment_result: Option<Alignment>,
     dist_result: Option<u64>,
     text_display: String, // Ie `AlignmentResult::pretty`.
+    mode: AlignmentMode,
 }
 
 /// Note: use of serde traits here and on various sub-structs are for saving and loading.

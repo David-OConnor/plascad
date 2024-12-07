@@ -1,21 +1,52 @@
-use eframe::egui::{FontFamily, FontId, RichText, ScrollArea, TextEdit, Ui};
+use eframe::egui::{Color32, FontFamily, FontId, RichText, ScrollArea, TextEdit, Ui};
 use na_seq::{seq_from_str, seq_to_str};
 
-use crate::{
-    alignment::{align_pairwise, distance},
-    gui::{
-        theme::{COLOR_ACTION, COLOR_INFO},
-        ROW_SPACING,
-    },
-    State,
-};
+use crate::{alignment::{align_pairwise, distance}, AlignmentMode, gui::{
+    theme::{COLOR_ACTION, COLOR_INFO},
+    ROW_SPACING,
+}, State};
+use crate::gui::COL_SPACING;
 
 pub fn alignment_page(state: &mut State, ui: &mut Ui) {
-    ui.heading("Alignment (Work in Progress)");
+
+    ui.add_space(ROW_SPACING);
+
+    ui.horizontal(|ui| {
+        ui.heading("Alignment (Work in Progress)");
+
+        ui.add_space(COL_SPACING * 2.);
+
+        let color = if state.alignment.mode == AlignmentMode::Dna {
+            Color32::LIGHT_BLUE
+        } else {
+            Color32::WHITE
+        };
+       if ui.button(RichText::new("DNA").color(color)).clicked() {
+            state.alignment.mode = AlignmentMode::Dna;
+       }
+
+        let color = if state.alignment.mode == AlignmentMode::AminoAcid {
+            Color32::LIGHT_BLUE
+        } else {
+            Color32::WHITE
+        };
+        if ui.button(RichText::new("Amino acid").color(color)).clicked() {
+            state.alignment.mode = AlignmentMode::AminoAcid;
+        }
+    });
     ui.add_space(ROW_SPACING);
 
     ScrollArea::vertical().id_salt(200).show(ui, |ui| {
-        ui.label("Seq A:");
+        ui.horizontal(|ui| {
+            ui.label("Seq A:");
+            ui.add_space(COL_SPACING);
+
+            if ui.button(RichText::new("Load active tab's sequence").color(Color32::LIGHT_BLUE)).clicked() {
+                state.alignment.seq_a = state.generic[state.active].seq.clone();
+                state.alignment.seq_a_input = seq_to_str(&state.alignment.seq_a);
+            }
+        });
+
         let response =
             ui.add(TextEdit::multiline(&mut state.alignment.seq_a_input).desired_width(800.));
         if response.changed() {
@@ -26,7 +57,16 @@ pub fn alignment_page(state: &mut State, ui: &mut Ui) {
         ui.add_space(ROW_SPACING);
 
         // todo: DRY. Also with sequence.mod.
-        ui.label("Seq B:");
+        ui.horizontal(|ui| {
+            ui.label("Seq B:");
+            ui.add_space(COL_SPACING);
+
+            if ui.button(RichText::new("Load active tab's sequence").color(Color32::LIGHT_BLUE)).clicked() {
+                state.alignment.seq_b = state.generic[state.active].seq.clone();
+                state.alignment.seq_b_input = seq_to_str(&state.alignment.seq_b);
+            }
+        });
+
         let response =
             ui.add(TextEdit::multiline(&mut state.alignment.seq_b_input).desired_width(800.));
         if response.changed() {
