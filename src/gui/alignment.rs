@@ -50,12 +50,14 @@ fn input_area(state: &mut State, seq_b: bool, ui: &mut Ui) {
         ui.label(if seq_b { "Seq B" } else { "Seq A" });
         ui.add_space(COL_SPACING);
 
-        if ui
-            .button(RichText::new("Load active tab's sequence").color(Color32::LIGHT_BLUE))
-            .clicked()
-        {
-            *seq = active_seq.clone(); // Use the pre-fetched active sequence
-            *seq_input = seq_to_str(seq);
+        if let AlignmentMode::Dna = state.alignment.mode {
+            if ui
+                .button(RichText::new("Load active tab's sequence").color(Color32::LIGHT_BLUE))
+                .clicked()
+            {
+                *seq = active_seq.clone(); // Use the pre-fetched active sequence
+                *seq_input = seq_to_str(seq);
+            }
         }
     });
 
@@ -93,6 +95,8 @@ pub fn alignment_page(state: &mut State, ui: &mut Ui) {
         input_area(state, false, ui);
         ui.add_space(ROW_SPACING);
         input_area(state, true, ui);
+
+        u.add_space(ROW_SPACING);
 
         if ui
             .button(RichText::new("Align").color(COLOR_ACTION))
