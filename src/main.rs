@@ -40,6 +40,7 @@ use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load, load_import, StateToSave, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use na_seq::{
+    amino_acids::{AaIdent, AminoAcid},
     insert_into_seq,
     ligation::LigationFragment,
     re_lib::load_re_library,
@@ -51,7 +52,6 @@ use protein::Protein;
 use reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch};
 
 use crate::{
-    amino_acids::AaIdent,
     backbones::{load_backbone_library, Backbone, BackboneFilters},
     cloning::BackboneSelected,
     file_io::{
@@ -76,7 +76,6 @@ use crate::{
 
 mod ab1;
 mod alignment;
-mod amino_acids;
 mod backbones;
 mod cloning;
 mod external_websites;
@@ -526,6 +525,8 @@ impl Default for AlignmentMode {
 struct AlignmentState {
     seq_a: Seq,
     seq_b: Seq,
+    seq_aa_a: Vec<AminoAcid>,
+    seq_aa_b: Vec<AminoAcid>,
     // todo: Perhaps these inputs are better fit for State_ui.
     seq_a_input: String,
     seq_b_input: String,

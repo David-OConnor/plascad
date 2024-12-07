@@ -7,6 +7,7 @@
 //! todo: Allow users to enter custom backbones.
 
 use na_seq::{
+    amino_acids::{AminoAcid, CodingResult},
     insert_into_seq,
     ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
     restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
@@ -14,7 +15,6 @@ use na_seq::{
 };
 
 use crate::{
-    amino_acids::{AminoAcid, CodingResult},
     backbones::Backbone,
     file_io::GenericData,
     gui::navigation::{Page, PageSeq},

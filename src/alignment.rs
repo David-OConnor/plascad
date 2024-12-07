@@ -1,12 +1,9 @@
-use bio::{
-    alignment::{
-        distance::simd::{bounded_levenshtein, hamming, levenshtein},
-        pairwise::Aligner,
-        Alignment,
-    },
-    scores::blosum62,
+use bio::alignment::{
+    distance::simd::{bounded_levenshtein, hamming, levenshtein},
+    pairwise::Aligner,
+    Alignment,
 };
-use na_seq::{seq_to_letter_bytes, Nucleotide};
+use na_seq::{amino_acids::AminoAcid, seq_aa_to_letter_bytes, seq_to_letter_bytes, Nucleotide};
 
 #[derive(Clone, Copy)]
 /// Use Hamming Distance if:
@@ -29,11 +26,8 @@ pub enum DistanceType {
 }
 
 // todo: Which dist algo? bounded_levenshtein, hamming, levenshtein?
-// pub fn distance(alpha: &[Nucleotide], beta: &[Nucleotide], dist_type: DistanceType) -> u64 {
-pub fn distance(alpha: &[Nucleotide], beta: &[Nucleotide]) -> u64 {
-    let alpha_ = seq_to_letter_bytes(alpha);
-    let beta_ = seq_to_letter_bytes(beta);
-
+/// Accepts UTF-8 byte representation of letters.
+fn distance(alpha: &[u8], beta: &[u8]) -> u64 {
     let dist_type = if alpha.len() == beta.len() {
         DistanceType::Hamming
     } else {
@@ -41,28 +35,52 @@ pub fn distance(alpha: &[Nucleotide], beta: &[Nucleotide]) -> u64 {
     };
 
     match dist_type {
-        DistanceType::Hamming => hamming(&alpha_, &beta_),
-        DistanceType::Levenshtein => levenshtein(&alpha_, &beta_) as u64,
+        DistanceType::Hamming => hamming(&alpha, &beta),
+        DistanceType::Levenshtein => levenshtein(&alpha, &beta) as u64,
         DistanceType::BoundedLevenshtein(k) => {
-            bounded_levenshtein(&alpha_, &beta_, k).unwrap() as u64
+            bounded_levenshtein(&alpha, &beta, k).unwrap() as u64
         }
     }
 }
 
-// todo: Move some of this to a new `src/alignment` module A/R.
-pub fn align_pairwise(seq_0: &[Nucleotide], seq_1: &[Nucleotide]) -> (Alignment, String) {
-    // todo: Lots of room to configure this.
-    let seq_0_ = seq_to_letter_bytes(seq_0);
-    let seq_1_ = seq_to_letter_bytes(seq_1);
+pub fn distance_nt(alpha: &[Nucleotide], beta: &[Nucleotide]) -> u64 {
+    let alpha_ = seq_to_letter_bytes(alpha);
+    let beta_ = seq_to_letter_bytes(beta);
+    distance(&alpha_, &beta_)
+}
 
+pub fn distance_aa(alpha: &[AminoAcid], beta: &[AminoAcid]) -> u64 {
+    let alpha_ = seq_aa_to_letter_bytes(alpha);
+    let beta_ = seq_aa_to_letter_bytes(beta);
+    distance(&alpha_, &beta_)
+}
+
+fn align_pairwise(seq_0: &[u8], seq_1: &[u8]) -> (Alignment, String) {
+    // todo: Lots of room to configure this.
     let score = |a: u8, b: u8| if a == b { 1i32 } else { -1i32 };
 
     let mut aligner = Aligner::with_capacity(seq_0.len(), seq_1.len(), -5, -1, &score);
 
     // todo: Global? Semiglobal? Local?
-    let result = aligner.semiglobal(&seq_0_, &seq_1_);
+    let result = aligner.semiglobal(seq_0, seq_1);
 
-    let text = result.pretty(&seq_0_, &seq_1_, 120);
+    let text = result.pretty(seq_0, seq_1, 120);
 
     (result, text)
+}
+
+pub fn align_pairwise_nt(seq_0: &[Nucleotide], seq_1: &[Nucleotide]) -> (Alignment, String) {
+    // todo: Lots of room to configure this.
+    let seq_0_ = seq_to_letter_bytes(seq_0);
+    let seq_1_ = seq_to_letter_bytes(seq_1);
+
+    align_pairwise(&seq_0_, &seq_1_)
+}
+
+pub fn align_pairwise_aa(seq_0: &[AminoAcid], seq_1: &[AminoAcid]) -> (Alignment, String) {
+    // todo: Lots of room to configure this.
+    let seq_0_ = seq_aa_to_letter_bytes(seq_0);
+    let seq_1_ = seq_aa_to_letter_bytes(seq_1);
+
+    align_pairwise(&seq_0_, &seq_1_)
 }

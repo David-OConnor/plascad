@@ -8,9 +8,9 @@ use eframe::{
     emath::RectTransform,
     epaint::PathStroke,
 };
+use na_seq::amino_acids::{AminoAcid, CodingResult};
 
 use crate::{
-    amino_acids::{AminoAcid, CodingResult},
     gui::{
         feature_from_index, get_cursor_text,
         navigation::page_button,

@@ -1,14 +1,82 @@
 use eframe::egui::{Color32, FontFamily, FontId, RichText, ScrollArea, TextEdit, Ui};
-use na_seq::{seq_from_str, seq_to_str};
+use na_seq::{seq_aa_from_str, seq_aa_to_str, seq_from_str, seq_to_str};
 
-use crate::{alignment::{align_pairwise, distance}, AlignmentMode, gui::{
-    theme::{COLOR_ACTION, COLOR_INFO},
-    ROW_SPACING,
-}, State};
-use crate::gui::COL_SPACING;
+use crate::{
+    alignment::{align_pairwise_aa, align_pairwise_nt, distance_aa, distance_nt},
+    gui::{
+        theme::{COLOR_ACTION, COLOR_INFO},
+        COL_SPACING, ROW_SPACING,
+    },
+    AlignmentMode, State,
+};
+
+fn mode_btn(state: &mut State, mode: AlignmentMode, name: &str, ui: &mut Ui) {
+    let color = if state.alignment.mode == mode {
+        Color32::LIGHT_BLUE
+    } else {
+        Color32::WHITE
+    };
+    if ui.button(RichText::new(name).color(color)).clicked() {
+        state.alignment.mode = mode;
+
+        // Reset fields to prevent invalid data.
+        state.alignment.seq_a = Vec::new();
+        state.alignment.seq_aa_a = Vec::new();
+        state.alignment.seq_a_input = String::new();
+        state.alignment.seq_b = Vec::new();
+        state.alignment.seq_aa_b = Vec::new();
+        state.alignment.seq_b_input = String::new();
+    }
+}
+
+fn input_area(state: &mut State, seq_b: bool, ui: &mut Ui) {
+    let (seq, seq_aa, seq_input) = if seq_b {
+        (
+            &mut state.alignment.seq_a,
+            &mut state.alignment.seq_aa_a,
+            &mut state.alignment.seq_a_input,
+        )
+    } else {
+        (
+            &mut state.alignment.seq_b,
+            &mut state.alignment.seq_aa_b,
+            &mut state.alignment.seq_b_input,
+        )
+    };
+
+    let active_seq = state.generic[state.active].seq.clone(); // Avoid borrowing state in the closure
+
+    ui.horizontal(|ui| {
+        ui.label(if seq_b { "Seq B" } else { "Seq A" });
+        ui.add_space(COL_SPACING);
+
+        if ui
+            .button(RichText::new("Load active tab's sequence").color(Color32::LIGHT_BLUE))
+            .clicked()
+        {
+            *seq = active_seq.clone(); // Use the pre-fetched active sequence
+            *seq_input = seq_to_str(seq);
+        }
+    });
+
+    let response = ui.add(TextEdit::multiline(seq_input).desired_width(800.));
+    if response.changed() {
+        match state.alignment.mode {
+            AlignmentMode::Dna => {
+                *seq = seq_from_str(seq_input);
+                *seq_input = seq_to_str(seq);
+                // Todo: why?
+                // state.sync_seq_related(None);
+            }
+            AlignmentMode::AminoAcid => {
+                *seq_aa = seq_aa_from_str(seq_input);
+                *seq_input = seq_aa_to_str(seq_aa);
+            }
+        }
+    }
+}
 
 pub fn alignment_page(state: &mut State, ui: &mut Ui) {
-
     ui.add_space(ROW_SPACING);
 
     ui.horizontal(|ui| {
@@ -16,76 +84,38 @@ pub fn alignment_page(state: &mut State, ui: &mut Ui) {
 
         ui.add_space(COL_SPACING * 2.);
 
-        let color = if state.alignment.mode == AlignmentMode::Dna {
-            Color32::LIGHT_BLUE
-        } else {
-            Color32::WHITE
-        };
-       if ui.button(RichText::new("DNA").color(color)).clicked() {
-            state.alignment.mode = AlignmentMode::Dna;
-       }
-
-        let color = if state.alignment.mode == AlignmentMode::AminoAcid {
-            Color32::LIGHT_BLUE
-        } else {
-            Color32::WHITE
-        };
-        if ui.button(RichText::new("Amino acid").color(color)).clicked() {
-            state.alignment.mode = AlignmentMode::AminoAcid;
-        }
+        mode_btn(state, AlignmentMode::Dna, "DNA", ui);
+        mode_btn(state, AlignmentMode::AminoAcid, "Amino acid", ui);
     });
     ui.add_space(ROW_SPACING);
 
     ScrollArea::vertical().id_salt(200).show(ui, |ui| {
-        ui.horizontal(|ui| {
-            ui.label("Seq A:");
-            ui.add_space(COL_SPACING);
-
-            if ui.button(RichText::new("Load active tab's sequence").color(Color32::LIGHT_BLUE)).clicked() {
-                state.alignment.seq_a = state.generic[state.active].seq.clone();
-                state.alignment.seq_a_input = seq_to_str(&state.alignment.seq_a);
-            }
-        });
-
-        let response =
-            ui.add(TextEdit::multiline(&mut state.alignment.seq_a_input).desired_width(800.));
-        if response.changed() {
-            state.alignment.seq_a = seq_from_str(&state.alignment.seq_a_input);
-            state.alignment.seq_a_input = seq_to_str(&state.alignment.seq_a);
-            state.sync_seq_related(None);
-        }
+        input_area(state, false, ui);
         ui.add_space(ROW_SPACING);
-
-        // todo: DRY. Also with sequence.mod.
-        ui.horizontal(|ui| {
-            ui.label("Seq B:");
-            ui.add_space(COL_SPACING);
-
-            if ui.button(RichText::new("Load active tab's sequence").color(Color32::LIGHT_BLUE)).clicked() {
-                state.alignment.seq_b = state.generic[state.active].seq.clone();
-                state.alignment.seq_b_input = seq_to_str(&state.alignment.seq_b);
-            }
-        });
-
-        let response =
-            ui.add(TextEdit::multiline(&mut state.alignment.seq_b_input).desired_width(800.));
-        if response.changed() {
-            state.alignment.seq_b = seq_from_str(&state.alignment.seq_b_input);
-            state.alignment.seq_b_input = seq_to_str(&state.alignment.seq_b);
-            state.sync_seq_related(None);
-        }
-        ui.add_space(ROW_SPACING);
+        input_area(state, true, ui);
 
         if ui
             .button(RichText::new("Align").color(COLOR_ACTION))
             .clicked()
         {
-            let alignment = align_pairwise(&state.alignment.seq_a, &state.alignment.seq_b);
+            let alignment = match state.alignment.mode {
+                AlignmentMode::Dna => {
+                    align_pairwise_nt(&state.alignment.seq_a, &state.alignment.seq_b)
+                }
+                AlignmentMode::AminoAcid => {
+                    align_pairwise_aa(&state.alignment.seq_aa_a, &state.alignment.seq_aa_b)
+                }
+            };
+
             state.alignment.alignment_result = Some(alignment.0);
             state.alignment.text_display = alignment.1;
 
-            state.alignment.dist_result =
-                Some(distance(&state.alignment.seq_a, &state.alignment.seq_b));
+            state.alignment.dist_result = Some(match state.alignment.mode {
+                AlignmentMode::Dna => distance_nt(&state.alignment.seq_a, &state.alignment.seq_b),
+                AlignmentMode::AminoAcid => {
+                    distance_aa(&state.alignment.seq_aa_a, &state.alignment.seq_aa_b)
+                }
+            });
         }
 
         ui.add_space(ROW_SPACING);
@@ -100,7 +130,6 @@ pub fn alignment_page(state: &mut State, ui: &mut Ui) {
                     .font(FontId::new(16., FontFamily::Monospace)),
             );
         }
-        // ui.add_space(ROW_SPACING);
 
         if let Some(dist) = &state.alignment.dist_result {
             ui.horizontal(|ui| {

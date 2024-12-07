@@ -1,11 +1,11 @@
 //! Contains code related to identifying toxic proteins.
 
-use na_seq::Nucleotide;
-
-use crate::{
+use na_seq::{
     amino_acids::{AminoAcid, CodingResult},
-    protein::proteins_from_seq,
+    Nucleotide,
 };
+
+use crate::protein::proteins_from_seq;
 
 const GLN_TRACT_SCAN_FRAME: usize = 35;
 const GLN_MAX_PORTION: f32 = 0.75;

@@ -2,10 +2,12 @@
 //! reading frames.
 
 use bincode::{Decode, Encode};
-use na_seq::Nucleotide;
+use na_seq::{
+    amino_acids::{AminoAcid, CodingResult},
+    Nucleotide,
+};
 
 use crate::{
-    amino_acids::{AminoAcid, CodingResult},
     external_websites::PdbData,
     misc_types::{Feature, FeatureType},
     reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch},

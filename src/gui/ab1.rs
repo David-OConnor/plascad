@@ -13,9 +13,8 @@ use na_seq::{seq_to_str, Nucleotide};
 
 use crate::{
     ab1::SeqRecordAb1,
-    gui::{BACKGROUND_COLOR, COL_SPACING},
+    gui::{BACKGROUND_COLOR, COL_SPACING, ROW_SPACING},
 };
-use crate::gui::ROW_SPACING;
 
 const NT_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
 const NT_WIDTH: f32 = 8.; // pixels
@@ -172,10 +171,7 @@ pub fn ab1_page(data: &SeqRecordAb1, ui: &mut Ui) {
 
         ui.add_space(COL_SPACING * 2.);
 
-        if ui
-            .button(RichText::new("🗐 Copy sequence"))
-            .clicked()
-        {
+        if ui.button(RichText::new("🗐 Copy sequence")).clicked() {
             let mut ctx = ClipboardContext::new().unwrap();
             ctx.set_contents(seq_to_str(&data.sequence)).unwrap();
         }
