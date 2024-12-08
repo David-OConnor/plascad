@@ -4,7 +4,7 @@ use std::{fmt::Display, path::PathBuf};
 
 use bincode::{Decode, Encode};
 use eframe::egui::{Color32, RichText, Ui};
-use na_seq::seq_to_str;
+use na_seq::seq_to_str_lower;
 
 use crate::{
     gui::{select_color_text, set_window_title, COL_SPACING, ROW_SPACING},
@@ -126,9 +126,9 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
                 set_window_title(&state.path_loaded[i], ui);
 
                 // todo: Apt state sync fn for this?
-                state.ui.seq_input = seq_to_str(state.get_seq()); // todo: Move seq_input to an indexed vector?
-                                                                  // todo: Cache these instead?
-                                                                  // state.sync_seq_related(None);
+                state.ui.seq_input = seq_to_str_lower(state.get_seq()); // todo: Move seq_input to an indexed vector?
+                                                                        // todo: Cache these instead?
+                                                                        // state.sync_seq_related(None);
             }
 
             if button.middle_clicked() {

@@ -2,7 +2,7 @@
 
 use eframe::egui::{Align, Color32, Layout, RichText, ScrollArea, TextEdit, Ui};
 use egui_extras::{Column, TableBuilder};
-use na_seq::{seq_from_str, seq_to_str};
+use na_seq::{seq_from_str, seq_to_str_lower};
 
 use crate::{
     gui::{
@@ -147,7 +147,7 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                             if response.changed() {
                                 primer.sequence = seq_from_str(&primer.volatile.sequence_input);
                                 primer.volatile.sequence_input =
-                                    seq_to_str(&primer.sequence);
+                                    seq_to_str_lower(&primer.sequence);
                                 primer.run_calcs(&state.ion_concentrations[state.active]);
                                 run_match_sync = Some(i);
                             }
@@ -484,7 +484,7 @@ fn primer_tune_display(
             //     || primer.volatile.tunable_3p != TuneSetting::Disabled
             // {
             if primer.volatile.tune_setting.tunable() {
-                ui.label(RichText::new(seq_to_str(&primer.sequence)).color(COLOR_INFO));
+                ui.label(RichText::new(seq_to_str_lower(&primer.sequence)).color(COLOR_INFO));
             }
 
             ui.add_space(COL_SPACING / 2.);

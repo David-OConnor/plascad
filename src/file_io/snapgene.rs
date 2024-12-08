@@ -22,7 +22,7 @@ const HTML_TAGS: [&str; 8] = [
     "<html>", "</html>", "<body>", "</body>", "<i>", "</i>", "<b>", "</b>",
 ];
 
-use na_seq::{seq_from_str, seq_to_str, Nucleotide, Seq, SeqTopology};
+use na_seq::{seq_from_str, seq_to_str_lower, Nucleotide, Seq, SeqTopology};
 
 use crate::{
     file_io::{
@@ -171,7 +171,7 @@ fn parse_dna(payload: &[u8]) -> io::Result<(Seq, SeqTopology)> {
     let mut seq = Vec::new();
 
     for nt in sequence {
-        match Nucleotide::from_u8_letter(*nt) {
+        match Nucleotide::from_u8(*nt) {
             Ok(n) => seq.push(n),
             Err(_) => {
                 eprintln!("Unexpected char in DNA sequence: {:?}", nt);
@@ -556,7 +556,7 @@ fn export_primers(buf: &mut Vec<u8>, primers: &[Primer]) -> io::Result<()> {
     let mut primers_sg = Primers { inner: Vec::new() };
     for primer in primers {
         primers_sg.inner.push(PrimerSnapGene {
-            sequence: seq_to_str(&primer.sequence),
+            sequence: seq_to_str_lower(&primer.sequence),
             name: primer.name.clone(),
             description: primer.description.clone().unwrap_or_default(),
         });
@@ -600,7 +600,7 @@ pub fn export_snapgene(data: &GenericData, path: &Path) -> io::Result<()> {
         SeqTopology::Linear => 0,
     };
     buf.push(flag);
-    buf.extend(seq_to_str(&data.seq).as_bytes());
+    buf.extend(seq_to_str_lower(&data.seq).as_bytes());
 
     export_features(&mut buf, &data.features)?;
     export_primers(&mut buf, &data.primers)?;

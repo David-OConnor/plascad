@@ -12,7 +12,7 @@ use eframe::{
 };
 use na_seq::{
     restriction_enzyme::{ReMatch, RestrictionEnzyme},
-    seq_to_str,
+    seq_to_str_lower,
 };
 
 use crate::{
@@ -776,7 +776,7 @@ fn draw_primer_text(primer: &Primer, data: &CircleData, ui: &mut Ui) -> Vec<Shap
         primer.name.clone(),
         primer.location_descrip(),
         primer.description.clone().unwrap_or_default(),
-        seq_to_str(&primer.sequence),
+        seq_to_str_lower(&primer.sequence),
     ];
 
     // let color = match primer.direction {
@@ -891,7 +891,7 @@ fn _draw_mini_seq(data: &CircleData, state: &State, ui: &mut Ui) -> Vec<Shape> {
         let start = start as usize;
 
         let seq = &state.get_seq()[start..end];
-        let seq_text = seq_to_str(seq);
+        let seq_text = seq_to_str_lower(seq);
 
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(

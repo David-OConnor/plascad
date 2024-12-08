@@ -40,12 +40,11 @@ use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load, load_import, StateToSave, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use na_seq::{
-    amino_acids::{AaIdent, AminoAcid},
     insert_into_seq,
     ligation::LigationFragment,
     re_lib::load_re_library,
     restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
-    seq_to_str, Nucleotide, Seq,
+    seq_to_str_lower, AaIdent, AminoAcid, Nucleotide, Seq,
 };
 use primer::IonConcentrations;
 use protein::Protein;
@@ -846,7 +845,7 @@ impl State {
             &self.volatile[self.active].cr_orf_matches,
         );
 
-        self.ui.seq_input = seq_to_str(self.get_seq());
+        self.ui.seq_input = seq_to_str_lower(self.get_seq());
     }
 
     pub fn reset_selections(&mut self) {
@@ -883,7 +882,7 @@ impl State {
         self.sync_seq_related(None);
         self.sync_re_sites();
 
-        self.ui.seq_input = seq_to_str(self.get_seq());
+        self.ui.seq_input = seq_to_str_lower(self.get_seq());
 
         self.sync_portions();
         self.reset_selections();
@@ -895,7 +894,7 @@ impl State {
         if let Some(selection) = &self.ui.text_selection {
             if let Some(seq) = selection.index_seq(self.get_seq()) {
                 let mut ctx = ClipboardContext::new().unwrap();
-                ctx.set_contents(seq_to_str(seq)).unwrap();
+                ctx.set_contents(seq_to_str_lower(seq)).unwrap();
             }
             return;
         }
@@ -909,14 +908,15 @@ impl State {
                 let feature = &self.generic[self.active].features[i];
                 if let Some(seq) = feature.range.index_seq(self.get_seq()) {
                     let mut ctx = ClipboardContext::new().unwrap();
-                    ctx.set_contents(seq_to_str(seq)).unwrap();
+                    ctx.set_contents(seq_to_str_lower(seq)).unwrap();
                 }
             }
             Selection::Primer(i) => {
                 let primer = &self.generic[self.active].primers[i];
 
                 let mut ctx = ClipboardContext::new().unwrap();
-                ctx.set_contents(seq_to_str(&primer.sequence)).unwrap();
+                ctx.set_contents(seq_to_str_lower(&primer.sequence))
+                    .unwrap();
             }
             _ => (),
         }

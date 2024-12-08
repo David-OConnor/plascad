@@ -6,16 +6,13 @@
 use std::{io, time::Duration};
 
 use bincode::{Decode, Encode};
-use na_seq::{seq_to_str, Nucleotide};
+use na_seq::{seq_aa_to_str, seq_to_str_lower, Nucleotide};
 use serde::{Deserialize, Serialize};
 use serde_json::{self};
 use ureq::{self, Agent};
 use url::Url;
 
-use crate::{
-    protein::{aa_seq_to_str, Protein},
-    Selection, State,
-};
+use crate::{protein::Protein, Selection, State};
 
 const NCBI_BLAST_URL: &str = "https://blast.ncbi.nlm.nih.gov/Blast.cgi";
 
@@ -93,7 +90,7 @@ pub fn blast(state: &State) {
 /// GCCTGCGTGAGATTCTCGCATGCCAGAGATCCTATTTTTGGCAATCAAATCATTCCGGATACTGCGATTTTAAGTGTTGTTCCATTCCATCACGGTTTTGGAA
 /// TGTTTACTACACTCGGATATTTGATATGTGGATTTCGAGTCGTCTTAATGTATAGAT
 fn open_blast(seq: &[Nucleotide], seq_name: &str) {
-    let text_query = format!(">{seq_name} ({} bp)\n{}", seq.len(), seq_to_str(seq));
+    let text_query = format!(">{seq_name} ({} bp)\n{}", seq.len(), seq_to_str_lower(seq));
 
     let params = vec![
         ("PAGE_TYPE", "BlastSearch"),
@@ -211,7 +208,7 @@ pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, ReqError> {
             type_: "terminal".to_owned(),
             service: "sequence".to_owned(),
             parameters: PdbSearchParams {
-                value: aa_seq_to_str(&protein.aa_seq),
+                value: seq_aa_to_str(&protein.aa_seq),
                 sequence_type: "protein".to_owned(),
                 evalue_cutoff: 1,
                 identity_cutoff: 0.9,

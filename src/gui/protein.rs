@@ -6,7 +6,7 @@ use eframe::{
     emath::RectTransform,
     epaint::PathShape,
 };
-use na_seq::amino_acids::{AaIdent, AminoAcid};
+use na_seq::{AaIdent, AminoAcid};
 
 use crate::{
     external_websites::{load_pdb_data, load_pdb_structure, open_pdb, open_pdb_3d_view, PdbData},
@@ -37,11 +37,8 @@ const NUM_X_TICKS: usize = 12;
 fn make_aa_text(seq: &[AminoAcid], aa_ident_disp: AaIdent) -> String {
     let mut result = String::new();
     for aa in seq {
-        let aa_str = match aa_ident_disp {
-            AaIdent::ThreeLetters => &format!("{}  ", aa.ident_3_letter()),
-            AaIdent::OneLetter => &format!("{}  ", aa.ident_single_letter()),
-        };
-        result.push_str(aa_str);
+        let aa_str = format!("{}  ", aa.to_str(aa_ident_disp));
+        result.push_str(&aa_str);
     }
 
     result

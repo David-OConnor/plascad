@@ -9,7 +9,7 @@ use eframe::{
     emath::RectTransform,
     epaint::PathShape,
 };
-use na_seq::{seq_to_str, Nucleotide};
+use na_seq::{seq_to_str_lower, Nucleotide};
 
 use crate::{
     ab1::SeqRecordAb1,
@@ -101,7 +101,7 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, ui: &mut Ui) -> Vec<Shap
                 fonts,
                 to_screen * pos2(x_pos, nt_y),
                 Align2::CENTER_CENTER,
-                nt.as_str(),
+                &nt.to_str_lower(),
                 FontId::new(12., FontFamily::Monospace),
                 nt_color,
             )
@@ -173,7 +173,7 @@ pub fn ab1_page(data: &SeqRecordAb1, ui: &mut Ui) {
 
         if ui.button(RichText::new("🗐 Copy sequence")).clicked() {
             let mut ctx = ClipboardContext::new().unwrap();
-            ctx.set_contents(seq_to_str(&data.sequence)).unwrap();
+            ctx.set_contents(seq_to_str_lower(&data.sequence)).unwrap();
         }
     });
     ui.add_space(ROW_SPACING / 2.);

@@ -1,5 +1,5 @@
 use eframe::egui::{Color32, FontFamily, FontId, RichText, ScrollArea, TextEdit, Ui};
-use na_seq::{seq_aa_from_str, seq_aa_to_str, seq_from_str, seq_to_str};
+use na_seq::{seq_aa_from_str, seq_aa_to_str, seq_from_str, seq_to_str_lower};
 
 use crate::{
     alignment::{align_pairwise_aa, align_pairwise_nt, distance_aa, distance_nt},
@@ -56,7 +56,7 @@ fn input_area(state: &mut State, seq_b: bool, ui: &mut Ui) {
                 .clicked()
             {
                 *seq = active_seq.clone(); // Use the pre-fetched active sequence
-                *seq_input = seq_to_str(seq);
+                *seq_input = seq_to_str_lower(seq);
             }
         }
     });
@@ -66,7 +66,7 @@ fn input_area(state: &mut State, seq_b: bool, ui: &mut Ui) {
         match state.alignment.mode {
             AlignmentMode::Dna => {
                 *seq = seq_from_str(seq_input);
-                *seq_input = seq_to_str(seq);
+                *seq_input = seq_to_str_lower(seq);
                 // Todo: why?
                 // state.sync_seq_related(None);
             }
@@ -96,7 +96,7 @@ pub fn alignment_page(state: &mut State, ui: &mut Ui) {
         ui.add_space(ROW_SPACING);
         input_area(state, true, ui);
 
-        u.add_space(ROW_SPACING);
+        ui.add_space(ROW_SPACING);
 
         if ui
             .button(RichText::new("Align").color(COLOR_ACTION))

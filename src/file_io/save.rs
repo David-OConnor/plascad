@@ -17,7 +17,7 @@ use bincode::{
 };
 use bio::io::fasta;
 use eframe::egui::Ui;
-use na_seq::{deser_seq_bin, seq_to_letter_bytes, serialize_seq_bin, Nucleotide, Seq, SeqTopology};
+use na_seq::{deser_seq_bin, seq_to_u8_lower, serialize_seq_bin, Nucleotide, Seq, SeqTopology};
 
 use crate::{
     ab1::SeqRecordAb1,
@@ -250,7 +250,7 @@ pub fn export_fasta(seq: &[Nucleotide], name: &str, path: &Path) -> io::Result<(
     writer.write(
         name,
         Some("A DNA export from PlasCAD"),
-        seq_to_letter_bytes(seq).as_slice(),
+        seq_to_u8_lower(seq).as_slice(),
     )?;
 
     Ok(())
@@ -270,7 +270,7 @@ pub fn import_fasta(path: &Path) -> io::Result<(Seq, String, String)> {
 
     while let Some(Ok(record)) = records.next() {
         for r in record.seq() {
-            result.push(Nucleotide::from_u8_letter(*r)?);
+            result.push(Nucleotide::from_u8(*r)?);
             record.id().clone_into(&mut id); // Note that this overrides previous records, if applicable.
             record
                 .desc()

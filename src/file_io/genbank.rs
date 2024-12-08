@@ -16,7 +16,7 @@ use gb_io::{
     seq::{After, Before, Location},
     writer::SeqWriter,
 };
-use na_seq::{seq_complement, seq_to_letter_bytes, Nucleotide, SeqTopology};
+use na_seq::{seq_complement, seq_to_u8_lower, Nucleotide, SeqTopology};
 
 use crate::{
     file_io::{get_filename, GenericData},
@@ -42,7 +42,7 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
         let mut seq_ = Vec::new();
 
         for nt in &seq.seq {
-            match Nucleotide::from_u8_letter(*nt) {
+            match Nucleotide::from_u8(*nt) {
                 Ok(n) => seq_.push(n),
                 Err(_) => {
                     eprintln!("Unexpected char in GenBank sequence: {:?}", nt);
@@ -278,7 +278,7 @@ pub fn export_genbank(
 
     let mut gb_data = gb_io::seq::Seq::empty();
 
-    gb_data.seq = seq_to_letter_bytes(&data.seq);
+    gb_data.seq = seq_to_u8_lower(&data.seq);
 
     gb_data.topology = match data.topology {
         SeqTopology::Circular => gb_io::seq::Topology::Circular,

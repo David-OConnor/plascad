@@ -218,14 +218,3 @@ pub fn protein_weight(seq: &[AminoAcid]) -> f32 {
     }
     (result - WATER_WEIGHT * (seq.len() - 1) as f32) / 1_000.
 }
-
-/// Convert an amino acid sequence to string, using single-letter idents.
-pub fn aa_seq_to_str(seq: &[AminoAcid]) -> String {
-    let mut result = String::new();
-
-    for aa in seq {
-        result.push_str(&aa.ident_single_letter());
-    }
-
-    result
-}

@@ -3,7 +3,7 @@ use bio::alignment::{
     pairwise::Aligner,
     Alignment,
 };
-use na_seq::{amino_acids::AminoAcid, seq_aa_to_letter_bytes, seq_to_letter_bytes, Nucleotide};
+use na_seq::{seq_aa_to_u8_lower, seq_to_u8_lower, AminoAcid, Nucleotide};
 
 #[derive(Clone, Copy)]
 /// Use Hamming Distance if:
@@ -44,14 +44,14 @@ fn distance(alpha: &[u8], beta: &[u8]) -> u64 {
 }
 
 pub fn distance_nt(alpha: &[Nucleotide], beta: &[Nucleotide]) -> u64 {
-    let alpha_ = seq_to_letter_bytes(alpha);
-    let beta_ = seq_to_letter_bytes(beta);
+    let alpha_ = seq_to_u8_lower(alpha);
+    let beta_ = seq_to_u8_lower(beta);
     distance(&alpha_, &beta_)
 }
 
 pub fn distance_aa(alpha: &[AminoAcid], beta: &[AminoAcid]) -> u64 {
-    let alpha_ = seq_aa_to_letter_bytes(alpha);
-    let beta_ = seq_aa_to_letter_bytes(beta);
+    let alpha_ = seq_aa_to_u8_lower(alpha);
+    let beta_ = seq_aa_to_u8_lower(beta);
     distance(&alpha_, &beta_)
 }
 
@@ -71,16 +71,16 @@ fn align_pairwise(seq_0: &[u8], seq_1: &[u8]) -> (Alignment, String) {
 
 pub fn align_pairwise_nt(seq_0: &[Nucleotide], seq_1: &[Nucleotide]) -> (Alignment, String) {
     // todo: Lots of room to configure this.
-    let seq_0_ = seq_to_letter_bytes(seq_0);
-    let seq_1_ = seq_to_letter_bytes(seq_1);
+    let seq_0_ = seq_to_u8_lower(seq_0);
+    let seq_1_ = seq_to_u8_lower(seq_1);
 
     align_pairwise(&seq_0_, &seq_1_)
 }
 
 pub fn align_pairwise_aa(seq_0: &[AminoAcid], seq_1: &[AminoAcid]) -> (Alignment, String) {
     // todo: Lots of room to configure this.
-    let seq_0_ = seq_aa_to_letter_bytes(seq_0);
-    let seq_1_ = seq_aa_to_letter_bytes(seq_1);
+    let seq_0_ = seq_aa_to_u8_lower(seq_0);
+    let seq_1_ = seq_aa_to_u8_lower(seq_1);
 
     align_pairwise(&seq_0_, &seq_1_)
 }

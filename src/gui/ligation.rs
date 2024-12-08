@@ -12,7 +12,7 @@ use eframe::{
 use na_seq::{
     ligation,
     ligation::{digest, LigationFragment},
-    seq_to_str,
+    seq_to_str_lower,
 };
 
 use crate::{
@@ -117,8 +117,8 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
 
                 let (re_text_left_top, re_text_left_bottom, re_name_left) = match &frag.re_left {
                     Some(re) => (
-                        seq_to_str(&re.overhang_top_left(&[])),    // todo: Update this
-                        seq_to_str(&re.overhang_bottom_left(&[])), // todo: Update this
+                        seq_to_str_lower(&re.overhang_top_left(&[])), // todo: Update this
+                        seq_to_str_lower(&re.overhang_bottom_left(&[])), // todo: Update this
                         re.name.clone(),
                     ),
                     None => (String::new(), String::new(), String::new()),
@@ -127,8 +127,8 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                 let (re_text_right_top, re_text_right_bottom, re_name_right) = match &frag.re_right
                 {
                     Some(re) => (
-                        seq_to_str(&re.overhang_top_right(&[])), // todo: Update this
-                        seq_to_str(&re.overhang_bottom_right(&[])), // todo: Update this
+                        seq_to_str_lower(&re.overhang_top_right(&[])), // todo: Update this
+                        seq_to_str_lower(&re.overhang_bottom_right(&[])), // todo: Update this
                         re.name.clone(),
                     ),
                     None => (String::new(), String::new(), String::new()),

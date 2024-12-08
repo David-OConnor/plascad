@@ -4,7 +4,7 @@ use std::borrow::Cow;
 use eframe::egui::{
     Color32, ComboBox, Frame, Grid, RichText, ScrollArea, Stroke, TextEdit, Ui, Vec2,
 };
-use na_seq::{insert_into_seq, seq_from_str, seq_to_str, Nucleotide};
+use na_seq::{insert_into_seq, seq_from_str, seq_to_str_lower, Nucleotide};
 use strum::IntoEnumIterator;
 
 use crate::{
@@ -586,7 +586,8 @@ pub fn cloning_page(state: &mut State, ui: &mut Ui) {
         if resp_insert_editor.changed() {
             // Forces only valid NTs to be included in the string.
             state.ui.cloning_insert.seq_insert = seq_from_str(&state.ui.cloning_insert.seq_input);
-            state.ui.cloning_insert.seq_input = seq_to_str(&state.ui.cloning_insert.seq_insert);
+            state.ui.cloning_insert.seq_input =
+                seq_to_str_lower(&state.ui.cloning_insert.seq_insert);
 
             sync = true;
         }

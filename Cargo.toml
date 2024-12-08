@@ -68,8 +68,8 @@ ureq = { version = "^2.10.1", features = ["tls"], default-features = false }  # 
 strum = "^0.26.3"
 strum_macros = "^0.26.4"
 
-na_seq = { path = "../na_seq" }
-#na_seq = "^0.2.2"
+#na_seq = { path = "../na_seq" }
+na_seq = "^0.2.4"
 byteorder = "1.5.0"  # Currently used in the AB1 parser. Remove A/R
 
 [build-dependencies]

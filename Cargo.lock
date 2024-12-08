@@ -2150,7 +2150,7 @@ dependencies = [
 
 [[package]]
 name = "na_seq"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "bincode",
  "num_enum",

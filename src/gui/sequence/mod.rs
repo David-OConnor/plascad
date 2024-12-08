@@ -1,7 +1,7 @@
 //! This module contains GUI code related to the sequence view.
 
 use eframe::egui::{text::CursorRange, Color32, Frame, RichText, ScrollArea, TextEdit, Ui};
-use na_seq::{seq_complement, seq_from_str, seq_to_str};
+use na_seq::{seq_complement, seq_from_str, seq_to_str_lower};
 
 // todo: monospace font for all seqs.
 use crate::misc_types::{Feature, FeatureDirection, MIN_SEARCH_LEN};
@@ -39,7 +39,7 @@ fn seq_editor_raw(state: &mut State, ui: &mut Ui) {
         let response = ui.add(TextEdit::multiline(&mut state.ui.seq_input).desired_width(800.));
         if response.changed() {
             state.generic[state.active].seq = seq_from_str(&state.ui.seq_input);
-            state.ui.seq_input = seq_to_str(state.get_seq());
+            state.ui.seq_input = seq_to_str_lower(state.get_seq());
             state.sync_seq_related(None);
         }
     });
@@ -74,7 +74,7 @@ fn primer_text(i: usize, primers: &[Primer], seq_len: usize, ui: &mut Ui) {
     ui.label(&primer.name);
     ui.label(&primer.location_descrip());
     // todo: Rev color A/R
-    ui.label(RichText::new(seq_to_str(&primer.sequence)).color(PRIMER_FWD_COLOR));
+    ui.label(RichText::new(seq_to_str_lower(&primer.sequence)).color(PRIMER_FWD_COLOR));
 
     ui.label(&primer.description.clone().unwrap_or_default());
 }
@@ -217,7 +217,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
         if response.changed {
             state.ui.text_edit_active = true;
             state.search_seq = seq_from_str(&state.ui.search_input);
-            state.ui.search_input = seq_to_str(&state.search_seq); // Ensures only valid NTs are present.
+            state.ui.search_input = seq_to_str_lower(&state.search_seq); // Ensures only valid NTs are present.
 
             // todo: This still adds a single char, then blanks the cursor...
             state.ui.text_cursor_i = None; // Make sure we are not adding chars.

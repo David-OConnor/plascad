@@ -7,11 +7,10 @@
 //! todo: Allow users to enter custom backbones.
 
 use na_seq::{
-    amino_acids::{AminoAcid, CodingResult},
     insert_into_seq,
     ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
     restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
-    seq_to_str, Nucleotide, Seq,
+    seq_to_str_lower, AminoAcid, CodingResult, Nucleotide, Seq,
 };
 
 use crate::{
@@ -179,7 +178,7 @@ pub fn setup_insert_seqs(state: &mut State, features: Vec<Feature>, seq: Seq) {
         if let Some(seq_this_ft) = feature.range.index_seq(&state.ui.cloning_insert.seq_loaded) {
             state.ui.cloning_insert.feature_selected = best;
             state.ui.cloning_insert.seq_insert = seq_this_ft.to_owned();
-            state.ui.cloning_insert.seq_input = seq_to_str(seq_this_ft);
+            state.ui.cloning_insert.seq_input = seq_to_str_lower(seq_this_ft);
         }
     }
 }

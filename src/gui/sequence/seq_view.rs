@@ -276,8 +276,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                                         fonts,
                                         pos,
                                         Align2::LEFT_TOP,
-                                        // aa.ident_3_letter(),
-                                        aa.ident_single_letter_offset(),
+                                        aa.to_str_offset(),
                                         // Note: Monospace is important for sequences.
                                         FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
                                         COLOR_CODING_REGION,
@@ -391,7 +390,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                 fonts,
                 pos,
                 Align2::LEFT_TOP,
-                nt.as_str(),
+                &nt.to_str_lower(),
                 // Note: Monospace is important for sequences.
                 FontId::new(FONT_SIZE_SEQ, FontFamily::Monospace),
                 letter_color,

@@ -2,7 +2,7 @@
 
 use bincode::{Decode, Encode};
 use eframe::egui::Color32;
-use na_seq::{seq_complement, seq_from_str, seq_to_str, seq_weight, Nucleotide, Seq};
+use na_seq::{seq_complement, seq_from_str, seq_to_str_lower, seq_weight, Nucleotide, Seq};
 
 use crate::{
     gui::{primer_table::DEFAULT_TRIM_AMT, PRIMER_FWD_COLOR, PRIMER_REV_COLOR},
@@ -421,7 +421,7 @@ pub struct PrimerData {
 impl PrimerData {
     pub fn new(seq: &[Nucleotide]) -> Self {
         let mut result = Self::default();
-        result.sequence_input = seq_to_str(seq);
+        result.sequence_input = seq_to_str_lower(seq);
         result
     }
 }
@@ -522,7 +522,7 @@ pub fn make_cloning_primers(state: &mut State) {
     if let Some(mut primers) =
         design_slic_fc_primers(seq_vector, seq_insert, state.cloning.insert_loc)
     {
-        let sequence_input = seq_to_str(&primers.insert_fwd.sequence);
+        let sequence_input = seq_to_str_lower(&primers.insert_fwd.sequence);
 
         let insert_fwd_data = PrimerData {
             sequence_input,
@@ -535,7 +535,7 @@ pub fn make_cloning_primers(state: &mut State) {
             ..Default::default()
         };
 
-        let sequence_input = seq_to_str(&primers.insert_rev.sequence);
+        let sequence_input = seq_to_str_lower(&primers.insert_rev.sequence);
         let insert_rev_data = PrimerData {
             sequence_input,
             // Both ends are tunable, since this glues the insert to the vector
@@ -547,7 +547,7 @@ pub fn make_cloning_primers(state: &mut State) {
             ..Default::default()
         };
 
-        let sequence_input = seq_to_str(&primers.vector_fwd.sequence);
+        let sequence_input = seq_to_str_lower(&primers.vector_fwd.sequence);
         let vector_fwd_data = PrimerData {
             sequence_input,
             // 5' is non-tunable: This is the insert location.
@@ -555,7 +555,7 @@ pub fn make_cloning_primers(state: &mut State) {
             ..Default::default()
         };
 
-        let sequence_input = seq_to_str(&primers.vector_rev.sequence);
+        let sequence_input = seq_to_str_lower(&primers.vector_rev.sequence);
         let vector_rev_data = PrimerData {
             sequence_input,
             // tunable_5p: TuneSetting::Disabled,
@@ -613,7 +613,7 @@ pub fn make_cloning_primers(state: &mut State) {
 
 pub fn make_amplification_primers(state: &mut State) {
     if let Some(mut primers) = design_amplification_primers(state.get_seq()) {
-        let sequence_input = seq_to_str(&primers.fwd.sequence);
+        let sequence_input = seq_to_str_lower(&primers.fwd.sequence);
 
         let primer_fwd_data = PrimerData {
             sequence_input,
@@ -623,7 +623,7 @@ pub fn make_amplification_primers(state: &mut State) {
             ..Default::default()
         };
 
-        let sequence_input = seq_to_str(&primers.rev.sequence);
+        let sequence_input = seq_to_str_lower(&primers.rev.sequence);
         let primer_rev_data = PrimerData {
             sequence_input,
             tune_setting: TuneSetting::Only3(DEFAULT_TRIM_AMT),
