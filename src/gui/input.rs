@@ -245,6 +245,6 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
     });
 
     if reset_window_title {
-        set_window_title(&state.path_loaded[state.active], ui);
+        set_window_title(&state.tabs_open[state.active], ui);
     }
 }

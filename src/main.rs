@@ -55,7 +55,7 @@ use crate::{
     cloning::BackboneSelected,
     file_io::{
         save::{
-            save, StateUiToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
+            save, PrefsToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
             DEFAULT_PREFS_FILE,
         },
         GenericData,
@@ -546,15 +546,18 @@ struct State {
     /// The index corresponds to `active`.`
     generic: Vec<GenericData>,
     ab1_data: Vec<SeqRecordAb1>,
-    /// Used to determine how the save function works, among other things.
-    /// Index corresponds to `active`.
-    path_loaded: Vec<Option<Tab>>,
+    // Used to determine which file to save to, if applicable.
+    // file_active: Option<Tab>,
+    /// The index of this correspond to `active`.
+    tabs_open: Vec<Tab>,
     /// Index corresponds to `active`.
     portions: Vec<PortionsState>,
     /// Index corresponds to `active`.
     volatile: Vec<StateVolatile>,
-    /// Used for PCR. Index corresponds to `active`.
-    ion_concentrations: Vec<IonConcentrations>,
+    /// Used for PCR.
+    // todo: YOu may need to go back to per-tab ion concentrations.
+    // ion_concentrations: Vec<IonConcentrations>,
+    ion_concentrations: IonConcentrations,
     pcr: PcrParams,
     restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
     backbone_lib: Vec<Backbone>,
@@ -571,9 +574,10 @@ impl Default for State {
             active: Default::default(),
             generic: vec![Default::default()],
             ab1_data: Vec::new(),
-            path_loaded: vec![Default::default()],
+            tabs_open: Vec::new(),
             portions: vec![Default::default()],
-            ion_concentrations: vec![Default::default()],
+            // ion_concentrations: vec![Default::default()],
+            ion_concentrations: Default::default(),
             pcr: Default::default(),
             restriction_enzyme_lib: Default::default(),
             backbone_lib: Default::default(),
@@ -597,8 +601,8 @@ impl State {
     /// Add a default-settings tab, and open it.
     pub fn add_tab(&mut self) {
         self.generic.push(Default::default());
-        self.ion_concentrations.push(Default::default());
-        self.path_loaded.push(Default::default());
+        // self.ion_concentrations.push(Default::default());
+        self.tabs_open.push(Default::default());
         self.portions.push(Default::default());
         self.volatile.push(Default::default());
 
@@ -632,8 +636,8 @@ impl State {
         }
 
         self.generic.remove(i);
-        self.ion_concentrations.remove(i);
-        self.path_loaded.remove(i);
+        // self.ion_concentrations.remove(i);
+        self.tabs_open.remove(i);
         self.portions.remove(i);
         self.volatile.remove(i);
 
@@ -665,7 +669,7 @@ impl State {
     /// Reset data; we currently use this for making "new" data.
     pub fn reset(&mut self) {
         self.generic[self.active] = Default::default();
-        self.path_loaded[self.active] = Default::default();
+        self.tabs_open[self.active] = Default::default();
         self.portions[self.active] = Default::default();
         self.volatile[self.active] = Default::default();
         // todo: Ideally we reset the window title  here, but we've having trouble with variable
@@ -680,24 +684,29 @@ impl State {
     /// Load UI and related data not related to a specific sequence.
     /// This will also open all files specified in the saved UI state.
     pub fn load_prefs(&mut self, path: &Path) {
-        let ui_loaded: io::Result<StateUiToSave> = load(path);
+        let ui_loaded: io::Result<PrefsToSave> = load(path);
 
         if let Ok(ui) = ui_loaded {
-            let (ui, paths_loaded) = ui.to_state();
+            let (ui, tabs_open, ion_concentrations) = ui.to_state();
             self.ui = ui;
+            self.ion_concentrations = ion_concentrations;
 
-            for path in &paths_loaded {
-                if let Some(loaded) = load_import(&path.path) {
-                    self.load(&loaded);
+            for tab in &tabs_open {
+                if let Some(path) = &tab.path {
+                    if let Some(loaded) = load_import(path) {
+                        self.load(&loaded);
+                    }
                 }
             }
+
+            self.tabs_open = tabs_open;
         }
     }
 
     pub fn save_prefs(&self) {
         if let Err(e) = save(
             &PathBuf::from(DEFAULT_PREFS_FILE),
-            &StateUiToSave::from_state(&self.ui, &self.path_loaded),
+            &PrefsToSave::from_state(&self.ui, &self.tabs_open, &self.ion_concentrations),
         ) {
             eprintln!("Error saving prefs: {e}");
         }
@@ -764,7 +773,8 @@ impl State {
 
     pub fn sync_primer_metrics(&mut self) {
         for primer in &mut self.generic[self.active].primers {
-            primer.run_calcs(&self.ion_concentrations[self.active]);
+            // primer.run_calcs(&self.ion_concentration[self.active]);
+            primer.run_calcs(&self.ion_concentrations);
             //
             // primer.volatile[self.active].sequence_input = seq_to_str(&primer.sequence);
             //
@@ -860,7 +870,7 @@ impl State {
         if !gen.seq.is_empty()
             || !gen.features.is_empty()
             || !gen.primers.is_empty()
-            || self.path_loaded[self.active].is_some()
+            || self.tabs_open[self.active].path.is_some()
             || !self.portions[self.active].solutions.is_empty()
         {
             self.add_tab();
@@ -869,8 +879,8 @@ impl State {
         }
 
         self.generic[self.active].clone_from(&loaded.generic);
-        self.path_loaded[self.active].clone_from(&loaded.path_loaded);
-        self.ion_concentrations[self.active].clone_from(&loaded.ion_concentrations);
+        // self.path_loaded[self.active].clone_from(&loaded.path_loaded);
+        // self.ion_concentrations[self.active].clone_from(&loaded.ion_concentrations);
         self.portions[self.active].clone_from(&loaded.portions);
 
         self.volatile[self.active] = Default::default();
@@ -952,8 +962,8 @@ fn main() {
     };
 
     let mut prev_paths_loaded = false;
-    for path in &state.path_loaded {
-        if path.is_some() {
+    for tab in &state.tabs_open {
+        if tab.path.is_some() {
             prev_paths_loaded = true;
         }
     }

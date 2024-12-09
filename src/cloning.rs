@@ -195,10 +195,9 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
     };
 
     state.generic.push(generic);
-    state
-        .ion_concentrations
-        .push(state.ion_concentrations[state.active].clone());
-    state.path_loaded.push(None);
+    // state
+    //     .ion_concentrations = state.ion_concentrations[state.active].clone());
+    // state.file_active = None;
     state.portions.push(Default::default());
     state.volatile.push(Default::default());
 

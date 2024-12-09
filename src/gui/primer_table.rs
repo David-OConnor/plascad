@@ -135,7 +135,8 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                             {
                                 primer.volatile.tune_setting.toggle_5p();
                                 // if primer.volatile.tunable_5p == TuneSetting::Disabled {
-                                primer.run_calcs(&state.ion_concentrations[state.active]); // To re-sync the sequence without parts removed.
+                                // primer.run_calcs(&state.ion_concentrations[state.active]); // To re-sync the sequence without parts removed.
+                                primer.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
                                 // }
                                 run_match_sync = Some(i);
                             }
@@ -148,7 +149,8 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                                 primer.sequence = seq_from_str(&primer.volatile.sequence_input);
                                 primer.volatile.sequence_input =
                                     seq_to_str_lower(&primer.sequence);
-                                primer.run_calcs(&state.ion_concentrations[state.active]);
+                                // primer.run_calcs(&state.ion_concentrations[state.active]);
+                                primer.run_calcs(&state.ion_concentrations);
                                 run_match_sync = Some(i);
                             }
 
@@ -162,7 +164,8 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                             {
                                 primer.volatile.tune_setting.toggle_3p();
                                 // if primer.volatile.tunable_3p == TuneSetting::Disabled {
-                                    primer.run_calcs(&state.ion_concentrations[state.active]); // To re-sync the sequence without parts removed.
+                                //     primer.run_calcs(&state.ion_concentrations[state.active]); // To re-sync the sequence without parts removed.
+                                    primer.run_calcs(&state.ion_concentrations); // To re-sync the sequence without parts removed.
                                 // }
                                 run_match_sync = Some(i);
                             }
@@ -174,7 +177,8 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                                     if ui
                                         .button(RichText::new("Tune")).on_hover_text("Tune selected ends for this primer").clicked()
                                     {
-                                        primer.tune(&state.ion_concentrations[state.active]);
+                                        // primer.tune(&state.ion_concentrations[state.active]);
+                                        primer.tune(&state.ion_concentrations);
                                         run_match_sync = Some(i);
                                     }
                                 }
@@ -182,7 +186,8 @@ fn primer_table(state: &mut State, ui: &mut Ui) {
                             }
                         });
 
-                        let updated_seq = primer_tune_display(primer, &state.ion_concentrations[state.active], ui);
+                        // let updated_seq = primer_tune_display(primer, &state.ion_concentrations[state.active], ui);
+                        let updated_seq = primer_tune_display(primer, &state.ion_concentrations, ui);
                         if updated_seq {
                             run_match_sync = Some(i);
                         }
@@ -316,7 +321,8 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
             let mut sync_primer_matches = false; // Prevents a double-borrow error.
             if ui.button("Tune all").clicked() {
                 for primer in &mut state.generic[state.active].primers {
-                    primer.tune(&state.ion_concentrations[state.active]);
+                    // primer.tune(&state.ion_concentrations[state.active]);
+                    primer.tune(&state.ion_concentrations);
                     sync_primer_matches = true;
                 }
             }
@@ -331,13 +337,15 @@ pub fn primer_details(state: &mut State, ui: &mut Ui) {
 
             ui.heading("Ions: (mMol)");
 
-            if ion_edit(&mut state.ion_concentrations[state.active].monovalent, "Na+ and K+", ui)
-                || ion_edit(&mut state.ion_concentrations[state.active].divalent, "mg2+", ui)
-                || ion_edit(&mut state.ion_concentrations[state.active].dntp, "dNTP", ui)
-                || ion_edit(&mut state.ion_concentrations[state.active].primer, "primer (nM)", ui)
+            // if ion_edit(&mut state.ion_concentrations.monovalent, "Na+ and K+", ui)
+            if ion_edit(&mut state.ion_concentrations.monovalent, "Na+ and K+", ui)
+                || ion_edit(&mut state.ion_concentrations.divalent, "mg2+", ui)
+                || ion_edit(&mut state.ion_concentrations.dntp, "dNTP", ui)
+                || ion_edit(&mut state.ion_concentrations.primer, "primer (nM)", ui)
             {
                 for primer in &mut state.generic[state.active].primers {
-                    primer.run_calcs(&state.ion_concentrations[state.active]); // Note: We only need to run the TM calc.
+                    // primer.run_calcs(&state.ion_concentrations[state.active]); // Note: We only need to run the TM calc.
+                    primer.run_calcs(&state.ion_concentrations); // Note: We only need to run the TM calc.
                 }
             }
         });

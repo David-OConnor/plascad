@@ -17,7 +17,7 @@ use crate::{
     gui::{
         find_features,
         lin_maps::seq_lin_disp,
-        navigation::get_tabs,
+        navigation::get_tab_names,
         select_color_text,
         theme::{COLOR_ACTION, COLOR_INFO},
         COL_SPACING, ROW_SPACING,
@@ -147,7 +147,7 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
             .collect();
 
         // Add buttons for each opened tab
-        for (name, i) in get_tabs(&state.path_loaded, plasmid_names, true) {
+        for (name, i) in get_tab_names(&state.tabs_open, plasmid_names, true) {
             if ui
                 .button(name)
                 .on_hover_text("Select an insert from this sequence")

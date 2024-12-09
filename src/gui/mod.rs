@@ -264,9 +264,9 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
 }
 
 /// Update the tilebar to reflect the current path loaded or saved.
-pub fn set_window_title(path_loaded: &Option<Tab>, ui: &mut Ui) {
-    let title = match path_loaded {
-        Some(tab) => get_window_title(&tab.path),
+pub fn set_window_title(tab: &Tab, ui: &mut Ui) {
+    let title = match tab.path {
+        Some(path) => get_window_title(&path),
         None => WINDOW_TITLE.to_owned(),
     };
 
@@ -289,10 +289,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
         navigation::tab_selector(state, ui);
         ui.add_space(ROW_SPACING / 2.);
 
-        let ab1_mode = match &state.path_loaded[state.active] {
-            Some(tab) => tab.ab1,
-            None => false,
-        };
+        let ab1_mode = state.tabs_open[state.active].ab1;
 
         if ab1_mode {
             // Ensure that if an AB1 file is selected, we show the AB1 page and no tabs.

@@ -19,7 +19,7 @@ use crate::{
     gui::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH},
         lin_maps::seq_lin_disp,
-        navigation::{get_tabs, Tab},
+        navigation::{get_tab_names, Tab},
         select_color_text,
         theme::COLOR_ACTION,
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
@@ -234,7 +234,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
 
 fn tab_selection(
     tabs: &mut Vec<usize>,
-    path_loaded: &[Option<Tab>],
+    path_loaded: &[Tab],
     plasmid_names: &[&str],
     ui: &mut Ui,
 ) -> bool {
@@ -244,7 +244,7 @@ fn tab_selection(
         ui.heading("Opened files to digest");
         ui.add_space(COL_SPACING);
 
-        for (name, i) in get_tabs(path_loaded, plasmid_names, true) {
+        for (name, i) in get_tab_names(path_loaded, plasmid_names, true) {
             // todo: DRY with page selectors and Cloning.
             let selected = tabs.contains(&i);
 
@@ -350,7 +350,7 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
 
         let plasmid_names: &Vec<_> = &state.generic.iter().map(|v| v.metadata.plasmid_name.as_str()).collect();
 
-        let clear_res = tab_selection(&mut state.ui.re.tabs_selected, &state.path_loaded, plasmid_names, ui);
+        let clear_res = tab_selection(&mut state.ui.re.tabs_selected, &state.tabs_open, plasmid_names, ui);
         if clear_res {
             state.ui.re.res_selected = Vec::new();
         }
@@ -428,7 +428,7 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
 
                     for active in &state.ui.re.tabs_selected {
                         let source_name = name_from_path(
-                            &state.path_loaded[*active],
+                            &state.tabs_open[*active].path,
                             &state.generic[*active].metadata.plasmid_name,
                             true,
                         );

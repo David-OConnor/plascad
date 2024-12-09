@@ -25,9 +25,9 @@ pub enum PacketType {
     Features = 1,
     Primers = 2,
     Metadata = 3,
-    IonConcentrations = 6,
+    // IonConcentrations = 6,
     Portions = 7,
-    PathLoaded = 10,
+    // PathLoaded = 10,
     Topology = 11,
 }
 
@@ -120,20 +120,20 @@ impl StateToSave {
             payload: bincode::encode_to_vec(&self.generic.topology, cfg).unwrap(),
         };
 
-        let ion_concentrations_packet = Packet {
-            type_: PacketType::IonConcentrations,
-            payload: bincode::encode_to_vec(&self.ion_concentrations, cfg).unwrap(),
-        };
+        // let ion_concentrations_packet = Packet {
+        //     type_: PacketType::IonConcentrations,
+        //     payload: bincode::encode_to_vec(&self.ion_concentrations, cfg).unwrap(),
+        // };
 
         let portions_packet = Packet {
             type_: PacketType::Portions,
             payload: bincode::encode_to_vec(&self.portions, cfg).unwrap(),
         };
 
-        let path_loaded_packet = Packet {
-            type_: PacketType::PathLoaded,
-            payload: bincode::encode_to_vec(&self.path_loaded, cfg).unwrap(),
-        };
+        // let path_loaded_packet = Packet {
+        //     type_: PacketType::PathLoaded,
+        //     payload: bincode::encode_to_vec(&self.path_loaded, cfg).unwrap(),
+        // };
 
         result.extend(&seq_packet.to_bytes());
         result.extend(&features_packet.to_bytes());
@@ -141,9 +141,9 @@ impl StateToSave {
         result.extend(&metadata_packet.to_bytes());
         result.extend(&topology_packet.to_bytes());
 
-        result.extend(&ion_concentrations_packet.to_bytes());
+        // result.extend(&ion_concentrations_packet.to_bytes());
         result.extend(&portions_packet.to_bytes());
-        result.extend(&path_loaded_packet.to_bytes());
+        // result.extend(&path_loaded_packet.to_bytes());
 
         result
     }
@@ -193,20 +193,20 @@ impl StateToSave {
                     Ok(v) => result.generic.topology = v.0,
                     Err(e) => eprintln!("Error decoding topology packet: {e}"),
                 },
-                PacketType::IonConcentrations => {
-                    match bincode::decode_from_slice(&packet.payload, cfg) {
-                        Ok(v) => result.ion_concentrations = v.0,
-                        Err(e) => eprintln!("Error decoding ion concentrations packet: {e}"),
-                    }
-                }
+                // PacketType::IonConcentrations => {
+                //     match bincode::decode_from_slice(&packet.payload, cfg) {
+                //         Ok(v) => result.ion_concentrations = v.0,
+                //         Err(e) => eprintln!("Error decoding ion concentrations packet: {e}"),
+                //     }
+                // }
                 PacketType::Portions => match bincode::decode_from_slice(&packet.payload, cfg) {
                     Ok(v) => result.portions = v.0,
                     Err(e) => eprintln!("Error decoding portions packet: {e}"),
                 },
-                PacketType::PathLoaded => match bincode::decode_from_slice(&packet.payload, cfg) {
-                    Ok(v) => result.path_loaded = v.0,
-                    Err(e) => eprintln!("Error decoding Seq packet: {e}"),
-                },
+                // PacketType::PathLoaded => match bincode::decode_from_slice(&packet.payload, cfg) {
+                //     Ok(v) => result.path_loaded = v.0,
+                //     Err(e) => eprintln!("Error decoding Seq packet: {e}"),
+                // },
             }
         }
 

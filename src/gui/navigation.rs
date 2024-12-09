@@ -17,9 +17,9 @@ pub const TAB_BUTTON_COLOR: Color32 = Color32::from_rgb(40, 80, 110);
 pub const DEFAULT_TAB_NAME: &str = "New plasmid";
 
 // todo: Alt name: Path loaded
-#[derive(Encode, Decode, Clone)]
+#[derive(Encode, Decode, Clone, Default)]
 pub struct Tab {
-    pub path: PathBuf,
+    pub path: Option<PathBuf>,
     pub ab1: bool, // todo: Enum if you add a third category.
 }
 
@@ -28,15 +28,15 @@ pub struct Tab {
 /// plasmid name, then a default. See if you want to default to plasmid name.
 ///
 /// Returns the name, and the tab index.
-pub fn get_tabs(
-    tabs: &[Option<Tab>],
+pub fn get_tab_names(
+    tabs: &[Tab],
     plasmid_names: &[&str],
     abbrev_name: bool,
 ) -> Vec<(String, usize)> {
     let mut result = Vec::new();
 
     for (i, p) in tabs.iter().enumerate() {
-        let name = name_from_path(p, plasmid_names[i], abbrev_name);
+        let name = name_from_path(&p.path, plasmid_names[i], abbrev_name);
         result.push((name, i));
     }
 
@@ -114,7 +114,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
             .map(|v| v.metadata.plasmid_name.as_str())
             .collect();
 
-        for (name, i) in get_tabs(&state.path_loaded, plasmid_names, false) {
+        for (name, i) in get_tab_names(&state.tabs_open, plasmid_names, false) {
             // todo: DRY with page selectors.
 
             let button = ui.button(
@@ -123,7 +123,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
 
             if button.clicked() {
                 state.active = i;
-                set_window_title(&state.path_loaded[i], ui);
+                set_window_title(&state.tabs_open[i], ui);
 
                 // todo: Apt state sync fn for this?
                 state.ui.seq_input = seq_to_str_lower(state.get_seq()); // todo: Move seq_input to an indexed vector?

@@ -2151,6 +2151,8 @@ dependencies = [
 [[package]]
 name = "na_seq"
 version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a7639dcdcb6eb289a543edf50ef805da440e33b32ec01165f03427637106587"
 dependencies = [
  "bincode",
  "num_enum",

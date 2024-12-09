@@ -45,50 +45,50 @@ pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
 pub const DEFAULT_GENBANK_FILE: &str = "export.gbk";
 pub const DEFAULT_DNA_FILE: &str = "export.dna";
 
-/// This is similar to `State`, but excludes the UI, and other things we don't wish to save.
+/// Sequence-related data to save in our own file format.
 #[derive(Default)]
 pub struct StateToSave {
     pub generic: GenericData,
-    pub path_loaded: Option<Tab>,
-    pub ion_concentrations: IonConcentrations,
+    // pub path_loaded: Option<Tab>,
+    // pub ion_concentrations: IonConcentrations,
     pub portions: PortionsState,
     pub ab1_data: Vec<SeqRecordAb1>,
 }
 
-impl Encode for StateToSave {
-    fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
-        // todo: We currently use default encoding for all this, but may change later.
-        self.generic.encode(encoder)?;
-        self.path_loaded.encode(encoder)?;
-        self.ion_concentrations.encode(encoder)?;
-        self.portions.encode(encoder)?;
+// impl Encode for StateToSave {
+//     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
+//         // todo: We currently use default encoding for all this, but may change later.
+//         self.generic.encode(encoder)?;
+//         self.path_loaded.encode(encoder)?;
+//         self.ion_concentrations.encode(encoder)?;
+//         self.portions.encode(encoder)?;
+//
+//         Ok(())
+//     }
+// }
 
-        Ok(())
-    }
-}
-
-impl Decode for StateToSave {
-    fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
-        // todo: We currently use default encoding for all this, but may change later.
-        let generic = GenericData::decode(decoder)?;
-        // let insert_loc = usize::decode(decoder)?;
-        let path_loaded = Option::<Tab>::decode(decoder)?;
-        let ion_concentrations = IonConcentrations::decode(decoder)?;
-        // let reading_frame = ReadingFrame::decode(decoder)?;
-        let portions = PortionsState::decode(decoder)?;
-        let ab1_data = Vec::<SeqRecordAb1>::decode(decoder)?;
-
-        Ok(Self {
-            generic,
-            // insert_loc,
-            path_loaded,
-            ion_concentrations,
-            // reading_frame,
-            portions,
-            ab1_data,
-        })
-    }
-}
+// impl Decode for StateToSave {
+//     fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
+//         // todo: We currently use default encoding for all this, but may change later.
+//         let generic = GenericData::decode(decoder)?;
+//         // let insert_loc = usize::decode(decoder)?;
+//         let path_loaded = Option::<Tab>::decode(decoder)?;
+//         let ion_concentrations = IonConcentrations::decode(decoder)?;
+//         // let reading_frame = ReadingFrame::decode(decoder)?;
+//         let portions = PortionsState::decode(decoder)?;
+//         let ab1_data = Vec::<SeqRecordAb1>::decode(decoder)?;
+//
+//         Ok(Self {
+//             generic,
+//             // insert_loc,
+//             path_loaded,
+//             ion_concentrations,
+//             // reading_frame,
+//             portions,
+//             ab1_data,
+//         })
+//     }
+// }
 
 impl Encode for GenericData {
     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
@@ -134,8 +134,8 @@ impl StateToSave {
         Self {
             generic: state.generic[active].clone(),
             // insert_loc: state.cloning_insert_loc, // todo: Not fully handled.
-            ion_concentrations: state.ion_concentrations[active].clone(),
-            path_loaded: state.path_loaded[active].clone(),
+            // ion_concentrations: state.ion_concentrations[active].clone(),
+            // path_loaded: state.path_loaded[active].clone(),
             portions: state.portions[state.active].clone(),
             ab1_data: state.ab1_data.clone(),
         }
@@ -161,7 +161,8 @@ impl StateToSave {
 }
 
 #[derive(Encode, Decode)]
-pub struct StateUiToSave {
+/// Represents state to save automatically; not related to sequence data.
+pub struct PrefsToSave {
     page: Page,
     page_seq: PageSeq,
     page_seq_top: PageSeqTop,
@@ -169,16 +170,21 @@ pub struct StateUiToSave {
     selected_item: Selection,
     seq_visibility: SeqVisibility,
     hide_map_feature_editor: bool,
-    last_files_opened: Vec<Tab>,
+    tabs_open: Vec<Tab>,
+    ion_concentrations: IonConcentrations,
 }
 
-impl StateUiToSave {
-    pub fn from_state(state: &StateUi, paths_loaded: &[Option<Tab>]) -> Self {
+impl PrefsToSave {
+    pub fn from_state(
+        state: &StateUi,
+        tabs_open_: &[Tab],
+        ion_concentrations: &IonConcentrations,
+    ) -> Self {
         // Remove the empty paths.
-        let mut last_files_opened = Vec::new();
-        for p in paths_loaded {
-            if let Some(path) = p {
-                last_files_opened.push(path.to_owned());
+        let mut tabs_open = Vec::new();
+        for t in tabs_open_ {
+            if t.path.is_some() {
+                tabs_open.push(t.clone());
             }
         }
 
@@ -190,12 +196,13 @@ impl StateUiToSave {
             selected_item: state.selected_item,
             seq_visibility: state.seq_visibility.clone(),
             hide_map_feature_editor: state.hide_map_feature_editor,
-            last_files_opened,
+            tabs_open,
+            ion_concentrations: ion_concentrations.clone(),
         }
     }
 
     /// Used to load to state. The result is data from this struct, augmented with default values.
-    pub fn to_state(&self) -> (StateUi, Vec<Tab>) {
+    pub fn to_state(&self) -> (StateUi, Vec<Tab>, IonConcentrations) {
         (
             StateUi {
                 page: self.page,
@@ -208,7 +215,8 @@ impl StateUiToSave {
                 // last_file_opened: self.last_file_opened.clone(),
                 ..Default::default()
             },
-            self.last_files_opened.clone(),
+            self.tabs_open.clone(),
+            self.ion_concentrations.clone(),
         )
     }
 }
@@ -307,11 +315,16 @@ pub fn save_new_product(name: &str, state: &mut State, ui: &mut Ui) {
     if let Some(path) = state.ui.file_dialogs.save.take_selected() {
         match StateToSave::from_state(state, state.active).save_to_file(&path) {
             Ok(_) => {
-                state.path_loaded[state.active] = Some(Tab {
-                    path: path.to_owned(),
-                    ab1: false,
-                });
-                set_window_title(&state.path_loaded[state.active], ui);
+                // state.file_active = Some(Tab {
+                //     path: path.to_owned(),
+                //     ab1: false,
+                // });
+
+                set_window_title(&state.tabs_open[state.active], ui);
+
+                // if let Some(path) = state.tabs_open[state.active].path {
+                //
+                // }
             }
             Err(e) => eprintln!(
                 "Error saving cloning product in the PlasCAD format: {:?}",
@@ -333,11 +346,11 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
                     Ok(s) => {
                         // s.to_state()
                         result.generic = s.generic;
-                        result.ion_concentrations = s.ion_concentrations;
-                        result.path_loaded = Some(Tab {
-                            path: path.to_owned(),
-                            ab1: false,
-                        });
+                        // result.ion_concentrations = s.ion_concentrations;
+                        // result.path_loaded = Some(Tab {
+                        //     path: path.to_owned(),
+                        //     ab1: false,
+                        // });
                         result.portions = s.portions;
 
                         return Some(result);
@@ -373,20 +386,20 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
             "gb" | "gbk" => {
                 if let Ok(data) = import_genbank(path) {
                     result.generic = data;
-                    result.path_loaded = Some(Tab {
-                        path: path.to_owned(),
-                        ab1: false,
-                    });
+                    // result.path_loaded = Some(Tab {
+                    //     path: path.to_owned(),
+                    //     ab1: false,
+                    // });
                     return Some(result);
                 }
             }
             "ab1" => {
                 if let Ok(data) = import_ab1(path) {
                     result.ab1_data = data;
-                    result.path_loaded = Some(Tab {
-                        path: path.to_owned(),
-                        ab1: true,
-                    });
+                    // result.path_loaded = Some(Tab {
+                    //     path: path.to_owned(),
+                    //     ab1: true,
+                    // });
                     return Some(result);
                 }
             }
@@ -403,14 +416,14 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
 
 /// Save the current file ("save" vice "save as") if there is one; if not, quicksave to an anonymous file.
 pub fn save_current_file(state: &State) {
-    match &state.path_loaded[state.active] {
-        Some(tab) => {
-            if let Some(extension) = tab.path.extension().and_then(|ext| ext.to_str()) {
+    match &state.tabs_open[state.active].path {
+        Some(path) => {
+            if let Some(extension) = path.extension().and_then(|ext| ext.to_str()) {
                 match extension.to_lowercase().as_ref() {
                     "pcad" => {
                         // if let Err(e) = save(path, &StateToSave::from_state(state, state.active)) {
                         if let Err(e) =
-                            StateToSave::from_state(state, state.active).save_to_file(&tab.path)
+                            StateToSave::from_state(state, state.active).save_to_file(&path)
                         {
                             eprintln!("Error saving in PlasCAD format: {}", e);
                         };
@@ -420,13 +433,13 @@ pub fn save_current_file(state: &State) {
                         if let Err(e) = export_fasta(
                             state.get_seq(),
                             &state.generic[state.active].metadata.plasmid_name,
-                            &tab.path,
+                            &path,
                         ) {
                             eprintln!("Error exporting to FASTA: {:?}", e);
                         };
                     }
                     "dna" => {
-                        if let Err(e) = export_snapgene(&state.generic[state.active], &tab.path) {
+                        if let Err(e) = export_snapgene(&state.generic[state.active], path) {
                             eprintln!("Error exporting to SnapGene: {:?}", e);
                         };
                     }
@@ -439,7 +452,7 @@ pub fn save_current_file(state: &State) {
                         }
 
                         if let Err(e) =
-                            export_genbank(&state.generic[state.active], &primer_matches, &tab.path)
+                            export_genbank(&state.generic[state.active], &primer_matches, path)
                         {
                             eprintln!("Error exporting to GenBank: {:?}", e);
                         };
