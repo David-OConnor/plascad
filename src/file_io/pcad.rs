@@ -29,6 +29,7 @@ pub enum PacketType {
     Portions = 7,
     // PathLoaded = 10,
     Topology = 11,
+    Ab1 = 12,
 }
 
 /// Byte 0: Standard packet start. Bytes 1-4: u32 of payload len. Bytes 5[..]: Payload.
@@ -135,11 +136,17 @@ impl StateToSave {
         //     payload: bincode::encode_to_vec(&self.path_loaded, cfg).unwrap(),
         // };
 
+        let ab1_packet = Packet {
+            type_: PacketType::Ab1,
+            payload: bincode::encode_to_vec(&self.ab1_data, cfg).unwrap(),
+        };
+
         result.extend(&seq_packet.to_bytes());
         result.extend(&features_packet.to_bytes());
         result.extend(&primers_packet.to_bytes());
         result.extend(&metadata_packet.to_bytes());
         result.extend(&topology_packet.to_bytes());
+        result.extend(&ab1_packet.to_bytes());
 
         // result.extend(&ion_concentrations_packet.to_bytes());
         result.extend(&portions_packet.to_bytes());
@@ -203,10 +210,15 @@ impl StateToSave {
                     Ok(v) => result.portions = v.0,
                     Err(e) => eprintln!("Error decoding portions packet: {e}"),
                 },
+                PacketType::Ab1 => match bincode::decode_from_slice(&packet.payload, cfg) {
+                    Ok(v) => result.ab1_data = v.0,
+                    Err(e) => eprintln!("Error decoding AB1 packet: {e}"),
+                },
                 // PacketType::PathLoaded => match bincode::decode_from_slice(&packet.payload, cfg) {
                 //     Ok(v) => result.path_loaded = v.0,
                 //     Err(e) => eprintln!("Error decoding Seq packet: {e}"),
                 // },
+
             }
         }
 

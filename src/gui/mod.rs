@@ -265,7 +265,7 @@ pub fn select_feature(state: &mut State, from_screen: &RectTransform) {
 
 /// Update the tilebar to reflect the current path loaded or saved.
 pub fn set_window_title(tab: &Tab, ui: &mut Ui) {
-    let title = match tab.path {
+    let title = match &tab.path {
         Some(path) => get_window_title(&path),
         None => WINDOW_TITLE.to_owned(),
     };

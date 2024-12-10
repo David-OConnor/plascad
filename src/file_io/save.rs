@@ -45,50 +45,17 @@ pub const DEFAULT_FASTA_FILE: &str = "export.fasta";
 pub const DEFAULT_GENBANK_FILE: &str = "export.gbk";
 pub const DEFAULT_DNA_FILE: &str = "export.dna";
 
-/// Sequence-related data to save in our own file format.
+/// Sequence-related data to save in our own file format, GBK, or Snapgene.
 #[derive(Default)]
 pub struct StateToSave {
     pub generic: GenericData,
     // pub path_loaded: Option<Tab>,
     // pub ion_concentrations: IonConcentrations,
     pub portions: PortionsState,
-    pub ab1_data: Vec<SeqRecordAb1>,
+    // pub ab1_data: Vec<SeqRecordAb1>,
+    pub ab1_data: SeqRecordAb1,
+    pub path_loaded: Option<PathBuf>,
 }
-
-// impl Encode for StateToSave {
-//     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
-//         // todo: We currently use default encoding for all this, but may change later.
-//         self.generic.encode(encoder)?;
-//         self.path_loaded.encode(encoder)?;
-//         self.ion_concentrations.encode(encoder)?;
-//         self.portions.encode(encoder)?;
-//
-//         Ok(())
-//     }
-// }
-
-// impl Decode for StateToSave {
-//     fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
-//         // todo: We currently use default encoding for all this, but may change later.
-//         let generic = GenericData::decode(decoder)?;
-//         // let insert_loc = usize::decode(decoder)?;
-//         let path_loaded = Option::<Tab>::decode(decoder)?;
-//         let ion_concentrations = IonConcentrations::decode(decoder)?;
-//         // let reading_frame = ReadingFrame::decode(decoder)?;
-//         let portions = PortionsState::decode(decoder)?;
-//         let ab1_data = Vec::<SeqRecordAb1>::decode(decoder)?;
-//
-//         Ok(Self {
-//             generic,
-//             // insert_loc,
-//             path_loaded,
-//             ion_concentrations,
-//             // reading_frame,
-//             portions,
-//             ab1_data,
-//         })
-//     }
-// }
 
 impl Encode for GenericData {
     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
@@ -137,7 +104,9 @@ impl StateToSave {
             // ion_concentrations: state.ion_concentrations[active].clone(),
             // path_loaded: state.path_loaded[active].clone(),
             portions: state.portions[state.active].clone(),
-            ab1_data: state.ab1_data.clone(),
+            // ab1_data: state.ab1_data.clone(),
+            ab1_data: state.ab1_data[state.active].clone(),
+            path_loaded: None, // todo: Is this correct?
         }
     }
 
@@ -344,8 +313,8 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
                 let state_loaded = StateToSave::load_from_file(path);
                 match state_loaded {
                     Ok(s) => {
-                        // s.to_state()
                         result.generic = s.generic;
+                        result.path_loaded = Some(path.to_owned());
                         // result.ion_concentrations = s.ion_concentrations;
                         // result.path_loaded = Some(Tab {
                         //     path: path.to_owned(),
@@ -390,16 +359,20 @@ pub fn load_import(path: &Path) -> Option<StateToSave> {
                     //     path: path.to_owned(),
                     //     ab1: false,
                     // });
+                    result.path_loaded = Some(path.to_owned());
                     return Some(result);
                 }
             }
             "ab1" => {
                 if let Ok(data) = import_ab1(path) {
-                    result.ab1_data = data;
+                    if data.len() >= 1 {
+                        result.ab1_data = data[0].clone(); // todo: Note that this assumes len 1 of results.
+                    }
                     // result.path_loaded = Some(Tab {
                     //     path: path.to_owned(),
                     //     ab1: true,
                     // });
+                    result.path_loaded = Some(path.to_owned());
                     return Some(result);
                 }
             }

@@ -574,7 +574,7 @@ impl Default for State {
             active: Default::default(),
             generic: vec![Default::default()],
             ab1_data: Vec::new(),
-            tabs_open: Vec::new(),
+            tabs_open: vec![Default::default()],
             portions: vec![Default::default()],
             // ion_concentrations: vec![Default::default()],
             ion_concentrations: Default::default(),
@@ -870,7 +870,6 @@ impl State {
         if !gen.seq.is_empty()
             || !gen.features.is_empty()
             || !gen.primers.is_empty()
-            || self.tabs_open[self.active].path.is_some()
             || !self.portions[self.active].solutions.is_empty()
         {
             self.add_tab();
@@ -879,13 +878,13 @@ impl State {
         }
 
         self.generic[self.active].clone_from(&loaded.generic);
-        // self.path_loaded[self.active].clone_from(&loaded.path_loaded);
         // self.ion_concentrations[self.active].clone_from(&loaded.ion_concentrations);
         self.portions[self.active].clone_from(&loaded.portions);
+        self.ab1_data[self.active].clone_from(&loaded.ab1_data);
+        self.tabs_open[self.active].path = loaded.path_loaded.clone();
+
 
         self.volatile[self.active] = Default::default();
-
-        self.ab1_data.extend(loaded.ab1_data.clone());
 
         self.sync_pcr();
         self.sync_primer_metrics();
