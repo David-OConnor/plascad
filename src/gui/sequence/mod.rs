@@ -4,7 +4,11 @@ use eframe::egui::{text::CursorRange, Color32, Frame, RichText, ScrollArea, Text
 use na_seq::{seq_complement, seq_from_str, seq_to_str_lower};
 
 // todo: monospace font for all seqs.
+use crate::gui::{COL_SPACING, ROW_SPACING};
+// todo: monospace font for all seqs.
 use crate::misc_types::{Feature, FeatureDirection, MIN_SEARCH_LEN};
+// todo: monospace font for all seqs.
+use crate::state::State;
 use crate::{
     gui::{
         circle::feature_range_sliders,
@@ -18,11 +22,6 @@ use crate::{
     primer::{Primer, PrimerData},
     util::RangeIncl,
     Selection,
-};
-// todo: monospace font for all seqs.
-use crate::{
-    gui::{COL_SPACING, ROW_SPACING},
-    State,
 };
 
 mod feature_overlay;

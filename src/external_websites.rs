@@ -12,7 +12,7 @@ use serde_json::{self};
 use ureq::{self, Agent};
 use url::Url;
 
-use crate::{protein::Protein, Selection, State};
+use crate::{protein::Protein, state::State, Selection};
 
 const NCBI_BLAST_URL: &str = "https://blast.ncbi.nlm.nih.gov/Blast.cgi";
 

@@ -167,15 +167,24 @@ impl StateToSave {
         let cfg = config::standard();
         let mut result = StateToSave::default();
 
-        // for(i, byte) in bytes[2..].iter().enumerate() {
-        let mut i = 2;
+        let mut i = START_BYTES.len();
         loop {
             if i + PACKET_OVERHEAD > bytes.len() {
                 break; // End of the packet.
             }
 
             let bytes_remaining = &bytes[i..];
-            let packet = Packet::from_bytes(bytes_remaining)?;
+            let packet = match Packet::from_bytes(bytes_remaining) {
+                Ok(p) => p,
+                Err(e) => {
+                    eprintln!("Problem opening a packet: {:?}", e);
+                    let payload_size =
+                        u32::from_be_bytes(bytes_remaining[1..5].try_into().unwrap()) as usize;
+                    i += PACKET_OVERHEAD + payload_size;
+                    continue;
+                }
+            };
+
             i += PACKET_OVERHEAD + packet.payload.len();
 
             // Now, add packet data to our result A/R.
@@ -218,7 +227,6 @@ impl StateToSave {
                 //     Ok(v) => result.path_loaded = v.0,
                 //     Err(e) => eprintln!("Error decoding Seq packet: {e}"),
                 // },
-
             }
         }
 

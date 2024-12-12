@@ -8,10 +8,10 @@ use crate::{
         theme::{COLOR_ACTION, COLOR_INFO},
         COL_SPACING, ROW_SPACING,
     },
-    pcr::{make_amplicon_tab, PolymeraseType, TempTime},
+    pcr::{make_amplicon_tab, PcrUi, PolymeraseType, TempTime},
     primer::{Primer, PrimerDirection, TM_TARGET},
+    state::State,
     util::RangeIncl,
-    PcrUi, State,
 };
 
 fn temp_time_disp(tt: &TempTime, label: &str, ui: &mut Ui) {

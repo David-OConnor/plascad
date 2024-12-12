@@ -4,11 +4,39 @@ use bincode::{Decode, Encode};
 use na_seq::Seq;
 
 use crate::{
-    gui::navigation::{Page, PageSeq},
-    primer::Primer,
+    gui::navigation::{Page, PageSeq, Tab},
+    primer::{Primer, TM_TARGET},
+    state::State,
     util::RangeIncl,
-    PcrUi, State,
 };
+
+#[derive(Clone, Encode, Decode)]
+/// Variables for UI fields, for determining PCR parameters.
+pub struct PcrUi {
+    pub primer_tm: f32,
+    pub product_len: usize,
+    pub polymerase_type: PolymeraseType,
+    pub num_cycles: u16,
+    /// Index from primer data for the load-from-primer system. For storing dropdown state.
+    pub primer_selected: usize,
+    /// These are for the PCR product generation
+    pub primer_fwd: usize,
+    pub primer_rev: usize,
+}
+
+impl Default for PcrUi {
+    fn default() -> Self {
+        Self {
+            primer_tm: TM_TARGET,
+            product_len: 1_000,
+            polymerase_type: Default::default(),
+            num_cycles: 30,
+            primer_selected: 0,
+            primer_fwd: 0,
+            primer_rev: 0,
+        }
+    }
+}
 
 /// This is a common pattern for PCR parameters
 #[derive(Default, Encode, Decode)]
@@ -119,6 +147,7 @@ pub fn make_amplicon_tab(
     }
 
     state.add_tab();
+    state.tabs_open.push(Default::default());
 
     // if let Some(seq) = range_combined.index_seq(&state.generic.seq) {
     state.generic[state.active].seq = product_seq;

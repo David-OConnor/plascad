@@ -13,7 +13,7 @@ use crate::{
         snapgene::export_snapgene,
     },
     gui::{navigation::Tab, set_window_title},
-    State,
+    state::State,
 };
 
 fn save_button(

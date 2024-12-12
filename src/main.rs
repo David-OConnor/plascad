@@ -19,56 +19,39 @@
 // The input: your target product: Output: as much we can automate as possible.
 
 // Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
-use std::{
-    env, io,
-    path::{Path, PathBuf},
-    str::FromStr,
-    sync::Arc,
-    time::Instant,
-};
+use std::{env, path::PathBuf, str::FromStr, sync::Arc};
 
-use ab1::SeqRecordAb1;
 use bincode::{Decode, Encode};
 use bio::alignment::Alignment;
 use cloning::{CloneStatus, CloningInsertData};
-use copypasta::{ClipboardContext, ClipboardProvider};
+use copypasta::ClipboardProvider;
 use eframe::{
     self,
-    egui::{self, Context, Theme},
+    egui::{self},
 };
 use egui_file_dialog::{FileDialog, FileDialogConfig};
-use file_io::save::{load, load_import, StateToSave, QUICKSAVE_FILE};
+use file_io::save::{load_import, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use na_seq::{
-    insert_into_seq,
     ligation::LigationFragment,
-    re_lib::load_re_library,
-    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
-    seq_to_str_lower, AaIdent, AminoAcid, Nucleotide, Seq,
+    restriction_enzyme::{ReMatch, RestrictionEnzyme},
+    AaIdent, AminoAcid, Nucleotide, Seq,
 };
-use primer::IonConcentrations;
 use protein::Protein;
-use reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch};
+use reading_frame::ReadingFrameMatch;
+use state::State;
 
 use crate::{
-    backbones::{load_backbone_library, Backbone, BackboneFilters},
+    backbones::{Backbone, BackboneFilters},
     cloning::BackboneSelected,
     file_io::{
-        save::{
-            save, PrefsToSave, DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE,
-            DEFAULT_PREFS_FILE,
-        },
-        GenericData,
+        save::{DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE, DEFAULT_PREFS_FILE},
+        FileDialogs, GenericData,
     },
-    gui::{
-        navigation::{PageSeqTop, Tab},
-        WINDOW_HEIGHT, WINDOW_WIDTH,
-    },
-    misc_types::{find_search_matches, FeatureDirection, FeatureType, SearchMatch, MIN_SEARCH_LEN},
-    pcr::{PcrParams, PolymeraseType},
-    portions::{media_prep, PortionsState},
+    gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_WIDTH},
+    misc_types::{FeatureDirection, FeatureType, SearchMatch},
+    pcr::{PcrUi, PolymeraseType},
     primer::{Primer, TM_TARGET},
-    protein::{proteins_from_seq, sync_cr_orf_matches},
     tags::TagMatch,
     util::{get_window_title, RangeIncl},
 };
@@ -91,6 +74,7 @@ mod protein;
 mod reading_frame;
 mod save_compat;
 mod solution_helper;
+mod state;
 mod tags;
 mod toxic_proteins;
 mod util;
@@ -100,75 +84,6 @@ type Color = (u8, u8, u8); // RGB
 // todo: Eventually, implement a system that automatically checks for changes, and don't
 // todo save to disk if there are no changes.
 const PREFS_SAVE_INTERVAL: u64 = 60; // Save user preferences this often, in seconds.
-
-struct PlasmidData {
-    // todo : Which seq type? There are many.
-    seq_expected: Seq,
-    seq_read_assembled: Seq,
-    // seq_reads: Vec<SequenceRead>,
-}
-
-fn check_seq_integrity(data: &PlasmidData) {}
-
-fn check_toxic_proteins(data: &PlasmidData) {}
-
-fn check_all(data: &PlasmidData) {
-    check_seq_integrity(data);
-    check_toxic_proteins(data);
-}
-
-impl eframe::App for State {
-    /// This is the GUI's event loop. This also handles periodically saving preferences to disk.
-    /// Note that preferences are only saved if the window is active, ie mouse movement in it or similar.
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
-        // Note that if the window is
-        static mut LAST_PREF_SAVE: Option<Instant> = None;
-
-        let now = Instant::now();
-
-        unsafe {
-            if let Some(last_save) = LAST_PREF_SAVE {
-                if (now - last_save).as_secs() > PREFS_SAVE_INTERVAL {
-                    LAST_PREF_SAVE = Some(now);
-                    self.save_prefs()
-                }
-            } else {
-                // Initialize LAST_PREF_SAVE the first time it's accessed
-                LAST_PREF_SAVE = Some(now);
-            }
-        }
-
-        gui::draw(self, ctx);
-    }
-}
-
-#[derive(Clone, Encode, Decode)]
-/// Variables for UI fields, for determining PCR parameters.
-struct PcrUi {
-    pub primer_tm: f32,
-    pub product_len: usize,
-    pub polymerase_type: PolymeraseType,
-    pub num_cycles: u16,
-    /// Index from primer data for the load-from-primer system. For storing dropdown state.
-    pub primer_selected: usize,
-    /// These are for the PCR product generation
-    pub primer_fwd: usize,
-    pub primer_rev: usize,
-}
-
-impl Default for PcrUi {
-    fn default() -> Self {
-        Self {
-            primer_tm: TM_TARGET,
-            product_len: 1_000,
-            polymerase_type: Default::default(),
-            num_cycles: 30,
-            primer_selected: 0,
-            primer_fwd: 0,
-            primer_rev: 0,
-        }
-    }
-}
 
 #[derive(Default, Encode, Decode)]
 struct StateFeatureAdd {
@@ -204,123 +119,8 @@ impl Default for SeqVisibility {
     }
 }
 
-struct FileDialogs {
-    save: FileDialog,
-    // load: FileDialog,
-    load: FileDialog,
-    export_fasta: FileDialog,
-    export_genbank: FileDialog,
-    export_dna: FileDialog,
-    cloning_load: FileDialog,
-    // todo: What do we use this for?
-    // selected: Option<PathBuf>,
-}
-
-impl Default for FileDialogs {
-    fn default() -> Self {
-        // We can't clone `FileDialog`; use this to reduce repetition instead.
-        let cfg_import = FileDialogConfig {
-            // todo: Explore other optiosn A/R
-            ..Default::default()
-        }
-        .add_file_filter(
-            "PlasCAD files",
-            Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
-        )
-        .add_file_filter(
-            "FASTA files",
-            Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
-        )
-        .add_file_filter(
-            "GenBank files",
-            Arc::new(|p| {
-                let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                ext == "gb" || ext == "gbk"
-            }),
-        )
-        .add_file_filter(
-            "SnapGene DNA files",
-            Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
-        )
-        .add_file_filter(
-            // Note: We experience glitches if this name is too long. (Window extends horizontally)
-            "PCAD/FASTA/GB/SG/AB1",
-            Arc::new(|p| {
-                let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                ext == "pcad"
-                    || ext == "fasta"
-                    || ext == "gb"
-                    || ext == "gbk"
-                    || ext == "dna"
-                    || ext == "ab1"
-            }),
-        );
-
-        let save = FileDialog::new()
-            // .add_quick_access("Project", |s| {
-            //     s.add_path("☆  Examples", "examples");
-            // })
-            .add_file_filter(
-                "PlasCAD files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
-            )
-            .default_file_filter("PlasCAD files")
-            .default_file_name(QUICKSAVE_FILE)
-            .id("0");
-
-        let import = FileDialog::with_config(cfg_import.clone())
-            .default_file_filter("PCAD/FASTA/GB/SG")
-            .id("1");
-
-        let export_fasta = FileDialog::new()
-            .add_file_filter(
-                "FASTA files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
-            )
-            .default_file_filter("FASTA files")
-            .default_file_name(DEFAULT_FASTA_FILE)
-            .id("3");
-
-        let export_genbank = FileDialog::new()
-            .add_file_filter(
-                "GenBank files",
-                Arc::new(|p| {
-                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                    ext == "gb" || ext == "gbk"
-                }),
-            )
-            .default_file_filter("GenBank files")
-            .default_file_name(DEFAULT_GENBANK_FILE)
-            .id("4");
-
-        let export_dna = FileDialog::new()
-            .add_file_filter(
-                "SnapGene DNA files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
-            )
-            .default_file_filter("SnapGene DNA files")
-            .default_file_name(DEFAULT_DNA_FILE)
-            .id("5");
-
-        let cloning_import = FileDialog::with_config(cfg_import)
-            .default_file_filter("PCAD/FASTA/GB/SG")
-            .id("6");
-
-        Self {
-            save,
-            // load: load_,
-            load: import,
-            export_fasta,
-            export_genbank,
-            export_dna,
-            cloning_load: cloning_import,
-            // selected: None,
-        }
-    }
-}
-
 /// UI state for restriction enzymes.
-struct ReUi {
+pub struct ReUi {
     /// Inner: RE name
     /// todo: This is a trap for multiple tabs.
     // res_selected: Vec<String>,
@@ -452,486 +252,6 @@ impl Default for Selection {
     }
 }
 
-/// This struct contains state that does not need to persist between sessesions or saves, but is not
-/// a good fit for `StateUi`. This is, generally, calculated data from persistent staet.
-#[derive(Default)]
-struct StateVolatile {
-    restriction_enzyme_matches: Vec<ReMatch>,
-    re_digestion_products: Vec<LigationFragment>,
-    reading_frame_matches: Vec<ReadingFrameMatch>,
-    tag_matches: Vec<TagMatch>,
-    search_matches: Vec<SearchMatch>,
-    /// Used for automatically determining which reading frame to use, and the full frame,
-    /// for a given coding-region feature.
-    cr_orf_matches: Vec<(usize, ReadingFrameMatch)>,
-    proteins: Vec<Protein>,
-}
-
-struct CloningState {
-    backbone_selected: BackboneSelected,
-    /// Note: This is only used currently if using the opened file as the BB; otherwise
-    /// we use a ref to the library.
-    backbone: Option<Backbone>, // todo: Other options: Store a ref; use in bb_selected instead of an index.
-    // res_matched:Vec<usize>, // todo: A/R
-    res_common: Vec<RestrictionEnzyme>,
-    re_matches_vec_common: Vec<ReMatch>,
-    re_matches_insert_common: Vec<ReMatch>,
-    status: CloneStatus, // todo: Should this be an option?
-    insert_loc: usize,
-    /// Data for the insert. For example, used to draw its linear sequence.
-    data_insert: Option<GenericData>,
-    // /// We use this, for example, for displaying a linear map based on a library backbone.
-    // backbone_data: Option<GenericData>,
-    // note: This one may make more sense as a UI var.
-    remove_stop_codons: bool,
-    /// Work-in-progress cloning product sequence.
-    product_seq: Seq,
-    product_primers: Vec<Primer>,
-}
-
-impl Default for CloningState {
-    fn default() -> Self {
-        Self {
-            insert_loc: 1,
-            backbone_selected: Default::default(),
-            backbone: Default::default(),
-            res_common: Default::default(),
-            re_matches_vec_common: Default::default(),
-            re_matches_insert_common: Default::default(),
-            status: Default::default(),
-            data_insert: Default::default(),
-            // backbone_data: Default::default(),
-            remove_stop_codons: Default::default(),
-            product_seq: Default::default(),
-            product_primers: Vec::new(),
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq)]
-pub enum AlignmentMode {
-    Dna,
-    AminoAcid,
-}
-
-impl Default for AlignmentMode {
-    fn default() -> Self {
-        Self::Dna
-    }
-}
-
-#[derive(Default)]
-struct AlignmentState {
-    seq_a: Seq,
-    seq_b: Seq,
-    seq_aa_a: Vec<AminoAcid>,
-    seq_aa_b: Vec<AminoAcid>,
-    // todo: Perhaps these inputs are better fit for State_ui.
-    seq_a_input: String,
-    seq_b_input: String,
-    alignment_result: Option<Alignment>,
-    dist_result: Option<u64>,
-    text_display: String, // Ie `AlignmentResult::pretty`.
-    mode: AlignmentMode,
-}
-
-/// Note: use of serde traits here and on various sub-structs are for saving and loading.
-struct State {
-    ui: StateUi,
-    /// Ie tab, file etc.
-    active: usize,
-    // todo: Consider grouping generic, path_loaded, portions, and similar in a single vec.
-    // todo: Do that after your initial tab approach works.
-    /// Data that is the most fundamental to persistent state, and shared between save formats.
-    /// The index corresponds to `active`.`
-    generic: Vec<GenericData>,
-    ab1_data: Vec<SeqRecordAb1>,
-    // Used to determine which file to save to, if applicable.
-    // file_active: Option<Tab>,
-    /// The index of this correspond to `active`.
-    tabs_open: Vec<Tab>,
-    /// Index corresponds to `active`.
-    portions: Vec<PortionsState>,
-    /// Index corresponds to `active`.
-    volatile: Vec<StateVolatile>,
-    /// Used for PCR.
-    // todo: YOu may need to go back to per-tab ion concentrations.
-    // ion_concentrations: Vec<IonConcentrations>,
-    ion_concentrations: IonConcentrations,
-    pcr: PcrParams,
-    restriction_enzyme_lib: Vec<RestrictionEnzyme>, // Does not need to be saved
-    backbone_lib: Vec<Backbone>,
-    reading_frame: ReadingFrame,
-    search_seq: Seq,
-    cloning: CloningState,
-    alignment: AlignmentState,
-}
-
-impl Default for State {
-    fn default() -> Self {
-        let mut result = Self {
-            ui: Default::default(),
-            active: Default::default(),
-            generic: vec![Default::default()],
-            ab1_data: Vec::new(),
-            tabs_open: vec![Default::default()],
-            portions: vec![Default::default()],
-            // ion_concentrations: vec![Default::default()],
-            ion_concentrations: Default::default(),
-            pcr: Default::default(),
-            restriction_enzyme_lib: Default::default(),
-            backbone_lib: Default::default(),
-            reading_frame: Default::default(),
-            volatile: vec![Default::default()],
-            search_seq: Default::default(),
-            cloning: Default::default(),
-            alignment: Default::default(),
-        };
-
-        // Load the RE lib before prefs, because prefs may include loading of previously-opened files,
-        // which then trigger RE match syncs.
-        result.restriction_enzyme_lib = load_re_library();
-        result.backbone_lib = load_backbone_library();
-
-        result
-    }
-}
-
-impl State {
-    /// Add a default-settings tab, and open it.
-    pub fn add_tab(&mut self) {
-        self.generic.push(Default::default());
-        // self.ion_concentrations.push(Default::default());
-        self.tabs_open.push(Default::default());
-        self.portions.push(Default::default());
-        self.volatile.push(Default::default());
-
-        self.active = self.generic.len() - 1;
-
-        // todo: DRY with reset
-        self.ui.cursor_pos = None;
-        self.ui.cursor_seq_i = None;
-        self.ui.text_cursor_i = Some(0);
-        self.ui.seq_input = String::new();
-
-        // Sync items that aren't stored as part of tabs.
-        self.sync_re_sites();
-        self.sync_reading_frame();
-
-        // So this tab opens on a new program run.
-        self.save_prefs()
-    }
-
-    pub fn remove_tab(&mut self, i: usize) {
-        let n = self.generic.len();
-
-        if n == 1 {
-            // We are closing the last tab; replace it with a blank slate.
-            self.reset();
-            return;
-        }
-
-        if i >= n {
-            return;
-        }
-
-        self.generic.remove(i);
-        // self.ion_concentrations.remove(i);
-        self.tabs_open.remove(i);
-        self.portions.remove(i);
-        self.volatile.remove(i);
-
-        let mut tab_i_removed = None;
-        for (j, tab) in self.ui.re.tabs_selected.iter().enumerate() {
-            if *tab == i {
-                tab_i_removed = Some(j);
-            }
-        }
-        if let Some(j) = tab_i_removed {
-            self.ui.re.tabs_selected.remove(j);
-        }
-
-        // Don't let the active tab overflow to the right; move it to the left if it would.
-        // And, don't move the active tab left only if it would underflow; this effectively moves it right.
-        if (self.active > 0 && self.active <= i && n > 1) || self.active + 1 >= n {
-            self.active -= 1;
-        }
-
-        // So these tabs don't open on the next program run.
-        self.save_prefs()
-    }
-
-    /// Convenience function, since we call this so frequently.
-    pub fn get_seq(&self) -> &[Nucleotide] {
-        &self.generic[self.active].seq
-    }
-
-    /// Reset data; we currently use this for making "new" data.
-    pub fn reset(&mut self) {
-        self.generic[self.active] = Default::default();
-        self.tabs_open[self.active] = Default::default();
-        self.portions[self.active] = Default::default();
-        self.volatile[self.active] = Default::default();
-        // todo: Ideally we reset the window title  here, but we've having trouble with variable
-        // todo scope in the input function.
-
-        self.ui.cursor_pos = None;
-        self.ui.cursor_seq_i = None;
-        self.ui.text_cursor_i = Some(0); // todo: For now; having trouble with cursor on empty seq
-        self.ui.seq_input = String::new();
-    }
-
-    /// Load UI and related data not related to a specific sequence.
-    /// This will also open all files specified in the saved UI state.
-    pub fn load_prefs(&mut self, path: &Path) {
-        let ui_loaded: io::Result<PrefsToSave> = load(path);
-
-        if let Ok(ui) = ui_loaded {
-            let (ui, tabs_open, ion_concentrations) = ui.to_state();
-            self.ui = ui;
-            self.ion_concentrations = ion_concentrations;
-
-            for tab in &tabs_open {
-                if let Some(path) = &tab.path {
-                    if let Some(loaded) = load_import(path) {
-                        self.load(&loaded);
-                    }
-                }
-            }
-
-            self.tabs_open = tabs_open;
-        }
-    }
-
-    pub fn save_prefs(&self) {
-        if let Err(e) = save(
-            &PathBuf::from(DEFAULT_PREFS_FILE),
-            &PrefsToSave::from_state(&self.ui, &self.tabs_open, &self.ion_concentrations),
-        ) {
-            eprintln!("Error saving prefs: {e}");
-        }
-    }
-
-    /// Runs the match search between primers and sequences. Run this when primers and sequences change.
-    pub fn sync_primer_matches(&mut self, primer_i: Option<usize>) {
-        let seq = &self.generic[self.active].seq.clone(); // todo; Not ideal to clone.
-        let primers = match primer_i {
-            Some(i) => &mut self.generic[self.active].primers[i..=i],
-            // Run on all primers.
-            None => &mut self.generic[self.active].primers,
-        };
-
-        for primer in primers {
-            primer.volatile.matches = primer.match_to_seq(&seq);
-        }
-    }
-
-    pub fn sync_pcr(&mut self) {
-        self.pcr = PcrParams::new(&self.ui.pcr);
-    }
-
-    /// Identify restriction enzyme sites in the sequence.
-    pub fn sync_re_sites(&mut self) {
-        if self.active >= self.volatile.len() {
-            eprintln!("Error: Volatile len too short for RE sync.");
-            return;
-        }
-        self.volatile[self.active].restriction_enzyme_matches = Vec::new();
-
-        self.volatile[self.active]
-            .restriction_enzyme_matches
-            .append(&mut find_re_matches(
-                &self.generic[self.active].seq,
-                &self.restriction_enzyme_lib,
-            ));
-
-        // This sorting aids in our up/down label alternation in the display.
-        self.volatile[self.active]
-            .restriction_enzyme_matches
-            .sort_by(|a, b| a.seq_index.cmp(&b.seq_index));
-    }
-
-    pub fn sync_reading_frame(&mut self) {
-        self.volatile[self.active].reading_frame_matches =
-            find_orf_matches(self.get_seq(), self.reading_frame);
-    }
-
-    pub fn sync_search(&mut self) {
-        if self.search_seq.len() >= MIN_SEARCH_LEN {
-            self.volatile[self.active].search_matches =
-                find_search_matches(self.get_seq(), &self.search_seq);
-        } else {
-            self.volatile[self.active].search_matches = Vec::new();
-        }
-    }
-
-    pub fn sync_portions(&mut self) {
-        for sol in &mut self.portions[self.active].solutions {
-            sol.calc_amounts();
-        }
-    }
-
-    pub fn sync_primer_metrics(&mut self) {
-        for primer in &mut self.generic[self.active].primers {
-            // primer.run_calcs(&self.ion_concentration[self.active]);
-            primer.run_calcs(&self.ion_concentrations);
-            //
-            // primer.volatile[self.active].sequence_input = seq_to_str(&primer.sequence);
-            //
-            //
-            // if let Some(metrics) = &mut primer.volatile[self.active].metrics {
-            //     let dual_ended = match primer.volatile[self.active].tune_setting {
-            //         TuneSetting::Both(_) => true,
-            //         _ => false,
-            //     };
-            //
-            //     metrics.update_scores(dual_ended);
-            // }
-            // if primer.volatile[self.active].metrics.is_none() {
-            //     primer.run_calcs(&self.ion_concentrations);
-            // }
-        }
-    }
-
-    /// Upddate this sequence by inserting a sequence of interest. Shifts features based on the insert.
-    pub fn insert_nucleotides(&mut self, insert: &[Nucleotide], insert_loc: usize) {
-        insert_into_seq(&mut self.generic[self.active].seq, insert, insert_loc).ok();
-
-        let insert_i = insert_loc - 1; // 1-based indexing.
-
-        // Now, you have to update features affected by this insertion, shifting them right A/R.
-        for feature in &mut self.generic[self.active].features {
-            if feature.range.start > insert_i {
-                feature.range.start += insert.len();
-            }
-
-            if feature.range.end > insert_i {
-                feature.range.end += insert.len();
-            }
-        }
-
-        self.sync_seq_related(None);
-    }
-
-    /// One-based indexing. Similar to `insert_nucleotides`.
-    pub fn remove_nucleotides(&mut self, range: RangeIncl) {
-        let seq = &mut self.generic[self.active].seq;
-        if range.end + 1 > seq.len() {
-            return;
-        }
-
-        let count = range.len();
-
-        seq.drain(range.start..=range.end);
-
-        // Now, you have to update features affected by this insertion, shifting them left A/R.
-        for feature in &mut self.generic[self.active].features {
-            if feature.range.start > range.end {
-                feature.range.start -= count;
-            }
-            if feature.range.end > range.end {
-                feature.range.end -= count;
-            }
-        }
-
-        self.sync_seq_related(None);
-    }
-
-    /// Run this when the sequence changes.
-    pub fn sync_seq_related(&mut self, primer_i: Option<usize>) {
-        self.sync_primer_matches(primer_i);
-
-        // We have removed RE sync here for now, because it is slow. Call  when able.
-        // self.sync_re_sites();
-
-        self.sync_reading_frame();
-        self.sync_search();
-
-        sync_cr_orf_matches(self);
-
-        self.volatile[self.active].proteins = proteins_from_seq(
-            self.get_seq(),
-            &self.generic[self.active].features,
-            &self.volatile[self.active].cr_orf_matches,
-        );
-
-        self.ui.seq_input = seq_to_str_lower(self.get_seq());
-    }
-
-    pub fn reset_selections(&mut self) {
-        self.ui.text_selection = None;
-        self.ui.selected_item = Selection::None;
-    }
-
-    /// Load state from a (our format) file.
-    pub fn load(&mut self, loaded: &StateToSave) {
-        let gen = &self.generic[self.active];
-        // Quick+Dirty check if we're on a new file. If so, replace it, vice adding a new tab.
-        if !gen.seq.is_empty()
-            || !gen.features.is_empty()
-            || !gen.primers.is_empty()
-            || !self.portions[self.active].solutions.is_empty()
-        {
-            self.add_tab();
-        } else {
-            self.volatile.push(Default::default());
-        }
-
-        self.generic[self.active].clone_from(&loaded.generic);
-        // self.ion_concentrations[self.active].clone_from(&loaded.ion_concentrations);
-        self.portions[self.active].clone_from(&loaded.portions);
-        self.ab1_data[self.active].clone_from(&loaded.ab1_data);
-        self.tabs_open[self.active].path = loaded.path_loaded.clone();
-
-
-        self.volatile[self.active] = Default::default();
-
-        self.sync_pcr();
-        self.sync_primer_metrics();
-        self.sync_seq_related(None);
-        self.sync_re_sites();
-
-        self.ui.seq_input = seq_to_str_lower(self.get_seq());
-
-        self.sync_portions();
-        self.reset_selections();
-    }
-
-    /// Copy the sequence of the selected text selection, feature or primer to the clipboard, if applicable.
-    pub fn copy_seq(&self) {
-        // Text selection takes priority.
-        if let Some(selection) = &self.ui.text_selection {
-            if let Some(seq) = selection.index_seq(self.get_seq()) {
-                let mut ctx = ClipboardContext::new().unwrap();
-                ctx.set_contents(seq_to_str_lower(seq)).unwrap();
-            }
-            return;
-        }
-
-        match self.ui.selected_item {
-            Selection::Feature(i) => {
-                if i >= self.generic[self.active].features.len() {
-                    eprintln!("Invalid feature in selection");
-                    return;
-                }
-                let feature = &self.generic[self.active].features[i];
-                if let Some(seq) = feature.range.index_seq(self.get_seq()) {
-                    let mut ctx = ClipboardContext::new().unwrap();
-                    ctx.set_contents(seq_to_str_lower(seq)).unwrap();
-                }
-            }
-            Selection::Primer(i) => {
-                let primer = &self.generic[self.active].primers[i];
-
-                let mut ctx = ClipboardContext::new().unwrap();
-                ctx.set_contents(seq_to_str_lower(&primer.sequence))
-                    .unwrap();
-            }
-            _ => (),
-        }
-    }
-}
-
 fn main() {
     let mut state = State::default();
 
@@ -967,8 +287,11 @@ fn main() {
         }
     }
 
+    // todo: Consider a standalone method for loaded-from-arg,
+
     // Load from the argument or quicksave A/R.
     if loaded_from_arg || !prev_paths_loaded {
+        println!("Loading from quicksave or arg: {:?}", path);
         if let Some(loaded) = load_import(&path) {
             state.load(&loaded);
         }

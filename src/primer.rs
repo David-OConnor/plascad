@@ -7,8 +7,8 @@ use na_seq::{seq_complement, seq_from_str, seq_to_str_lower, seq_weight, Nucleot
 use crate::{
     gui::{primer_table::DEFAULT_TRIM_AMT, PRIMER_FWD_COLOR, PRIMER_REV_COLOR},
     primer_metrics::PrimerMetrics,
+    state::State,
     util::{match_subseq, RangeIncl},
-    State,
 };
 
 // If a primer length is below this, many calculations will be disabled for it.

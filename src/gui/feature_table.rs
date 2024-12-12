@@ -11,8 +11,9 @@ use crate::{
         FeatureDirection::{self, Forward, Reverse},
         FeatureType,
     },
+    state::State,
     util::RangeIncl,
-    Color, Selection, State,
+    Color, Selection,
 };
 
 const LABEL_EDIT_WIDTH: f32 = 140.;

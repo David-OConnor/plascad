@@ -3,7 +3,34 @@ use bio::alignment::{
     pairwise::Aligner,
     Alignment,
 };
-use na_seq::{seq_aa_to_u8_lower, seq_to_u8_lower, AminoAcid, Nucleotide};
+use na_seq::{seq_aa_to_u8_lower, seq_to_u8_lower, AminoAcid, Nucleotide, Seq};
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum AlignmentMode {
+    Dna,
+    AminoAcid,
+}
+
+impl Default for AlignmentMode {
+    fn default() -> Self {
+        Self::Dna
+    }
+}
+
+#[derive(Default)]
+pub struct AlignmentState {
+    pub seq_a: Seq,
+    pub seq_b: Seq,
+    pub seq_aa_a: Vec<AminoAcid>,
+    pub seq_aa_b: Vec<AminoAcid>,
+    // todo: Perhaps these inputs are better fit for State_ui.
+    pub seq_a_input: String,
+    pub seq_b_input: String,
+    pub alignment_result: Option<Alignment>,
+    pub dist_result: Option<u64>,
+    pub text_display: String, // Ie `AlignmentResult::pretty`.
+    pub mode: AlignmentMode,
+}
 
 #[derive(Clone, Copy)]
 /// Use Hamming Distance if:

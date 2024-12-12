@@ -22,8 +22,9 @@ use crate::{
         BACKGROUND_COLOR, COLOR_RE, COLOR_SEQ, COLOR_SEQ_DIMMED, COL_SPACING,
     },
     reading_frame::ReadingFrame,
+    state::State,
     util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl},
-    Nucleotide, Selection, State, StateUi,
+    Nucleotide, Selection, StateUi,
 };
 
 // Pub for use in `util` functions.

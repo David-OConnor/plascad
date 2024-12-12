@@ -23,7 +23,8 @@ use crate::{
     },
     misc_types::{Feature, FeatureDirection, FeatureType},
     primer::Primer,
-    Selection, State,
+    state::State,
+    Selection,
 };
 
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);

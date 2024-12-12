@@ -33,9 +33,11 @@ use crate::{
         set_window_title,
     },
     misc_types::{Feature, Metadata},
+    pcr::PcrUi,
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
-    PcrUi, Selection, SeqVisibility, State, StateUi,
+    state::State,
+    Selection, SeqVisibility, StateUi,
 };
 
 pub const QUICKSAVE_FILE: &str = "quicksave.pcad";
@@ -53,6 +55,7 @@ pub struct StateToSave {
     // pub ion_concentrations: IonConcentrations,
     pub portions: PortionsState,
     // pub ab1_data: Vec<SeqRecordAb1>,
+    // todo: Sort this out; how to indicate we loaded AB1 vs normal.
     pub ab1_data: SeqRecordAb1,
     pub path_loaded: Option<PathBuf>,
 }
@@ -149,7 +152,7 @@ impl PrefsToSave {
         tabs_open_: &[Tab],
         ion_concentrations: &IonConcentrations,
     ) -> Self {
-        // Remove the empty paths.
+        // Remove the empty paths; we can't load them.
         let mut tabs_open = Vec::new();
         for t in tabs_open_ {
             if t.path.is_some() {

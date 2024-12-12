@@ -22,7 +22,8 @@ use crate::{
         WINDOW_TITLE,
     },
     misc_types::Feature,
-    Color, ReUi, State, StateVolatile,
+    state::{State, StateVolatile},
+    Color, ReUi,
 };
 
 const FEATURE_ANNOTATION_MATCH_THRESH: f32 = 0.95;

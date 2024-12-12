@@ -11,7 +11,7 @@ use crate::{
     external_websites::PdbData,
     misc_types::{Feature, FeatureType},
     reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch},
-    State,
+    state::State,
 };
 
 pub const WATER_WEIGHT: f32 = 18.015; // g/mol. We subtract these when calculating a protein's weight.

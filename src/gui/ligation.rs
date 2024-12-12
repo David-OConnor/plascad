@@ -24,8 +24,8 @@ use crate::{
         theme::COLOR_ACTION,
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
+    state::State,
     util::{filter_res, map_linear, name_from_path},
-    State,
 };
 
 // This X offset must have room for the RE Nts displayed on the left.

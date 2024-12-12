@@ -8,8 +8,8 @@ use na_seq::seq_to_str_lower;
 
 use crate::{
     gui::{select_color_text, set_window_title, COL_SPACING, ROW_SPACING},
+    state::State,
     util::name_from_path,
-    State,
 };
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 0, 110);
@@ -17,7 +17,7 @@ pub const TAB_BUTTON_COLOR: Color32 = Color32::from_rgb(40, 80, 110);
 pub const DEFAULT_TAB_NAME: &str = "New plasmid";
 
 // todo: Alt name: Path loaded
-#[derive(Encode, Decode, Clone, Default)]
+#[derive(Encode, Decode, Clone, Default, Debug)]
 pub struct Tab {
     pub path: Option<PathBuf>,
     pub ab1: bool, // todo: Enum if you add a third category.
@@ -105,6 +105,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
             .clicked()
         {
             state.add_tab();
+            state.tabs_open.push(Default::default());
         }
         ui.add_space(COL_SPACING);
 

@@ -16,7 +16,7 @@ use crate::{
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
     misc_types::FeatureType,
-    State,
+    state::State,
 };
 
 const COLOR_PROT_SEQ: Color32 = Color32::from_rgb(255, 100, 200);

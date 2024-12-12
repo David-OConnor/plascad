@@ -10,7 +10,8 @@ use crate::{
         COL_SPACING, ROW_SPACING,
     },
     primer::{make_amplification_primers, IonConcentrations, Primer, TuneSetting},
-    Selection, State,
+    state::State,
+    Selection,
 };
 
 const TABLE_ROW_HEIGHT: f32 = 60.;

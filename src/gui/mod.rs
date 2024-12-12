@@ -34,9 +34,10 @@ use crate::{
     },
     misc_types::{Feature, FeatureType},
     primer::Primer,
+    state::State,
     util,
     util::{get_window_title, merge_feature_sets},
-    Selection, State,
+    Selection,
 };
 
 mod ab1;

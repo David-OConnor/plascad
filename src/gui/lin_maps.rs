@@ -17,8 +17,9 @@ use crate::{
     },
     misc_types::{Feature, FeatureType},
     primer::{Primer, PrimerDirection},
+    state::State,
     util::{map_linear, RangeIncl},
-    Selection, State, StateUi,
+    Selection, StateUi,
 };
 
 // How many nucleotides the zoomed-in display at the top of the page represents.

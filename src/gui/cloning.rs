@@ -23,8 +23,8 @@ use crate::{
         COL_SPACING, ROW_SPACING,
     },
     misc_types::{Feature, FeatureType},
+    state::State,
     util::{merge_feature_sets, RangeIncl},
-    State,
 };
 
 const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;

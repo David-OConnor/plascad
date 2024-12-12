@@ -6,10 +6,17 @@ use eframe::egui::{Event, InputState, Key, PointerButton, Ui};
 use na_seq::{seq_from_str, Nucleotide};
 
 use crate::{
-    file_io::save::{load_import, StateToSave, QUICKSAVE_FILE},
-    gui::{navigation::Page, set_window_title},
+    file_io::{
+        save,
+        save::{load_import, StateToSave, QUICKSAVE_FILE},
+    },
+    gui::{
+        navigation::{Page, Tab},
+        set_window_title,
+    },
+    state::State,
     util::RangeIncl,
-    State, StateUi,
+    StateUi,
 };
 
 /// Handle hotkeys and clicks that affect all pages.
@@ -21,15 +28,15 @@ fn handle_global(state: &mut State, ip: &InputState) {
     }
 
     if ip.key_pressed(Key::S) && ip.modifiers.ctrl && !ip.modifiers.shift {
-        if let Err(e) = StateToSave::from_state(state, state.active)
-            .save_to_file(&PathBuf::from(QUICKSAVE_FILE))
-        {
-            eprintln!("Error saving: {e}");
-        }
+        save::save_current_file(state);
     }
 
     if ip.key_pressed(Key::N) && ip.modifiers.ctrl {
         state.add_tab();
+        state.tabs_open.push(Tab {
+            path: None,
+            ab1: false,
+        });
     }
 
     if ip.key_pressed(Key::F) && ip.modifiers.ctrl {

@@ -18,9 +18,10 @@ use crate::{
     file_io::GenericData,
     gui::navigation::{Page, PageSeq},
     misc_types::{Feature, FeatureDirection, FeatureType},
-    primer::{make_cloning_primers, PrimerDirection},
+    primer::{make_cloning_primers, Primer},
+    state::State,
     util::RangeIncl,
-    CloningState, Selection, State, StateUi, StateVolatile,
+    Selection,
 };
 
 /// Include this many nucleotides to the left, and right of each insert, when searching for RE sites.
@@ -32,6 +33,44 @@ pub const RBS_BUFFER: usize = 7;
 
 pub const RBS_BUFFER_MIN: isize = 4;
 pub const RBS_BUFFER_MAX: isize = 11;
+
+pub struct CloningState {
+    pub backbone_selected: BackboneSelected,
+    /// Note: This is only used currently if using the opened file as the BB; otherwise
+    /// we use a ref to the library.
+    pub backbone: Option<Backbone>, // todo: Other options: Store a ref; use in bb_selected instead of an index.
+    pub res_common: Vec<RestrictionEnzyme>,
+    pub re_matches_vec_common: Vec<ReMatch>,
+    pub re_matches_insert_common: Vec<ReMatch>,
+    pub status: CloneStatus, // todo: Should this be an option?
+    pub insert_loc: usize,
+    /// Data for the insert. For example, used to draw its linear sequence.
+    pub data_insert: Option<GenericData>,
+    // note: This one may make more sense as a UI var.
+    pub remove_stop_codons: bool,
+    /// Work-in-progress cloning product sequence.
+    pub product_seq: Seq,
+    pub product_primers: Vec<Primer>,
+}
+
+impl Default for CloningState {
+    fn default() -> Self {
+        Self {
+            insert_loc: 1,
+            backbone_selected: Default::default(),
+            backbone: Default::default(),
+            res_common: Default::default(),
+            re_matches_vec_common: Default::default(),
+            re_matches_insert_common: Default::default(),
+            status: Default::default(),
+            data_insert: Default::default(),
+            // backbone_data: Default::default(),
+            remove_stop_codons: Default::default(),
+            product_seq: Default::default(),
+            product_primers: Vec::new(),
+        }
+    }
+}
 
 impl CloningState {
     /// Run this whenever something relevant in the cloning state changes. (e.g. selected a new backbone,
@@ -195,11 +234,14 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
     };
 
     state.generic.push(generic);
+
     // state
     //     .ion_concentrations = state.ion_concentrations[state.active].clone());
     // state.file_active = None;
     state.portions.push(Default::default());
     state.volatile.push(Default::default());
+    state.tabs_open.push(Default::default());
+    state.ab1_data.push(Default::default());
 
     state.active = state.generic.len() - 1;
 
@@ -208,15 +250,6 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
 
     // todo: Unecessary clone? Due to borrow rules.
     let mut insert = state.ui.cloning_insert.seq_insert.clone();
-    //
-    // // todo: DRY with making the product seq. Consider just using that directly for simplicity.
-    // let insert_len = insert.len();
-    // if state.cloning.remove_stop_codons
-    //     && AminoAcid::from_codons(insert[insert_len - 3..].try_into().unwrap())
-    //         == CodingResult::StopCodon
-    // {
-    //     insert = insert[..insert_len - 3].try_into().unwrap();
-    // }
 
     state.insert_nucleotides(&insert, state.cloning.insert_loc);
 
