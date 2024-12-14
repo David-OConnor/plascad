@@ -92,7 +92,7 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, start_i: usize, ui: &mut
     // Display nucleotides and quality values.
     for i_pos in 0..num_nts_disp as usize {
         let i = start_i + i_pos;
-        if i > data.sequence.len() - 1 {
+        if data.sequence.is_empty() || i > data.sequence.len() - 1 {
             break;
         }
 
@@ -124,7 +124,7 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, start_i: usize, ui: &mut
     // Display data.
     for i_pos in 0..num_nts_disp as usize * 4 {
         let i = start_i * 4 + i_pos;
-        if i > data.data_ch1.len() - 1 {
+        if data.data_ch1.is_empty() || i > data.data_ch1.len() - 1 {
             break;
         }
 
@@ -235,10 +235,17 @@ pub fn ab1_page(state: &mut State, ui: &mut Ui) {
     let width = ui.available_width();
     let num_nts_disp = width / NT_WIDTH;
     ui.spacing_mut().slider_width = width - 60.;
-    ui.add(Slider::new(
-        &mut state.ui.ab1_start_i,
-        0..=data.sequence.len() - num_nts_disp as usize + 1,
-    ));
+
+    let slider_max = {
+        let v = data.sequence.len() as isize - num_nts_disp as isize + 1;
+        if v > 0 {
+            v as usize
+        } else {
+            0
+        }
+    };
+
+    ui.add(Slider::new(&mut state.ui.ab1_start_i, 0..=slider_max));
 
     ui.add_space(ROW_SPACING / 2.);
 
