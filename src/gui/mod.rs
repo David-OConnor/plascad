@@ -411,12 +411,7 @@ pub fn draw(state: &mut State, ctx: &Context) {
                 metadata::metadata_page(&mut state.generic[state.active].metadata, ui)
             }
             Page::Portions => portions::portions_page(&mut state.portions[state.active], ui),
-            Page::Ab1 => {
-                if state.ab1_data.len() > 0 {
-                    // todo: Fix index, and this hack in general.
-                    ab1::ab1_page(&state.ab1_data[0], ui)
-                }
-            }
+            Page::Ab1 => ab1::ab1_page(state, ui),
         }
     });
 }

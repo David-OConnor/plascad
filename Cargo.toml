@@ -1,6 +1,6 @@
 [package]
 name = "plascad"
-version = "0.7.6"
+version = "0.7.7"
 edition = "2021"
 authors = ["David O'Connor <the_alchemist@fastmail.com>"]
 #description = "Tools for plasmid and primer design, PCR, and related."

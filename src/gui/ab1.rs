@@ -13,7 +13,12 @@ use na_seq::{seq_to_str_lower, Nucleotide};
 
 use crate::{
     ab1::SeqRecordAb1,
+    feature_db_load::find_features,
+    file_io::GenericData,
     gui::{BACKGROUND_COLOR, COL_SPACING, ROW_SPACING},
+    misc_types::Metadata,
+    state::State,
+    util::merge_feature_sets,
 };
 
 const NT_COLOR: Color32 = Color32::from_rgb(180, 220, 220);
@@ -165,15 +170,58 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, ui: &mut Ui) -> Vec<Shap
     result
 }
 
-pub fn ab1_page(data: &SeqRecordAb1, ui: &mut Ui) {
+pub fn ab1_page(state: &mut State, ui: &mut Ui) {
     ui.horizontal(|ui| {
+        let data = &state.ab1_data[state.active];
+
         ui.heading("AB1 sequencing view");
 
         ui.add_space(COL_SPACING * 2.);
 
-        if ui.button(RichText::new("🗐 Copy sequence")).clicked() {
+        if ui.button(RichText::new("🗐 Copy sequence")).on_hover_text("Copy this sequence to the clipboard.").clicked() {
             let mut ctx = ClipboardContext::new().unwrap();
             ctx.set_contents(seq_to_str_lower(&data.sequence)).unwrap();
+        }
+
+        ui.add_space(COL_SPACING);
+
+        if ui
+            .button("➕ Create data (e.g. Genbank, PCAD etc) as a new tab.")
+            .on_hover_text("Create a new non-AB1 data set\
+        that may include features, primers, etc. May be edited, and saved to Genbank, PCAD, or SnapGene formats.")
+            .clicked()
+        {
+            // Note: This segment is almost a duplicate of `State::add_tab` and the similar section in `cloning`.
+            let plasmid_name = match &state.tabs_open[state.active].path {
+                Some(p) => p.file_name().unwrap().to_str().unwrap_or_default(),
+                None => "Plasmid from AB1", // This shouldn't happen, I believe.
+            }.to_owned().replace(".ab1", "");
+
+            let generic = GenericData {
+                seq: data.sequence.clone(),
+                metadata: Metadata {
+                    plasmid_name,
+                    ..Default::default()
+                },
+                ..Default::default()
+            };
+
+
+            state.generic.push(generic);
+
+            state.portions.push(Default::default());
+            state.volatile.push(Default::default());
+            state.tabs_open.push(Default::default());
+            state.ab1_data.push(Default::default());
+
+            state.active = state.generic.len() - 1;
+
+            // state.sync_seq_related(None);
+
+            // Annotate. Don't add duplicates.
+            let features = find_features(&state.get_seq());
+            merge_feature_sets(&mut state.generic[state.active].features, &features)
+
         }
     });
     ui.add_space(ROW_SPACING / 2.);
@@ -183,6 +231,8 @@ pub fn ab1_page(data: &SeqRecordAb1, ui: &mut Ui) {
     Frame::canvas(ui.style())
         .fill(BACKGROUND_COLOR)
         .show(ui, |ui| {
+            let data = &state.ab1_data[state.active];
+
             let (response, _painter) = {
                 let desired_size = vec2(ui.available_width(), ui.available_height());
                 ui.allocate_painter(desired_size, Sense::click())
