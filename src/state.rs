@@ -406,8 +406,6 @@ impl State {
             self.add_tab();
 
             self.tabs_open.push(Default::default());
-            // So these tabs opens on a new program run.
-            self.save_prefs();
         }
 
         // todo: Fix this for AB1 loading.
@@ -434,6 +432,9 @@ impl State {
 
         self.sync_portions();
         self.reset_selections();
+
+        // So these tabs opens on a new program run.
+        self.save_prefs(); // Save opened tabs.
     }
 
     /// Copy the sequence of the selected text selection, feature or primer to the clipboard, if applicable.
