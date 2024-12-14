@@ -198,6 +198,7 @@ struct StateUi {
     re: ReUi,
     backbone_filters: BackboneFilters,
     seq_edit_lock: bool,
+    ab1_start_i: usize,
 }
 
 impl Default for StateUi {
@@ -235,6 +236,7 @@ impl Default for StateUi {
             re: Default::default(),
             backbone_filters: Default::default(),
             seq_edit_lock: true,
+            ab1_start_i: Default::default(),
         }
     }
 }

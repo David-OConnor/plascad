@@ -4,7 +4,7 @@ use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{
     egui::{
         pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
-        Stroke, Ui,
+        Slider, Stroke, Ui,
     },
     emath::RectTransform,
     epaint::PathShape,
@@ -47,16 +47,16 @@ fn nt_color_map(nt: Nucleotide) -> Color32 {
 /// Map sequence index to a horizontal pixel.
 fn index_to_posit(i: usize, num_nts: usize, ui: &Ui) -> f32 {
     // todo: Cap if width too small for nt len. Varying zoom, etc.
-    let width = ui.available_width();
-
-    let num_nts_disp = width / NT_WIDTH;
+    // let width = ui.available_width();
+    //
+    // let num_nts_disp = width / NT_WIDTH;
 
     // let scale_factor = width / num_nts as f32;
     i as f32 * NT_WIDTH
 }
 
 /// Plot the peaks and confidence values; draw letters
-fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, ui: &mut Ui) -> Vec<Shape> {
+fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, start_i: usize, ui: &mut Ui) -> Vec<Shape> {
     let mut result = Vec::new();
 
     let nt_y = 160.;
@@ -86,20 +86,25 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, ui: &mut Ui) -> Vec<Shap
         PEAK_MAX_HEIGHT / max_peak as f32
     };
 
+    let width = ui.available_width();
+    let num_nts_disp = width / NT_WIDTH;
+
     // Display nucleotides and quality values.
-    for (i, nt) in data.sequence.iter().enumerate() {
-        if i > 400 {
-            // todo: Sloppy performance saver.
-            continue;
+    for i_pos in 0..num_nts_disp as usize {
+        let i = start_i + i_pos;
+        if i > data.sequence.len() - 1 {
+            break;
         }
 
-        let x_pos = index_to_posit(i, data.sequence.len(), ui);
+        let nt = data.sequence[i];
+
+        let x_pos = index_to_posit(i_pos, data.sequence.len(), ui);
 
         if x_pos > ui.available_width() - 15. {
             continue; // todo: QC the details, if you need to_screen here etc.
         }
 
-        let nt_color = nt_color_map(*nt);
+        let nt_color = nt_color_map(nt);
 
         result.push(ui.ctx().fonts(|fonts| {
             Shape::text(
@@ -117,13 +122,13 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, ui: &mut Ui) -> Vec<Shap
     }
 
     // Display data.
-    for i in 0..data.data_ch1.len() {
-        if i > 2_000 {
-            // todo: Sloppy performance saver.
-            continue;
+    for i_pos in 0..num_nts_disp as usize * 4 {
+        let i = start_i * 4 + i_pos;
+        if i > data.data_ch1.len() - 1 {
+            break;
         }
 
-        let x_pos = index_to_posit(i, data.sequence.len(), ui) / 4.;
+        let x_pos = index_to_posit(i_pos, data.sequence.len(), ui) / 4.;
         if x_pos > ui.available_width() - 15. {
             continue; // todo: QC the details, if you need to_screen here etc.
         }
@@ -226,6 +231,17 @@ pub fn ab1_page(state: &mut State, ui: &mut Ui) {
     });
     ui.add_space(ROW_SPACING / 2.);
 
+    let data = &state.ab1_data[state.active];
+    let width = ui.available_width();
+    let num_nts_disp = width / NT_WIDTH;
+    ui.spacing_mut().slider_width = width - 60.;
+    ui.add(Slider::new(
+        &mut state.ui.ab1_start_i,
+        0..=data.sequence.len() - num_nts_disp as usize + 1,
+    ));
+
+    ui.add_space(ROW_SPACING / 2.);
+
     let mut shapes = Vec::new();
 
     Frame::canvas(ui.style())
@@ -246,7 +262,7 @@ pub fn ab1_page(state: &mut State, ui: &mut Ui) {
 
             let rect_size = response.rect.size();
 
-            shapes.append(&mut plot(data, &to_screen, ui));
+            shapes.append(&mut plot(data, &to_screen, state.ui.ab1_start_i, ui));
 
             ui.painter().extend(shapes);
         });
