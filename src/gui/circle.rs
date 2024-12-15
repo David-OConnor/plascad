@@ -208,7 +208,7 @@ fn draw_ticks(data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
     result
 }
 
-/// Created a filled-in arc.
+/// Created a filled-in arc. E.g. for features.
 fn draw_filled_arc(
     data: &CircleData,
     angle: (f32, f32),
@@ -999,7 +999,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             // Draw the backbone circle
             shapes.push(Shape::Circle(CircleShape::stroke(
                 data.center_rel,
-                radius,
+                radius - BACKBONE_WIDTH/2.,
                 Stroke::new(BACKBONE_WIDTH, BACKBONE_COLOR),
             )));
 
