@@ -108,10 +108,10 @@ pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 
 /// We use this for dividing a nucleotied sequence into rows, for display in a canvas UI.
 /// Each range is a nucleotide index, using our 1-based system.
 pub fn get_row_ranges(len: usize, chars_per_row: usize) -> Vec<RangeIncl> {
-    let mut result = Vec::new();
-
     // todo: Round etc instead of adding 1?
     let num_rows = len / chars_per_row + 1; // todo: +/-1 etc?
+
+    let mut result = Vec::with_capacity(num_rows);
 
     for row_i in 0..num_rows {
         let end = row_i * chars_per_row + chars_per_row;

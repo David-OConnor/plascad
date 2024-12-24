@@ -257,7 +257,7 @@ pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, ReqError> {
         }
     }
 
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(result_search.len());
     for r in result_search {
         let resp = agent
             .get(&format!("{PDB_DATA_API_URL}/{}", r.identifier))

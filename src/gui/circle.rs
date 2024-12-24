@@ -999,7 +999,7 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
             // Draw the backbone circle
             shapes.push(Shape::Circle(CircleShape::stroke(
                 data.center_rel,
-                radius - BACKBONE_WIDTH/2.,
+                radius - BACKBONE_WIDTH / 2.,
                 Stroke::new(BACKBONE_WIDTH, BACKBONE_COLOR),
             )));
 

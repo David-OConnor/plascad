@@ -513,7 +513,7 @@ fn export_features(buf: &mut Vec<u8>, features: &[Feature]) -> io::Result<()> {
             color: feature.color_override.map(color_to_hex),
         }];
 
-        let mut qualifiers = Vec::new();
+        let mut qualifiers = Vec::with_capacity(feature.notes.len());
         for (key, value) in &feature.notes {
             // todo: If int parsable, consider saving as an int.
             qualifiers.push(Qualifier {
