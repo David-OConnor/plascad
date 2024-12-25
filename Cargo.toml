@@ -26,20 +26,18 @@ path = "src/main.rs"
 #path = "src/feature_db_builder.rs"
 
 [dependencies]
-eframe = "^0.29.1"
-egui_extras = "^0.29.1"  # For tables.
-egui-file-dialog = "^0.7.0" #  For file dialogs.
-# todo: Evaluate size etc of this plotting lib.
-#egui_plot = "^0.28.1"
+eframe = "^0.30.0"
+egui_extras = "^0.30.0"  # For tables.
+egui-file-dialog = "^0.8.0" #  For file dialogs.
 
-chrono = "^0.4.38"
+chrono = "^0.4.39"
 
-serde = { version = "^1.0.206", features = ["derive"] }
+serde = { version = "^1.0.216", features = ["derive"] }
 num_enum = "^0.7.3"  # reversing a u8-repr.
 
 # For FASTA read and write. Note: We can ditch this for a custom parser; FASTA is easy.
 # Note, 2024-08-09: Removing this appears to have minimal impact on binary size.
-bio = "^2.0.1"
+bio = "^2.0.3"
 quick-xml = {version = "0.37.1", features = ["serialize"]}   # For Snapgene feature parsing and writing.
 # For parsing and writing GenBank files. todo: This seems to have a lot of sub-deps; Increases binary size a bit.
 gb-io = "^0.7.1"
@@ -71,6 +69,9 @@ strum_macros = "^0.26.4"
 #na_seq = { path = "../na_seq" }
 na_seq = "^0.2.4"
 byteorder = "1.5.0"  # Currently used in the AB1 parser. Remove A/R
+
+# We use Flat2 for BZIP files. Remove if you remove that functionality.
+flate2 = "^1.0.35"
 
 [build-dependencies]
 # These are for embedding an application icon, on Windows.

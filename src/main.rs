@@ -78,6 +78,7 @@ mod state;
 mod tags;
 mod toxic_proteins;
 mod util;
+mod alignment_map;
 
 type Color = (u8, u8, u8); // RGB
 
@@ -256,6 +257,10 @@ impl Default for Selection {
 
 fn main() {
     let mut state = State::default();
+
+    // todo: Temp to test BAM
+    let am = alignment_map::import(&PathBuf::from_str("../../Desktop/test.bam").unwrap()).unwrap();
+    println!("Alignment map loaded: {:?}", am);
 
     state.load_prefs(&PathBuf::from_str(DEFAULT_PREFS_FILE).unwrap());
 
