@@ -66,12 +66,13 @@ ureq = { version = "^2.10.1", features = ["tls"], default-features = false }  # 
 strum = "^0.26.3"
 strum_macros = "^0.26.4"
 
-#na_seq = { path = "../na_seq" }
-na_seq = "^0.2.4"
+na_seq = { path = "../na_seq" }
+#na_seq = "^0.2.5"
 byteorder = "1.5.0"  # Currently used in the AB1 parser. Remove A/R
 
-# We use Flat2 for BZIP files. Remove if you remove that functionality.
+# We use Flat2 for decompressing BAM files. todo: Remove if you remove that functionality.
 flate2 = "^1.0.35"
+bgzip = "^0.3.1"
 
 [build-dependencies]
 # These are for embedding an application icon, on Windows.

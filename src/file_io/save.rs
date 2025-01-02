@@ -80,7 +80,6 @@ impl Decode for GenericData {
     fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
         // Deserialize seq using our custom deserializer
         let seq_data = Vec::decode(decoder)?;
-        // let seq = deser_seq_bin(&seq_data).map_err(|_| file_io: :Error::new(ErrorKind::InvalidData, "Error deserializing seq"));
         let seq = deser_seq_bin(&seq_data).unwrap_or_default(); // todo: Better error handling/propogation.
 
         // Deserialize other fields using default deserialization

@@ -58,6 +58,7 @@ use crate::{
 
 mod ab1;
 mod alignment;
+mod alignment_map;
 mod backbones;
 mod cloning;
 mod external_websites;
@@ -78,7 +79,6 @@ mod state;
 mod tags;
 mod toxic_proteins;
 mod util;
-mod alignment_map;
 
 type Color = (u8, u8, u8); // RGB
 
