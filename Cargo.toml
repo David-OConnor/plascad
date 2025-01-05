@@ -42,6 +42,8 @@ quick-xml = {version = "0.37.1", features = ["serialize"]}   # For Snapgene feat
 # For parsing and writing GenBank files. todo: This seems to have a lot of sub-deps; Increases binary size a bit.
 gb-io = "^0.7.1"
 
+lin_alg = {path = "../lin_alg"}
+
 # We use bincode for saving and loading to files using our custom format.
 bincode = "^2.0.0-rc.3"
 

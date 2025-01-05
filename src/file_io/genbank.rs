@@ -42,7 +42,7 @@ pub fn import_genbank(path: &Path) -> io::Result<GenericData> {
         let mut seq_ = Vec::new();
 
         for nt in &seq.seq {
-            match Nucleotide::from_u8(*nt) {
+            match Nucleotide::from_u8_letter(*nt) {
                 Ok(n) => seq_.push(n),
                 Err(_) => {
                     eprintln!("Unexpected char in GenBank sequence: {:?}", nt);

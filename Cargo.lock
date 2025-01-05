@@ -1913,6 +1913,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "lin_alg"
+version = "1.0.1"
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2670,6 +2674,7 @@ dependencies = [
  "egui_extras",
  "flate2",
  "gb-io",
+ "lin_alg",
  "na_seq",
  "num_enum",
  "quick-xml 0.37.1",

@@ -7,6 +7,7 @@ use eframe::{
     },
     emath::RectTransform,
 };
+use lin_alg::map_linear;
 use na_seq::restriction_enzyme::{ReMatch, RestrictionEnzyme};
 
 use crate::{
@@ -18,7 +19,7 @@ use crate::{
     misc_types::{Feature, FeatureType},
     primer::{Primer, PrimerDirection},
     state::State,
-    util::{map_linear, RangeIncl},
+    util::RangeIncl,
     Selection, StateUi,
 };
 

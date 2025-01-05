@@ -249,7 +249,7 @@ pub fn import_fasta(path: &Path) -> io::Result<(Seq, String, String)> {
 
     while let Some(Ok(record)) = records.next() {
         for r in record.seq() {
-            result.push(Nucleotide::from_u8(*r)?);
+            result.push(Nucleotide::from_u8_letter(*r)?);
             record.id().clone_into(&mut id); // Note that this overrides previous records, if applicable.
             record
                 .desc()

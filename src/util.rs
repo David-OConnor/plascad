@@ -96,15 +96,6 @@ impl fmt::Display for RangeIncl {
     }
 }
 
-/// Utility function to linearly map an input value to an output
-pub fn map_linear(val: f32, range_in: (f32, f32), range_out: (f32, f32)) -> f32 {
-    // todo: You may be able to optimize calls to this by having the ranges pre-store
-    // todo the total range vals.
-    let portion = (val - range_in.0) / (range_in.1 - range_in.0);
-
-    portion * (range_out.1 - range_out.0) + range_out.0
-}
-
 /// We use this for dividing a nucleotied sequence into rows, for display in a canvas UI.
 /// Each range is a nucleotide index, using our 1-based system.
 pub fn get_row_ranges(len: usize, chars_per_row: usize) -> Vec<RangeIncl> {

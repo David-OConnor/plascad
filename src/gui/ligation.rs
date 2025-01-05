@@ -9,6 +9,7 @@ use eframe::{
     },
     emath::RectTransform,
 };
+use lin_alg::map_linear;
 use na_seq::{
     ligation,
     ligation::{digest, LigationFragment},
@@ -25,7 +26,7 @@ use crate::{
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
     state::State,
-    util::{filter_res, map_linear, name_from_path},
+    util::{filter_res, name_from_path},
 };
 
 // This X offset must have room for the RE Nts displayed on the left.

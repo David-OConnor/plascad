@@ -188,7 +188,7 @@ impl AlignmentMap {
 
         let mut i = refs_start;
         let mut refs = Vec::new();
-        for _ in ..n_ref {
+        for _ in 0..n_ref {
             let ref_seq = RefSeq::from_buf(buf[i..].try_into().unwrap())?;
             i += 9 + ref_seq.name.len();
 
