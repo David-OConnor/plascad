@@ -182,7 +182,7 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
 
         state.ui.file_dialogs.cloning_load.update(ui.ctx());
 
-        if let Some(path) = state.ui.file_dialogs.cloning_load.take_selected() {
+        if let Some(path) = state.ui.file_dialogs.cloning_load.take_picked() {
             if let Some(state_loaded) = load_import(&path) {
                 // todo: Is there a way to do this without cloning?
                 setup_insert_seqs(

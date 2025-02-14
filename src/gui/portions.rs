@@ -103,7 +103,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
                     let mut val = format!("{:.2}", weight);
                     if ui
                         .add(TextEdit::singleline(&mut val).desired_width(40.))
-                        .changed
+                        .changed()
                     {
                         // let molarity_int: u32 = val.parse().unwrap_or_default();
                         *weight = val.parse().unwrap_or_default();
@@ -137,7 +137,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
                     let mut val = ((*v * 1_000.) as u32).to_string();
                     if ui
                         .add(TextEdit::singleline(&mut val).desired_width(40.))
-                        .changed
+                        .changed()
                     {
                         let molarity_int: u32 = val.parse().unwrap_or_default();
                         *v = molarity_int as f32 / 1_000.;
@@ -156,7 +156,7 @@ fn solutions_disp(portions: &mut PortionsState, ui: &mut Ui) {
                 let mut val = ((reagent.molarity * 1_000.) as u32).to_string();
                 if ui
                     .add(TextEdit::singleline(&mut val).desired_width(40.))
-                    .changed
+                    .changed()
                 {
                     let molarity_int: u32 = val.parse().unwrap_or_default();
                     reagent.molarity = molarity_int as f32 / 1_000.;

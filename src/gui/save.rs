@@ -118,12 +118,12 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
 
     let mut sync = false;
 
-    if let Some(path) = state.ui.file_dialogs.load.take_selected() {
+    if let Some(path) = state.ui.file_dialogs.load.take_picked() {
         sync = true;
         if let Some(loaded) = load_import(&path) {
             state.load(&loaded);
         }
-    } else if let Some(path) = state.ui.file_dialogs.save.take_selected() {
+    } else if let Some(path) = state.ui.file_dialogs.save.take_picked() {
         match StateToSave::from_state(state, state.active).save_to_file(&path) {
             Ok(_) => {
                 state.tabs_open[state.active] = Tab {
@@ -135,7 +135,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
             }
             Err(e) => eprintln!("Error saving in PlasCAD format: {:?}", e),
         };
-    } else if let Some(path) = state.ui.file_dialogs.export_fasta.take_selected() {
+    } else if let Some(path) = state.ui.file_dialogs.export_fasta.picked() {
         match export_fasta(
             state.get_seq(),
             &state.generic[state.active].metadata.plasmid_name,
@@ -151,7 +151,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
             }
             Err(e) => eprintln!("Error exporting to FASTA: {:?}", e),
         }
-    } else if let Some(path) = state.ui.file_dialogs.export_genbank.take_selected() {
+    } else if let Some(path) = state.ui.file_dialogs.export_genbank.take_picked() {
         let mut primer_matches = Vec::new();
         for primer in &state.generic[state.active].primers {
             for prim_match in &primer.volatile.matches {
@@ -170,7 +170,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
             }
             Err(e) => eprintln!("Error exporting to GenBank: {:?}", e),
         }
-    } else if let Some(path) = state.ui.file_dialogs.export_dna.take_selected() {
+    } else if let Some(path) = state.ui.file_dialogs.export_dna.take_picked() {
         match export_snapgene(&state.generic[state.active], &path) {
             Ok(_) => {
                 state.tabs_open[state.active] = Tab {

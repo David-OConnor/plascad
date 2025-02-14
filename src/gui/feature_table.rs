@@ -21,7 +21,7 @@ const LABEL_EDIT_WIDTH: f32 = 140.;
 /// A color selector for use with feature addition and editing.
 fn color_picker(val: &mut Option<Color>, feature_color: Color, ui: &mut Ui) {
     let mut color_override = val.is_some();
-    if ui.checkbox(&mut color_override, "").changed {
+    if ui.checkbox(&mut color_override, "").changed() {
         if color_override {
             // Default to the feature color when checking.
             *val = Some(feature_color);

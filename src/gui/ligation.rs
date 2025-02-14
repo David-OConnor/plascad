@@ -26,8 +26,9 @@ use crate::{
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
     state::State,
-    util::{filter_res, name_from_path},
+    util::{filter_res},
 };
+use crate::gui::navigation::name_from_path;
 
 // This X offset must have room for the RE Nts displayed on the left.
 const OFFSET_X: f32 = 60.;

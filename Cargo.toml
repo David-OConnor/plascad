@@ -26,9 +26,9 @@ path = "src/main.rs"
 #path = "src/feature_db_builder.rs"
 
 [dependencies]
-eframe = "^0.30.0"
-egui_extras = "^0.30.0"  # For tables.
-egui-file-dialog = "^0.8.0" #  For file dialogs.
+eframe = "^0.31.0"
+egui_extras = "^0.31.0"  # For tables.
+egui-file-dialog = "^0.9.0" #  For file dialogs.
 
 chrono = "^0.4.39"
 
