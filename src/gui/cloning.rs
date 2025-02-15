@@ -104,7 +104,7 @@ fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) -> 
             .inner_margin(border_width)
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    if ui.button(RichText::new("Select").color(btn_color)).clicked {
+                    if ui.button(RichText::new("Select").color(btn_color)).clicked() {
                         data.feature_selected = Some(i);
 
                         // todo: Handle wraps with this for circular plasmids instead of truncating.
@@ -174,7 +174,7 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
             )
             .clicked()
         {
-            state.ui.file_dialogs.cloning_load.select_file();
+            state.ui.file_dialogs.cloning_load.pick_file();
             state.ui.cloning_insert.show_insert_picker = true;
         }
 
@@ -182,7 +182,7 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
 
         state.ui.file_dialogs.cloning_load.update(ui.ctx());
 
-        if let Some(path) = state.ui.file_dialogs.cloning_load.take_selected() {
+        if let Some(path) = state.ui.file_dialogs.cloning_load.take_picked() {
             if let Some(state_loaded) = load_import(&path) {
                 // todo: Is there a way to do this without cloning?
                 setup_insert_seqs(

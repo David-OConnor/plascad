@@ -166,8 +166,7 @@ fn parse_dna(payload: &[u8]) -> io::Result<(Seq, SeqTopology)> {
     }
 
     let flags = payload[0];
-    let sequence = &payloadd .
-        d[1..];
+    let sequence = &payload[1..];
 
     let mut seq = Vec::new();
 

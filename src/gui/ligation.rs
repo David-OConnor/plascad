@@ -398,7 +398,7 @@ pub fn ligation_page(state: &mut State, ui: &mut Ui) {
 
                     let selected = state.ui.re.res_selected.contains(&re);
 
-                    if ui.button(select_color_text(&re.name, selected)).clicked {
+                    if ui.button(select_color_text(&re.name, selected)).clicked() {
                         if selected {
                             for (i, re_sel) in state.ui.re.res_selected.iter().enumerate() {
                                 if re_sel == re {

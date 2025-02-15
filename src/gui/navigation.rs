@@ -149,7 +149,7 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
                     .background_color(Color32::DARK_RED),
             )
             .on_hover_text("Shortcut: Middle click the tab to close it.")
-            .clicked
+            .clicked()
         {
             tab_removed = Some(state.active)
         };

@@ -1,7 +1,6 @@
 # PlasCAD
 
 [![Crate](https://img.shields.io/crates/v/plascad.svg)](https://crates.io/crates/plascad)
-[![Docs](https://docs.rs/plascad/badge.svg)](https://docs.rs/plascad)
 
 Design software for plasmid (vector) and primer creation and validation. Edit plasmids, perform PCR-based cloning, digest and ligate DNA fragments, and display details about expressed proteins. Integrates with online resources like NCBI and PDB.
 

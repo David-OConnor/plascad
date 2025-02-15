@@ -46,11 +46,11 @@ fn handle_global(state: &mut State, ip: &InputState) {
     }
 
     if ip.key_pressed(Key::S) && ip.modifiers.ctrl && ip.modifiers.shift {
-        state.ui.file_dialogs.save.select_file();
+        state.ui.file_dialogs.save.pick_file();
     }
 
     if ip.key_pressed(Key::O) && ip.modifiers.ctrl {
-        state.ui.file_dialogs.load.select_file();
+        state.ui.file_dialogs.load.pick_file();
     }
 
     state.ui.cursor_pos = ip.pointer.hover_pos().map(|pos| (pos.x, pos.y));

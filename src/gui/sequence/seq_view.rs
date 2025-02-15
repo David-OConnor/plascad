@@ -88,7 +88,7 @@ fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
 
         result.push(Shape::LineSegment {
             points: [cut_pos, bottom],
-            stroke: PathStroke::new(2., COLOR_RE),
+            stroke: Stroke::new(2., COLOR_RE),
         });
 
         let label_text = &re.name;

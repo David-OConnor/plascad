@@ -4,7 +4,7 @@
 //! PDB Data API: https://data.rcsb.org/#data-api
 
 use std::{io, time::Duration};
-
+use std::io::read_to_string;
 use bincode::{Decode, Encode};
 use na_seq::{seq_aa_to_str, seq_to_str_lower, Nucleotide};
 use serde::{Deserialize, Serialize};
@@ -226,27 +226,18 @@ pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, ReqError> {
 
     let payload_json = serde_json::to_string(&payload_search).unwrap();
 
-    let agent: Agent = ureq::AgentBuilder::new()
-        .timeout_read(Duration::from_secs(HTTP_TIMEOUT))
-        .timeout_write(Duration::from_secs(HTTP_TIMEOUT))
+    let config = Agent::config_builder()
+        .timeout_global(Some(Duration::from_secs(HTTP_TIMEOUT)))
         .build();
 
-    // todo: TS HTTP500
-    {
-        let a = agent
-            .post(PDB_SEARCH_API_URL)
-            .set("Content-Type", "application/json")
-            .send_string(&payload_json);
-
-        println!("A: {:?}", a);
-        println!("PAYLOAD JSON: {:?}", payload_json);
-    }
+    let agent: Agent = config.into();
 
     let resp: String = agent
         .post(PDB_SEARCH_API_URL)
-        .set("Content-Type", "application/json")
-        .send_string(&payload_json)?
-        .into_string()?;
+        .header("Content-Type", "application/json")
+        .send(&payload_json)?
+        .body_mut()
+        .read_to_string()?;
 
     let search_data: PdbSearchResults = serde_json::from_str(&resp).map_err(|_| ReqError {})?;
 
@@ -262,7 +253,8 @@ pub fn load_pdb_data(protein: &Protein) -> Result<Vec<PdbData>, ReqError> {
         let resp = agent
             .get(&format!("{PDB_DATA_API_URL}/{}", r.identifier))
             .call()?
-            .into_string()?;
+            .body_mut()
+            .read_to_string()?;
 
         let data: PdbDataResults = serde_json::from_str(&resp).map_err(|_| ReqError {})?;
 

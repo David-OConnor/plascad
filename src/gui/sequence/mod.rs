@@ -213,7 +213,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             println!("GF");
         }
 
-        if response.changed {
+        if response.changed() {
             state.ui.text_edit_active = true;
             state.search_seq = seq_from_str(&state.ui.search_input);
             state.ui.search_input = seq_to_str_lower(&state.search_seq); // Ensures only valid NTs are present.

@@ -192,9 +192,10 @@ impl PrefsToSave {
     }
 }
 
+// todo: same as in Graphics.
 /// Save to file, using Bincode. We currently use this for preference files.
 pub fn save<T: Encode>(path: &Path, data: &T) -> io::Result<()> {
-    let config = config::standard();
+    let config = bincode::config::standard();
 
     let encoded: Vec<u8> = bincode::encode_to_vec(data, config).unwrap();
 
@@ -203,9 +204,10 @@ pub fn save<T: Encode>(path: &Path, data: &T) -> io::Result<()> {
     Ok(())
 }
 
+// todo: same as in Graphics.
 /// Load from file, using Bincode. We currently use this for preference files.
 pub fn load<T: Decode>(path: &Path) -> io::Result<T> {
-    let config = config::standard();
+    let config = bincode::config::standard();
 
     let mut file = File::open(path)?;
     let mut buffer = Vec::new();
@@ -283,7 +285,7 @@ pub fn save_new_product(name: &str, state: &mut State, ui: &mut Ui) {
     state.ui.file_dialogs.save.config_mut().default_file_name = filename.to_string();
     state.ui.file_dialogs.save.save_file();
 
-    if let Some(path) = state.ui.file_dialogs.save.take_selected() {
+    if let Some(path) = state.ui.file_dialogs.save.take_picked() {
         match StateToSave::from_state(state, state.active).save_to_file(&path) {
             Ok(_) => {
                 // state.file_active = Some(Tab {
