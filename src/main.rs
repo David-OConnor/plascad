@@ -19,41 +19,35 @@
 // The input: your target product: Output: as much we can automate as possible.
 
 // Reading frame: Guess the frame, and truncate the start based on CodingRegion and Gene feature types?
-use std::{env, path::PathBuf, str::FromStr, sync::Arc};
+use std::{env, path::PathBuf, str::FromStr};
 
 use bincode::{Decode, Encode};
-use bio::alignment::Alignment;
-use cloning::{CloneStatus, CloningInsertData};
+use cloning::{CloningInsertData};
 use copypasta::ClipboardProvider;
 use eframe::{
     self,
     egui::{self},
 };
-use egui_file_dialog::{FileDialog, FileDialogConfig};
 use file_io::save::{load_import, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
 use na_seq::{
-    ligation::LigationFragment,
-    restriction_enzyme::{ReMatch, RestrictionEnzyme},
-    AaIdent, AminoAcid, Nucleotide, Seq,
+    restriction_enzyme::{RestrictionEnzyme},
+    AaIdent, Nucleotide, Seq,
 };
-use protein::Protein;
-use reading_frame::ReadingFrameMatch;
 use state::State;
 
 use crate::{
-    backbones::{Backbone, BackboneFilters},
-    cloning::BackboneSelected,
+    backbones::{BackboneFilters},
     file_io::{
-        save::{DEFAULT_DNA_FILE, DEFAULT_FASTA_FILE, DEFAULT_GENBANK_FILE, DEFAULT_PREFS_FILE},
-        FileDialogs, GenericData,
+        save::{ DEFAULT_PREFS_FILE},
+        FileDialogs,
     },
     gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_WIDTH},
-    misc_types::{FeatureDirection, FeatureType, SearchMatch},
-    pcr::{PcrUi, PolymeraseType},
-    primer::{Primer, TM_TARGET},
-    tags::TagMatch,
+    misc_types::{FeatureDirection, FeatureType,},
+    pcr::{PcrUi},
+    primer::{TM_TARGET},
     util::{get_window_title, RangeIncl},
+    navigation::Tab,
 };
 
 mod ab1;

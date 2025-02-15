@@ -171,7 +171,7 @@ fn parse_dna(payload: &[u8]) -> io::Result<(Seq, SeqTopology)> {
     let mut seq = Vec::new();
 
     for nt in sequence {
-        match Nucleotide::from_u8_letter(*nt) {
+        match Nucleotide::from_u8_upper(*nt) { // todo: QC upper/lower
             Ok(n) => seq.push(n),
             Err(_) => {
                 eprintln!("Unexpected char in DNA sequence: {:?}", nt);

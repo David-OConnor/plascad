@@ -9,12 +9,16 @@ use na_seq::seq_to_str_lower;
 use crate::{
     gui::{select_color_text, set_window_title, COL_SPACING, ROW_SPACING},
     state::State,
-    util::name_from_path,
 };
+use crate::util::PATH_ABBREV_MAX_LEN;
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 0, 110);
 pub const TAB_BUTTON_COLOR: Color32 = Color32::from_rgb(40, 80, 110);
 pub const DEFAULT_TAB_NAME: &str = "New plasmid";
+
+// When abbreviating a path, show no more than this many characters.
+const PATH_ABBREV_MAX_LEN: usize = 16;
+
 
 // todo: Alt name: Path loaded
 #[derive(Encode, Decode, Clone, Default, Debug)]
@@ -259,4 +263,28 @@ pub fn page_seq_top_selector(state: &mut State, ui: &mut Ui) {
         page_button(&mut state.ui.page_seq_top, PageSeqTop::Features, ui, true);
         page_button(&mut state.ui.page_seq_top, PageSeqTop::Primers, ui, true);
     });
+}
+
+/// A short, descriptive name for a given opened tab.
+pub fn name_from_path(path: &Option<PathBuf>, plasmid_name: &str, abbrev_name: bool) -> String {
+    let mut name = match path {
+        Some(path) => path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .map(|name_str| name_str.to_string())
+            .unwrap(),
+        None => {
+            if !plasmid_name.is_empty() {
+                plasmid_name.to_owned()
+            } else {
+                DEFAULT_TAB_NAME.to_owned()
+            }
+        }
+    };
+
+    if abbrev_name && name.len() > PATH_ABBREV_MAX_LEN {
+        name = format!("{}...", &name[..PATH_ABBREV_MAX_LEN].to_string())
+    }
+
+    name
 }
