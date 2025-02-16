@@ -51,7 +51,7 @@ impl eframe::App for State {
             if let Some(last_save) = LAST_PREF_SAVE {
                 if (now - last_save).as_secs() > PREFS_SAVE_INTERVAL {
                     LAST_PREF_SAVE = Some(now);
-                    self.save_prefs()
+                    self.update_save_prefs()
                 }
             } else {
                 // Initialize LAST_PREF_SAVE the first time it's accessed
@@ -189,7 +189,7 @@ impl State {
         }
 
         // So these tabs don't open on the next program run.
-        self.save_prefs()
+        self.update_save_prefs()
     }
 
     /// Convenience function, since we call this so frequently.
@@ -232,7 +232,7 @@ impl State {
         }
     }
 
-    pub fn save_prefs(&self) {
+    pub fn update_save_prefs(&self) {
         if let Err(e) = save(
             &PathBuf::from(DEFAULT_PREFS_FILE),
             &PrefsToSave::from_state(&self.ui, &self.tabs_open, &self.ion_concentrations),
@@ -434,7 +434,7 @@ impl State {
         self.reset_selections();
 
         // So these tabs opens on a new program run.
-        self.save_prefs(); // Save opened tabs.
+        self.update_save_prefs(); // Save opened tabs.
     }
 
     /// Copy the sequence of the selected text selection, feature or primer to the clipboard, if applicable.

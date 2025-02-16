@@ -104,7 +104,10 @@ fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) -> 
             .inner_margin(border_width)
             .show(ui, |ui| {
                 ui.horizontal(|ui| {
-                    if ui.button(RichText::new("Select").color(btn_color)).clicked() {
+                    if ui
+                        .button(RichText::new("Select").color(btn_color))
+                        .clicked()
+                    {
                         data.feature_selected = Some(i);
 
                         // todo: Handle wraps with this for circular plasmids instead of truncating.

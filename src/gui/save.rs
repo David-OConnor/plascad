@@ -131,7 +131,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                     ab1: false,
                 };
                 set_window_title(&state.tabs_open[state.active], ui);
-                state.save_prefs(); // Save opened tabs.
+                state.update_save_prefs(); // Save opened tabs.
             }
             Err(e) => eprintln!("Error saving in PlasCAD format: {:?}", e),
         };
@@ -147,7 +147,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                     ab1: false,
                 };
                 set_window_title(&state.tabs_open[state.active], ui);
-                state.save_prefs(); // Save opened tabs.
+                state.update_save_prefs(); // Save opened tabs.
             }
             Err(e) => eprintln!("Error exporting to FASTA: {:?}", e),
         }
@@ -166,7 +166,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                     ab1: false,
                 };
                 set_window_title(&state.tabs_open[state.active], ui);
-                state.save_prefs(); // Save opened tabs.
+                state.update_save_prefs(); // Save opened tabs.
             }
             Err(e) => eprintln!("Error exporting to GenBank: {:?}", e),
         }
@@ -178,7 +178,7 @@ pub fn save_section(state: &mut State, ui: &mut Ui) {
                     ab1: false,
                 };
                 set_window_title(&state.tabs_open[state.active], ui);
-                state.save_prefs(); // Save opened tabs.
+                state.update_save_prefs(); // Save opened tabs.
             }
             Err(e) => eprintln!("Error exporting to SnapGene: {:?}", e),
         };

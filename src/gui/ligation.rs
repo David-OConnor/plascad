@@ -20,15 +20,14 @@ use crate::{
     gui::{
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH},
         lin_maps::seq_lin_disp,
-        navigation::{get_tab_names, Tab},
+        navigation::{get_tab_names, name_from_path, Tab},
         select_color_text,
         theme::COLOR_ACTION,
         BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
     state::State,
-    util::{filter_res},
+    util::filter_res,
 };
-use crate::gui::navigation::name_from_path;
 
 // This X offset must have room for the RE Nts displayed on the left.
 const OFFSET_X: f32 = 60.;

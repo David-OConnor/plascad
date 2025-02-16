@@ -10,7 +10,6 @@ use crate::{
     gui::{select_color_text, set_window_title, COL_SPACING, ROW_SPACING},
     state::State,
 };
-use crate::util::PATH_ABBREV_MAX_LEN;
 
 pub const NAV_BUTTON_COLOR: Color32 = Color32::from_rgb(0, 0, 110);
 pub const TAB_BUTTON_COLOR: Color32 = Color32::from_rgb(40, 80, 110);
@@ -18,7 +17,6 @@ pub const DEFAULT_TAB_NAME: &str = "New plasmid";
 
 // When abbreviating a path, show no more than this many characters.
 const PATH_ABBREV_MAX_LEN: usize = 16;
-
 
 // todo: Alt name: Path loaded
 #[derive(Encode, Decode, Clone, Default, Debug)]

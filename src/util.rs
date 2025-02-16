@@ -1,10 +1,4 @@
-use std::{
-    cmp::min,
-    collections::HashSet,
-    fmt, io,
-    io::ErrorKind,
-    path::Path,
-};
+use std::{cmp::min, collections::HashSet, fmt, io, io::ErrorKind, path::Path};
 
 use bincode::{Decode, Encode};
 use eframe::egui::{pos2, Pos2};
@@ -26,7 +20,6 @@ use crate::{
 };
 
 const FEATURE_ANNOTATION_MATCH_THRESH: f32 = 0.95;
-
 
 /// A replacement for std::RangeInclusive, but copy type, and directly-accessible (mutable) fields.
 /// An official replacement is eventually coming, but not for a while likely.

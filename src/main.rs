@@ -22,7 +22,7 @@
 use std::{env, path::PathBuf, str::FromStr};
 
 use bincode::{Decode, Encode};
-use cloning::{CloningInsertData};
+use cloning::CloningInsertData;
 use copypasta::ClipboardProvider;
 use eframe::{
     self,
@@ -30,24 +30,20 @@ use eframe::{
 };
 use file_io::save::{load_import, QUICKSAVE_FILE};
 use gui::navigation::{Page, PageSeq};
-use na_seq::{
-    restriction_enzyme::{RestrictionEnzyme},
-    AaIdent, Nucleotide, Seq,
-};
+use na_seq::{restriction_enzyme::RestrictionEnzyme, AaIdent, Nucleotide, Seq};
 use state::State;
 
 use crate::{
-    backbones::{BackboneFilters},
-    file_io::{
-        save::{ DEFAULT_PREFS_FILE},
-        FileDialogs,
+    backbones::BackboneFilters,
+    file_io::{save::DEFAULT_PREFS_FILE, FileDialogs},
+    gui::{
+        navigation::{PageSeqTop, Tab},
+        WINDOW_HEIGHT, WINDOW_WIDTH,
     },
-    gui::{navigation::PageSeqTop, WINDOW_HEIGHT, WINDOW_WIDTH},
-    misc_types::{FeatureDirection, FeatureType,},
-    pcr::{PcrUi},
-    primer::{TM_TARGET},
+    misc_types::{FeatureDirection, FeatureType},
+    pcr::PcrUi,
+    primer::TM_TARGET,
     util::{get_window_title, RangeIncl},
-    navigation::Tab,
 };
 
 mod ab1;

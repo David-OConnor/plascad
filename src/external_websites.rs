@@ -3,8 +3,8 @@
 //! PDB Search API: https://search.rcsb.org/#search-api
 //! PDB Data API: https://data.rcsb.org/#data-api
 
-use std::{io, time::Duration};
-use std::io::read_to_string;
+use std::{io, io::read_to_string, time::Duration};
+
 use bincode::{Decode, Encode};
 use na_seq::{seq_aa_to_str, seq_to_str_lower, Nucleotide};
 use serde::{Deserialize, Serialize};
