@@ -1,7 +1,7 @@
 [package]
 name = "plascad"
 version = "0.7.8"
-edition = "2021"
+edition = "2024"
 authors = ["David O'Connor <the_alchemist@fastmail.com>"]
 #description = "Tools for plasmid and primer design, PCR, and related."
 description = "PlasCAD"
@@ -40,9 +40,10 @@ num_enum = "^0.7.3"  # reversing a u8-repr.
 bio = "^2.0.3"
 quick-xml = {version = "0.37.1", features = ["serialize"]}   # For Snapgene feature parsing and writing.
 # For parsing and writing GenBank files. todo: This seems to have a lot of sub-deps; Increases binary size a bit.
-gb-io = "^0.7.1"
+gb-io = "^0.8.0"
 
-lin_alg = {path = "../lin_alg"}
+lin_alg = { path = "../lin_alg" }
+#lin_alg = "^1.1.0"
 
 # We use bincode for saving and loading to files using our custom format.
 bincode = "^2.0.0-rc.3"

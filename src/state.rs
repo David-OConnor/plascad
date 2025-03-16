@@ -394,12 +394,12 @@ impl State {
 
     /// Load a single tab from file.
     pub fn load(&mut self, loaded: &StateToSave) {
-        let gen = &self.generic[self.active];
+        let gen_ = &self.generic[self.active];
 
         // Check if the current tab is a new file. If so, don't add a new tab.
-        if !gen.seq.is_empty()
-            || !gen.features.is_empty()
-            || !gen.primers.is_empty()
+        if !gen_.seq.is_empty()
+            || !gen_.features.is_empty()
+            || !gen_.primers.is_empty()
             || !self.portions[self.active].solutions.is_empty()
             || !self.ab1_data[self.active].sequence.is_empty()
         {

@@ -151,7 +151,7 @@ pub fn feature_seq_overlay(
     // Depends on font size.
     let rev_primer_offset = -1.;
 
-    for (i, (mut start, mut end)) in feature_ranges_px.iter().enumerate() {
+    for (i, &(mut start, mut end)) in feature_ranges_px.iter().enumerate() {
         // Display the overlay centered around the NT letters, vice above, for non-primer features.
         if feature_type != FeatureType::Primer {
             start.y += SEQ_ROW_SPACING_PX / 2. - 2.;

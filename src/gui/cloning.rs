@@ -156,10 +156,10 @@ fn insert_tab_selection(state: &mut State, ui: &mut Ui) {
                 .on_hover_text("Select an insert from this sequence")
                 .clicked()
             {
-                let gen = &state.generic[i];
+                let gen_ = &state.generic[i];
                 // This setup, including the break and variables, prevents borrow errors.
-                let g = gen.features.clone();
-                let s = gen.seq.clone();
+                let g = gen_.features.clone();
+                let s = gen_.seq.clone();
                 setup_insert_seqs(state, g, s);
 
                 state.ui.cloning_insert.show_insert_picker = true;

@@ -493,8 +493,8 @@ impl TuneSetting {
     /// If the 5p end is tunable, get its value, mutably.
     pub fn val_5p_mut(&mut self) -> Option<&mut usize> {
         match self {
-            Self::Only5(ref mut v) => Some(v),
-            Self::Both(ref mut v) => Some(&mut v.1),
+            Self::Only5(v) => Some(v),
+            Self::Both(v) => Some(&mut v.1),
             _ => None,
         }
     }
@@ -502,8 +502,8 @@ impl TuneSetting {
     /// If the 5p end is tunable, get its value, mutably.
     pub fn val_3p_mut(&mut self) -> Option<&mut usize> {
         match self {
-            Self::Only3(ref mut v) => Some(v),
-            Self::Both(ref mut v) => Some(&mut v.2),
+            Self::Only3(v) => Some(v),
+            Self::Both(v) => Some(&mut v.2),
             _ => None,
         }
     }

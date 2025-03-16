@@ -229,7 +229,7 @@ pub fn make_product_tab(state: &mut State, generic: Option<GenericData>) {
     // Note: This segment is almost a duplicate of `State::add_tab`, but retaining the generic data.
 
     let generic = match generic {
-        Some(gen) => gen,
+        Some(gen_) => gen_,
         None => state.generic[state.active].clone(),
     };
 
