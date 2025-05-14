@@ -293,7 +293,7 @@ pub fn export_genbank(
         }
 
         for note in &feature.notes {
-            qualifiers.push(((&*note.0).into(), Some(note.1.clone())));
+            qualifiers.push((note.0.clone().into(), Some(note.1.clone())));
         }
 
         match feature.direction {

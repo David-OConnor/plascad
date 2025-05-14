@@ -7,8 +7,9 @@ use na_seq::{
     Nucleotide,
 };
 
+use bio_apis::rcsb::PdbData;
+
 use crate::{
-    external_websites::PdbData,
     misc_types::{Feature, FeatureType},
     reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch},
     state::State,

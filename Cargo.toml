@@ -26,60 +26,57 @@ path = "src/main.rs"
 #path = "src/feature_db_builder.rs"
 
 [dependencies]
-eframe = "^0.31.0"
-egui_extras = "^0.31.0"  # For tables.
-egui-file-dialog = "^0.9.0" #  For file dialogs.
+eframe = "0.31.0"
+egui_extras = "0.31.0"  # For tables.
+egui-file-dialog = "0.9.0" #  For file dialogs.
 
-chrono = "^0.4.39"
+chrono = "0.4.41"
 
-serde = { version = "^1.0.216", features = ["derive"] }
-num_enum = "^0.7.3"  # reversing a u8-repr.
+serde = { version = "1.0.216", features = ["derive"] }
+num_enum = "0.7.3"  # reversing a u8-repr.
 
 # For FASTA read and write. Note: We can ditch this for a custom parser; FASTA is easy.
 # Note, 2024-08-09: Removing this appears to have minimal impact on binary size.
-bio = "^2.0.3"
+bio = "2.2.0"
 quick-xml = {version = "0.37.1", features = ["serialize"]}   # For Snapgene feature parsing and writing.
 # For parsing and writing GenBank files. todo: This seems to have a lot of sub-deps; Increases binary size a bit.
-gb-io = "^0.8.0"
+gb-io = "0.9.0"
 
-lin_alg = { path = "../lin_alg" }
-#lin_alg = "^1.1.0"
+lin_alg = "1.1.8"
+na_seq = "0.2.5"
+bio_apis = "0.1.0"
 
 # We use bincode for saving and loading to files using our custom format.
-bincode = "^2.0.0-rc.3"
-
-# For opening web pages. Hopefully this doesn't increase binary size too much.
-webbrowser = "^1.0.1"
-url = "^2.5.4"
+bincode = "2.0.1"
 
 # For creating JSON payloads for the PDB search API.
-#tinyjson = "^2.5.1"
-serde_json = {version = "^1.0.127"}
+serde_json = {version = "1.0.127"}
 
 # For clipboard operations not supported directly by EGUI
-copypasta = "^0.10.1"
+copypasta = "0.10.1"
 #winreg = "0.52.0"  # For setting up file associations on Windows
 
-# HTTP client, for loading PDB data.
-# ureq = { version = "^3.0.4", features = ["tls"], default-features = false }
-ureq = "^3.0.4"
-
+webbrowser = "1.0.1"
 # We use strum to iterate over enums.
 # todo: Check sup-deps/binary impact etc
-strum = "^0.26.3"
-strum_macros = "^0.26.4"
+strum = "0.27.1"
+strum_macros = "0.27.1"
 
+# We use Flate2 for decompressing BAM files. todo: Remove if you remove that functionality.
+flate2 = "1.1.1"
+bgzip = "0.3.1"
+
+
+[patch.crates-io]
 na_seq = { path = "../na_seq" }
-#na_seq = "^0.2.5"
-byteorder = "1.5.0"  # Currently used in the AB1 parser. Remove A/R
+lin_alg = { path = "../../lin_alg" }
+bio_apis = { path = "../bio_apis" }
 
-# We use Flat2 for decompressing BAM files. todo: Remove if you remove that functionality.
-flate2 = "^1.0.35"
-bgzip = "^0.3.1"
+
 
 [build-dependencies]
 # These are for embedding an application icon, on Windows.
-winresource = "^0.1.17"
+winresource = "0.1.20"
 
 # https://doc.rust-lang.org/cargo/reference/profiles.html
 [profile.release]

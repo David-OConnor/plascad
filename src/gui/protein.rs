@@ -7,9 +7,10 @@ use eframe::{
     epaint::PathShape,
 };
 use na_seq::{AaIdent, AminoAcid};
+use bio_apis::rcsb::{self, PdbData};
+
 
 use crate::{
-    external_websites::{load_pdb_data, load_pdb_structure, open_pdb, open_pdb_3d_view, PdbData},
     gui::{
         circle::TICK_COLOR,
         theme::{COLOR_ACTION, COLOR_INFO},
@@ -152,18 +153,18 @@ fn pdb_links(data: &PdbData, ui: &mut Ui) {
             .button(RichText::new("PDB").color(COLOR_ACTION))
             .clicked()
         {
-            open_pdb(&data.rcsb_id);
+            rcsb::open_overview(&data.rcsb_id);
         }
 
         if ui.button(RichText::new("3D").color(COLOR_ACTION)).clicked() {
-            open_pdb_3d_view(&data.rcsb_id);
+            rcsb::open_3d_view(&data.rcsb_id);
         }
 
         if ui
             .button(RichText::new("Structure").color(COLOR_ACTION))
             .clicked()
         {
-            load_pdb_structure(&data.rcsb_id);
+            rcsb::open_structure(&data.rcsb_id);
         }
         ui.add_space(COL_SPACING / 2.);
 
@@ -186,7 +187,7 @@ fn draw_proteins(state: &mut State, ui: &mut Ui) {
                 .button(RichText::new("PDB search").color(COLOR_ACTION))
                 .clicked()
             {
-                match load_pdb_data(protein) {
+                match rcsb::pdb_data_from_seq(&protein.aa_seq) {
                     Ok(pdb_data) => {
                         state.ui.pdb_error_received = false;
                         protein.pdb_data = pdb_data;

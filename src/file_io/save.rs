@@ -60,7 +60,7 @@ pub struct StateToSave {
     pub path_loaded: Option<PathBuf>,
 }
 
-impl Encode for GenericData {
+impl Encode<> for GenericData {
     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
         // Serialize seq using our custom serializer
         let seq_data = serialize_seq_bin(&self.seq);
@@ -76,7 +76,7 @@ impl Encode for GenericData {
     }
 }
 
-impl Decode for GenericData {
+impl Decode<()> for GenericData {
     fn decode<D: bincode::de::Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
         // Deserialize seq using our custom deserializer
         let seq_data = Vec::decode(decoder)?;
@@ -206,7 +206,7 @@ pub fn save<T: Encode>(path: &Path, data: &T) -> io::Result<()> {
 
 // todo: same as in Graphics.
 /// Load from file, using Bincode. We currently use this for preference files.
-pub fn load<T: Decode>(path: &Path) -> io::Result<T> {
+pub fn load<T: Decode<()>>(path: &Path) -> io::Result<T> {
     let config = bincode::config::standard();
 
     let mut file = File::open(path)?;
