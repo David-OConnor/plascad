@@ -1,20 +1,19 @@
+use bio_apis::rcsb::{self, PdbData};
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, ScrollArea,
-        Sense, Shape, Stroke, Ui,
+        Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, ScrollArea, Sense, Shape,
+        Stroke, Ui, pos2, vec2,
     },
     emath::RectTransform,
     epaint::PathShape,
 };
 use na_seq::{AaIdent, AminoAcid};
-use bio_apis::rcsb::{self, PdbData};
-
 
 use crate::{
     gui::{
+        BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
         circle::TICK_COLOR,
         theme::{COLOR_ACTION, COLOR_INFO},
-        BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
     misc_types::FeatureType,
     state::State,

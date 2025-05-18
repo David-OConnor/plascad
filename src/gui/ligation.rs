@@ -4,26 +4,26 @@ use std::{collections::HashMap, path::PathBuf};
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, ScrollArea,
-        Sense, Shape, Stroke, Ui,
+        Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, ScrollArea, Sense, Shape,
+        Stroke, Ui, pos2, vec2,
     },
     emath::RectTransform,
 };
 use lin_alg::map_linear;
 use na_seq::{
     ligation,
-    ligation::{digest, LigationFragment},
+    ligation::{LigationFragment, digest},
     seq_to_str_lower,
 };
 
 use crate::{
     gui::{
+        BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
         circle::{FEATURE_OUTLINE_COLOR, FEATURE_STROKE_WIDTH},
         lin_maps::seq_lin_disp,
-        navigation::{get_tab_names, name_from_path, Tab},
+        navigation::{Tab, get_tab_names, name_from_path},
         select_color_text,
         theme::COLOR_ACTION,
-        BACKGROUND_COLOR, COL_SPACING, ROW_SPACING,
     },
     state::State,
     util::filter_res,

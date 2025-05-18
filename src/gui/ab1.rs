@@ -3,13 +3,13 @@
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape,
-        Slider, Stroke, Ui,
+        Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, RichText, Sense, Shape, Slider,
+        Stroke, Ui, pos2, vec2,
     },
     emath::RectTransform,
     epaint::PathShape,
 };
-use na_seq::{seq_to_str_lower, Nucleotide};
+use na_seq::{Nucleotide, seq_to_str_lower};
 
 use crate::{
     ab1::SeqRecordAb1,
@@ -238,11 +238,7 @@ pub fn ab1_page(state: &mut State, ui: &mut Ui) {
 
     let slider_max = {
         let v = data.sequence.len() as isize - num_nts_disp as isize + 1;
-        if v > 0 {
-            v as usize
-        } else {
-            0
-        }
+        if v > 0 { v as usize } else { 0 }
     };
 
     ui.add(Slider::new(&mut state.ui.ab1_start_i, 0..=slider_max));

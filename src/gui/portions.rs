@@ -7,12 +7,12 @@ use eframe::{
 
 use crate::{
     gui::{
-        theme::{COLOR_ACTION, COLOR_INFO},
         COL_SPACING, ROW_SPACING,
+        theme::{COLOR_ACTION, COLOR_INFO},
     },
     portions::{
-        media_prep, MediaPrepInput, PlateSize, PortionsState, Reagent, ReagentPrep, ReagentType,
-        Solution,
+        MediaPrepInput, PlateSize, PortionsState, Reagent, ReagentPrep, ReagentType, Solution,
+        media_prep,
     },
 };
 // todo: Make a non-gui portions module once this becomes unweildy.

@@ -5,13 +5,13 @@ use egui_extras::{Column, TableBuilder};
 use na_seq::{seq_from_str, seq_to_str_lower};
 
 use crate::{
-    gui::{
-        theme::{COLOR_ACTION, COLOR_INFO},
-        COL_SPACING, ROW_SPACING,
-    },
-    primer::{make_amplification_primers, IonConcentrations, Primer, TuneSetting},
-    state::State,
     Selection,
+    gui::{
+        COL_SPACING, ROW_SPACING,
+        theme::{COLOR_ACTION, COLOR_INFO},
+    },
+    primer::{IonConcentrations, Primer, TuneSetting, make_amplification_primers},
+    state::State,
 };
 
 const TABLE_ROW_HEIGHT: f32 = 60.;

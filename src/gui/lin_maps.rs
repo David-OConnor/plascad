@@ -2,8 +2,8 @@
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, Sense, Shape, Stroke,
-        Ui,
+        Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, Sense, Shape, Stroke, Ui, pos2,
+        vec2,
     },
     emath::RectTransform,
 };
@@ -11,16 +11,16 @@ use lin_alg::map_linear;
 use na_seq::restriction_enzyme::{ReMatch, RestrictionEnzyme};
 
 use crate::{
+    Selection, StateUi,
     file_io::GenericData,
     gui::{
-        circle::{FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH, RE_WIDTH},
         BACKGROUND_COLOR, COLOR_RE, COLOR_RE_HIGHLIGHTED, LINEAR_MAP_HEIGHT,
+        circle::{FEATURE_OUTLINE_COLOR, FEATURE_OUTLINE_SELECTED, FEATURE_STROKE_WIDTH, RE_WIDTH},
     },
     misc_types::{Feature, FeatureType},
     primer::{Primer, PrimerDirection},
     state::State,
     util::RangeIncl,
-    Selection, StateUi,
 };
 
 // How many nucleotides the zoomed-in display at the top of the page represents.

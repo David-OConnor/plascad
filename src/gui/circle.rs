@@ -4,8 +4,8 @@ use core::f32::consts::TAU;
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, CursorIcon, FontFamily, FontId, Frame, Pos2, Rect, RichText,
-        ScrollArea, Sense, Shape, Slider, Stroke, Ui,
+        Align2, Color32, CursorIcon, FontFamily, FontId, Frame, Pos2, Rect, RichText, ScrollArea,
+        Sense, Shape, Slider, Stroke, Ui, pos2, vec2,
     },
     emath::RectTransform,
     epaint::{CircleShape, PathShape},
@@ -16,15 +16,15 @@ use na_seq::{
 };
 
 use crate::{
+    Selection,
     gui::{
+        COL_SPACING, COLOR_RE, COLOR_SEQ, PRIMER_FWD_COLOR, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
         feature_from_index, feature_table::feature_table, get_cursor_text, lin_maps,
-        lin_maps::MINI_DISP_NT_LEN, navigation::NAV_BUTTON_COLOR, select_feature, COLOR_RE,
-        COLOR_SEQ, COL_SPACING, PRIMER_FWD_COLOR, ROW_SPACING, SPLIT_SCREEN_MAX_HEIGHT,
+        lin_maps::MINI_DISP_NT_LEN, navigation::NAV_BUTTON_COLOR, select_feature,
     },
     misc_types::{Feature, FeatureDirection, FeatureType},
     primer::Primer,
     state::State,
-    Selection,
 };
 
 const BACKGROUND_COLOR: Color32 = Color32::from_rgb(10, 20, 10);
@@ -743,7 +743,7 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
     for note in &feature.notes {
         // Don't let a note overflow. Note: Wrapping would be preferred to this cutoff.
         let max_len = (0.2 * data.radius) as usize; // Note: This depends on font size.
-                                                    // Newlines will interfere with our current line-spacing system.
+        // Newlines will interfere with our current line-spacing system.
         let text: String = format!("{}: {}", note.0, note.1.replace('\n', " "))
             .chars()
             .take(max_len)

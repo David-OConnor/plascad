@@ -1,22 +1,23 @@
 use std::{cmp::min, collections::HashSet, fmt, io, io::ErrorKind, path::Path};
 
 use bincode::{Decode, Encode};
-use eframe::egui::{pos2, Pos2};
+use eframe::egui::{Pos2, pos2};
 use na_seq::{
+    Nucleotide,
     ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
     restriction_enzyme::RestrictionEnzyme,
-    seq_complement, Nucleotide,
+    seq_complement,
 };
 
 use crate::{
+    Color, ReUi,
     file_io::save::QUICKSAVE_FILE,
     gui::{
-        sequence::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
         WINDOW_TITLE,
+        sequence::seq_view::{NT_WIDTH_PX, SEQ_ROW_SPACING_PX, TEXT_X_START, TEXT_Y_START},
     },
     misc_types::Feature,
     state::{State, StateVolatile},
-    Color, ReUi,
 };
 
 const FEATURE_ANNOTATION_MATCH_THRESH: f32 = 0.95;

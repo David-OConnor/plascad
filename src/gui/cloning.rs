@@ -4,27 +4,26 @@ use std::borrow::Cow;
 use eframe::egui::{
     Color32, ComboBox, Frame, Grid, RichText, ScrollArea, Stroke, TextEdit, Ui, Vec2,
 };
-use na_seq::{insert_into_seq, seq_from_str, seq_to_str_lower, Nucleotide};
+use na_seq::{Nucleotide, insert_into_seq, seq_from_str, seq_to_str_lower};
 use strum::IntoEnumIterator;
 
 use crate::{
     backbones::{Backbone, BackboneFilters, CloningTechnique},
     cloning::{
-        make_product_tab, setup_insert_seqs, BackboneSelected, CloneStatus, CloningInsertData,
-        Status, RE_INSERT_BUFFER,
+        BackboneSelected, CloneStatus, CloningInsertData, RE_INSERT_BUFFER, Status,
+        make_product_tab, setup_insert_seqs,
     },
-    file_io::{save::load_import, GenericData},
+    file_io::{GenericData, save::load_import},
     gui::{
-        find_features,
+        COL_SPACING, ROW_SPACING, find_features,
         lin_maps::seq_lin_disp,
         navigation::get_tab_names,
         select_color_text,
         theme::{COLOR_ACTION, COLOR_INFO},
-        COL_SPACING, ROW_SPACING,
     },
     misc_types::{Feature, FeatureType},
     state::State,
-    util::{merge_feature_sets, RangeIncl},
+    util::{RangeIncl, merge_feature_sets},
 };
 
 const PASS_COLOR: Color32 = Color32::LIGHT_GREEN;

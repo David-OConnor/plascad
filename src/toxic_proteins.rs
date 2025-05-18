@@ -1,8 +1,8 @@
 //! Contains code related to identifying toxic proteins.
 
 use na_seq::{
-    amino_acids::{AminoAcid, CodingResult},
     Nucleotide,
+    amino_acids::{AminoAcid, CodingResult},
 };
 
 use crate::protein::proteins_from_seq;

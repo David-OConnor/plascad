@@ -22,20 +22,19 @@ const HTML_TAGS: [&str; 8] = [
     "<html>", "</html>", "<body>", "</body>", "<i>", "</i>", "<b>", "</b>",
 ];
 
-use na_seq::{seq_from_str, seq_to_str_lower, Nucleotide, Seq, SeqTopology};
+use na_seq::{Nucleotide, Seq, SeqTopology, seq_from_str, seq_to_str_lower};
 
 use crate::{
     file_io::{
-        get_filename,
+        GenericData, get_filename,
         snapgene::feature_xml::{
             FeatureSnapGene, Features, Notes, PrimerSnapGene, Primers, Qualifier, QualifierValue,
             Segment,
         },
-        GenericData,
     },
     misc_types::{Feature, FeatureDirection, FeatureType},
     primer::{Primer, PrimerData},
-    util::{color_from_hex, color_to_hex, RangeIncl},
+    util::{RangeIncl, color_from_hex, color_to_hex},
 };
 
 const COOKIE_PACKET_LEN: usize = 14;

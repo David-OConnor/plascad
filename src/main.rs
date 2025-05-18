@@ -28,22 +28,22 @@ use eframe::{
     self,
     egui::{self},
 };
-use file_io::save::{load_import, QUICKSAVE_FILE};
+use file_io::save::{QUICKSAVE_FILE, load_import};
 use gui::navigation::{Page, PageSeq};
-use na_seq::{restriction_enzyme::RestrictionEnzyme, AaIdent, Nucleotide, Seq};
+use na_seq::{AaIdent, Nucleotide, Seq, restriction_enzyme::RestrictionEnzyme};
 use state::State;
 
 use crate::{
     backbones::BackboneFilters,
-    file_io::{save::DEFAULT_PREFS_FILE, FileDialogs},
+    file_io::{FileDialogs, save::DEFAULT_PREFS_FILE},
     gui::{
-        navigation::{PageSeqTop, Tab},
         WINDOW_HEIGHT, WINDOW_WIDTH,
+        navigation::{PageSeqTop, Tab},
     },
     misc_types::{FeatureDirection, FeatureType},
     pcr::PcrUi,
     primer::TM_TARGET,
-    util::{get_window_title, RangeIncl},
+    util::{RangeIncl, get_window_title},
 };
 
 mod ab1;

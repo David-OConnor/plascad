@@ -4,11 +4,10 @@ use eframe::egui::{Color32, ComboBox, Grid, RichText, TextEdit, Ui, Vec2};
 
 use crate::{
     gui::{
-        lin_maps,
+        COL_SPACING, ROW_SPACING, lin_maps,
         theme::{COLOR_ACTION, COLOR_INFO},
-        COL_SPACING, ROW_SPACING,
     },
-    pcr::{make_amplicon_tab, PcrUi, PolymeraseType, TempTime},
+    pcr::{PcrUi, PolymeraseType, TempTime, make_amplicon_tab},
     primer::{Primer, PrimerDirection, TM_TARGET},
     state::State,
     util::RangeIncl,

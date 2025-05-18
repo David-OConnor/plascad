@@ -9,33 +9,33 @@ use std::{
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::egui::Context;
 use na_seq::{
-    insert_into_seq,
+    Nucleotide, Seq, insert_into_seq,
     ligation::LigationFragment,
     re_lib::load_re_library,
-    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
-    seq_to_str_lower, Nucleotide, Seq,
+    restriction_enzyme::{ReMatch, RestrictionEnzyme, find_re_matches},
+    seq_to_str_lower,
 };
 
 use crate::{
+    PREFS_SAVE_INTERVAL, Selection, StateUi,
     ab1::SeqRecordAb1,
     alignment::AlignmentState,
-    backbones::{load_backbone_library, Backbone},
+    backbones::{Backbone, load_backbone_library},
     cloning::CloningState,
     file_io::{
-        save::{load, load_import, save, PrefsToSave, StateToSave, DEFAULT_PREFS_FILE},
         GenericData,
+        save::{DEFAULT_PREFS_FILE, PrefsToSave, StateToSave, load, load_import, save},
     },
     gui,
     gui::navigation::Tab,
-    misc_types::{find_search_matches, SearchMatch, MIN_SEARCH_LEN},
+    misc_types::{MIN_SEARCH_LEN, SearchMatch, find_search_matches},
     pcr::PcrParams,
     portions::PortionsState,
     primer::IonConcentrations,
-    protein::{proteins_from_seq, sync_cr_orf_matches, Protein},
-    reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch},
+    protein::{Protein, proteins_from_seq, sync_cr_orf_matches},
+    reading_frame::{ReadingFrame, ReadingFrameMatch, find_orf_matches},
     tags::TagMatch,
     util::RangeIncl,
-    Selection, StateUi, PREFS_SAVE_INTERVAL,
 };
 
 impl eframe::App for State {

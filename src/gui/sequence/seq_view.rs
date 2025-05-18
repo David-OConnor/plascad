@@ -2,8 +2,8 @@
 
 use eframe::{
     egui::{
-        pos2, vec2, Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense,
-        Shape, Stroke, Ui,
+        Align2, Color32, FontFamily, FontId, Frame, Pos2, Rect, ScrollArea, Sense, Shape, Stroke,
+        Ui, pos2, vec2,
     },
     emath::RectTransform,
     epaint::PathStroke,
@@ -11,20 +11,20 @@ use eframe::{
 use na_seq::amino_acids::{AminoAcid, CodingResult};
 
 use crate::{
+    Nucleotide, Selection, StateUi,
     gui::{
-        feature_from_index, get_cursor_text,
+        BACKGROUND_COLOR, COL_SPACING, COLOR_RE, COLOR_SEQ, COLOR_SEQ_DIMMED, feature_from_index,
+        get_cursor_text,
         navigation::page_button,
         select_feature,
         sequence::{
             feature_overlay::{draw_features, draw_selection},
             primer_overlay,
         },
-        BACKGROUND_COLOR, COLOR_RE, COLOR_SEQ, COLOR_SEQ_DIMMED, COL_SPACING,
     },
     reading_frame::ReadingFrame,
     state::State,
-    util::{get_row_ranges, pixel_to_seq_i, seq_i_to_pixel, RangeIncl},
-    Nucleotide, Selection, StateUi,
+    util::{RangeIncl, get_row_ranges, pixel_to_seq_i, seq_i_to_pixel},
 };
 
 // Pub for use in `util` functions.

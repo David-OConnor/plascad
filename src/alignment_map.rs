@@ -10,7 +10,7 @@ use std::{
     path::Path,
 };
 
-use bgzip::{index::BGZFIndex, read::IndexedBGZFReader, BGZFError, BGZFReader};
+use bgzip::{BGZFError, BGZFReader, index::BGZFIndex, read::IndexedBGZFReader};
 use flate2::read::{GzDecoder, MultiGzDecoder};
 
 /// Syntax helper for parsing multi-byte fields into primitives.
@@ -18,9 +18,7 @@ use flate2::read::{GzDecoder, MultiGzDecoder};
 /// Example: `parse_le!(bytes, i32, 5..9);`
 #[macro_export]
 macro_rules! parse_le {
-    ($bytes:expr, $t:ty, $range:expr) => {{
-        <$t>::from_le_bytes($bytes[$range].try_into().unwrap())
-    }};
+    ($bytes:expr, $t:ty, $range:expr) => {{ <$t>::from_le_bytes($bytes[$range].try_into().unwrap()) }};
 }
 
 const MAGIC: [u8; 4] = [b'B', b'A', b'M', 1];

@@ -3,12 +3,13 @@
 use std::{mem, path::PathBuf};
 
 use eframe::egui::{Event, InputState, Key, PointerButton, Ui};
-use na_seq::{seq_from_str, Nucleotide};
+use na_seq::{Nucleotide, seq_from_str};
 
 use crate::{
+    StateUi,
     file_io::{
         save,
-        save::{load_import, StateToSave, QUICKSAVE_FILE},
+        save::{QUICKSAVE_FILE, StateToSave, load_import},
     },
     gui::{
         navigation::{Page, Tab},
@@ -16,7 +17,6 @@ use crate::{
     },
     state::State,
     util::RangeIncl,
-    StateUi,
 };
 
 /// Handle hotkeys and clicks that affect all pages.
@@ -174,7 +174,7 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
                     }
 
                     let i = i + 1; // Insert after this nucleotide; not before.
-                                   // Don't allow accidental nt insertion when the user is entering into the search bar.
+                    // Don't allow accidental nt insertion when the user is entering into the search bar.
 
                     // Add NTs.
                     if ip.key_pressed(Key::A) && !ip.modifiers.ctrl {

@@ -45,88 +45,44 @@ impl Default for FileDialogs {
             // todo: Explore other optiosn A/R
             ..Default::default()
         }
-        .add_file_filter(
-            "PlasCAD files",
-            Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
-        )
-        .add_file_filter(
-            "FASTA files",
-            Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
-        )
-        .add_file_filter(
-            "GenBank files",
-            Arc::new(|p| {
-                let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                ext == "gb" || ext == "gbk"
-            }),
-        )
-        .add_file_filter(
-            "SnapGene DNA files",
-            Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
-        )
-        .add_file_filter(
-            // Note: We experience glitches if this name is too long. (Window extends horizontally)
-            "PCAD/FASTA/GB/SG/AB1",
-            Arc::new(|p| {
-                let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                ext == "pcad"
-                    || ext == "fasta"
-                    || ext == "gb"
-                    || ext == "gbk"
-                    || ext == "dna"
-                    || ext == "ab1"
-            }),
+        .add_file_filter_extensions("PlasCAD", vec!["pcad"])
+        .add_file_filter_extensions("FASTA", vec!["fasta"])
+        .add_file_filter_extensions("GenBank", vec!["gb, gbk"])
+        .add_file_filter_extensions("SnapGene DNA", vec!["dna"])
+        .add_file_filter_extensions(
+            "PCAD/FASTA/GB/DNA/AB1",
+            vec!["pcad", "fasta, gb, gbk, dna, ab1"],
         );
 
         let save = FileDialog::new()
             // .add_quick_access("Project", |s| {
             //     s.add_path("☆  Examples", "examples");
             // })
-            .add_file_filter(
-                "PlasCAD files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "pcad"),
-            )
-            .default_file_filter("PlasCAD files")
-            .default_file_name(QUICKSAVE_FILE)
-            .id("0");
+            .add_save_extension("PlasCAD", "pcad")
+            .default_save_extension("PlasCAD")
+            .default_file_name(QUICKSAVE_FILE);
+        // .id("0");
 
         let import = FileDialog::with_config(cfg_import.clone())
-            .default_file_filter("PCAD/FASTA/GB/SG")
-            .id("1");
+            .default_file_filter("PCAD/FASTA/GB/DNA/AB1");
 
         let export_fasta = FileDialog::new()
-            .add_file_filter(
-                "FASTA files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "fasta"),
-            )
-            .default_file_filter("FASTA files")
-            .default_file_name(DEFAULT_FASTA_FILE)
-            .id("3");
+            .add_save_extension("FASTA", "fasta")
+            .default_save_extension("FASTA")
+            .default_file_name(DEFAULT_FASTA_FILE);
 
         let export_genbank = FileDialog::new()
-            .add_file_filter(
-                "GenBank files",
-                Arc::new(|p| {
-                    let ext = p.extension().unwrap_or_default().to_ascii_lowercase();
-                    ext == "gb" || ext == "gbk"
-                }),
-            )
-            .default_file_filter("GenBank files")
-            .default_file_name(DEFAULT_GENBANK_FILE)
-            .id("4");
+            .add_save_extension("GenBank", "gb")
+            .default_save_extension("GenBank")
+            .default_file_name(DEFAULT_GENBANK_FILE);
 
         let export_dna = FileDialog::new()
-            .add_file_filter(
-                "SnapGene DNA files",
-                Arc::new(|p| p.extension().unwrap_or_default().to_ascii_lowercase() == "dna"),
-            )
-            .default_file_filter("SnapGene DNA files")
-            .default_file_name(DEFAULT_DNA_FILE)
-            .id("5");
+            .add_save_extension("SnapGene DNA", "dna")
+            .default_save_extension("SnapGene DNA")
+            .default_file_name(DEFAULT_DNA_FILE);
 
-        let cloning_import = FileDialog::with_config(cfg_import)
-            .default_file_filter("PCAD/FASTA/GB/SG")
-            .id("6");
+        let cloning_import =
+            FileDialog::with_config(cfg_import).default_file_filter("PCAD/FASTA/GB/DNA/AB1");
 
         Self {
             save,

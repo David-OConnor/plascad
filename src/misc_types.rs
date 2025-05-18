@@ -4,9 +4,9 @@ use bincode::{Decode, Encode};
 use na_seq::Nucleotide;
 
 use crate::{
-    primer::PrimerDirection,
-    util::{match_subseq, RangeIncl},
     Color,
+    primer::PrimerDirection,
+    util::{RangeIncl, match_subseq},
 };
 pub const MIN_SEARCH_LEN: usize = 3;
 

@@ -2,10 +2,10 @@ use eframe::egui::{Color32, FontFamily, FontId, RichText, ScrollArea, TextEdit, 
 use na_seq::{seq_aa_from_str, seq_aa_to_str, seq_from_str, seq_to_str_lower};
 
 use crate::{
-    alignment::{align_pairwise_aa, align_pairwise_nt, distance_aa, distance_nt, AlignmentMode},
+    alignment::{AlignmentMode, align_pairwise_aa, align_pairwise_nt, distance_aa, distance_nt},
     gui::{
-        theme::{COLOR_ACTION, COLOR_INFO},
         COL_SPACING, ROW_SPACING,
+        theme::{COLOR_ACTION, COLOR_INFO},
     },
     state::State,
 };

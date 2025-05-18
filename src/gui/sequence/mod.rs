@@ -1,6 +1,6 @@
 //! This module contains GUI code related to the sequence view.
 
-use eframe::egui::{text::CursorRange, Color32, Frame, RichText, ScrollArea, TextEdit, Ui};
+use eframe::egui::{Color32, Frame, RichText, ScrollArea, TextEdit, Ui, text::CursorRange};
 use na_seq::{seq_complement, seq_from_str, seq_to_str_lower};
 
 // todo: monospace font for all seqs.
@@ -10,18 +10,18 @@ use crate::misc_types::{Feature, FeatureDirection, MIN_SEARCH_LEN};
 // todo: monospace font for all seqs.
 use crate::state::State;
 use crate::{
+    Selection,
     gui::{
+        PRIMER_FWD_COLOR, SPLIT_SCREEN_MAX_HEIGHT,
         circle::feature_range_sliders,
         feature_table::{direction_picker, feature_table},
-        navigation::{page_seq_selector, page_seq_top_selector, PageSeq, PageSeqTop},
+        navigation::{PageSeq, PageSeqTop, page_seq_selector, page_seq_top_selector},
         primer_table::primer_details,
         sequence::seq_view::sequence_vis,
         theme::COLOR_ACTION,
-        PRIMER_FWD_COLOR, SPLIT_SCREEN_MAX_HEIGHT,
     },
     primer::{Primer, PrimerData},
     util::RangeIncl,
-    Selection,
 };
 
 mod feature_overlay;

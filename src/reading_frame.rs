@@ -2,9 +2,9 @@ use std::fmt::Display;
 
 use bincode::{Decode, Encode};
 use na_seq::{
-    seq_complement, Nucleotide,
+    Nucleotide,
     Nucleotide::{A, G, T},
-    Seq,
+    Seq, seq_complement,
 };
 
 use crate::util::RangeIncl;

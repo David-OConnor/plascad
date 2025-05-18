@@ -1,9 +1,9 @@
 use bio::alignment::{
+    Alignment,
     distance::simd::{bounded_levenshtein, hamming, levenshtein},
     pairwise::Aligner,
-    Alignment,
 };
-use na_seq::{seq_aa_to_u8_lower, seq_to_u8_lower, AminoAcid, Nucleotide, Seq};
+use na_seq::{AminoAcid, Nucleotide, Seq, seq_aa_to_u8_lower, seq_to_u8_lower};
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum AlignmentMode {

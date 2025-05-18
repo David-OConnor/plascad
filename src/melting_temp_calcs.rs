@@ -10,8 +10,8 @@
 //! for QC TM, weight, and other properties. It includes detailed sources and methods.
 
 use na_seq::{
-    calc_gc,
     Nucleotide::{self, A, C, G, T},
+    calc_gc,
 };
 
 use crate::primer::{IonConcentrations, MIN_PRIMER_LEN};

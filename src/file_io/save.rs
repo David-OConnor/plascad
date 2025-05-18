@@ -11,22 +11,22 @@ use std::{
 };
 
 use bincode::{
-    config,
+    Decode, Encode, config,
     error::{DecodeError, EncodeError},
-    Decode, Encode,
 };
 use bio::io::fasta;
 use eframe::egui::Ui;
-use na_seq::{deser_seq_bin, seq_to_u8_lower, serialize_seq_bin, Nucleotide, Seq, SeqTopology};
+use na_seq::{Nucleotide, Seq, SeqTopology, deser_seq_bin, seq_to_u8_lower, serialize_seq_bin};
 
 use crate::{
+    Selection, SeqVisibility, StateUi,
     ab1::SeqRecordAb1,
     feature_db_load::find_features,
     file_io::{
+        GenericData,
         ab1::import_ab1,
         genbank::{export_genbank, import_genbank},
         snapgene::{export_snapgene, import_snapgene},
-        GenericData,
     },
     gui::{
         navigation::{Page, PageSeq, PageSeqTop, Tab},
@@ -37,7 +37,6 @@ use crate::{
     portions::PortionsState,
     primer::{IonConcentrations, Primer},
     state::State,
-    Selection, SeqVisibility, StateUi,
 };
 
 pub const QUICKSAVE_FILE: &str = "quicksave.pcad";
@@ -60,7 +59,7 @@ pub struct StateToSave {
     pub path_loaded: Option<PathBuf>,
 }
 
-impl Encode<> for GenericData {
+impl Encode for GenericData {
     fn encode<E: bincode::enc::Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
         // Serialize seq using our custom serializer
         let seq_data = serialize_seq_bin(&self.seq);

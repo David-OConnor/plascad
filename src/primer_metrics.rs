@@ -3,15 +3,15 @@
 use bincode::{Decode, Encode};
 use lin_alg::map_linear;
 use na_seq::{
-    calc_gc, Nucleotide,
+    Nucleotide,
     Nucleotide::{C, G},
+    calc_gc,
 };
 
 use crate::{
-    melting_temp_calcs,
-    primer::{IonConcentrations, Primer, TuneSetting, MIN_PRIMER_LEN},
+    TM_TARGET, melting_temp_calcs,
+    primer::{IonConcentrations, MIN_PRIMER_LEN, Primer, TuneSetting},
     util::remove_duplicates,
-    TM_TARGET,
 };
 
 /// Metrics related to primer quality.

@@ -12,7 +12,7 @@ use std::{
 };
 
 use bio::io::fastq;
-use na_seq::{seq_from_str, Seq};
+use na_seq::{Seq, seq_from_str};
 
 use crate::ab1::SeqRecordAb1;
 
@@ -146,7 +146,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         return Err(io::Error::new(
                             ErrorKind::InvalidData,
                             "Invalid PBAS sequence",
-                        ))
+                        ));
                     }
                 },
                 "PBAS2" => match tag_data {
@@ -157,7 +157,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         return Err(io::Error::new(
                             ErrorKind::InvalidData,
                             "Invalid PBAS sequence",
-                        ))
+                        ));
                     }
                 },
                 "PCON1" => {
@@ -171,7 +171,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                             return Err(io::Error::new(
                                 ErrorKind::InvalidData,
                                 "Invalid quality data",
-                            ))
+                            ));
                         }
                     }
                 }
@@ -187,7 +187,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                             return Err(io::Error::new(
                                 ErrorKind::InvalidData,
                                 "Invalid quality data",
-                            ))
+                            ));
                         }
                     }
                 }
@@ -204,7 +204,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         return Err(io::Error::new(
                             ErrorKind::InvalidData,
                             "Invalid peak location data",
-                        ))
+                        ));
                     }
                 },
                 "PLOC2" => match tag_data {
@@ -215,7 +215,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         return Err(io::Error::new(
                             ErrorKind::InvalidData,
                             "Invalid peak location data",
-                        ))
+                        ));
                     }
                 },
                 "DATA9" => match tag_data {
@@ -226,7 +226,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         return Err(io::Error::new(
                             ErrorKind::InvalidData,
                             "Invalid height data",
-                        ))
+                        ));
                     }
                 },
                 "DATA10" => match tag_data {
@@ -237,7 +237,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         return Err(io::Error::new(
                             ErrorKind::InvalidData,
                             "Invalid height data",
-                        ))
+                        ));
                     }
                 },
                 "DATA11" => match tag_data {
@@ -248,7 +248,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         return Err(io::Error::new(
                             ErrorKind::InvalidData,
                             "Invalid height data",
-                        ))
+                        ));
                     }
                 },
                 "DATA12" => match tag_data {
@@ -259,7 +259,7 @@ impl<R: Read + Seek> AbiIterator<R> {
                         return Err(io::Error::new(
                             ErrorKind::InvalidData,
                             "Invalid height data",
-                        ))
+                        ));
                     }
                 },
                 _ => {

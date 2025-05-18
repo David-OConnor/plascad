@@ -3,12 +3,12 @@
 use eframe::egui::{Pos2, Shape, Ui};
 
 use crate::{
+    Selection,
     gui::sequence::{feature_overlay, seq_view::SeqViewData},
     misc_types::FeatureType,
     primer::{Primer, PrimerDirection},
     util,
     util::RangeIncl,
-    Selection,
 };
 
 pub const STROKE_WIDTH: f32 = 2.;

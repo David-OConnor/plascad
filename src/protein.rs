@@ -2,16 +2,15 @@
 //! reading frames.
 
 use bincode::{Decode, Encode};
-use na_seq::{
-    amino_acids::{AminoAcid, CodingResult},
-    Nucleotide,
-};
-
 use bio_apis::rcsb::PdbData;
+use na_seq::{
+    Nucleotide,
+    amino_acids::{AminoAcid, CodingResult},
+};
 
 use crate::{
     misc_types::{Feature, FeatureType},
-    reading_frame::{find_orf_matches, ReadingFrame, ReadingFrameMatch},
+    reading_frame::{ReadingFrame, ReadingFrameMatch, find_orf_matches},
     state::State,
 };
 

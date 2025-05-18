@@ -7,7 +7,7 @@ use eframe::egui::{Color32, RichText, Ui};
 use na_seq::seq_to_str_lower;
 
 use crate::{
-    gui::{select_color_text, set_window_title, COL_SPACING, ROW_SPACING},
+    gui::{COL_SPACING, ROW_SPACING, select_color_text, set_window_title},
     state::State,
 };
 
@@ -130,8 +130,8 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
 
                 // todo: Apt state sync fn for this?
                 state.ui.seq_input = seq_to_str_lower(state.get_seq()); // todo: Move seq_input to an indexed vector?
-                                                                        // todo: Cache these instead?
-                                                                        // state.sync_seq_related(None);
+                // todo: Cache these instead?
+                // state.sync_seq_related(None);
             }
 
             if button.middle_clicked() {

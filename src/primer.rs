@@ -2,13 +2,13 @@
 
 use bincode::{Decode, Encode};
 use eframe::egui::Color32;
-use na_seq::{seq_complement, seq_from_str, seq_to_str_lower, seq_weight, Nucleotide, Seq};
+use na_seq::{Nucleotide, Seq, seq_complement, seq_from_str, seq_to_str_lower, seq_weight};
 
 use crate::{
-    gui::{primer_table::DEFAULT_TRIM_AMT, PRIMER_FWD_COLOR, PRIMER_REV_COLOR},
+    gui::{PRIMER_FWD_COLOR, PRIMER_REV_COLOR, primer_table::DEFAULT_TRIM_AMT},
     primer_metrics::PrimerMetrics,
     state::State,
-    util::{match_subseq, RangeIncl},
+    util::{RangeIncl, match_subseq},
 };
 
 // If a primer length is below this, many calculations will be disabled for it.

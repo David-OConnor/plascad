@@ -4,9 +4,8 @@
 //! PDB Data API: https://data.rcsb.org/#data-api
 
 use bio_apis::ncbi;
-use crate::{state::State, Selection};
 
-
+use crate::{Selection, state::State};
 
 /// BLAST the selected Feature, primer, or selection. Prioritize the selection.
 /// This function handles extracting the sequence to BLAST from possible selections.

@@ -5,7 +5,8 @@ use eframe::egui::{
 };
 
 use crate::{
-    gui::{int_field, theme::COLOR_ACTION, COL_SPACING, ROW_SPACING},
+    Color, Selection,
+    gui::{COL_SPACING, ROW_SPACING, int_field, theme::COLOR_ACTION},
     misc_types::{
         Feature,
         FeatureDirection::{self, Forward, Reverse},
@@ -13,7 +14,6 @@ use crate::{
     },
     state::State,
     util::RangeIncl,
-    Color, Selection,
 };
 
 const LABEL_EDIT_WIDTH: f32 = 140.;

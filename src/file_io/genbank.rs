@@ -16,10 +16,10 @@ use gb_io::{
     seq::{After, Before, Location},
     writer::SeqWriter,
 };
-use na_seq::{seq_complement, seq_to_u8_lower, Nucleotide, SeqTopology};
+use na_seq::{Nucleotide, SeqTopology, seq_complement, seq_to_u8_lower};
 
 use crate::{
-    file_io::{get_filename, GenericData},
+    file_io::{GenericData, get_filename},
     misc_types::{Feature, FeatureDirection, FeatureType, Metadata, Reference},
     primer::{Primer, PrimerData, PrimerDirection, PrimerMatch},
     util::RangeIncl,
@@ -293,7 +293,7 @@ pub fn export_genbank(
         }
 
         for note in &feature.notes {
-            qualifiers.push((note.0.clone().into(), Some(note.1.clone())));
+            qualifiers.push((note.0.to_owned().into(), Some(note.1.to_owned())));
         }
 
         match feature.direction {

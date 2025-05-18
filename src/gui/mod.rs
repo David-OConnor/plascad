@@ -21,13 +21,13 @@ use std::path::PathBuf;
 
 use eframe::{
     egui,
-    egui::{pos2, Color32, Context, RichText, TextEdit, ThemePreference, Ui, ViewportCommand},
+    egui::{Color32, Context, RichText, TextEdit, ThemePreference, Ui, ViewportCommand, pos2},
     emath::RectTransform,
 };
 use navigation::Page;
 
 use crate::{
-    external_websites,
+    Selection, external_websites,
     feature_db_load::find_features,
     gui::{
         input::handle_input, navigation::Tab, primer_table::primer_details, theme::COLOR_ACTION,
@@ -37,7 +37,6 @@ use crate::{
     state::State,
     util,
     util::{get_window_title, merge_feature_sets},
-    Selection,
 };
 
 mod ab1;

@@ -7,21 +7,21 @@
 //! todo: Allow users to enter custom backbones.
 
 use na_seq::{
-    insert_into_seq,
+    AminoAcid, CodingResult, Nucleotide, Seq, insert_into_seq,
     ligation::{filter_multiple_seqs, filter_unique_cutters, find_common_res},
-    restriction_enzyme::{find_re_matches, ReMatch, RestrictionEnzyme},
-    seq_to_str_lower, AminoAcid, CodingResult, Nucleotide, Seq,
+    restriction_enzyme::{ReMatch, RestrictionEnzyme, find_re_matches},
+    seq_to_str_lower,
 };
 
 use crate::{
+    Selection,
     backbones::Backbone,
     file_io::GenericData,
     gui::navigation::{Page, PageSeq},
     misc_types::{Feature, FeatureDirection, FeatureType},
-    primer::{make_cloning_primers, Primer},
+    primer::{Primer, make_cloning_primers},
     state::State,
     util::RangeIncl,
-    Selection,
 };
 
 /// Include this many nucleotides to the left, and right of each insert, when searching for RE sites.
@@ -313,7 +313,9 @@ fn tag_in_frame(
             // };
 
             if cr_start > tag_start {
-                eprintln!("Error with insert loc and tag end. Coding region start: {cr_start}, tag start: {tag_start}");
+                eprintln!(
+                    "Error with insert loc and tag end. Coding region start: {cr_start}, tag start: {tag_start}"
+                );
                 return Status::Fail;
             }
 

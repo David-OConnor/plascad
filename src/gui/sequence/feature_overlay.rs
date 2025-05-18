@@ -5,22 +5,22 @@
 use std::mem;
 
 use eframe::{
-    egui::{pos2, Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui},
+    egui::{Align2, Color32, FontFamily, FontId, Pos2, Shape, Stroke, Ui, pos2},
     epaint::PathShape,
 };
 
 use crate::{
+    Selection,
     gui::sequence::{
         primer_overlay::{HEIGHT, LABEL_OFFSET, SLANT_DIV2, STROKE_WIDTH},
-        seq_view::{SeqViewData, COLOR_CURSOR, NT_WIDTH_PX, SEQ_ROW_SPACING_PX},
+        seq_view::{COLOR_CURSOR, NT_WIDTH_PX, SEQ_ROW_SPACING_PX, SeqViewData},
     },
     misc_types::{
         Feature, FeatureDirection,
         FeatureDirection::{Forward, Reverse},
         FeatureType,
     },
-    util::{get_feature_ranges, RangeIncl},
-    Selection,
+    util::{RangeIncl, get_feature_ranges},
 };
 
 const VERTICAL_OFFSET_FEATURE: f32 = 18.; // A fudge factor?
