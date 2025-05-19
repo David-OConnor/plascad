@@ -14,4 +14,4 @@ cp icon.png ~/plascad/icon.png
 # Update the desktop entry with the absolute path.
 sed "s|~|$HOME|g" plascad.desktop > ~/.local/share/applications/plascad.desktop
 
-printf "\nComplete. You can launch PlasCAD through the GUI, eg search "PlasCAD", and/or add to favorites."\n"
+printf "\nComplete. You can launch PlasCAD through the GUI, eg search \"PlasCAD\", and/or add to favorites.\n"
