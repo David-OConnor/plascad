@@ -32,8 +32,7 @@ fn collect_files_in_directory(dir: &Path) -> Vec<PathBuf> {
 
     if dir.is_dir() {
         for entry in fs::read_dir(dir).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
+            let path = entry.unwrap().path();
             if path.is_file() {
                 files.push(path);
             }

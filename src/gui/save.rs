@@ -25,8 +25,6 @@ fn save_button(
     ui: &mut Ui,
 ) {
     if ui.button(text).on_hover_text(hover_text).clicked() {
-        // let mut save_path = env::current_dir().unwrap();
-
         let filename = {
             let name = if plasmid_name.is_empty() {
                 "a_plasmid".to_string()
