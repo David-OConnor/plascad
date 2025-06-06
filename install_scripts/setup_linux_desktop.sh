@@ -3,18 +3,33 @@
 NAME_UPPER="PlasCAD"
 NAME="plascad"
 
-printf "Moving the ${NAME_UPPER} executable and icon to ~/${NAME}..."
+APP_DIR="$HOME/${NAME}"
+DESKTOP_PATH="$HOME/.local/share/applications/${NAME}.desktop"
+
+
+printf "Moving the ${NAME_UPPER} executable and icon to ${APP_DIR}..."
 
 chmod +x $NAME
 
-if [ ! -d ~/${NAME} ]; then
-  mkdir ~/${NAME}
+if [ ! -d "$APP_DIR" ]; then
+  mkdir "$APP_DIR"
 fi
 
-cp ${NAME} ~/${NAME}
-cp icon.png ~/${NAME}/icon.png
+cp "$NAME" "$APP_DIR"
+cp icon.png "$APP_DIR/icon.png"
 
-# Update the desktop entry with the absolute path.
-sed "s|~|$HOME|g" ${NAME}.desktop > ~/.local/share/applications/${NAME}.desktop
+# We create a .desktop file dynamically here; one fewer file to manage.
+cat > "$DESKTOP_PATH" <<EOF
+[Desktop Entry]
+Name=${NAME_UPPER}
+Exec=${APP_DIR}/${NAME}
+Icon=${APP_DIR}/icon.png
+Type=Application
+Terminal=false
+Categories=Development;Science;Biology;
+Comment=Molecule and protein viewer
+EOF
 
-printf "\nComplete. You can launch ${NAME_UPPER} through the GUI, eg search \"${NAME_UPPER}\", and/or add to favorites.\n"
+chmod +x "$DESKTOP_PATH"
+
+printf "\nComplete. You can launch ${NAME_UPPER} through the GUI (e.g., search \"${NAME_UPPER}\") and/or add it to favorites.\n"

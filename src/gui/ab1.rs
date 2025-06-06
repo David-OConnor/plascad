@@ -1,5 +1,6 @@
 //! Contains code for viewing AB1 sequencing data, e.g. from Sanger sequencing.
 
+use bio_files::SeqRecordAb1;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::{
     egui::{
@@ -12,7 +13,6 @@ use eframe::{
 use na_seq::{Nucleotide, seq_to_str_lower};
 
 use crate::{
-    ab1::SeqRecordAb1,
     feature_db_load::find_features,
     file_io::GenericData,
     gui::{BACKGROUND_COLOR, COL_SPACING, ROW_SPACING},

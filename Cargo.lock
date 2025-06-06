@@ -498,9 +498,9 @@ dependencies = [
 
 [[package]]
 name = "bio"
-version = "2.2.0"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0875bce309de30d684a736aaf628bf9edbd3bdad896eb11b72a182155a5fb97f"
+checksum = "add46f280e82963d4abb6f2c78f491a1f45be23ba27516856a1efbf194107bb7"
 dependencies = [
  "anyhow",
  "approx",
@@ -523,7 +523,6 @@ dependencies = [
  "num-traits",
  "ordered-float 5.0.0",
  "petgraph",
- "rand 0.9.1",
  "regex",
  "serde",
  "serde_derive",
@@ -550,9 +549,12 @@ dependencies = [
 
 [[package]]
 name = "bio_apis"
-version = "0.1.1"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64a57f1e24827fa7266205b613ac6d39890d2e7f53841d078f71db4b85a74152"
 dependencies = [
  "bincode",
+ "flate2",
  "na_seq",
  "rand 0.9.1",
  "serde",
@@ -560,6 +562,18 @@ dependencies = [
  "ureq",
  "url",
  "webbrowser",
+]
+
+[[package]]
+name = "bio_files"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "bio",
+ "bio_apis",
+ "byteorder",
+ "lin_alg",
+ "na_seq",
 ]
 
 [[package]]
@@ -2093,7 +2107,9 @@ dependencies = [
 
 [[package]]
 name = "lin_alg"
-version = "1.1.8"
+version = "1.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4416dc886bb8f2ff92daeb7576b1b82f3aae4c9f8b6e7ed0447f98a0a55af5a"
 dependencies = [
  "num-traits",
 ]
@@ -2877,6 +2893,7 @@ dependencies = [
  "bincode",
  "bio",
  "bio_apis",
+ "bio_files",
  "chrono",
  "copypasta",
  "eframe",
@@ -3862,9 +3879,9 @@ checksum = "6d49784317cd0d1ee7ec5c716dd598ec5b4483ea832a2dced265471cc0f690ae"
 
 [[package]]
 name = "ureq"
-version = "3.0.5"
+version = "3.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2916852be768844b6e9cbe107358b5bc40a696bd6dc8e036c9f80c731242c9c"
+checksum = "b7a3e9af6113ecd57b8c63d3cd76a385b2e3881365f1f489e54f49801d0c83ea"
 dependencies = [
  "base64",
  "flate2",
@@ -3880,9 +3897,9 @@ dependencies = [
 
 [[package]]
 name = "ureq-proto"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c51fe73e1d8c4e06bb2698286f7e7453c6fc90528d6d2e7fc36bb4e87fe09b1"
+checksum = "fadf18427d33828c311234884b7ba2afb57143e6e7e69fda7ee883b624661e36"
 dependencies = [
  "base64",
  "http",

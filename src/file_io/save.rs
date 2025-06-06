@@ -11,20 +11,19 @@ use std::{
 };
 
 use bincode::{
-    Decode, Encode, config,
+    Decode, Encode,
     error::{DecodeError, EncodeError},
 };
 use bio::io::fasta;
+use bio_files::{SeqRecordAb1, import_ab1};
 use eframe::egui::Ui;
 use na_seq::{Nucleotide, Seq, SeqTopology, deser_seq_bin, seq_to_u8_lower, serialize_seq_bin};
 
 use crate::{
     Selection, SeqVisibility, StateUi,
-    ab1::SeqRecordAb1,
     feature_db_load::find_features,
     file_io::{
         GenericData,
-        ab1::import_ab1,
         genbank::{export_genbank, import_genbank},
         snapgene::{export_snapgene, import_snapgene},
     },

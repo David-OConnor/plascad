@@ -1,4 +1,4 @@
-// Disables the terminal window on Windows, in release mode.
+// Disables the terminal window. Use this for releases, and disable when debugging.
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
@@ -46,7 +46,6 @@ use crate::{
     util::{RangeIncl, get_window_title},
 };
 
-mod ab1;
 mod alignment;
 mod alignment_map;
 mod backbones;

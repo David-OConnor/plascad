@@ -6,6 +6,7 @@ use std::{
     time::Instant,
 };
 
+use bio_files::SeqRecordAb1;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::egui::Context;
 use na_seq::{
@@ -18,7 +19,6 @@ use na_seq::{
 
 use crate::{
     PREFS_SAVE_INTERVAL, Selection, StateUi,
-    ab1::SeqRecordAb1,
     alignment::AlignmentState,
     backbones::{Backbone, load_backbone_library},
     cloning::CloningState,
