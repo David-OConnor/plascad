@@ -1,6 +1,6 @@
 [package]
 name = "plascad"
-version = "0.7.8"
+version = "0.7.9"
 edition = "2024"
 authors = ["David O'Connor <the_alchemist@fastmail.com>"]
 #description = "Tools for plasmid and primer design, PCR, and related."
@@ -69,7 +69,7 @@ bgzip = "0.3.1"
 
 
 [patch.crates-io]
-na_seq = { path = "../na_seq" }
+#na_seq = { path = "../na_seq" }
 #lin_alg = { path = "../../lin_alg" }
 #bio_apis = { path = "../bio_apis" }
 

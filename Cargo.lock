@@ -567,6 +567,8 @@ dependencies = [
 [[package]]
 name = "bio_files"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cf46db3e3097a26f9ff2c4e9e553728a64a5de90a1cd773bf214ecbd081ba7e"
 dependencies = [
  "bincode",
  "bio",
@@ -2252,7 +2254,9 @@ dependencies = [
 
 [[package]]
 name = "na_seq"
-version = "0.2.7"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c477550885590e114cb72112404cecb658d672e01a5b262e53842f5241caa449"
 dependencies = [
  "bincode",
  "num_enum",
