@@ -68,7 +68,8 @@ pub fn find_his_tags(seq: &[Nucleotide]) -> Vec<Feature> {
             let nts = &seq_[i..i + 3];
 
             let mut matched = false;
-            if let CodingResult::AminoAcid(aa) = AminoAcid::from_codons(nts.try_into().unwrap()) {
+            if let CodingResult::AminoAcid(aa) = CodingResult::from_codons(nts.try_into().unwrap())
+            {
                 if aa == AminoAcid::His {
                     matched = true;
                 }

@@ -118,7 +118,7 @@ impl CloningState {
             // Trim off the stop codon at the end of the insert, A/R. This is quite specific.
             let insert_len = seq_insert.len();
             if self.remove_stop_codons
-                && AminoAcid::from_codons(seq_insert[insert_len - 3..].try_into().unwrap())
+                && CodingResult::from_codons(seq_insert[insert_len - 3..].try_into().unwrap())
                     == CodingResult::StopCodon
             {
                 *seq_insert = seq_insert[..insert_len - 3].try_into().unwrap();
@@ -329,7 +329,7 @@ fn tag_in_frame(
                     return Status::Fail;
                 }
 
-                if let CodingResult::StopCodon = AminoAcid::from_codons([
+                if let CodingResult::StopCodon = CodingResult::from_codons([
                     // Offset for 1-based indexing.
                     seq_product[i - 1],
                     seq_product[i + 0],

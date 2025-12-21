@@ -270,7 +270,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                             ];
                         }
 
-                        match AminoAcid::from_codons(codons) {
+                        match CodingResult::from_codons(codons) {
                             CodingResult::AminoAcid(aa) => {
                                 result.push(ui.ctx().fonts(|fonts| {
                                     Shape::text(

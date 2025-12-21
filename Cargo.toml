@@ -37,15 +37,15 @@ num_enum = "0.7.3"  # reversing a u8-repr.
 
 # For FASTA read and write. Note: We can ditch this for a custom parser; FASTA is easy.
 # Note, 2024-08-09: Removing this appears to have minimal impact on binary size.
-bio = "2.3.0"
-quick-xml = {version = "0.37.1", features = ["serialize"]}   # For Snapgene feature parsing and writing.
+bio = "3.0.0"
+quick-xml = {version = "0.38.4", features = ["serialize"]}   # For Snapgene feature parsing and writing.
 # For parsing and writing GenBank files. todo: This seems to have a lot of sub-deps; Increases binary size a bit.
 gb-io = "0.9.0"
 
 lin_alg = "1.1.8"
-na_seq = "0.2.5"
-bio_apis = { version = "0.1.0",features = ["encode"] }
-bio_files = { version = "0.1.0", features = ["encode"] }
+na_seq = "0.3.10"
+bio_apis = { version = "0.1.12",features = ["encode"] }
+bio_files = { version = "0.3.8", features = ["encode"] }
 
 # We use bincode for saving and loading to files using our custom format.
 bincode = "2.0.1"
@@ -55,13 +55,12 @@ serde_json = {version = "1.0.127"}
 
 # For clipboard operations not supported directly by EGUI
 copypasta = "0.10.1"
-#winreg = "0.52.0"  # For setting up file associations on Windows
 
 webbrowser = "1.0.1"
 # We use strum to iterate over enums.
 # todo: Check sup-deps/binary impact etc
 strum = "0.27.1"
-strum_macros = "0.27.1"
+strum_macros = "0.27.2"
 
 # We use Flate2 for decompressing BAM files. todo: Remove if you remove that functionality.
 flate2 = "1.1.1"

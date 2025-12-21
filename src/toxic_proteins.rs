@@ -45,7 +45,8 @@ fn check_glu_tracts(seq: &[Nucleotide]) -> ToxicStatus {
                 let nts = &seq_[i..i + 3];
 
                 // let mut matched = false;
-                if let CodingResult::AminoAcid(aa) = AminoAcid::from_codons(nts.try_into().unwrap())
+                if let CodingResult::AminoAcid(aa) =
+                    CodingResult::from_codons(nts.try_into().unwrap())
                 {
                     // Note: We are ignoring stop codons here.
                     aa_seq.push(aa)
