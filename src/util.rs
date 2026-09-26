@@ -209,7 +209,7 @@ pub fn get_feature_ranges(
 }
 
 pub fn color_from_hex(hex: &str) -> io::Result<Color> {
-    let hex = &hex[1..]; // Remove the leading #
+    let hex = hex.strip_prefix('#').unwrap_or(hex);
 
     if hex.len() < 6 {
         return Err(io::Error::new(ErrorKind::InvalidData, "Invalid color"));
@@ -226,7 +226,7 @@ pub fn color_from_hex(hex: &str) -> io::Result<Color> {
 }
 
 pub fn color_to_hex(color: Color) -> String {
-    format!("#{:x}{:x}{:x}", color.0, color.1, color.2)
+    format!("#{:02x}{:02x}{:02x}", color.0, color.1, color.2)
 }
 
 /// Change the origin. This involves updating the sequence, and all features.

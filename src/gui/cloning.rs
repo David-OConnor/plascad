@@ -98,7 +98,7 @@ fn insert_selector(data: &mut CloningInsertData, buffer: usize, ui: &mut Ui) -> 
             (0., Color32::WHITE)
         };
 
-        Frame::none()
+        Frame::new()
             .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
             .inner_margin(border_width)
             .show(ui, |ui| {

@@ -11,7 +11,6 @@ use crate::{
     primer::Primer,
 };
 
-mod ab1_tags;
 pub mod genbank;
 mod pcad;
 pub mod save;

@@ -8,7 +8,7 @@ use std::{
 
 use bio_files::SeqRecordAb1;
 use copypasta::{ClipboardContext, ClipboardProvider};
-use eframe::egui::Context;
+use eframe::egui::Ui;
 use na_seq::{
     Nucleotide, Seq, insert_into_seq,
     ligation::LigationFragment,
@@ -41,7 +41,7 @@ use crate::{
 impl eframe::App for State {
     /// This is the GUI's event loop. This also handles periodically saving preferences to disk.
     /// Note that preferences are only saved if the window is active, ie mouse movement in it or similar.
-    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
         // Note that if the window is
         static mut LAST_PREF_SAVE: Option<Instant> = None;
 
@@ -59,7 +59,7 @@ impl eframe::App for State {
             }
         }
 
-        gui::draw(self, ctx);
+        gui::draw(self, ui);
     }
 }
 

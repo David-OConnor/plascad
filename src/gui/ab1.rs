@@ -106,7 +106,7 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, start_i: usize, ui: &mut
 
         let nt_color = nt_color_map(nt);
 
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 to_screen * pos2(x_pos, nt_y),
@@ -156,7 +156,7 @@ fn plot(data: &SeqRecordAb1, to_screen: &RectTransform, start_i: usize, ui: &mut
             let bottom_left = base_pos + vec2(-PEAK_WIDTH_DIV2, 0.);
             let bottom_right = base_pos + vec2(PEAK_WIDTH_DIV2, 0.);
 
-            result.push(ui.ctx().fonts(|fonts| {
+            result.push(ui.ctx().fonts_mut(|fonts| {
                 // Shape::Path(PathShape::convex_polygon(
                 Shape::Path(PathShape::closed_line(
                     vec![

@@ -138,7 +138,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                 // todo: Allow viewing and copying fragment seqs, eg from selecting them.
 
                 // Draw info like fragment length inside the boxes.
-                shapes.push(ui.ctx().fonts(|fonts| {
+                shapes.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         to_screen * box_center,
@@ -150,7 +150,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                 }));
 
                 // Left, top
-                shapes.push(ui.ctx().fonts(|fonts| {
+                shapes.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         to_screen * label_pt_left_top,
@@ -162,7 +162,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                 }));
 
                 // Right, top
-                shapes.push(ui.ctx().fonts(|fonts| {
+                shapes.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         to_screen * label_pt_right_top,
@@ -174,7 +174,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                 }));
 
                 // Left, bottom
-                shapes.push(ui.ctx().fonts(|fonts| {
+                shapes.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         to_screen * label_pt_left_bottom,
@@ -186,7 +186,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                 }));
 
                 // Right, bottom
-                shapes.push(ui.ctx().fonts(|fonts| {
+                shapes.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         to_screen * label_pt_right_bottom,
@@ -202,7 +202,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
                 let enzyme_text_pos = to_screen * pos2(end_x + 50., row_px);
                 let source_name_text_pos = to_screen * pos2(end_x + 150., row_px);
 
-                shapes.push(ui.ctx().fonts(|fonts| {
+                shapes.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         enzyme_text_pos,
@@ -215,7 +215,7 @@ fn draw_graphics(products: &[LigationFragment], seq_len: usize, ui: &mut Ui) {
 
                 // Show the source name this fragment came from.
 
-                shapes.push(ui.ctx().fonts(|fonts| {
+                shapes.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         source_name_text_pos,

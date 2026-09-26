@@ -14,10 +14,12 @@ use bincode::{
     Decode, Encode,
     error::{DecodeError, EncodeError},
 };
-use bio::io::fasta;
-use bio_files::{SeqRecordAb1, import_ab1};
+use bio_files::{SeqRecordAb1, fasta::Fasta, import_ab1};
 use eframe::egui::Ui;
-use na_seq::{Nucleotide, Seq, SeqTopology, deser_seq_bin, seq_to_u8_lower, serialize_seq_bin};
+use na_seq::{
+    Nucleotide, SEQ_DESCRIPTION_KEY, Seq, SeqTopology, Sequence, SequenceData, deser_seq_bin,
+    serialize_seq_bin,
+};
 
 use crate::{
     Selection, SeqVisibility, StateUi,
@@ -222,43 +224,49 @@ pub fn load<T: Decode<()>>(path: &Path) -> io::Result<T> {
 
 /// Export a sequence in FASTA format.
 pub fn export_fasta(seq: &[Nucleotide], name: &str, path: &Path) -> io::Result<()> {
-    let file = File::create(path)?;
+    let mut record = Sequence::new(SequenceData::Dna(seq.to_vec()), name.to_owned());
+    record.metadata.insert(
+        SEQ_DESCRIPTION_KEY.to_owned(),
+        "A DNA export from PlasCAD".to_owned(),
+    );
 
-    let mut writer = fasta::Writer::new(file);
-
-    writer.write(
-        name,
-        Some("A DNA export from PlasCAD"),
-        seq_to_u8_lower(seq).as_slice(),
-    )?;
-
-    Ok(())
+    Fasta {
+        records: vec![record],
+        ..Default::default()
+    }
+    .save(path)
 }
 
-/// Import from a FASTA file. (Seq, plasmid name (id), description)
+/// Import from a FASTA file. (Seq, plasmid name (id), description). If the file contains several
+/// records, this returns the first.
 pub fn import_fasta(path: &Path) -> io::Result<(Seq, String, String)> {
-    let file = File::open(path)?;
+    // Load as nucleotides, rather than inferring the type: plasmids are DNA, and a short or
+    // ambiguous sequence could otherwise be read as a protein.
+    let text = std::fs::read_to_string(path)?;
+    let fasta = Fasta::new(&text, Some(na_seq::SeqType::Dna))?;
 
-    let mut records = fasta::Reader::new(file).records();
-
-    let mut result = Vec::new();
-
-    // todo: Do we want id, or description?
-    let mut id = String::new();
-    let mut description = String::new();
-
-    while let Some(Ok(record)) = records.next() {
-        for r in record.seq() {
-            result.push(Nucleotide::from_u8_letter(*r)?);
-            record.id().clone_into(&mut id); // Note that this overrides previous records, if applicable.
-            record
-                .desc()
-                .unwrap_or_default()
-                .clone_into(&mut description)
-        }
+    if fasta.skipped_residues > 0 {
+        eprintln!(
+            "Left out {} residues from the FASTA file that can't be represented, e.g. N.",
+            fasta.skipped_residues
+        );
     }
 
-    Ok((result, id, description))
+    let Some(record) = fasta.records.into_iter().next() else {
+        return Err(io::Error::new(
+            ErrorKind::InvalidData,
+            "No FASTA records found",
+        ));
+    };
+
+    let description = record.description().unwrap_or_default().to_owned();
+
+    let seq = match record.data {
+        SequenceData::Dna(s) | SequenceData::Rna(s) => s,
+        SequenceData::AminoAcid(_) => unreachable!(),
+    };
+
+    Ok((seq, record.name, description))
 }
 
 /// Save a new file, eg a cloning or PCR product.

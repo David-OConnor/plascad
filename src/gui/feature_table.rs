@@ -93,7 +93,7 @@ pub fn feature_table(state: &mut State, ui: &mut Ui) {
             }
         }
 
-        Frame::none()
+        Frame::new()
             .stroke(Stroke::new(border_width, Color32::LIGHT_RED))
             .inner_margin(border_width)
             .show(ui, |ui| {

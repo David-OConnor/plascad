@@ -184,7 +184,7 @@ fn draw_ticks(data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
                 Align2::LEFT_CENTER,
             )
         };
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 data.to_screen * label_pt,
@@ -194,7 +194,7 @@ fn draw_ticks(data: &CircleData, ui: &mut Ui) -> Vec<Shape> {
                 TICK_COLOR,
             )
         }));
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 data.to_screen * label_pt,
@@ -424,7 +424,7 @@ fn draw_features(
         // "At the moment this is somewhat tricky; you will need to first produce a ClippedShape with the
         // text you want in it. Then you can use ctx.tesselate() to turn this into a Mesh. Use the
         // rotate method on that mesh. Then you can draw that with the Painter"
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 data.to_screen * label_pt,
@@ -534,7 +534,7 @@ fn draw_primers(
                 )
             };
 
-            result.push(ui.ctx().fonts(|fonts| {
+            result.push(ui.ctx().fonts_mut(|fonts| {
                 Shape::text(
                     fonts,
                     data.to_screen * label_pt,
@@ -634,7 +634,7 @@ fn find_cursor_i(cursor_pos: Option<(f32, f32)>, data: &CircleData) -> Option<us
 
 /// Helper fn.
 fn draw_text(text: &str, pos: Pos2, font_size: f32, color: Color32, ui: &mut Ui) -> Shape {
-    ui.ctx().fonts(|fonts| {
+    ui.ctx().fonts_mut(|fonts| {
         Shape::text(
             fonts,
             pos,
@@ -695,7 +695,7 @@ fn draw_re_sites(
             label_pt.y += 22.;
         }
 
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 data.to_screen * label_pt,
@@ -749,7 +749,7 @@ fn draw_feature_text(feature: &Feature, data: &CircleData, ui: &mut Ui) -> Vec<S
             .take(max_len)
             .collect();
 
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 data.to_screen
@@ -894,7 +894,7 @@ fn _draw_mini_seq(data: &CircleData, state: &State, ui: &mut Ui) -> Vec<Shape> {
         let seq = &state.get_seq()[start..end];
         let seq_text = seq_to_str_lower(seq);
 
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 data.to_screen * OFFSET,
@@ -915,10 +915,10 @@ pub fn circle_page(state: &mut State, ui: &mut Ui) {
     // todo: ABility to select light mode, and other tools useful for publication.
     if !state.ui.hide_map_feature_editor {
         // Limit the top section height.
-        let screen_height = ui.ctx().available_rect().height();
+        let screen_height = ui.ctx().content_rect().height();
         let half_screen_height = screen_height / SPLIT_SCREEN_MAX_HEIGHT;
 
-        Frame::none().show(ui, |ui| {
+        Frame::new().show(ui, |ui| {
             ScrollArea::vertical()
                 .max_height(half_screen_height)
                 .show(ui, |ui| {

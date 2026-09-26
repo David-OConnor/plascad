@@ -121,7 +121,7 @@ fn draw_re_sites(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
         }
 
         // Add the label
-        let label = ui.ctx().fonts(|fonts| {
+        let label = ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 label_pos,
@@ -173,7 +173,7 @@ fn draw_seq_indexes(data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
 
         let text = range.start;
 
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 pos,
@@ -272,7 +272,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
 
                         match CodingResult::from_codons(codons) {
                             CodingResult::AminoAcid(aa) => {
-                                result.push(ui.ctx().fonts(|fonts| {
+                                result.push(ui.ctx().fonts_mut(|fonts| {
                                     Shape::text(
                                         fonts,
                                         pos,
@@ -285,7 +285,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
                                 }));
                             }
                             CodingResult::StopCodon => {
-                                result.push(ui.ctx().fonts(|fonts| {
+                                result.push(ui.ctx().fonts_mut(|fonts| {
                                     Shape::text(
                                         fonts,
                                         pos,
@@ -386,7 +386,7 @@ fn draw_nts(state: &State, data: &SeqViewData, ui: &mut Ui) -> Vec<Shape> {
             r
         };
 
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 pos,

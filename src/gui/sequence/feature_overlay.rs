@@ -228,7 +228,7 @@ pub fn feature_seq_overlay(
         Align2::LEFT_CENTER
     };
 
-    let label = ui.ctx().fonts(|fonts| {
+    let label = ui.ctx().fonts_mut(|fonts| {
         Shape::text(
             fonts,
             label_pos,

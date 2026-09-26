@@ -26,26 +26,20 @@ path = "src/main.rs"
 #path = "src/feature_db_builder.rs"
 
 [dependencies]
-eframe = "0.31.0"
-egui_extras = "0.31.0"  # For tables.
-egui-file-dialog = "0.10.0" #  For file dialogs.
+eframe = "0.36.2"
+egui_extras = "0.36.2"  # For tables.
+egui-file-dialog = "0.15.0" #  For file dialogs.
 
-chrono = "0.4.41"
+chrono = "0.4.45"
 
-serde = { version = "1.0.216", features = ["derive"] }
-num_enum = "0.7.3"  # reversing a u8-repr.
+serde = { version = "1.0.229", features = ["derive"] }
+num_enum = "0.7.6"  # reversing a u8-repr.
 
-# For FASTA read and write. Note: We can ditch this for a custom parser; FASTA is easy.
-# Note, 2024-08-09: Removing this appears to have minimal impact on binary size.
-bio = "3.0.0"
-quick-xml = {version = "0.38.4", features = ["serialize"]}   # For Snapgene feature parsing and writing.
-# For parsing and writing GenBank files. todo: This seems to have a lot of sub-deps; Increases binary size a bit.
-gb-io = "0.9.0"
 
-lin_alg = "1.1.8"
-na_seq = "0.3.10"
-bio_apis = { version = "0.1.12",features = ["encode"] }
-bio_files = { version = "0.3.8", features = ["encode"] }
+lin_alg = "1.4.3"
+na_seq = "0.3.15"
+bio_apis = { version = "0.3.0",features = ["encode"] }
+bio_files = { version = "0.5.3", features = ["encode"] }
 
 # We use bincode for saving and loading to files using our custom format.
 bincode = "2.0.1"
@@ -54,23 +48,24 @@ bincode = "2.0.1"
 serde_json = {version = "1.0.127"}
 
 # For clipboard operations not supported directly by EGUI
-copypasta = "0.10.1"
+copypasta = "0.10.2"
 
-webbrowser = "1.0.1"
+webbrowser = "1.2.4"
 # We use strum to iterate over enums.
 # todo: Check sup-deps/binary impact etc
-strum = "0.27.1"
-strum_macros = "0.27.2"
+strum = "0.28.0"
+strum_macros = "0.28.0"
 
 # We use Flate2 for decompressing BAM files. todo: Remove if you remove that functionality.
-flate2 = "1.1.1"
+flate2 = "1.1.10"
 bgzip = "0.3.1"
 
 
 [patch.crates-io]
-#na_seq = { path = "../na_seq" }
+na_seq = { path = "../na_seq" }
 #lin_alg = { path = "../../lin_alg" }
 #bio_apis = { path = "../bio_apis" }
+bio_files = { path = "../bio_files" }
 
 
 [build-dependencies]

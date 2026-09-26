@@ -21,7 +21,7 @@ use std::path::PathBuf;
 
 use eframe::{
     egui,
-    egui::{Color32, Context, RichText, TextEdit, ThemePreference, Ui, ViewportCommand, pos2},
+    egui::{Color32, RichText, TextEdit, ThemePreference, Ui, ViewportCommand, pos2},
     emath::RectTransform,
 };
 use navigation::Page;
@@ -273,15 +273,16 @@ pub fn set_window_title(tab: &Tab, ui: &mut Ui) {
     ui.ctx().send_viewport_cmd(ViewportCommand::Title(title));
 }
 
-pub fn draw(state: &mut State, ctx: &Context) {
+pub fn draw(state: &mut State, ui: &mut Ui) {
+    let ctx = ui.ctx().clone();
     ctx.options_mut(|o| o.theme_preference = ThemePreference::Dark);
 
-    egui::CentralPanel::default().show(ctx, |ui| {
+    egui::CentralPanel::default().show(ui, |ui| {
         handle_input(state, ui);
 
         // todo: This section DRY with seq viewx.
 
-        let mut visuals = ctx.style().visuals.clone();
+        let mut visuals = ctx.global_style().visuals.clone();
         // visuals.override_text_color = Some(Color32::from_rgb(255, 0, 0));
         visuals.override_text_color = Some(Color32::LIGHT_GRAY);
         ctx.set_visuals(visuals);

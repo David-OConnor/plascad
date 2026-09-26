@@ -96,7 +96,7 @@ fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
             for i in 0..NUM_X_TICKS {
                 let tick_v = data[0].0 + dr_nt * i;
 
-                x_axis.push(ui.ctx().fonts(|fonts| {
+                x_axis.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         to_screen * pos2(i as f32 / NUM_X_TICKS as f32 * width, x_axis_posit),
@@ -118,7 +118,7 @@ fn hydrophobicity_chart(data: &Vec<(usize, f32)>, ui: &mut Ui) {
             for i in 0..NUM_Y_TICKS {
                 let tick_v = -(-MAX_VAL + dr_nt * i as f32) as i8;
 
-                y_axis.push(ui.ctx().fonts(|fonts| {
+                y_axis.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         // to_screen * pos2(y_axis_posit, i as f32 / NUM_Y_TICKS as f32 * CHART_HEIGHT),

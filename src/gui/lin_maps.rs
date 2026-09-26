@@ -167,7 +167,7 @@ fn draw_features(
             // Draw the label after the shape.
             let label_pt = pos2(center_x, OFFSET.y + CENTER_Y);
 
-            result.push(ui.ctx().fonts(|fonts| {
+            result.push(ui.ctx().fonts_mut(|fonts| {
                 Shape::text(
                     fonts,
                     to_screen * label_pt,
@@ -265,7 +265,7 @@ fn draw_primers(
                 // let label_pt = pos2(center_x, Y_START + PRIMER_HEIGHT_DIV2 + label_v_offset);
                 let label_pt = pos2(center_x, OFFSET.y + CENTER_Y + label_v_offset);
 
-                result.push(ui.ctx().fonts(|fonts| {
+                result.push(ui.ctx().fonts_mut(|fonts| {
                     Shape::text(
                         fonts,
                         to_screen * label_pt,
@@ -331,7 +331,7 @@ fn draw_re_sites(
             label_pt.y += RE_HEIGHT + 8.;
         }
 
-        result.push(ui.ctx().fonts(|fonts| {
+        result.push(ui.ctx().fonts_mut(|fonts| {
             Shape::text(
                 fonts,
                 to_screen * label_pt,

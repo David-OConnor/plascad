@@ -1,6 +1,6 @@
 //! This module contains GUI code related to the sequence view.
 
-use eframe::egui::{Color32, Frame, RichText, ScrollArea, TextEdit, Ui, text::CursorRange};
+use eframe::egui::{Color32, Frame, RichText, ScrollArea, TextEdit, Ui, text::CCursorRange};
 use na_seq::{seq_complement, seq_from_str, seq_to_str_lower};
 
 // todo: monospace font for all seqs.
@@ -158,12 +158,12 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
     });
 
     // Limit the top section height.
-    let screen_height = ui.ctx().available_rect().height();
+    let screen_height = ui.ctx().content_rect().height();
     let half_screen_height = screen_height / SPLIT_SCREEN_MAX_HEIGHT;
 
     match state.ui.page_seq_top {
         PageSeqTop::Primers => {
-            Frame::none().show(ui, |ui| {
+            Frame::new().show(ui, |ui| {
                 ScrollArea::vertical()
                     .max_height(half_screen_height)
                     .id_salt(69)
@@ -171,7 +171,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             });
         }
         PageSeqTop::Features => {
-            Frame::none().show(ui, |ui| {
+            Frame::new().show(ui, |ui| {
                 ScrollArea::vertical()
                     .max_height(half_screen_height)
                     .id_salt(70)
@@ -204,7 +204,7 @@ pub fn seq_page(state: &mut State, ui: &mut Ui) {
             state.ui.text_edit_active = true; // Disable character entries in the sequence.
             response.request_focus();
 
-            output.cursor_range = Some(CursorRange::select_all(&output.galley));
+            output.cursor_range = Some(CCursorRange::select_all(&output.galley));
             // todo: Not working
         }
 

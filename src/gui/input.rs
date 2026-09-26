@@ -112,13 +112,11 @@ pub fn handle_input(state: &mut State, ui: &mut Ui) {
 
     ui.ctx().input(|ip| {
         // Check for file drop
-        if let Some(dropped_files) = ip.raw.dropped_files.first() {
-            if let Some(path) = &dropped_files.path {
-                if let Some(loaded) = load_import(path) {
-                    state.load(&loaded);
-                    reset_window_title = true;
-                }
-            }
+        if let Some(dropped_file) = ip.raw.dropped_files.first()
+            && let Some(loaded) = load_import(dropped_file.path())
+        {
+            state.load(&loaded);
+            reset_window_title = true;
         }
 
         handle_global(state, ip);
