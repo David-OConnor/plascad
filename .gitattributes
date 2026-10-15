@@ -1,0 +1,2 @@
+# Keep Bash scripts runnable in Linux and WSL after a Windows checkout.
+*.sh text eol=lf

@@ -15,7 +15,7 @@ Design software for plasmid (vector) and primer creation and validation. Edit pl
 
 
 Notes: 
-- On some Linux distros (eg Ubuntu), run `setup_linux_desktop.sh`, included in the zip, to create a Desktop GUI entry.
+- Optionally, run the *setup* script included in the zip to install PlasCAD and add it to your OS's launcher: `setup_plascad.bat` on Windows (Start menu entry), or `setup_plascad.sh` on Linux (desktop entry).
 - On Windows, the first time you run the program, you may get the message *"Microsoft Defender prevented an unrecognized app from starting"*. To bypass this, click *More info*, then *Run Anyway*.
 
 ### Mac
