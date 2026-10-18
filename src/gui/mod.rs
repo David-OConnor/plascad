@@ -40,6 +40,7 @@ use crate::{
 };
 
 mod ab1;
+mod about;
 mod alignment;
 mod circle;
 mod cloning;
@@ -414,6 +415,8 @@ pub fn draw(state: &mut State, ui: &mut Ui) {
             Page::Ab1 => ab1::ab1_page(state, ui),
         }
     });
+
+    about::about_window(state, &ctx);
 }
 
 pub fn select_color_text(text: &str, selected: bool) -> RichText {

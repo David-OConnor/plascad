@@ -155,6 +155,16 @@ pub fn tab_selector(state: &mut State, ui: &mut Ui) {
         {
             tab_removed = Some(state.active)
         };
+
+        ui.add_space(COL_SPACING);
+
+        if ui
+            .button("About")
+            .on_hover_text("Show this program's version, check for updates, and links to its home page and source code.")
+            .clicked()
+        {
+            state.ui.about = !state.ui.about;
+        }
     });
 
     if let Some(i) = tab_removed {

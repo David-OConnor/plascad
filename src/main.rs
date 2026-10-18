@@ -71,6 +71,10 @@ mod util;
 
 type Color = (u8, u8, u8); // RGB
 
+/// The application version, e.g. for the About popup. Cargo.toml's `[package] version` is the
+/// single place it's set; the `make_release` scripts read it from there too.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 // todo: Eventually, implement a system that automatically checks for changes, and don't
 // todo save to disk if there are no changes.
 const PREFS_SAVE_INTERVAL: u64 = 60; // Save user preferences this often, in seconds.
@@ -189,6 +193,12 @@ struct StateUi {
     backbone_filters: BackboneFilters,
     seq_edit_lock: bool,
     ab1_start_i: usize,
+    /// Program name, version, updates, and links.
+    about: bool,
+    /// Why the About window's "Open folder" button last failed, if it did.
+    about_folder_error: Option<String>,
+    /// Checking for, downloading, and installing a newer release, from the About window.
+    updater: software_manager::Updater,
 }
 
 impl Default for StateUi {
@@ -227,6 +237,9 @@ impl Default for StateUi {
             backbone_filters: Default::default(),
             seq_edit_lock: true,
             ab1_start_i: Default::default(),
+            about: false,
+            about_folder_error: None,
+            updater: Default::default(),
         }
     }
 }

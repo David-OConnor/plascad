@@ -60,6 +60,10 @@ strum_macros = "0.28.0"
 flate2 = "1.1.10"
 bgzip = "0.3.1"
 
+# Checking for, downloading, and installing new releases, from the About popup. Without its
+# default `gui` feature, which is the Software Manager application itself.
+software_manager = { path = "../../software_manager", default-features = false }
+
 
 [patch.crates-io]
 na_seq = { path = "../na_seq" }
