@@ -6,6 +6,8 @@ Cargo.lock
 *.iws
 workspace.xml
 
+# Releases
+*.zip
 
 # Saved file formats
 *.save
@@ -19,3 +21,6 @@ workspace.xml
 # I'm not sure what is generating these.
 *.rs~
 *.md~
+
+# Code signing config, read by win_exe_signing.ps1
+/signing_metadata.json

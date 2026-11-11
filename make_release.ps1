@@ -1,6 +1,14 @@
+param(
+    # Skip Authenticode signing. Unsigned builds are blocked by Smart App Control, and warned on by
+    # SmartScreen, so only use this for local test packages.
+    [switch]$Unsigned
+)
+
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $appName = "plascad"
+
+. (Join-Path $PSScriptRoot "win_exe_signing.ps1")
 
 Push-Location -LiteralPath $PSScriptRoot
 try {
@@ -22,6 +30,10 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "cargo build failed with exit code $LASTEXITCODE."
     }
+
+    # The setup script is staged into the build dir first, since signing modifies it.
+    $setup = Copy-ForSigning $setup $outDir
+    Invoke-Sign -Paths $exe, $setup -Unsigned:$Unsigned
 
     $payload = @($exe, $readme, $setup, $setupLauncher)
     foreach ($file in $payload) {
